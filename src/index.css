@@ -10,3 +10,56 @@ body,
   height: 100%;
   margin: 0;
 }
+
+.react-flow {
+  --xy-node-border-default: 1px solid #ededed;
+  --xy-node-border-radius-default: 8px;
+  --xy-node-background-color-default: #ffffff;
+  --xy-node-boxshadow-default: 0 3.54px 4.55px #00000005,
+    0 3.54px 4.55px #0000000d, 0 0.51px 1.01px #0000001a;
+  --xy-handle-background-color-default: #ffffff;
+  --xy-handle-border-color-default: #aaaaaa;
+}
+
+.react-flow .react-flow__node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 150px;
+  padding: 10px;
+  border: var(--xy-node-border-default);
+  border-radius: var(--xy-node-border-radius-default);
+  background: var(--xy-node-background-color-default);
+  box-shadow: var(--xy-node-boxshadow-default);
+  color: var(--xy-node-color, var(--xy-node-color-default));
+  font-size: 12px;
+  text-align: center;
+}
+
+.react-flow .react-flow__node.selectable:focus {
+  border-color: #d9d9d9;
+  box-shadow: 0 0 0 4px #e8e8e8;
+}
+
+.react-flow .react-flow__node.selectable:focus:active {
+  box-shadow: var(--xy-node-boxshadow-default);
+}
+
+.react-flow .react-flow__node.selectable:hover,
+.react-flow .react-flow__node.draggable:hover {
+  border-color: #c5c5c5;
+}
+
+.react-flow .react-flow__node.selectable.selected {
+  border-color: #f57dbd;
+  box-shadow: var(--xy-node-boxshadow-default);
+}
+
+.react-flow .react-flow__handle.connectionindicator:hover,
+.react-flow .react-flow__handle.connectionindicator:focus,
+.react-flow .react-flow__handle.connectingfrom,
+.react-flow .react-flow__handle.connectingto {
+  border-color: #000000;
+}

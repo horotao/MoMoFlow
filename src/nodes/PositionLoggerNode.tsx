@@ -11,15 +11,15 @@ export function PositionLoggerNode({
   const y = `${Math.round(positionAbsoluteY)}px`;
 
   return (
-    // We add this class to use the same styles as React Flow's default nodes.
-    <div className="react-flow__node-default">
+    <>
+      <Handle type="target" position={Position.Left} />
       {data.label && <div>{data.label}</div>}
 
       <div>
         {x} {y}
       </div>
 
-      <Handle type="source" position={Position.Bottom} />
-    </div>
+      <Handle type="source" position={Position.Right} />
+    </>
   );
 }
