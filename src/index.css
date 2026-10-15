@@ -38,6 +38,14 @@ body,
   text-align: center;
 }
 
+.react-flow__controls .color-mode-toggle {
+  order: -1;
+}
+
+.react-flow__controls .color-mode-toggle svg {
+  fill: none;
+}
+
 .react-flow .react-flow__node.selectable:focus {
   border-color: #d9d9d9;
   box-shadow: 0 0 0 4px #e8e8e8;
