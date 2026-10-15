@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -15,8 +15,6 @@ import {
   type OnConnectEnd,
 } from '@xyflow/react';
 
-import '@xyflow/react/dist/style.css';
-
 import { DevTools } from './components/DevTools';
 import { initialNodes, nodeTypes } from './nodes';
 import type { AppNode } from './nodes/types';
@@ -24,6 +22,10 @@ import { initialEdges, edgeTypes } from './edges';
 
 function Flow() {
   const [colorMode, setColorMode] = useState<'light' | 'dark'>('light');
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', colorMode === 'dark');
+  }, [colorMode]);
+
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { screenToFlowPosition } = useReactFlow<AppNode>();
