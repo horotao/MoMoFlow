@@ -17,6 +17,7 @@ import {
 import { DevTools } from './components/DevTools';
 import { initialNodes, nodeTypes } from './nodes';
 import type { AppNode } from './nodes/types';
+import { isTextNode, textVariableCount, variableHandleId, variableIndex } from './nodes/textVariables';
 import { defaultTextNodeText } from './nodes/defaults';
 import { initialEdges, edgeTypes } from './edges';
 
@@ -28,7 +29,7 @@ function Flow() {
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const { screenToFlowPosition } = useReactFlow<AppNode>();
+  const { screenToFlowPosition, getNodes, getEdges } = useReactFlow<AppNode>();
   const canvasRef = useRef<HTMLDivElement>(null);
   const addTextNode = useCallback(() => {
     const bounds = canvasRef.current?.getBoundingClientRect();
@@ -49,8 +50,15 @@ function Flow() {
     ]);
   }, [screenToFlowPosition, setNodes]);
   const onConnect: OnConnect = useCallback(
-    (connection) => setEdges((edges) => addEdge(connection, edges)),
-    [setEdges]
+    (connection) => {
+      setEdges((edges) => addEdge(connection, edges));
+      setNodes((currentNodes) => currentNodes.map((node) =>
+        node.id === connection.target && isTextNode(node)
+          ? { ...node, data: { ...node.data, variableCount: Math.max(node.data.variableCount ?? 0, variableIndex(connection.targetHandle) + 2) } }
+          : node,
+      ));
+    },
+    [setEdges, setNodes]
   );
 
   const onConnectEnd: OnConnectEnd = useCallback(
@@ -74,17 +82,21 @@ function Flow() {
         type: 'text',
         position: screenToFlowPosition({ x: pointer.clientX, y: pointer.clientY }),
         // Anchor the connecting handle at the release point in either direction.
-        origin: [fromSource ? 0 : 1, 0.5],
-        data: { text: defaultTextNodeText },
+        origin: [fromSource ? 0 : 1, 91 / 405],
+        data: { text: defaultTextNodeText, variableCount: fromSource ? 2 : 0 },
       };
 
-      setNodes((currentNodes) => [...currentNodes, newNode]);
+      setNodes((currentNodes) => [...currentNodes.map((node) =>
+        !fromSource && node.id === fromNode.id && isTextNode(node)
+          ? { ...node, data: { ...node.data, variableCount: Math.max(node.data.variableCount ?? 0, variableIndex(fromHandle.id) + 2) } }
+          : node,
+      ), newNode]);
       setEdges((currentEdges) => addEdge({
         id: `edge-${crypto.randomUUID()}`,
         source: fromSource ? fromNode.id : id,
         target: fromSource ? id : fromNode.id,
         sourceHandle: fromSource ? fromHandle.id : null,
-        targetHandle: fromSource ? null : fromHandle.id,
+        targetHandle: fromSource ? variableHandleId(0) : fromHandle.id,
       }, currentEdges));
     },
     [screenToFlowPosition, setNodes, setEdges],
@@ -94,14 +106,42 @@ function Flow() {
     <ReactFlow
       ref={canvasRef}
       colorMode={colorMode}
-      nodes={nodes}
+      nodes={nodes.map((node) => isTextNode(node) ? {
+        ...node,
+        style: { ...node.style, height: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
+      } : node)}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
-      edges={edges}
+      edges={edges.map((edge) => nodes.some((node) => isTextNode(node) && (node.id === edge.source || node.id === edge.target))
+        ? { ...edge, className: 'text-variable-edge' } : edge)}
       edgeTypes={edgeTypes}
       onEdgesChange={onEdgesChange}
+      isValidConnection={(connection) => {
+        const currentEdges = getEdges();
+        if (connection.source === connection.target) return false;
+        const target = getNodes().find((node) => node.id === connection.target);
+        if (target?.type === 'text' && currentEdges.some((edge) => edge.target === connection.target
+          && variableIndex(edge.targetHandle) === variableIndex(connection.targetHandle))) return false;
+        const pending = [connection.target];
+        const visited = new Set<string>();
+        while (pending.length) {
+          const id = pending.pop()!;
+          if (id === connection.source) return false;
+          if (visited.has(id)) continue;
+          visited.add(id);
+          pending.push(...currentEdges.filter((edge) => edge.source === id).map((edge) => edge.target));
+        }
+        return true;
+      }}
       onConnect={onConnect}
       onConnectEnd={onConnectEnd}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && !event.nativeEvent.isComposing) {
+          setNodes((currentNodes) => currentNodes.map((node) =>
+            isTextNode(node) && node.selected ? { ...node, selected: false } : node,
+          ));
+        }
+      }}
       fitView
     >
       <Background />
