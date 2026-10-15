@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
-  Position,
   useReactFlow,
   Background,
   Controls,
@@ -18,6 +17,7 @@ import {
 import { DevTools } from './components/DevTools';
 import { initialNodes, nodeTypes } from './nodes';
 import type { AppNode } from './nodes/types';
+import { defaultTextNodeText } from './nodes/defaults';
 import { initialEdges, edgeTypes } from './edges';
 
 function Flow() {
@@ -29,7 +29,25 @@ function Flow() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { screenToFlowPosition } = useReactFlow<AppNode>();
-  const nextNodeNumber = useRef(1);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const addTextNode = useCallback(() => {
+    const bounds = canvasRef.current?.getBoundingClientRect();
+    if (!bounds) return;
+
+    setNodes((currentNodes) => [
+      ...currentNodes.map((node) => ({ ...node, selected: false })),
+      {
+        id: `text-${crypto.randomUUID()}`,
+        type: 'text',
+        position: screenToFlowPosition({
+          x: bounds.left + bounds.width / 2,
+          y: bounds.top + bounds.height / 2,
+        }),
+        data: { text: defaultTextNodeText },
+        selected: true,
+      },
+    ]);
+  }, [screenToFlowPosition, setNodes]);
   const onConnect: OnConnect = useCallback(
     (connection) => setEdges((edges) => addEdge(connection, edges)),
     [setEdges]
@@ -49,17 +67,15 @@ function Flow() {
       const dropTarget = document.elementFromPoint(pointer.clientX, pointer.clientY);
       if (!dropTarget?.classList.contains('react-flow__pane')) return;
 
-      const id = `node-${crypto.randomUUID()}`;
+      const id = `text-${crypto.randomUUID()}`;
       const fromSource = fromHandle.type === 'source';
       const newNode: AppNode = {
         id,
-        type: 'default',
+        type: 'text',
         position: screenToFlowPosition({ x: pointer.clientX, y: pointer.clientY }),
         // Anchor the connecting handle at the release point in either direction.
         origin: [fromSource ? 0 : 1, 0.5],
-        data: { label: `Node ${nextNodeNumber.current++}` },
-        targetPosition: Position.Left,
-        sourcePosition: Position.Right,
+        data: { text: defaultTextNodeText },
       };
 
       setNodes((currentNodes) => [...currentNodes, newNode]);
@@ -76,6 +92,7 @@ function Flow() {
 
   return (
     <ReactFlow
+      ref={canvasRef}
       colorMode={colorMode}
       nodes={nodes}
       nodeTypes={nodeTypes}
@@ -91,6 +108,11 @@ function Flow() {
       <DevTools position="top-left" />
       <MiniMap />
       <Controls>
+        <ControlButton onClick={addTextNode} title="添加文本节点" aria-label="添加文本节点">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 4h16v3h-6.5v13h-3V7H4z" />
+          </svg>
+        </ControlButton>
         <ControlButton
           className="color-mode-toggle"
           onClick={() => setColorMode((mode) => mode === 'light' ? 'dark' : 'light')}

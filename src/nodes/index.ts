@@ -1,9 +1,17 @@
 import { Position, type NodeTypes } from '@xyflow/react';
 
 import { PositionLoggerNode } from './PositionLoggerNode';
+import { TextNode } from './TextNode';
 import type { AppNode } from './types';
+import { defaultTextNodeText } from './defaults';
 
 export const initialNodes: AppNode[] = [
+  {
+    id: 'text-1',
+    type: 'text',
+    position: { x: 320, y: 100 },
+    data: { text: defaultTextNodeText },
+  },
   {
     id: 'a',
     type: 'input',
@@ -34,6 +42,7 @@ export const initialNodes: AppNode[] = [
 ];
 
 export const nodeTypes = {
+  text: TextNode,
   'position-logger': PositionLoggerNode,
   // Add any of your custom nodes here!
 } satisfies NodeTypes;

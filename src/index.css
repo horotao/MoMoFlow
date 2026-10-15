@@ -6,6 +6,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Apply PingFang only to Chinese glyphs; Latin keeps the existing font stack. */
+@font-face {
+  font-family: 'Text Node Chinese';
+  src: local('PingFang SC'), local('PingFangSC-Regular');
+  font-weight: 400;
+  unicode-range: U+2E80-303F, U+3100-312F, U+31A0-31BF, U+3400-4DBF,
+    U+4E00-9FFF, U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF, U+20000-323AF;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -169,6 +178,89 @@
 
   .react-flow__controls .color-mode-toggle {
     order: -1;
+  }
+
+  .react-flow .react-flow__node-text {
+    width: 384px;
+    min-height: 384px;
+    max-height: 600px;
+    padding: 16px;
+    border-radius: 16px;
+    text-align: left;
+    font-family: 'Text Node Chinese', Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .text-node-content {
+    position: relative;
+    display: grid;
+    width: 100%;
+    min-height: 350px;
+    max-height: 566px;
+    overflow: hidden;
+  }
+
+  .text-node-measure,
+  .text-node-editor {
+    grid-area: 1 / 1;
+    padding: 0;
+    border: 0;
+    font: inherit;
+    letter-spacing: inherit;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .text-node-measure {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .text-node-editor {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    outline: none;
+    resize: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+    background: transparent;
+    color: inherit;
+  }
+
+  .text-node-editor:focus {
+    scrollbar-color: var(--muted-foreground) transparent;
+  }
+
+  .text-node-editor::-webkit-scrollbar {
+    width: 6px;
+    background: transparent;
+  }
+
+  .text-node-editor::-webkit-scrollbar-track,
+  .text-node-editor::-webkit-scrollbar-corner {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .text-node-editor::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  .text-node-editor:focus::-webkit-scrollbar-thumb {
+    background: var(--muted-foreground);
+  }
+
+  .text-node-editor::placeholder {
+    color: var(--muted-foreground);
   }
 
   .react-flow__controls .color-mode-toggle svg {

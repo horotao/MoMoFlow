@@ -1,0 +1,1 @@
+export const defaultTextNodeText = 'Hipster Sisyphus in light yellow jumpsuit and orange beanie pushing a giant orange icosahedron up a concrete ramp cropped by the frame. cloudless blue sky, negative space.';
