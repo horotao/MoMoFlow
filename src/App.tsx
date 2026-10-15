@@ -17,6 +17,7 @@ import {
 
 import '@xyflow/react/dist/style.css';
 
+import { DevTools } from './components/DevTools';
 import { initialNodes, nodeTypes } from './nodes';
 import type { AppNode } from './nodes/types';
 import { initialEdges, edgeTypes } from './edges';
@@ -85,6 +86,7 @@ function Flow() {
       fitView
     >
       <Background />
+      <DevTools position="top-left" />
       <MiniMap />
       <Controls>
         <ControlButton
