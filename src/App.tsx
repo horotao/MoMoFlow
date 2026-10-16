@@ -20,6 +20,7 @@ import { DevTools } from './components/DevTools';
 import { initialNodes, nodeTypes } from './nodes';
 import type { AppNode } from './nodes/types';
 import { isTextNode, textVariableCount, variableHandleId, variableIndex } from './nodes/textVariables';
+import { cloneTextNode } from './nodes/cloneTextNode';
 import { defaultTextNodeText } from './nodes/defaults';
 import { initialEdges, edgeTypes } from './edges';
 import { ConnectionLine } from './edges/ConnectionLine';
@@ -43,6 +44,22 @@ function Flow() {
   }, [setNodes, setEdges]);
   const history = useCanvasHistory(nodes, edges, restore);
   const canvasRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const pasteNode = (event: ClipboardEvent) => {
+      if (event.defaultPrevented || (event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return;
+      try {
+        const saved = JSON.parse(event.clipboardData?.getData('text/plain') ?? '');
+        if (saved.format !== 'momoflow-text-node' || saved.node?.type !== 'text'
+          || typeof saved.node.data?.text !== 'string'
+          || !Number.isFinite(saved.node.position?.x) || !Number.isFinite(saved.node.position?.y)) return;
+        const copy = cloneTextNode(saved.node);
+        event.preventDefault();
+        setNodes((current) => [...current.map((node) => ({ ...node, selected: false })), copy]);
+      } catch { /* Ordinary clipboard text belongs to the text editor. */ }
+    };
+    window.addEventListener('paste', pasteNode);
+    return () => window.removeEventListener('paste', pasteNode);
+  }, [setNodes]);
   const addTextNode = useCallback(() => {
     const bounds = canvasRef.current?.getBoundingClientRect();
     if (!bounds) return;
@@ -126,6 +143,9 @@ function Flow() {
       elementsSelectable={tool === 'select'}
       nodes={nodes.map((node) => isTextNode(node) ? {
         ...node,
+        draggable: !node.data.locked && tool === 'select',
+        deletable: !node.data.locked,
+        connectable: !node.data.locked && tool === 'select',
         style: { ...node.style, height: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
       } : node)}
       nodeTypes={nodeTypes}

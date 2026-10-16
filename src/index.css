@@ -481,3 +481,25 @@
 .canvas-tool-hand .react-flow__pane, .canvas-tool-hand .react-flow__node { cursor: grab; }
 .canvas-tool-hand .react-flow__pane:active { cursor: grabbing; }
 .canvas-tool-hand .react-flow__node > * { pointer-events: none; }
+
+/* Weavy-style node actions: compact rows, shortcut column and one divider. */
+.text-node-menu-root { position: relative; }
+.text-node-menu-trigger { cursor: pointer; border-radius: 4px; }
+.text-node-menu-trigger:hover, .text-node-menu-trigger[aria-expanded="true"] { background: var(--text-node-input); }
+.text-node-menu { position: absolute; top: calc(100% + 4px); left: 0; z-index: 30; width: 150px; padding: 8px 0; border-radius: 12px; background: var(--text-node-surface); box-shadow: 0 4px 12px #0003; overflow: hidden; }
+.dark .text-node-menu { background: #1e1e1e; }
+.text-node-menu.is-above { top: auto; bottom: calc(100% + 4px); }
+.text-node-menu.is-left { left: auto; right: 0; }
+.text-node-menu-item { display: flex; align-items: center; justify-content: space-between; width: calc(100% - 16px); height: 24px; margin: 0 8px; padding: 0 8px; border: 0; border-radius: 4px; background: transparent; color: var(--text-node-primary); font: 450 11px/16px 'Text Node Chinese', 'Text Node Inter', sans-serif; text-align: left; cursor: pointer; }
+.text-node-menu-item:hover:not(:disabled), .text-node-menu-item:focus-visible { background: var(--text-node-input); outline: none; }
+.text-node-menu-item:disabled { opacity: .4; cursor: default; }
+.text-node-menu-shortcut { color: var(--text-node-secondary); }
+.text-node-menu-delete { position: relative; margin-top: 17px; }
+.text-node-menu-delete::before { content: ''; position: absolute; left: -8px; right: -8px; top: -9px; height: 1px; background: var(--text-node-border); }
+.react-flow__node-text:has(.text-node-menu) { z-index: 1002 !important; }
+.text-node-title { min-width: 0; }
+.text-node-title > span:not(.text-node-icon) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.text-node-rename { width: 280px; border: 1px solid var(--text-node-border-selected); border-radius: 3px; padding: 0 3px; background: var(--text-node-input); color: var(--text-node-primary); font: inherit; outline: none; }
+.text-node-lock { font-size: 16px; }
+.text-node-button:disabled { opacity: .4; cursor: default; }
+.text-node-menu-error { position: absolute; right: 0; top: 32px; width: 210px; padding: 10px; background: var(--text-node-surface); color: var(--text-node-primary); box-shadow: 0 4px 12px #0003; font-size: 11px; z-index: 40; }

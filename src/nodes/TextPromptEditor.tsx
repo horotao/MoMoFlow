@@ -74,6 +74,8 @@ export function TextPromptEditor({ id, data, handles, editorRef }: {
     },
   });
 
+  useEffect(() => { editor?.setEditable(!data.locked); }, [editor, data.locked]);
+
   useEffect(() => {
     editorRef.current = editor;
     return () => { editorRef.current = null; };
