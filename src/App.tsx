@@ -14,6 +14,8 @@ import {
   type OnConnectEnd,
 } from '@xyflow/react';
 
+import { CanvasDock, type CanvasTool } from './components/CanvasDock';
+import { useCanvasHistory } from './components/useCanvasHistory';
 import { DevTools } from './components/DevTools';
 import { initialNodes, nodeTypes } from './nodes';
 import type { AppNode } from './nodes/types';
@@ -34,6 +36,12 @@ function Flow() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { screenToFlowPosition, getNodes, getEdges } = useReactFlow<AppNode>();
+  const [tool, setTool] = useState<CanvasTool>('select');
+  const restore = useCallback((snapshot: { nodes: AppNode[]; edges: typeof edges }) => {
+    setNodes(snapshot.nodes);
+    setEdges(snapshot.edges);
+  }, [setNodes, setEdges]);
+  const history = useCanvasHistory(nodes, edges, restore);
   const canvasRef = useRef<HTMLDivElement>(null);
   const addTextNode = useCallback(() => {
     const bounds = canvasRef.current?.getBoundingClientRect();
@@ -110,6 +118,12 @@ function Flow() {
     <ReactFlow
       ref={canvasRef}
       colorMode={colorMode}
+      className={`canvas-tool-${tool}`}
+      panOnDrag={tool === 'hand' ? true : [1, 2]}
+      selectionOnDrag={tool === 'select'}
+      nodesDraggable={tool === 'select'}
+      nodesConnectable={tool === 'select'}
+      elementsSelectable={tool === 'select'}
       nodes={nodes.map((node) => isTextNode(node) ? {
         ...node,
         style: { ...node.style, height: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
@@ -142,6 +156,14 @@ function Flow() {
       onConnect={onConnect}
       onConnectEnd={onConnectEnd}
       onKeyDown={(event) => {
+        if ((event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]') || event.nativeEvent.isComposing) return;
+        if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+          event.preventDefault();
+          if (event.shiftKey) history.redo(); else history.undo();
+        } else if (!event.metaKey && !event.ctrlKey && !event.altKey) {
+          if (event.key.toLowerCase() === 'v') setTool('select');
+          if (event.key.toLowerCase() === 'h') setTool('hand');
+        }
         if (event.key === 'Escape' && !event.nativeEvent.isComposing) {
           setNodes((currentNodes) => currentNodes.map((node) =>
             isTextNode(node) && node.selected ? { ...node, selected: false } : node,
@@ -151,9 +173,10 @@ function Flow() {
       fitView
     >
       <Background />
+      <CanvasDock tool={tool} onToolChange={setTool} colorMode={colorMode} {...history} />
       <DevTools position="top-left" />
       <MiniMap />
-      <Controls>
+      <Controls showInteractive={false}>
         <ControlButton onClick={addTextNode} title="添加文本节点" aria-label="添加文本节点">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 4h16v3h-6.5v13h-3V7H4z" />

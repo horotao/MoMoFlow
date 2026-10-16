@@ -443,3 +443,41 @@
 .connection-endpoint {
   fill: var(--xy-connectionline-stroke, var(--xy-connectionline-stroke-default));
 }
+
+.canvas-dock-panel { margin-bottom: 24px; }
+.canvas-dock {
+  --dock-surface: #fff;
+  --dock-border: #dcdce1;
+  --dock-primary: #29292e;
+  --dock-active: #29292e;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 8px;
+  border: 0.5px solid var(--dock-border);
+  border-radius: 13px;
+  background: var(--dock-surface);
+  color: var(--dock-primary);
+  box-shadow: 0 1px 3px #0000000d, 0 3px 8px #00000026;
+  font-family: 'Text Node Inter', sans-serif;
+}
+.dark .canvas-dock { --dock-surface: #2c2c2c; --dock-border: #444; --dock-primary: #fff; --dock-active: #fff; }
+.canvas-dock-tools, .canvas-dock-history { display: flex; align-items: center; height: 32px; gap: 8px; }
+.canvas-dock-history { gap: 4px; }
+.canvas-dock .canvas-dock-button { width: 32px; height: 32px; padding: 0; border: 0; border-radius: 5px; background: transparent; cursor: pointer; }
+.canvas-dock .canvas-dock-button:hover { background: var(--dock-border); }
+.canvas-dock .canvas-dock-button[aria-pressed='true'] { background: var(--dock-active); }
+.canvas-dock .canvas-dock-button:disabled { opacity: 0.4; }
+.canvas-dock img { flex-shrink: 0; max-width: none; pointer-events: none; }
+.canvas-dock-select[aria-pressed='false'] img, .canvas-dock-hand[aria-pressed='true'] img { filter: invert(1); }
+.canvas-dock-divider { width: 1px; height: 32px; background: var(--dock-border); }
+.canvas-dock-zoom { position: relative; display: flex; align-items: center; width: 65px; height: 48px; border-left: 1px solid var(--dock-border); }
+.canvas-dock .canvas-dock-zoom-trigger { display: flex; justify-content: space-between; gap: 0; width: 64px; height: 32px; padding: 0 4px 0 8px; border-radius: 5px; font-size: 11px; font-weight: 400; line-height: 16px; color: inherit; cursor: pointer; }
+.canvas-dock-zoom-menu { position: absolute; right: 0; bottom: 56px; width: 128px; padding: 6px; border: 1px solid var(--dock-border); border-radius: 10px; background: var(--dock-surface); box-shadow: 0 3px 12px #0003; }
+.canvas-dock-zoom-menu button { display: block; width: 100%; padding: 6px 8px; border-radius: 5px; text-align: left; font-size: 12px; cursor: pointer; }
+.canvas-dock-zoom-menu button:hover, .canvas-dock-zoom-menu button:focus-visible, .canvas-dock-zoom-menu button[aria-current] { background: var(--dock-border); }
+.canvas-tool-select .react-flow__pane { cursor: default; }
+.canvas-tool-hand .react-flow__pane, .canvas-tool-hand .react-flow__node { cursor: grab; }
+.canvas-tool-hand .react-flow__pane:active { cursor: grabbing; }
+.canvas-tool-hand .react-flow__node > * { pointer-events: none; }
