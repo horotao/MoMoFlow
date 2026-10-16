@@ -1,8 +1,9 @@
-import { Fragment, useEffect } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
 import { Handle, Position, useReactFlow, useNodes, useEdges, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 
-import { resolveTextValue, textVariableCount, variableHandleId, variableIndex } from './textVariables';
-import { defaultTextNodeText } from './defaults';
+import { textVariableCount, variableHandleId, variableIndex } from './textVariables';
+import type { Editor } from '@tiptap/react';
+import { TextPromptEditor } from './TextPromptEditor';
 import { TextDisplaySelect } from './TextDisplaySelect';
 import type { AppNode, TextNode as TextNodeType } from './types';
 
@@ -16,7 +17,7 @@ function TextNodeIcon({ name }: { name: 'text' | 'more' | 'add' | 'chevron' | 'p
 }
 
 export function TextNode({ id, data, isConnectable }: NodeProps<TextNodeType>) {
-  const { updateNodeData, updateNode } = useReactFlow<AppNode>();
+  const { updateNodeData } = useReactFlow<AppNode>();
 
   const nodes = useNodes<AppNode>();
   const edges = useEdges();
@@ -26,6 +27,7 @@ export function TextNode({ id, data, isConnectable }: NodeProps<TextNodeType>) {
   const displayMode = data.displayMode ?? 'source-value';
   const inputs = edges.filter((edge) => edge.target === id);
   const outputConnected = edges.some((edge) => edge.source === id);
+  const editorRef = useRef<Editor | null>(null);
   const connectedVariables = inputs.slice().sort((a, b) => variableIndex(a.targetHandle) - variableIndex(b.targetHandle));
 
   useEffect(() => {
@@ -40,36 +42,18 @@ export function TextNode({ id, data, isConnectable }: NodeProps<TextNodeType>) {
           <TextNodeIcon name="more" />
         </button>
       </header>
-      <div className={`text-node-content${inputs.length ? ' text-node-content-with-variables' : ''}`}>
-        {inputs.length > 0 && (
-          <div className="text-node-variables nodrag nopan nowheel">
-            {connectedVariables.map((edge) => (
-              <span className="text-node-variable" key={edge.id}>
-                {displayMode !== 'value' && <span className="text-node-variable-name">Variable {variableIndex(edge.targetHandle) + 1}{displayMode === 'source-value' ? ':' : ''}</span>}
-                {displayMode !== 'source' && <span>{resolveTextValue(edge.source, nodes, edges)}</span>}
-              </span>
-            ))}
-          </div>
-        )}
-        <textarea
-          className={`text-node-editor nodrag nopan nowheel${data.text !== defaultTextNodeText ? ' text-node-editor-authored' : ''}`}
-          aria-label="文本节点内容"
-          placeholder={inputs.length ? '' : '点击输入文字'}
-          value={inputs.length && data.text === defaultTextNodeText ? '' : data.text}
-          spellCheck={false}
-          onChange={(event) => updateNodeData(id, { text: event.target.value })}
-          onKeyDown={(event) => {
-            event.stopPropagation();
-            if (event.key === 'Escape' && !event.nativeEvent.isComposing) {
-              event.currentTarget.blur();
-              updateNode(id, { selected: false });
-            }
-          }}
-        />
-        {!inputs.length && data.text === defaultTextNodeText && <span className="text-node-tab" aria-hidden="true">Tab</span>}
+      <div className="text-node-content">
+        <TextPromptEditor id={id} data={data} editorRef={editorRef}
+          handles={connectedVariables.map((edge) => variableHandleId(variableIndex(edge.targetHandle)))} />
       </div>
       <footer className="text-node-footer">
-        <button className="text-node-button text-node-add nodrag nopan" type="button" title="添加变量" onClick={() => updateNodeData(id, { variableCount: variableCount + 1 })}>
+        <button className="text-node-button text-node-add nodrag nopan" type="button" title="添加变量" onClick={() => {
+          updateNodeData(id, { variableCount: variableCount + 1 });
+          editorRef.current?.chain().focus().insertContent([
+            { type: 'promptVariable', attrs: { handleId: variableHandleId(variableCount), ownerId: id } },
+            { type: 'text', text: ' ' },
+          ]).run();
+        }}>
           <TextNodeIcon name="add" />添加变量
         </button>
         {variableCount > 0 && <TextDisplaySelect value={displayMode} onChange={(mode) => updateNodeData(id, { displayMode: mode })}>

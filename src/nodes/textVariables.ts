@@ -1,6 +1,6 @@
 import type { Edge } from '@xyflow/react';
 import type { AppNode, TextNode } from './types';
-import { defaultTextNodeText } from './defaults';
+import { documentText } from './textDocument.ts';
 
 export const isTextNode = (node: AppNode): node is TextNode => node.type === 'text' && 'text' in node.data;
 
@@ -27,7 +27,12 @@ export function resolveTextValue(id: string, nodes: AppNode[], edges: Edge[], vi
   const nextVisited = new Set(visited).add(id);
   const inputs = edges.filter((edge) => edge.target === id)
     .sort((a, b) => variableIndex(a.targetHandle) - variableIndex(b.targetHandle));
-  const text = inputs.length && node.data.text === defaultTextNodeText ? '' : node.data.text;
-  return [...inputs.map((edge) => resolveTextValue(edge.source, nodes, edges, nextVisited)), text]
+  if (node.data.content) {
+    return documentText(node.data.content, (handleId) => {
+      const input = inputs.find((edge) => variableIndex(edge.targetHandle) === variableIndex(handleId));
+      return input ? resolveTextValue(input.source, nodes, edges, nextVisited) : '';
+    });
+  }
+  return [...inputs.map((edge) => resolveTextValue(edge.source, nodes, edges, nextVisited)), node.data.text]
     .filter(Boolean).join(' ');
 }

@@ -20,6 +20,10 @@ import type { AppNode } from './nodes/types';
 import { isTextNode, textVariableCount, variableHandleId, variableIndex } from './nodes/textVariables';
 import { defaultTextNodeText } from './nodes/defaults';
 import { initialEdges, edgeTypes } from './edges';
+import { ConnectionLine } from './edges/ConnectionLine';
+import { curveOptions } from './edges/curve';
+
+const defaultEdgeOptions = { type: 'default', pathOptions: curveOptions };
 
 function Flow() {
   const [colorMode, setColorMode] = useState<'light' | 'dark'>('light');
@@ -115,6 +119,8 @@ function Flow() {
       edges={edges.map((edge) => nodes.some((node) => isTextNode(node) && (node.id === edge.source || node.id === edge.target))
         ? { ...edge, className: 'text-variable-edge' } : edge)}
       edgeTypes={edgeTypes}
+      defaultEdgeOptions={defaultEdgeOptions}
+      connectionLineComponent={ConnectionLine}
       onEdgesChange={onEdgesChange}
       isValidConnection={(connection) => {
         const currentEdges = getEdges();

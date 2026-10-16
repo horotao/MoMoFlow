@@ -342,38 +342,50 @@
   padding: 16px;
   border: 0;
   outline: none;
-  resize: none;
   background: transparent;
-  color: var(--text-node-placeholder);
+  color: var(--text-node-primary);
   font: inherit;
+  font-size: 12px;
+  overflow-y: auto;
   overflow-wrap: anywhere;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
 }
 .text-node-editor:focus { scrollbar-color: var(--text-node-border) transparent; }
-.text-node-editor::placeholder { color: var(--text-node-placeholder); }
-.text-node-tab { position: absolute; left: 377px; top: 62px; width: 27.5px; height: 20px; border-radius: 3px; background: var(--text-node-border); color: var(--text-node-primary); text-align: center; font-size: 11px; line-height: 20px; pointer-events: none; }
-.text-node-content:focus-within .text-node-tab { display: none; }
+.text-node-editor-host { position: relative; height: 100%; }
+.text-node-editor-content { height: 100%; }
+.text-node-editor p { margin: 0; min-height: 22px; }
+.text-node-suggestion {
+  display: none;
+  position: absolute;
+  inset: 16px;
+  color: var(--text-node-placeholder);
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  user-select: none;
+}
+.text-node-editor-host:has(.is-editor-empty) .text-node-suggestion { display: block; }
+.text-node-suggestion kbd {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--text-node-border);
+  color: var(--text-node-primary);
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 20px;
+  vertical-align: baseline;
+}
+.text-node-variable-selected { outline: 1px solid var(--text-node-port); }
 .react-flow .react-flow__node-text .text-node-port { top: 89px; width: 32px; height: 32px; border: 0; background: transparent; }
 .react-flow .react-flow__node-text .react-flow__handle-left { left: -2px; }
 .react-flow .react-flow__node-text .react-flow__handle-right { right: -2px; }
-/* Edges end at the 32px handle bounds. Bridge the icon's 8px outer
-   padding so the line meets its ring without changing the hit area. */
-.text-node-port:has(.text-node-icon-port-connected)::after,
-.text-node-port.connectingfrom::after,
-.text-node-port.connectingto.valid::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  width: 8.5px;
-  height: 1px;
-  transform: translateY(-50%);
-  background: var(--text-node-port);
-  pointer-events: none;
-}
-.text-node-port.react-flow__handle-left::after { left: 0; }
-.text-node-port.react-flow__handle-right::after { right: 0; }
+/* Keep the icon's outer padding clear, as in Weavy. Edges terminate at
+   the 32px handle bounds without a separate segment bridging to the ring. */
 .text-node-port-label {
   position: absolute;
   top: 66px;
@@ -399,21 +411,10 @@
 .react-flow .react-flow__node-text { --text-node-variable-chip: #eddbf5; }
 .react-flow.dark .react-flow__node-text { --text-node-variable-chip: #59475e; }
 .text-node-content { flex: 1; min-height: 287px; }
-.text-node-editor-authored { color: var(--text-node-primary); font-size: 12px; }
-.text-node-content-with-variables { display: flex; flex-direction: column; }
-.text-node-variables {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 16px 16px 0;
-  max-height: 70%;
-  overflow: auto;
-  flex-shrink: 0;
-}
 .text-node-variable {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 2px;
+  display: inline;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
   padding: 0 4px;
   max-width: 100%;
   border-radius: 3px;
@@ -426,6 +427,19 @@
   overflow-wrap: anywhere;
 }
 .text-node-variable-name { color: var(--text-node-port); flex-shrink: 0; }
-.text-node-content-with-variables .text-node-editor { flex: 1; min-height: 40px; height: auto; padding-top: 4px; }
 .react-flow .text-variable-edge { --xy-edge-stroke: #b34bd1; --xy-edge-stroke-selected: #b34bd1; }
 .react-flow.dark .text-variable-edge { --xy-edge-stroke: #e28cf8; --xy-edge-stroke-selected: #e28cf8; }
+
+/* Weavy uses a quieter 2px completed edge and a 3px live preview. */
+.react-flow {
+  --xy-edge-stroke-width: 2;
+  --xy-connectionline-stroke-width: 3;
+}
+.react-flow .text-variable-edge .react-flow__edge-path { opacity: 0.64; }
+.react-flow .text-variable-edge:hover .react-flow__edge-path,
+.react-flow .text-variable-edge.selected .react-flow__edge-path { opacity: 1; }
+.text-variable-connection { --xy-connectionline-stroke: #b34bd1; }
+.dark .text-variable-connection { --xy-connectionline-stroke: #e28cf8; }
+.connection-endpoint {
+  fill: var(--xy-connectionline-stroke, var(--xy-connectionline-stroke-default));
+}
