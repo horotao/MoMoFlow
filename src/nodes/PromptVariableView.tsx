@@ -16,7 +16,7 @@ export function PromptVariableView({ node, selected }: NodeViewProps) {
     <NodeViewWrapper as="span" className={`text-node-variable${selected ? ' text-node-variable-selected' : ''}`}
       contentEditable={false} data-handle-id={node.attrs.handleId} style={{ whiteSpace: 'pre-wrap' }}>
       {mode !== 'value' && <span className="text-node-variable-name">Variable {index + 1}{mode === 'source-value' ? ': ' : ''}</span>}
-      {mode !== 'source' && <span>{value || '\u200b'}</span>}
+      {mode !== 'source' && <span>{value || 'None'}</span>}
     </NodeViewWrapper>
   );
 }
