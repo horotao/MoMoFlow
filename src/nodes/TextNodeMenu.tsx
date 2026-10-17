@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useReactFlow, useViewport } from '@xyflow/react';
+import { isFileNode } from './fileAsset';
 import { cloneTextNode } from './cloneTextNode';
 import { isTextNode } from './textVariables';
 import type { AppNode } from './types';
@@ -20,14 +21,18 @@ export function TextNodeMenu({ id, locked, onRename, children }: {
 
   const act = async (action: string) => {
     const node = getNode(id);
-    if (!node || !isTextNode(node)) return;
+    if (!node || (!isTextNode(node) && !isFileNode(node))) return;
     setError('');
     try {
       if (action === 'duplicate') {
-        const copy = cloneTextNode(node);
+        const copy: AppNode = isTextNode(node) ? cloneTextNode(node) : {
+          ...node, id: `file-${crypto.randomUUID()}`, selected: true,
+          position: { x: node.position.x + 40, y: node.position.y + 40 },
+          data: { ...node.data, locked: false },
+        };
         setNodes((nodes) => [...nodes.map((item) => ({ ...item, selected: false })), copy]);
       } else if (action === 'cut' && !locked) {
-        await navigator.clipboard.writeText(JSON.stringify({ format: 'momoflow-text-node', node }));
+        await navigator.clipboard.writeText(JSON.stringify({ format: node.type === 'file' ? 'momoflow-file-node' : 'momoflow-text-node', node }));
         await deleteElements({ nodes: [{ id }] });
       } else if (action === 'delete' && !locked) {
         await deleteElements({ nodes: [{ id }] });

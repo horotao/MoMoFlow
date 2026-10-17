@@ -7,6 +7,7 @@ import {
   Controls,
   ControlButton,
   MiniMap,
+  Panel,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -20,6 +21,8 @@ import { DevTools } from './components/DevTools';
 import { initialNodes, nodeTypes } from './nodes';
 import type { AppNode } from './nodes/types';
 import { isTextNode, textVariableCount, variableHandleId, variableIndex } from './nodes/textVariables';
+import { imagesFromDrop, isFileNode } from './nodes/fileAsset';
+import { fileOutputKind, filePortColors, isFileAsset } from './nodes/fileCollection';
 import { cloneTextNode } from './nodes/cloneTextNode';
 import { defaultTextNodeText } from './nodes/defaults';
 import { initialEdges, edgeTypes } from './edges';
@@ -38,6 +41,7 @@ function Flow() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const { screenToFlowPosition, getNodes, getEdges } = useReactFlow<AppNode>();
   const [tool, setTool] = useState<CanvasTool>('select');
+  const [importError, setImportError] = useState('');
   const restore = useCallback((snapshot: { nodes: AppNode[]; edges: typeof edges }) => {
     setNodes(snapshot.nodes);
     setEdges(snapshot.edges);
@@ -49,6 +53,21 @@ function Flow() {
       if (event.defaultPrevented || (event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return;
       try {
         const saved = JSON.parse(event.clipboardData?.getData('text/plain') ?? '');
+        if (saved.format === 'momoflow-file-node' && saved.node?.type === 'file'
+          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
+          const assets = saved.node.data?.assets ?? (saved.node.data?.asset ? [saved.node.data.asset] : []);
+          if (!Array.isArray(assets) || !assets.every(isFileAsset)) return;
+          event.preventDefault();
+          setNodes((current) => [...current.map((node) => ({ ...node, selected: false })), {
+            id: `file-${crypto.randomUUID()}`, type: 'file', selected: true,
+            position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 },
+            data: { label: typeof saved.node.data?.label === 'string' ? saved.node.data.label : undefined, assets,
+              activeAssetId: typeof saved.node.data?.activeAssetId === 'string' ? saved.node.data.activeAssetId : undefined,
+              viewMode: saved.node.data?.viewMode === 'all' ? 'all' : 'single',
+              orderBy: saved.node.data?.orderBy === 'name' ? 'name' : 'date' },
+          }]);
+          return;
+        }
         if (saved.format !== 'momoflow-text-node' || saved.node?.type !== 'text'
           || typeof saved.node.data?.text !== 'string'
           || !Number.isFinite(saved.node.position?.x) || !Number.isFinite(saved.node.position?.y)) return;
@@ -141,7 +160,10 @@ function Flow() {
       nodesDraggable={tool === 'select'}
       nodesConnectable={tool === 'select'}
       elementsSelectable={tool === 'select'}
-      nodes={nodes.map((node) => isTextNode(node) ? {
+      nodes={nodes.map((node) => isFileNode(node) ? {
+        ...node, draggable: !node.data.locked && tool === 'select',
+        deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select',
+      } : isTextNode(node) ? {
         ...node,
         draggable: !node.data.locked && tool === 'select',
         deletable: !node.data.locked,
@@ -150,8 +172,15 @@ function Flow() {
       } : node)}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
-      edges={edges.map((edge) => nodes.some((node) => isTextNode(node) && (node.id === edge.source || node.id === edge.target))
-        ? { ...edge, className: 'text-variable-edge' } : edge)}
+      edges={edges.map((edge) => {
+        const source = nodes.find((node) => node.id === edge.source);
+        const fileSource = source && isFileNode(source) ? source : undefined;
+        const textConnection = nodes.some((node) => isTextNode(node) && (node.id === edge.source || node.id === edge.target));
+        return fileSource || textConnection ? {
+          ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
+          style: { ...edge.style, ...(fileSource ? { stroke: filePortColors[fileOutputKind(fileSource.data)] } : {}) },
+        } : edge;
+      })}
       edgeTypes={edgeTypes}
       defaultEdgeOptions={defaultEdgeOptions}
       connectionLineComponent={ConnectionLine}
@@ -173,6 +202,31 @@ function Flow() {
         }
         return true;
       }}
+      onDragOver={(event) => {
+        const types = event.dataTransfer.types;
+        const internal = types.includes('application/x-momoflow-asset');
+        const external = types.includes('Files') || types.includes('text/uri-list') || types.includes('text/html');
+        if (!internal && !external) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = (event.target as HTMLElement).classList.contains('react-flow__pane')
+          ? internal ? 'move' : 'copy' : 'none';
+      }}
+      onDrop={(event) => {
+        const transfer = event.dataTransfer;
+        if (transfer.types.includes('application/x-momoflow-asset')) { event.preventDefault(); return; }
+        if (!transfer.types.some((type) => ['Files', 'text/uri-list', 'text/html'].includes(type))) return;
+        // Never let a file drop navigate the browser. File-node media handles its own drops.
+        event.preventDefault();
+        if (!(event.target as HTMLElement).classList.contains('react-flow__pane')) return;
+        const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+        const { assets, errors } = imagesFromDrop(transfer);
+        setImportError(errors.join(' '));
+        if (!assets.length) return;
+        setNodes((current) => [...current.map((node) => ({ ...node, selected: false })), {
+          id: `file-${crypto.randomUUID()}`, type: 'file', position, selected: true,
+          data: { assets, activeAssetId: assets[0].id },
+        }]);
+      }}
       onConnect={onConnect}
       onConnectEnd={onConnectEnd}
       onKeyDown={(event) => {
@@ -186,17 +240,29 @@ function Flow() {
         }
         if (event.key === 'Escape' && !event.nativeEvent.isComposing) {
           setNodes((currentNodes) => currentNodes.map((node) =>
-            isTextNode(node) && node.selected ? { ...node, selected: false } : node,
+            (isTextNode(node) || node.type === 'file') && node.selected ? { ...node, selected: false } : node,
           ));
         }
       }}
       fitView
     >
       <Background />
+      {importError && <Panel position="top-center" className="canvas-import-error" role="alert">
+        <span>{importError}</span><button type="button" aria-label="Dismiss import error" onClick={() => setImportError('')}>×</button>
+      </Panel>}
       <CanvasDock tool={tool} onToolChange={setTool} colorMode={colorMode} {...history} />
       <DevTools position="top-left" />
       <MiniMap />
       <Controls showInteractive={false}>
+        <ControlButton title="添加 File 节点" aria-label="添加 File 节点" onClick={() => {
+          const bounds = canvasRef.current?.getBoundingClientRect();
+          if (!bounds) return;
+          const center = screenToFlowPosition({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 });
+          setNodes((current) => [...current.map((node) => ({ ...node, selected: false })), {
+            id: `file-${crypto.randomUUID()}`, type: 'file', selected: true,
+            position: { x: center.x - 230, y: center.y - 279 }, data: {},
+          }]);
+        }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" style={{ fill: 'none' }} aria-hidden="true"><path d="M13 3H5v18h14V9zM13 3v6h6M8 15h8m-4-4v8" /></svg></ControlButton>
         <ControlButton onClick={addTextNode} title="添加文本节点" aria-label="添加文本节点">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 4h16v3h-6.5v13h-3V7H4z" />

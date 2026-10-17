@@ -22,7 +22,7 @@ export function textVariableCount(node: AppNode, edges: Edge[]) {
 export function resolveTextValue(id: string, nodes: AppNode[], edges: Edge[], visited = new Set<string>()): string {
   if (visited.has(id)) return '';
   const node = nodes.find((item) => item.id === id);
-  if (!node) return '';
+  if (!node || node.type === 'file') return '';
   if (!isTextNode(node)) return 'label' in node.data && typeof node.data.label === 'string' ? node.data.label : '';
   const nextVisited = new Set(visited).add(id);
   const inputs = edges.filter((edge) => edge.target === id)

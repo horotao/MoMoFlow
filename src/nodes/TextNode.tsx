@@ -2,6 +2,8 @@ import { LockKeyhole } from 'lucide-react';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Handle, Position, useReactFlow, useNodes, useEdges, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 
+import { isFileNode } from './fileAsset';
+import { fileAssets } from './fileCollection';
 import { textVariableCount, variableHandleId, variableIndex } from './textVariables';
 import type { Editor } from '@tiptap/react';
 import { TextPromptEditor } from './TextPromptEditor';
@@ -82,10 +84,14 @@ export function TextNode({ id, data, isConnectable }: NodeProps<TextNodeType>) {
       </footer>
       {Array.from({ length: variableCount }, (_, index) => {
         const connected = inputs.some((edge) => variableIndex(edge.targetHandle) === index);
+        const invalid = inputs.some((edge) => {
+          const source = nodes.find((node) => node.id === edge.source);
+          return variableIndex(edge.targetHandle) === index && source && isFileNode(source) && fileAssets(source.data).length > 0;
+        });
         return (
           <Fragment key={variableHandleId(index)}>
             <span className="text-node-port-label text-node-port-label-input" style={{ top: 66 + index * 60 }}>Variable {index + 1}</span>
-            <Handle className="text-node-port" id={variableHandleId(index)} type="target" position={Position.Left}
+            <Handle className={`text-node-port${invalid ? ' is-type-error' : ''}`} title={invalid ? 'Incompatible types: this input accepts text, not media.' : undefined} id={variableHandleId(index)} type="target" position={Position.Left}
               style={{ top: 89 + index * 60 }} isConnectable={isConnectable && !connected} aria-label={`Variable ${index + 1}`}>
               <TextNodeIcon name={connected ? 'port-connected' : 'port'} />
             </Handle>
