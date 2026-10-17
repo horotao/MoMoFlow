@@ -32,7 +32,7 @@ import { curveOptions } from './edges/curve';
 const defaultEdgeOptions = { type: 'default', pathOptions: curveOptions };
 
 function Flow() {
-  const [colorMode, setColorMode] = useState<'light' | 'dark'>('light');
+  const [colorMode, setColorMode] = useState<'light' | 'dark'>('dark');
   useEffect(() => {
     document.documentElement.classList.toggle('dark', colorMode === 'dark');
   }, [colorMode]);
