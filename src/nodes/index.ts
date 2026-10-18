@@ -1,3 +1,4 @@
+import { ImageDescriberNode, ModelInputNode } from './ImageDescriberNode';
 import type { NodeTypes } from '@xyflow/react';
 
 import { PositionLoggerNode } from './PositionLoggerNode';
@@ -9,6 +10,8 @@ export const initialNodes: AppNode[] = [];
 
 export const nodeTypes = {
   text: TextNode,
+  'image-describer': ImageDescriberNode,
+  'model-input': ModelInputNode,
   file: FileNode,
   'position-logger': PositionLoggerNode,
   // Add any of your custom nodes here!

@@ -15,10 +15,13 @@ import {
   type OnConnectEnd,
 } from '@xyflow/react';
 
+import { DescriberPanel } from './components/DescriberPanel';
+import { defaultInstructions } from './nodes/describer';
 import { CanvasDock, type CanvasTool } from './components/CanvasDock';
 import { useCanvasHistory } from './components/useCanvasHistory';
 import { DevTools } from './components/DevTools';
 import { initialNodes, nodeTypes } from './nodes';
+import { isDescriberNode } from './nodes/types';
 import type { AppNode } from './nodes/types';
 import { isTextNode, textVariableCount, variableHandleId, variableIndex } from './nodes/textVariables';
 import { imagesFromDrop, isFileNode } from './nodes/fileAsset';
@@ -66,6 +69,16 @@ function Flow() {
               viewMode: saved.node.data?.viewMode === 'all' ? 'all' : 'single',
               orderBy: saved.node.data?.orderBy === 'name' ? 'name' : 'date' },
           }]);
+          return;
+        }
+        if (['image-describer', 'model-input'].includes(saved.node?.type) && saved.format === `momoflow-${saved.node.type}-node`
+          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y) && typeof saved.node.data?.model === 'string') {
+          const { type, data, position } = saved.node;
+          if (type === 'image-describer' && (typeof data.text !== 'string' || typeof data.instructions !== 'string' || !Number.isInteger(data.imageInputs) || data.imageInputs < 1)) return;
+          const copy: AppNode = { id: crypto.randomUUID(), type, selected: true, position: { x: position.x + 40, y: position.y + 40 },
+            data: type === 'model-input' ? { model: data.model, options: Array.isArray(data.options) ? data.options.filter((v: unknown) => typeof v === 'string') : undefined } : { model: data.model, text: data.text, instructions: data.instructions, imageInputs: data.imageInputs, exposed: [] } } as AppNode;
+          event.preventDefault();
+          setNodes((current) => [...current.map((node) => ({ ...node, selected: false })), copy]);
           return;
         }
         if (saved.format !== 'momoflow-text-node' || saved.node?.type !== 'text'
@@ -123,6 +136,7 @@ function Flow() {
       const dropTarget = document.elementFromPoint(pointer.clientX, pointer.clientY);
       if (!dropTarget?.classList.contains('react-flow__pane')) return;
 
+      if (fromNode.type === 'image-describer' && fromHandle.type === 'target') return;
       const id = `text-${crypto.randomUUID()}`;
       const fromSource = fromHandle.type === 'source';
       const newNode: AppNode = {
@@ -168,14 +182,14 @@ function Flow() {
         draggable: !node.data.locked && tool === 'select',
         deletable: !node.data.locked,
         connectable: !node.data.locked && tool === 'select',
-        style: { ...node.style, height: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
-      } : node)}
+        style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
+      } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
       edges={edges.map((edge) => {
         const source = nodes.find((node) => node.id === edge.source);
         const fileSource = source && isFileNode(source) ? source : undefined;
-        const textConnection = nodes.some((node) => isTextNode(node) && (node.id === edge.source || node.id === edge.target));
+        const textConnection = nodes.some((node) => (isTextNode(node) || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
         return fileSource || textConnection ? {
           ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
           style: { ...edge.style, ...(fileSource ? { stroke: filePortColors[fileOutputKind(fileSource.data)] } : {}) },
@@ -189,6 +203,14 @@ function Flow() {
         const currentEdges = getEdges();
         if (connection.source === connection.target) return false;
         const target = getNodes().find((node) => node.id === connection.target);
+        if (target?.type === 'model-input') return false;
+        if (target?.type === 'image-describer') {
+          if (currentEdges.some((e) => e.target === target.id && e.targetHandle === connection.targetHandle)) return false;
+          const source = getNodes().find((n) => n.id === connection.source);
+          if (connection.targetHandle?.startsWith('image-')) {
+            if (source?.type !== 'file' || fileOutputKind(source.data) !== 'image') return false;
+          } else if (!source || !['text', 'model-input', 'image-describer'].includes(source.type ?? '')) return false;
+        }
         if (target?.type === 'text' && currentEdges.some((edge) => edge.target === connection.target
           && variableIndex(edge.targetHandle) === variableIndex(connection.targetHandle))) return false;
         const pending = [connection.target];
@@ -240,13 +262,14 @@ function Flow() {
         }
         if (event.key === 'Escape' && !event.nativeEvent.isComposing) {
           setNodes((currentNodes) => currentNodes.map((node) =>
-            (isTextNode(node) || node.type === 'file') && node.selected ? { ...node, selected: false } : node,
+            node.selected ? { ...node, selected: false } : node,
           ));
         }
       }}
       fitView
     >
       <Background />
+      <DescriberPanel />
       {importError && <Panel position="top-center" className="canvas-import-error" role="alert">
         <span>{importError}</span><button type="button" aria-label="Dismiss import error" onClick={() => setImportError('')}>×</button>
       </Panel>}
@@ -254,6 +277,12 @@ function Flow() {
       <DevTools position="top-left" />
       <MiniMap />
       <Controls showInteractive={false}>
+        <ControlButton title="添加 Image Describer" aria-label="添加 Image Describer" onClick={() => {
+          const bounds = canvasRef.current?.getBoundingClientRect();
+          if (!bounds) return;
+          const position = screenToFlowPosition({ x: bounds.left + bounds.width / 2 - 230, y: bounds.top + bounds.height / 2 - 200 });
+          setNodes((all) => [...all.map((n) => ({ ...n, selected: false })), { id: crypto.randomUUID(), type: 'image-describer', selected: true, position, data: { text: '', model: 'google/gemini-3-pro', instructions: defaultInstructions, imageInputs: 1 } }]);
+        }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ fill: 'none' }}><rect x="3" y="3" width="13" height="13" rx="2" /><path d="m4 13 4-4 6 6m2-5h5v11H10v-4M13 3v3" /></svg></ControlButton>
         <ControlButton title="添加 File 节点" aria-label="添加 File 节点" onClick={() => {
           const bounds = canvasRef.current?.getBoundingClientRect();
           if (!bounds) return;

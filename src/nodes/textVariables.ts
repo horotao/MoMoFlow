@@ -23,6 +23,8 @@ export function resolveTextValue(id: string, nodes: AppNode[], edges: Edge[], vi
   if (visited.has(id)) return '';
   const node = nodes.find((item) => item.id === id);
   if (!node || node.type === 'file') return '';
+  if (node.type === 'image-describer' && 'text' in node.data) return node.data.text;
+  if (node.type === 'model-input' && 'model' in node.data) return node.data.model;
   if (!isTextNode(node)) return 'label' in node.data && typeof node.data.label === 'string' ? node.data.label : '';
   const nextVisited = new Set(visited).add(id);
   const inputs = edges.filter((edge) => edge.target === id)
