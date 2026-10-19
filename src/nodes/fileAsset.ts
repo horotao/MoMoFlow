@@ -1,3 +1,4 @@
+import { assetResources } from './assetResources';
 import type { AppNode, FileNode, FileAsset } from './types';
 
 export const fileAccept = '.jpg,.jpeg,.png,.webp,.gif,.heic,.avif,.webm,.mp4,.mov,.mp3,.wav,.ogg,.m4a,.glb,.obj,.fbx,.ply';
@@ -25,9 +26,7 @@ export function assetFromFile(file: File): FileAsset {
   const kind = fileKind(file.name, file.type);
   if (!kind) throw new Error('Unsupported file. Choose an image, video, audio or 3D file.');
   if (file.size > 100 * 1024 * 1024) throw new Error('Choose a file smaller than 100 MB.');
-  // Keep object URLs alive for this page session: deleted/replaced assets can be
-  // restored by canvas history. The browser releases them on document unload.
-  return { id: crypto.randomUUID(), name: file.name, kind, url: URL.createObjectURL(file), size: file.size };
+  return { id: crypto.randomUUID(), name: file.name, kind, url: assetResources.create(file), size: file.size };
 }
 
 export const isFileNode = (node: AppNode): node is FileNode => node.type === 'file';

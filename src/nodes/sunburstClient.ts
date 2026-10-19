@@ -1,3 +1,4 @@
+import { assetResources } from './assetResources.ts';
 import type { FileAsset } from './types';
 import type { SunburstRequest } from './sunburst';
 
@@ -54,6 +55,5 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
   const bitmap = await createImageBitmap(blob);
   const dimensions = { width: bitmap.width, height: bitmap.height }; bitmap.close();
   signal.throwIfAborted();
-  // Object URLs live with canvas history, just like imported File assets.
-  return { id: crypto.randomUUID(), name: `Sunburst-${Date.now()}.${result.format}`, kind: 'image', url: URL.createObjectURL(blob), size: blob.size, ...dimensions };
+  return { id: crypto.randomUUID(), name: `Sunburst-${Date.now()}.${result.format}`, kind: 'image', url: assetResources.create(blob), size: blob.size, ...dimensions };
 }

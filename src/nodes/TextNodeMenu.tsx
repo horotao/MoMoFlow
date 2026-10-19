@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useReactFlow, useViewport } from '@xyflow/react';
+import { nodeAssetUrls, writeAssetClipboard } from './assetResources';
 import { isFileNode } from './fileAsset';
 import { cloneTextNode } from './cloneTextNode';
 import { isTextNode } from './textVariables';
@@ -32,7 +33,7 @@ export function TextNodeMenu({ id, locked, onRename, children }: {
         } as AppNode;
         setNodes((nodes) => [...nodes.map((item) => ({ ...item, selected: false })), copy]);
       } else if (action === 'cut' && !locked) {
-        await navigator.clipboard.writeText(JSON.stringify({ format: `momoflow-${node.type}-node`, node }));
+        await writeAssetClipboard(JSON.stringify({ format: `momoflow-${node.type}-node`, node }), nodeAssetUrls([node]));
         await deleteElements({ nodes: [{ id }] });
       } else if (action === 'delete' && !locked) {
         await deleteElements({ nodes: [{ id }] });

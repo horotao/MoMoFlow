@@ -1,19 +1,31 @@
+import { assetResources, releaseAssetClipboard } from './assetResources.ts';
 import type { FileAsset } from './types';
 
 export async function measureAsset(asset: FileAsset): Promise<FileAsset> {
   if (asset.kind !== 'image') return asset;
-  return new Promise((resolve) => {
-    const image = new Image();
-    const timer = window.setTimeout(() => resolve(asset), 10000);
-    image.onload = () => { window.clearTimeout(timer); resolve({ ...asset, width: image.naturalWidth, height: image.naturalHeight }); };
-    image.onerror = () => { window.clearTimeout(timer); resolve(asset); };
-    image.src = asset.url;
-  });
+  const release = assetResources.retain([asset.url]);
+  try {
+    return await new Promise((resolve) => {
+      const image = new Image();
+      const finish = (value: FileAsset) => {
+        window.clearTimeout(timer);
+        image.onload = null; image.onerror = null; image.src = '';
+        resolve(value);
+      };
+      const timer = window.setTimeout(() => finish(asset), 10000);
+      image.onload = () => finish({ ...asset, width: image.naturalWidth, height: image.naturalHeight });
+      image.onerror = () => finish(asset);
+      image.src = asset.url;
+    });
+  } finally { release(); }
 }
 async function assetBlob(asset: FileAsset) {
-  const response = await fetch(asset.url);
-  if (!response.ok) throw new Error('Could not download this file. Check the link and try again.');
-  return response.blob();
+  const release = assetResources.retain([asset.url]);
+  try {
+    const response = await fetch(asset.url);
+    if (!response.ok) throw new Error('Could not download this file. Check the link and try again.');
+    return await response.blob();
+  } finally { release(); }
 }
 function saveBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
@@ -77,4 +89,5 @@ export async function copyAssetImage(asset: FileAsset) {
     } finally { bitmap.close(); }
   })();
   await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+  releaseAssetClipboard();
 }

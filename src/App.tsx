@@ -2,7 +2,7 @@ import { sunburstFieldLabels } from './nodes/sunburst';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasSidebar } from './components/CanvasSidebar';
 import { createLibraryNode } from './components/libraryCatalog';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -36,16 +36,22 @@ import { initialEdges, edgeTypes } from './edges';
 import { ConnectionLine } from './edges/ConnectionLine';
 import { curveOptions } from './edges/curve';
 
+import { WorkflowStorage, type Workflow } from './persistence/workflowStorage';
+import { useWorkflowPersistence } from './persistence/useWorkflowPersistence';
+
 const defaultEdgeOptions = { type: 'default', pathOptions: curveOptions };
 
-function Flow() {
-  const [colorMode, setColorMode] = useState<'light' | 'dark'>('dark');
+function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | null }) {
+  const [colorMode, setColorMode] = useState<'light' | 'dark'>(saved?.colorMode ?? 'dark');
+  const [viewport, setViewport] = useState(saved?.viewport ?? { x: 0, y: 0, zoom: 1 });
   useEffect(() => {
     document.documentElement.classList.toggle('dark', colorMode === 'dark');
   }, [colorMode]);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(saved?.nodes ?? initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(saved?.edges ?? initialEdges);
+  const workflow = useMemo(() => ({ nodes, edges, viewport, colorMode }), [nodes, edges, viewport, colorMode]);
+  const persistence = useWorkflowPersistence(storage, workflow);
   const { screenToFlowPosition, getNodes, getEdges } = useReactFlow<AppNode>();
   const [tool, setTool] = useState<CanvasTool>('select');
   const [importError, setImportError] = useState('');
@@ -54,6 +60,7 @@ function Flow() {
     setEdges(snapshot.edges);
   }, [setNodes, setEdges]);
   const history = useCanvasHistory(nodes, edges, restore);
+  useLayoutEffect(() => { storage.releaseRestoredAssets(); }, [storage]);
   const canvasRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const pasteNode = (event: ClipboardEvent) => {
@@ -299,9 +306,15 @@ function Flow() {
           ));
         }
       }}
-      fitView
+      defaultViewport={saved?.viewport}
+      onMoveEnd={(_event, next) => setViewport(next)}
+      fitView={!saved}
     >
       <Background />
+      <Panel position="bottom-left" className="canvas-save-status" role={persistence.error ? 'alert' : 'status'}>
+        <span>{persistence.error || persistence.status}</span>
+        {persistence.error && <button type="button" onClick={persistence.retry}>重试保存</button>}
+      </Panel>
       <CanvasSidebar colorMode={colorMode} onThemeChange={() => setColorMode(mode => mode === 'dark' ? 'light' : 'dark')} />
       <DescriberPanel />
       {importError && <Panel position="top-center" className="canvas-import-error" role="alert">
@@ -354,9 +367,31 @@ function Flow() {
 }
 
 export default function App() {
+  const [loaded, setLoaded] = useState<{ storage: WorkflowStorage; saved: Workflow | null }>();
+  const [error, setError] = useState('');
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    const storage = new WorkflowStorage();
+    let cancelled = false;
+    setError('');
+    void storage.load().then(saved => {
+      if (cancelled) { storage.dispose(); return; }
+      setLoaded({ storage, saved });
+    }).catch(cause => {
+      storage.dispose();
+      if (!cancelled) setError(cause instanceof Error ? cause.message : '无法读取本地画布。');
+    });
+    return () => { cancelled = true; storage.dispose(); };
+  }, [attempt]);
+
+  if (!loaded) return <div className="canvas-loading" role={error ? 'alert' : 'status'}>
+    <p>{error ? `无法恢复画布：${error}` : '正在恢复画布…'}</p>
+    {error && <><p>原有数据不会被覆盖。请检查浏览器存储权限后重试。</p>
+      <button type="button" onClick={() => setAttempt(value => value + 1)}>重试恢复</button></>}
+  </div>;
   return (
     <ReactFlowProvider>
-      <Flow />
+      <Flow storage={loaded.storage} saved={loaded.saved} />
     </ReactFlowProvider>
   );
 }

@@ -1,14 +1,15 @@
 import { ModelOptionsSettings } from './ModelOptionsSettings';
 import { SunburstSettings } from './SunburstSettings';
 import { prepareSunburstRun } from '../nodes/sunburstRun';
+import { assetResources, taskAssetUrls } from '../nodes/assetResources';
 import { requestSunburst } from '../nodes/sunburstClient';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import { X } from 'lucide-react';
 import { TaskManager } from './TaskManager';
 import { readyDescriberTasks, isActiveTask, type PreviewTask } from '../nodes/taskQueue';
 import { isDescriberNode, isNodeLocked, isSunburstNode } from '../nodes/types';
-import type { AppNode, ImageDescriberNode, ModelInputNode } from '../nodes/types';
+import type { AppNode, FileAsset, ImageDescriberNode, ModelInputNode } from '../nodes/types';
 import { DescriberIcon } from './DescriberIcon';
 import { DescriberModelSelect } from './DescriberModelSelect';
 import { resolveTextValue } from '../nodes/textVariables';
@@ -31,6 +32,7 @@ export function DescriberPanel() {
   const panelOpen = Boolean(selected || selectedModel || selectedImage);
   const [tasksOpen, setTasksOpen] = useState(false);
   const [tasks, setTasks] = useState<PreviewTask[]>([]);
+  useLayoutEffect(() => assetResources.retain(tasks.filter(isActiveTask).flatMap(taskAssetUrls)), [tasks]);
   const [runs, setRuns] = useState(1);
   const [error, setError] = useState('');
   const pending = useRef<PreviewTask[]>([]);
@@ -79,21 +81,31 @@ export function DescriberPanel() {
           if (!disposed) setTasks([...pending.current]);
         };
         update('Running');
+        const releaseAssets = assetResources.retain(taskAssetUrls(task));
         const timeout = window.setTimeout(() => controller.abort(), task.imageRequest ? 310000 : 130000);
         void (async () => {
+          let generated: FileAsset | undefined;
+          let attached = false;
           try {
             const node = getNodes().find((item) => item.id === task.nodeId);
             if (!node || isNodeLocked(node)) throw new Error('节点已删除或锁定。');
             const result = task.imageRequest ? await requestSunburst(task.imageRequest, controller.signal) : await requestDescription(task, controller.signal);
+            if (typeof result !== 'string') generated = result;
             if (disposed || !pending.current.some((item) => item.id === task.id && item.state === 'Running')) return;
             const current = getNodes().find((item) => item.id === task.nodeId);
             if (!current || isNodeLocked(current)) throw new Error('节点已删除或锁定，未写入结果。');
             if (typeof result === 'string') rawUpdateNodeData(task.nodeId, { text: result });
-            else if (isSunburstNode(current)) rawUpdateNodeData(task.nodeId, { results: [...(current.data.results ?? []), result], activeResultId: result.id });
+            else if (isSunburstNode(current)) {
+              rawUpdateNodeData(task.nodeId, { results: [...(current.data.results ?? []), result], activeResultId: result.id });
+              attached = true;
+            }
             update('Done');
           } catch (error) {
             update('Failed', controller.signal.aborted ? '请求已取消或超时；已提交请求仍可能计费，不会自动重试。' : error instanceof Error ? error.message : '请求失败。');
-          } finally { window.clearTimeout(timeout); activeWorkers.delete(task.id); }
+          } finally {
+            if (generated && !attached) assetResources.discard([generated.url]);
+            releaseAssets(); window.clearTimeout(timeout); activeWorkers.delete(task.id);
+          }
         })();
       }
     }, 200);

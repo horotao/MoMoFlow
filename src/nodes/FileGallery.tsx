@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, Check } from 'lucide-react';
+import { assetResources, writeAssetClipboard } from './assetResources';
 import { FileIcon } from './FileIcon';
 import { FileActionMenu } from './FileActionMenu';
 import { copyAssetImage, downloadAsset, downloadAssets } from './fileMedia';
@@ -8,6 +9,7 @@ import type { FileAsset } from './types';
 
 type Props = { assets: FileAsset[]; activeId: string; onSelect: (id: string) => void; onClose: () => void };
 export function FileGallery({ assets, activeId, onSelect, onClose }: Props) {
+  useLayoutEffect(() => assetResources.retain(assets.map(asset => asset.url)), [assets]);
   const index = Math.max(0, assets.findIndex((item) => item.id === activeId));
   const asset = assets[index];
   const panel = useRef<HTMLDivElement>(null);
@@ -61,7 +63,7 @@ export function FileGallery({ assets, activeId, onSelect, onClose }: Props) {
             ...(assets.length > 1 ? [{ label: 'Download all', action: () => run(() => downloadAssets(assets)) }] : []),
             ...(asset.kind === 'image' ? [{ label: 'Copy image', action: () => run(() => copyAssetImage(asset), 'Image copied') }] : []),
           ]}><FileIcon name="download" /></FileActionMenu>
-          <button className="file-icon-button" aria-label="Copy link" title={asset.url.startsWith('blob:') ? 'Copy link (available in this browser session)' : 'Copy link'} onClick={() => run(async () => { await navigator.clipboard.writeText(asset.url); setCopied(true); })}>{copied ? <Check size={16} /> : <Link size={16} strokeWidth={1.3} />}</button>
+          <button className="file-icon-button" aria-label="Copy link" title={asset.url.startsWith('blob:') ? 'Copy link (available in this browser session)' : 'Copy link'} onClick={() => run(async () => { await writeAssetClipboard(asset.url, [asset.url]); setCopied(true); })}>{copied ? <Check size={16} /> : <Link size={16} strokeWidth={1.3} />}</button>
         </div>
       </header>
       <div ref={stage} className="file-gallery-stage" onDoubleClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}

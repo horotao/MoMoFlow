@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { Edge } from '@xyflow/react';
 import { initialTextDocument } from '../nodes/textDocument';
 import { isTextNode, variableHandleId, variableIndex } from '../nodes/textVariables';
+import { assetResources, nodeAssetUrls } from '../nodes/assetResources';
 import type { AppNode } from '../nodes/types';
 
 type Snapshot = { nodes: AppNode[]; edges: Edge[] };
@@ -22,13 +23,14 @@ function signature({ nodes, edges }: Snapshot) {
 }
 
 export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (value: Snapshot) => void) {
+  const assetOwner = useRef(Symbol('canvas history'));
   const history = useRef({ past: [] as Snapshot[], present: snapshot(nodes, edges), future: [] as Snapshot[], time: 0 });
   const [availability, setAvailability] = useState({ canUndo: false, canRedo: false });
   const sync = useCallback(() => setAvailability({
     canUndo: history.current.past.length > 0, canRedo: history.current.future.length > 0,
   }), []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (nodes.some((node) => node.dragging)) return;
     const next = snapshot(nodes, edges);
     const state = history.current;
@@ -46,6 +48,21 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
     state.time = dataOnly ? Date.now() : 0;
     sync();
   }, [nodes, edges, sync]);
+
+  useLayoutEffect(() => {
+    const state = history.current;
+    function* retainedNodes() {
+      yield* nodes;
+      yield* state.present.nodes;
+      for (const item of state.past) yield* item.nodes;
+      for (const item of state.future) yield* item.nodes;
+    }
+    assetResources.adopt(assetOwner.current, nodeAssetUrls(retainedNodes()));
+  }, [nodes, edges, availability]);
+  useLayoutEffect(() => {
+    const owner = assetOwner.current;
+    return () => assetResources.release(owner);
+  }, []);
 
   const travel = useCallback((direction: 'past' | 'future') => {
     const state = history.current;

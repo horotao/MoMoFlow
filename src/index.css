@@ -870,3 +870,26 @@
 .react-flow .react-flow__nodes:has(> .react-flow__node.selected ~ .react-flow__node.selected) .react-flow__node :is(.text-node-port-label, .describer-port-label, .file-node-port-label) {
   visibility: hidden;
 }
+
+.canvas-save-status {
+  margin-left: 72px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(420px, calc(100vw - 32px));
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: var(--background);
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.canvas-save-status[role='alert'] { color: #db7c52; }
+.canvas-loading {
+  display: grid;
+  place-content: center;
+  height: 100vh;
+  background: #171717;
+  color: #eee;
+  text-align: center;
+}
+.canvas-save-status button, .canvas-loading button { cursor: pointer; }

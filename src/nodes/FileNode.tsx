@@ -1,4 +1,5 @@
-import { useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { assetResources } from './assetResources';
 import { Upload, Box, Music2 } from 'lucide-react';
 import { Handle, Position, useEdges, useReactFlow, type NodeProps } from '@xyflow/react';
 import { assetFromFile, assetFromLink, fileAccept, isFileNode } from './fileAsset';
@@ -12,6 +13,11 @@ import type { AppNode, FileAsset, FileNode as FileNodeType } from './types';
 
 export function FileNode({ id, data, isConnectable }: NodeProps<FileNodeType>) {
   const { updateNodeData, getNode, setNodes, screenToFlowPosition } = useReactFlow<AppNode>();
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   const input = useRef<HTMLInputElement>(null);
   const [link, setLink] = useState('');
   const [error, setError] = useState('');
@@ -35,25 +41,40 @@ export function FileNode({ id, data, isConnectable }: NodeProps<FileNodeType>) {
   const kind = fileOutputKind(data);
   const select = (assetId: string) => updateNodeData(id, { activeAssetId: assetId });
   const append = (imported: FileAsset[]) => {
+    if (!mounted.current) {
+      assetResources.discard(imported.map(asset => asset.url));
+      return;
+    }
     // Read the latest node after asynchronous image decoding, so parallel edits are preserved.
-    setNodes((nodes) => nodes.map((node) => node.id === id && isFileNode(node) && !node.data.locked ? {
-      ...node, data: { ...node.data, asset: undefined, assets: [...fileAssets(node.data), ...imported], activeAssetId: imported[0].id },
-    } : node));
+    setNodes((nodes) => {
+      if (!nodes.some(node => node.id === id && isFileNode(node) && !node.data.locked)) {
+        assetResources.discard(imported.map(asset => asset.url));
+        return nodes;
+      }
+      return nodes.map(node => node.id === id && isFileNode(node) ? {
+        ...node, data: { ...node.data, asset: undefined, assets: [...fileAssets(node.data), ...imported], activeAssetId: imported[0].id },
+      } : node);
+    });
   };
   const importFiles = async (files: FileList | File[]) => {
     if (locked || importPending.current) return;
     importPending.current = true; setBusy(true);
     const imported: FileAsset[] = [];
     const errors: string[] = [];
+    const importOwner = Symbol('importing files');
     try {
       for (const file of Array.from(files)) {
         try { imported.push(assetFromFile(file)); }
         catch (error) { errors.push(error instanceof Error ? error.message : 'Could not read file.'); }
       }
+      assetResources.setReferences(importOwner, imported.map(asset => asset.url));
       const measured = await Promise.all(imported.map(measureAsset));
       if (measured.length) append(measured);
       setError(errors.join(' '));
-    } finally { importPending.current = false; setBusy(false); }
+    } catch (error) {
+      assetResources.discard(imported.map(asset => asset.url));
+      setError(error instanceof Error ? error.message : 'Could not read files.');
+    } finally { assetResources.release(importOwner); importPending.current = false; setBusy(false); }
   };
   const runDownload = () => {
     setError('');
