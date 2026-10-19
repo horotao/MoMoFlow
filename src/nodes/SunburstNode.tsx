@@ -1,21 +1,26 @@
 import { useEffect, useState } from 'react';
 import { Handle, Position, useEdges, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { ArrowRight, ChevronLeft, ChevronRight, Download, Ellipsis, Maximize2, Plus } from 'lucide-react';
+import { ArrowRight, Ellipsis, Plus } from 'lucide-react';
 import type { AppNode, SunburstNode as Sunburst } from './types';
 import { isNodeLocked } from './types';
 import { sunburstName, sunburstFieldLabels } from './sunburst';
 import { OpenAIIcon } from '../components/OpenAIIcon';
 import { TextNodeMenu } from './TextNodeMenu';
 import { FileGallery } from './FileGallery';
-import { downloadAsset } from './fileMedia';
+import { FileIcon } from './FileIcon';
+import { FileActionMenu } from './FileActionMenu';
+import { extractFileAsset, orderedAssets } from './fileCollection';
+import { downloadAsset, downloadAssets } from './fileMedia';
 
 export function SunburstNode({ id, data, isConnectable }: NodeProps<Sunburst>) {
-  const { getNode, updateNodeData } = useReactFlow<AppNode>();
+  const { getNode, updateNodeData, setNodes, screenToFlowPosition } = useReactFlow<AppNode>();
   const edges = useEdges(); const internals = useUpdateNodeInternals();
   const [renaming, setRenaming] = useState(false); const [draft, setDraft] = useState('');
   const [fullscreen, setFullscreen] = useState(false); const [error, setError] = useState('');
-  const results = data.results ?? [];
-  const active = results.find(asset => asset.id === data.activeResultId) ?? results[results.length - 1];
+  const [showAll, setShowAll] = useState(false);
+  const results = orderedAssets({ assets: data.results ?? [], orderBy: data.orderBy });
+  const grid = showAll && results.length > 1;
+  const active = results.find(asset => asset.id === data.activeResultId) ?? data.results?.[data.results.length - 1];
   const [viewId, setViewId] = useState('');
   const [dimensions, setDimensions] = useState<Record<string, { width: number; height: number }>>({});
   const size = active ? dimensions[active.url] ?? active : undefined;
@@ -23,7 +28,7 @@ export function SunburstNode({ id, data, isConnectable }: NodeProps<Sunburst>) {
   const portSpace = 110 + (data.imageInputs + (data.exposed?.length ?? 0)) * 60;
   const index = Math.max(0, results.findIndex(asset => asset.id === active?.id));
   const patch = (value: Partial<Sunburst['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
-  useEffect(() => internals(id), [id, data.imageInputs, data.exposed, aspectRatio, internals]);
+  useEffect(() => internals(id), [id, data.imageInputs, data.exposed, aspectRatio, grid, internals]);
   const ports = [
     { id: 'prompt', label: 'Prompt', kind: 'prompt', top: 89 },
     ...Array.from({ length: data.imageInputs }, (_, i) => ({ id: `image-${i}`, label: data.imageInputs === 1 ? 'Image' : `Image ${i + 1}`, kind: 'image', top: 149 + i * 60 })),
@@ -35,14 +40,41 @@ export function SunburstNode({ id, data, isConnectable }: NodeProps<Sunburst>) {
       <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setDraft(data.label || sunburstName); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
     </header>
     <div className="sunburst-preview-area" style={{ minHeight: portSpace }}>
-    <div className={`sunburst-preview${active ? ' has-result' : ''}`} style={active ? { aspectRatio } : { minHeight: Math.max(420, portSpace) }}>
-      {active && <><img src={active.url} alt={active.name} draggable={false} onLoad={event => {
+    <div className={`sunburst-preview${active ? ' has-result' : ''}${grid ? ' is-grid nodrag nopan nowheel' : ''}`} style={active ? { aspectRatio: grid ? undefined : aspectRatio } : { minHeight: Math.max(420, portSpace) }}>
+      {active && <>{grid ? <div className="file-node-grid" aria-label="Results">
+        {[0, 1].map(column => <div className="file-node-grid-column" key={column}>{results.filter((_, i) => i % 2 === column).map(item => <div key={item.id}
+          className={`file-node-tile${item.id === active.id ? ' is-active' : ''}`} role="button" tabIndex={0} aria-label={`Select ${item.name}`} aria-pressed={item.id === active.id} aria-disabled={Boolean(data.locked)}
+          draggable={!data.locked}
+          onDragStart={event => { event.stopPropagation(); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-momoflow-asset', item.id); }}
+          onDragEnd={event => {
+            event.stopPropagation();
+            if (event.dataTransfer.dropEffect !== 'move') return;
+            const target = document.elementFromPoint(event.clientX, event.clientY);
+            if (!target?.classList.contains('react-flow__pane') || !getNode(id)) return;
+            const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+            setNodes(nodes => extractFileAsset(nodes, id, item.id, position, `file-${crypto.randomUUID()}`));
+          }}
+          onClick={() => patch({ activeResultId: item.id })} onDoubleClick={() => { patch({ activeResultId: item.id }); setViewId(item.id); setFullscreen(true); }}
+          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); patch({ activeResultId: item.id }); } }}>
+          <img src={item.url} alt={item.name} draggable={false} />
+        </div>)}</div>)}
+      </div> : <img src={active.url} alt={active.name} draggable={false} onLoad={event => {
         const { naturalWidth: width, naturalHeight: height } = event.currentTarget;
         if (width && height && (size?.width !== width || size.height !== height)) setDimensions(current => ({ ...current, [active.url]: { width, height } }));
-      }} /><div className="sunburst-preview-tools nodrag nopan">
-        {results.length > 1 && <div><button disabled={data.locked} aria-label="Previous result" onClick={() => patch({ activeResultId: results[(index + results.length - 1) % results.length].id })}><ChevronLeft size={18} /></button><span>{index + 1} / {results.length}</span><button disabled={data.locked} aria-label="Next result" onClick={() => patch({ activeResultId: results[(index + 1) % results.length].id })}><ChevronRight size={18} /></button></div>}
-        <div><button aria-label="Download result" title="Download" onClick={() => void downloadAsset(active).catch(() => setError('下载失败，请重试。'))}><Download size={18} /></button><button aria-label="Full screen result" title="Full screen" onClick={() => { setViewId(active.id); setFullscreen(true); }}><Maximize2 size={18} /></button></div>
-      </div><span className="sunburst-resolution">{size?.width} × {size?.height}</span></>}
+      }} />}<div className="file-media-overlay nodrag nopan">
+        <div className="file-media-top">
+          <div className="file-media-navigation">{results.length > 1 && <>
+            <button className="file-icon-button" aria-label={grid ? 'All' : 'Single'} title={grid ? 'All' : 'Single'} onClick={() => setShowAll(value => !value)}><FileIcon name={grid ? 'grid' : 'single'} /></button>
+            {grid ? <span>{results.length} images</span> : <><button className="file-icon-button" disabled={data.locked} aria-label="Previous result" title="Previous result" onClick={() => patch({ activeResultId: results[(index + results.length - 1) % results.length].id })}><FileIcon name="previous" /></button><span>{index + 1} / {results.length}</span><button className="file-icon-button" disabled={data.locked} aria-label="Next result" title="Next result" onClick={() => patch({ activeResultId: results[(index + 1) % results.length].id })}><FileIcon name="next" /></button></>}</>}</div>
+          <div className="file-media-tools">
+            <FileActionMenu label="Order by" heading="Order by" items={[
+              { label: 'Date added', checked: data.orderBy !== 'name', action: () => patch({ orderBy: 'date' }) },
+              { label: 'Name', checked: data.orderBy === 'name', action: () => patch({ orderBy: 'name' }) },
+            ]}><FileIcon name="order" /></FileActionMenu>
+            <button className="file-icon-button" aria-label={grid ? 'Download all' : 'Download current'} title={grid ? 'Download all' : 'Download current'} onClick={() => { setError(''); void (grid ? downloadAssets(results) : downloadAsset(active)).catch(() => setError('下载失败，请重试。')); }}><FileIcon name="download" /></button><button className="file-icon-button" aria-label="Full screen result" title="Full screen" onClick={() => { setViewId(active.id); setFullscreen(true); }}><FileIcon name="fullscreen" /></button></div>
+        </div>
+        {!grid && <span className="file-media-resolution">{size?.width} × {size?.height}</span>}
+      </div></>}
     </div>
     </div>
     <div className="sunburst-actions"><button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= 16} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />Add another image input</button><button className="sunburst-run nodrag nopan" disabled={data.locked} onClick={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('sunburst-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />Run Model</button></div>

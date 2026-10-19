@@ -474,8 +474,9 @@
 .canvas-dock-divider { width: 1px; height: 32px; background: var(--dock-border); }
 .canvas-dock-zoom { position: relative; display: flex; align-items: center; width: 65px; height: 48px; border-left: 1px solid var(--dock-border); }
 .canvas-dock .canvas-dock-zoom-trigger { display: flex; justify-content: space-between; gap: 0; width: 64px; height: 32px; padding: 0 4px 0 8px; border-radius: 5px; font-size: 11px; font-weight: 400; line-height: 16px; color: inherit; cursor: pointer; }
-.canvas-dock-zoom-menu { position: absolute; right: 0; bottom: 56px; width: 128px; padding: 6px; border: 1px solid var(--dock-border); border-radius: 10px; background: var(--dock-surface); box-shadow: 0 3px 12px #0003; }
-.canvas-dock-zoom-menu button { display: block; width: 100%; padding: 6px 8px; border-radius: 5px; text-align: left; font-size: 12px; cursor: pointer; }
+.canvas-dock-zoom-menu { position: absolute; left: 8px; bottom: 44px; width: 134px; max-height: calc(100dvh - 88px); overflow-y: auto; padding: 8px; border: 0; border-radius: 13px; background: var(--dock-surface); }
+.dark .canvas-dock-zoom-menu { background: #1e1e1e; }
+.canvas-dock-zoom-menu button { display: block; width: 100%; height: 24px; padding: 4px 8px; border: 0; border-radius: 5px; background: transparent; color: inherit; text-align: left; font-family: inherit; font-size: 11px; font-weight: 450; line-height: 16px; cursor: pointer; }
 .canvas-dock-zoom-menu button:hover, .canvas-dock-zoom-menu button:focus-visible, .canvas-dock-zoom-menu button[aria-current] { background: var(--dock-border); }
 .canvas-tool-select .react-flow__pane { cursor: default; }
 .canvas-tool-hand .react-flow__pane, .canvas-tool-hand .react-flow__node { cursor: grab; }

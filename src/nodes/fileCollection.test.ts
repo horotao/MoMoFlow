@@ -3,7 +3,10 @@ import test from 'node:test';
 import { extractFileAsset, fileAssets, fileNodeTitle, fileOutputKind, orderedAssets } from './fileCollection.ts';
 import { resolveTextValue } from './textVariables.ts';
 import { zipFiles } from './fileMedia.ts';
-import type { FileAsset, FileNode } from './types';
+import type { FileAsset, FileNode, SunburstNode } from './types';
+import { defaultSunburstSettings } from './sunburst.ts';
+import { imageOutput } from './sunburstRun.ts';
+import { restoreSunburstData } from './sunburstClipboard.ts';
 
 const a: FileAsset = { id: 'a', name: 'Zebra.png', url: 'blob:local-a', kind: 'image' };
 const b: FileAsset = { id: 'b', name: 'Apple.png', url: 'blob:local-b', kind: 'image' };
@@ -41,4 +44,34 @@ test('download-all ZIP retains bytes, unicode names and duplicates without overw
   assert.deepEqual(archive.slice(30 + nameLength, 30 + nameLength + bytes.length), bytes);
   assert.equal(view.getUint16(archive.length - 22 + 10, true), 2);
   assert.ok(new TextDecoder().decode(archive).includes('2-图片.png'));
+});
+
+test('Sunburst sorting preserves selected output and clipboard sort preference', () => {
+  const node: SunburstNode = { id: 'generator', type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, imageInputs: 1, results: [a, b], orderBy: 'name' } };
+  assert.deepEqual(orderedAssets({ assets: node.data.results, orderBy: node.data.orderBy }), [b, a]);
+  assert.deepEqual(node.data.results, [a, b]);
+  assert.equal(imageOutput(node)[0].id, 'b');
+  assert.equal(restoreSunburstData(node.data)?.orderBy, 'name');
+  assert.equal(restoreSunburstData({ ...node.data, orderBy: 'invalid' })?.orderBy, undefined);
+});
+
+test('Sunburst extraction moves the result atomically and retains a valid downstream output', () => {
+  const source: SunburstNode = { id: 'generator', type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, imageInputs: 1, results: [a, b], activeResultId: 'a', orderBy: 'name' } };
+  const nodes = [source];
+  const result = extractFileAsset(nodes, source.id, a.id, { x: -350, y: 170 }, 'extracted');
+  const generator = result[0] as SunburstNode;
+  const file = result[1] as FileNode;
+  assert.deepEqual(generator.data.results, [b]);
+  assert.equal(generator.data.activeResultId, 'b');
+  assert.equal(imageOutput(generator)[0].id, 'b');
+  assert.deepEqual(fileAssets(file.data), [a]);
+  assert.deepEqual(file.position, { x: -350, y: 170 });
+  assert.equal(file.selected, true);
+  assert.equal(generator.selected, false);
+  assert.deepEqual(source.data.results, [a, b]);
+  assert.equal(extractFileAsset(nodes, source.id, 'missing', { x: 0, y: 0 }, 'new'), nodes);
+  assert.equal(extractFileAsset(result, source.id, b.id, { x: 0, y: 0 }, 'new'), result);
+  const locked = [{ ...source, data: { ...source.data, locked: true } }];
+  assert.equal(extractFileAsset(locked, source.id, a.id, { x: 0, y: 0 }, 'new'), locked);
+  assert.equal(extractFileAsset([], source.id, a.id, { x: 0, y: 0 }, 'new').length, 0);
 });

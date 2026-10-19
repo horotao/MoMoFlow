@@ -1,4 +1,4 @@
-import type { AppNode, FileAsset, FileNode } from './types';
+import type { AppNode, FileAsset, FileNode, SunburstNode } from './types';
 
 export const fileAssets = (data: FileNode['data']): FileAsset[] => data.assets ?? (data.asset ? [data.asset] : []);
 export function orderedAssets(data: FileNode['data']) {
@@ -20,13 +20,16 @@ export function fileNodeTitle(data: FileNode['data']) {
 
 // Move, rather than duplicate, an asset. One state update gives undo one atomic edit.
 export function extractFileAsset(nodes: AppNode[], sourceId: string, assetId: string, position: { x: number; y: number }, newId: string): AppNode[] {
-  const source = nodes.find((node) => node.id === sourceId && node.type === 'file') as FileNode | undefined;
+  const source = nodes.find((node) => node.id === sourceId && (node.type === 'file' || node.type === 'sunburst')) as FileNode | SunburstNode | undefined;
   if (!source || source.data.locked) return nodes;
-  const assets = fileAssets(source.data);
+  const assets = source.type === 'sunburst' ? source.data.results ?? [] : fileAssets(source.data);
   const asset = assets.find((item) => item.id === assetId);
   if (!asset || assets.length < 2) return nodes;
   const remaining = assets.filter((item) => item.id !== assetId);
-  return [...nodes.map((node) => node.id === sourceId ? {
+  return [...nodes.map((node) => node.id === sourceId ? source.type === 'sunburst' ? {
+    ...source, selected: false, data: { ...source.data, results: remaining,
+      activeResultId: remaining.some(item => item.id === source.data.activeResultId) ? source.data.activeResultId : remaining[remaining.length - 1].id },
+  } : {
     ...source, selected: false, data: { ...source.data, asset: undefined, assets: remaining,
       activeAssetId: source.data.activeAssetId === assetId ? remaining[0].id : source.data.activeAssetId },
   } : { ...node, selected: false }), {

@@ -15,6 +15,7 @@ export function restoreSunburstData(value: unknown): SunburstNode['data'] | unde
   if (!Array.isArray(results) || !results.every(isFileAsset)) return;
   return {
     ...settings, size: data.size, imageInputs: count, results,
+    ...(data.orderBy === 'date' || data.orderBy === 'name' ? { orderBy: data.orderBy } : {}),
     label: typeof data.label === 'string' ? data.label : undefined,
     activeResultId: typeof data.activeResultId === 'string' && results.some(result => result.id === data.activeResultId)
       ? data.activeResultId : undefined,

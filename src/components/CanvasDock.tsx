@@ -48,8 +48,8 @@ export function CanvasDock({ tool, onToolChange, colorMode, canUndo, canRedo, un
         <Button ref={trigger} variant="ghost" className="canvas-dock-zoom-trigger" aria-label="画布比例" aria-expanded={open} aria-controls="canvas-zoom-options" onClick={() => setOpen(!open)}>
           <span>{Math.round(zoom * 100)}%</span>{icon('chevron')}
         </Button>
-        {open && <div id="canvas-zoom-options" className="canvas-dock-zoom-menu" aria-label="缩放选项">
-          {[25, 50, 75, 100, 150, 200].map((value) => <button type="button" key={value}
+        {open && <div id="canvas-zoom-options" className="canvas-dock-zoom-menu nowheel" aria-label="缩放选项">
+          {[1, 5, 10, 25, 50, 75, 100, 150, 200].map((value) => <button type="button" key={value}
             aria-current={Math.round(zoom * 100) === value ? 'true' : undefined}
             onClick={() => { void zoomTo(value / 100); setOpen(false); trigger.current?.focus(); }}>{value}%</button>)}
           <button type="button" onClick={() => { void fitView({ padding: 0.2 }); setOpen(false); trigger.current?.focus(); }}>适应画布</button>

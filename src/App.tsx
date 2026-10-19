@@ -187,6 +187,7 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
   return (
     <ReactFlow
       ref={canvasRef}
+      minZoom={0.01}
       colorMode={colorMode}
       className={`canvas-tool-${tool}`}
       panOnDrag={tool === 'hand' ? true : [1, 2]}
