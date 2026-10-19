@@ -1,8 +1,9 @@
+import { OpenAIIcon } from './OpenAIIcon';
 import { useEffect, useRef, useState } from 'react';
 import { useReactFlow, useNodes } from '@xyflow/react';
 import { Search, Images, CircleHelp, Sun, Moon, X, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { isFileNode } from '../nodes/fileAsset';
-import type { AppNode } from '../nodes/types';
+import { isSunburstNode, type AppNode } from '../nodes/types';
 import { items, navigation, createLibraryNode, type Category, type Item } from './libraryCatalog';
 import './CanvasSidebar.css';
 
@@ -18,7 +19,7 @@ export function CanvasSidebar({ colorMode, onThemeChange }: { colorMode: 'light'
   const contentRef = useRef<HTMLDivElement>(null);
   const { setNodes, screenToFlowPosition } = useReactFlow<AppNode>();
   const nodes = useNodes<AppNode>();
-  const assets = nodes.flatMap(n => isFileNode(n) ? (n.data.assets ?? (n.data.asset ? [n.data.asset] : [])) : []).filter((asset, index, all) => all.findIndex(a => a.id === asset.id) === index).filter(asset => asset.name.toLowerCase().includes(query.trim().toLowerCase()));
+  const assets = nodes.flatMap(n => isSunburstNode(n) ? n.data.results ?? [] : isFileNode(n) ? (n.data.assets ?? (n.data.asset ? [n.data.asset] : [])) : []).filter((asset, index, all) => all.findIndex(a => a.id === asset.id) === index).filter(asset => asset.name.toLowerCase().includes(query.trim().toLowerCase()));
   useEffect(() => {
     contentRef.current?.scrollTo(0, 0);
     if (active === 'Search') searchRef.current?.focus();
@@ -30,7 +31,7 @@ export function CanvasSidebar({ colorMode, onThemeChange }: { colorMode: 'light'
     if (node) setNodes(current => [...current.map(n => ({ ...n, selected: false })), node]);
     setRecent(current => [item.id, ...current.filter(id => id !== item.id)].slice(0, 8));
   };
-  const cards = (list: Item[]) => <div className="library-grid">{list.map(item => <button type="button" key={item.id} className="library-card" disabled={!item.nodeType} title={item.nodeType ? `Add ${item.label}` : `${item.label} · Preview model`} draggable={Boolean(item.nodeType)} onDragStart={event => { event.dataTransfer.setData('application/x-momoflow-library', item.id); event.dataTransfer.effectAllowed = 'copy'; }} onDragEnd={event => { if (event.dataTransfer.dropEffect !== 'none') setRecent(current => [item.id, ...current.filter(id => id !== item.id)].slice(0, 8)); }} onClick={() => add(item)}><item.icon size={20} strokeWidth={1.25} style={{ color: item.color }} /><span>{item.label}</span>{!item.nodeType && <small>Mock</small>}</button>)}</div>;
+  const cards = (list: Item[]) => <div className="library-grid">{list.map(item => <button type="button" key={item.id} className="library-card" disabled={!item.nodeType} title={item.nodeType ? `Add ${item.label}` : `${item.label} · Preview model`} draggable={Boolean(item.nodeType)} onDragStart={event => { event.dataTransfer.setData('application/x-momoflow-library', item.id); event.dataTransfer.effectAllowed = 'copy'; }} onDragEnd={event => { if (event.dataTransfer.dropEffect !== 'none') setRecent(current => [item.id, ...current.filter(id => id !== item.id)].slice(0, 8)); }} onClick={() => add(item)}>{item.id === 'sunburst' ? <OpenAIIcon size={20} /> : <item.icon size={20} strokeWidth={1.25} style={{ color: item.color }} />}<span>{item.label}</span>{!item.nodeType && <small>Mock</small>}</button>)}</div>;
   const matching = items.filter(item => item.label.toLowerCase().includes(query.trim().toLowerCase()) && (filter === 'All' || item.category === filter));
   const quick = [...recent.map(id => items.find(item => item.id === id)!), ...items.filter(item => ['text', 'file', 'image-describer', 'model-input'].includes(item.id) && !recent.includes(item.id))];
   return <>

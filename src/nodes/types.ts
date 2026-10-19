@@ -1,4 +1,5 @@
 import type { Node, BuiltInNode } from '@xyflow/react';
+import type { SunburstSettings } from './sunburst';
 import type { JSONContent } from '@tiptap/core';
 
 export type PositionLoggerNode = Node<{ label: string }, 'position-logger'>;
@@ -7,8 +8,10 @@ export type TextNode = Node<{ text: string; label?: string; locked?: boolean; co
 export type FileAsset = { id: string; name: string; url: string; kind: 'image' | 'video' | 'audio' | '3d'; size?: number; width?: number; height?: number };
 export type FileNode = Node<{ label?: string; locked?: boolean; asset?: FileAsset; assets?: FileAsset[]; activeAssetId?: string; viewMode?: 'single' | 'all'; orderBy?: 'date' | 'name' }, 'file'>;
 export type ImageDescriberNode = Node<{ label?: string; locked?: boolean; text: string; model: string; instructions: string; imageInputs: number; exposed?: ('model' | 'instructions')[] }, 'image-describer'>;
-export type ModelInputNode = Node<{ label?: string; locked?: boolean; model: string; options?: string[] }, 'model-input'>;
-export type AppNode = ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
+export type ModelInputNode = Node<{ label?: string; locked?: boolean; model: string; options?: string[]; parameter?: keyof SunburstSettings }, 'model-input'>;
+export type SunburstNode = Node<SunburstSettings & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof SunburstSettings)[]; results?: FileAsset[]; activeResultId?: string }, 'sunburst'>;
+export const isSunburstNode = (node: AppNode): node is SunburstNode => node.type === 'sunburst';
+export type AppNode = SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
 
 export const isDescriberNode = (node: AppNode): node is ImageDescriberNode => node.type === 'image-describer' && 'imageInputs' in node.data;
 

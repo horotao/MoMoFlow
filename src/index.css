@@ -219,7 +219,7 @@
 }
 
 /* Text node: Figma Prompt, 460 × 405 in both themes. */
-.react-flow .react-flow__node-text, .react-flow .react-flow__node-image-describer, .react-flow .react-flow__node-model-input {
+.react-flow .react-flow__node-text, .react-flow .react-flow__node-image-describer, .react-flow .react-flow__node-model-input, .react-flow .react-flow__node-sunburst {
   --text-node-surface: #fff;
   --text-node-input: #f3f3f5;
   --text-node-border: #dcdce1;
@@ -245,7 +245,7 @@
   line-height: 22px;
 }
 
-.react-flow.dark .react-flow__node-text, .react-flow.dark .react-flow__node-image-describer, .react-flow.dark .react-flow__node-model-input {
+.react-flow.dark .react-flow__node-text, .react-flow.dark .react-flow__node-image-describer, .react-flow.dark .react-flow__node-model-input, .react-flow.dark .react-flow__node-sunburst {
   --text-node-surface: #2c2c2c;
   --text-node-input: #383838;
   --text-node-border: #444;
@@ -766,7 +766,7 @@
 .task-manager > header button:last-child { width: 24px; padding: 0; }
 .task-manager > header button:disabled { opacity: .35; cursor: default; }
 .task-list { padding: 8px; overflow-y: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: #666 transparent; overscroll-behavior: contain; }
-.task-row { height: 32px; padding: 4px; display: flex; align-items: center; gap: 16px; border-radius: 5px; }
+.task-row { min-height: 32px; padding: 4px; display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 0; border-radius: 5px; }
 .task-row:hover, .task-row:focus-within { background: var(--panel-input); }
 .task-manager .task-main { display: grid; grid-template-columns: minmax(0, 1fr) 128px; column-gap: 16px; flex: 1; min-width: 0; height: 24px; text-align: left; padding: 0; border-radius: 0; }
 .task-manager .task-main:hover, .task-manager .task-actions button:hover { background: transparent; }
@@ -774,6 +774,7 @@
 .task-name > svg { flex-shrink: 0; }
 .task-name > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .task-status { color: var(--panel-muted); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.task-error { flex-basis: 100%; min-width: 0; padding: 0 0 4px 32px; color: var(--panel-muted); white-space: pre-line; overflow-wrap: anywhere; user-select: text; }
 .task-actions { display: flex; width: 46px; flex-shrink: 0; justify-content: flex-end; visibility: hidden; }
 .task-row:hover .task-actions, .task-row:focus-within .task-actions { visibility: visible; }
 .task-manager .task-actions button { padding: 0; width: 24px; height: 24px; flex-shrink: 0; }
@@ -835,12 +836,18 @@
 .react-flow .react-flow__node-model-input { width: 250px; min-height: 100px; height: auto; padding: 16px; gap: 16px; }
 .react-flow__node-model-input .describer-model-trigger { width: 100%; height: 24px; display: flex; align-items: center; justify-content: space-between; padding: 0 0 0 8px; border: 1px solid var(--text-node-border); border-radius: 5px; background: transparent; color: inherit; font: 11px 'Describer Inter', sans-serif; cursor: pointer; }
 .react-flow__node-model-input .describer-model-trigger:hover { background: var(--text-node-input); }
-.model-option-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.model-option-row input[type="radio"] { appearance: none; flex-shrink: 0; width: 16px; height: 16px; margin: 0 4px 0 8px; border: 1px solid #666; border-radius: 50%; background: var(--panel-input); cursor: pointer; }
+.model-option-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.model-option-row input[type="radio"] { appearance: none; flex-shrink: 0; width: 16px; height: 16px; margin: 0 0 0 12px; border: 1px solid #666; border-radius: 50%; background: var(--panel-input); cursor: pointer; }
 .model-option-row input[type="radio"]:checked { border: 4px solid var(--panel-text); background: var(--panel-bg); }
 .model-option-row input[type="text"], .model-option-row input:not([type]) { min-width: 0; flex: 1; height: 32px; padding: 0 8px; background: var(--panel-input); color: inherit; border: 1px solid transparent; border-radius: 5px; font: inherit; text-overflow: ellipsis; }
 .model-option-row input:focus-visible { outline: 1px solid #aaa; }
-.describer-panel .model-add-option { width: 100%; justify-content: flex-start; margin-top: 4px; }
+.model-options-settings .describer-field { margin-bottom: 6px; }
+.model-option-row input[type="text"]:hover:not(:disabled) { border-color: var(--panel-border); }
+.model-option-row input[type="radio"]:hover:not(:disabled) { border-color: var(--panel-text); }
+.model-option-row input:disabled { opacity: .5; cursor: default; }
+.describer-panel .model-add-option { width: 100%; height: 24px; justify-content: flex-start; gap: 6px; padding: 0 8px; margin: 0; }
+.describer-panel .model-add-option:active:not(:disabled) { background: var(--panel-border); }
+.describer-panel .model-add-option:disabled { opacity: .5; cursor: default; }
 /* Prompt grows to the reference text viewport limit, then scrolls internally. */
 .react-flow .react-flow__node-text { height: auto; }
 .react-flow__node-text .text-node-content { height: auto; flex: 1 0 auto; }

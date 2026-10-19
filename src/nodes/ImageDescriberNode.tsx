@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Handle, Position, useEdges, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Plus, ArrowRight, Maximize2, Ellipsis } from 'lucide-react';
 import type { AppNode, ImageDescriberNode as Describer, ModelInputNode as ModelInput } from './types';
+import { sunburstFieldLabels } from './sunburst';
 import { DescriberModelSelect } from '../components/DescriberModelSelect';
 import { isNodeLocked } from './types';
 import { TextNodeMenu } from './TextNodeMenu';
@@ -26,7 +27,7 @@ export function ModelInputNode({ id, data, isConnectable }: NodeProps<ModelInput
     rawUpdateNodeData(nodeId, patch, options);
   };
   return <><NodeHeading id={id} label={data.label} locked={data.locked} fallback="Model Name" model />
-    <DescriberModelSelect node disabled={data.locked} value={data.model} choices={data.options} onChange={(model) => updateNodeData(id, { model })} />
+    <DescriberModelSelect node label={data.parameter ? sunburstFieldLabels[data.parameter] : 'Model'} disabled={data.locked} value={data.model} choices={data.options} onChange={(model) => updateNodeData(id, { model })} />
     <span className="describer-port-label model-options-label">Options</span><Handle id="options" type="target" position={Position.Left} className="describer-port model-options-port" style={{ top: 30 }} aria-label="Options input" title="Options · List input (not available yet)" isConnectable={false} />
     <span className="describer-port-label output-label model-text-label">Text</span><Handle type="source" position={Position.Right} className="describer-port" style={{ top: 30 }} aria-label="Text output" isConnectable={isConnectable} />
   </>;

@@ -1,7 +1,8 @@
+import type { SunburstRequest } from './sunburst';
 export type TaskState = 'Queued' | 'Running' | 'Done' | 'Cancelled' | 'Failed';
 export type PreviewTask = {
   id: string; batchId: string; nodeId: string; model: string; createdAt: number;
-  instructions?: string; images?: string[];
+  instructions?: string; images?: string[]; imageRequest?: SunburstRequest;
   progress: number; state: TaskState; started: number; error?: string;
 };
 export const isActiveTask = (task: PreviewTask) => task.state === 'Queued' || task.state === 'Running';

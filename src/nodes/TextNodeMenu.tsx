@@ -21,14 +21,14 @@ export function TextNodeMenu({ id, locked, onRename, children }: {
 
   const act = async (action: string) => {
     const node = getNode(id);
-    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input')) return;
+    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst')) return;
     setError('');
     try {
       if (action === 'duplicate') {
         const copy: AppNode = isTextNode(node) ? cloneTextNode(node) : {
           ...node, id: `${node.type}-${crypto.randomUUID()}`, selected: true,
           position: { x: node.position.x + 40, y: node.position.y + 40 },
-          data: { ...node.data, locked: false, ...(node.type === 'image-describer' ? { exposed: [] } : {}) },
+          data: { ...node.data, locked: false, ...(node.type === 'image-describer' || node.type === 'sunburst' ? { exposed: [] } : {}) },
         } as AppNode;
         setNodes((nodes) => [...nodes.map((item) => ({ ...item, selected: false })), copy]);
       } else if (action === 'cut' && !locked) {

@@ -1,3 +1,5 @@
+import { sunburstFieldLabels } from './nodes/sunburst';
+import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasSidebar } from './components/CanvasSidebar';
 import { createLibraryNode } from './components/libraryCatalog';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -23,7 +25,7 @@ import { CanvasDock, type CanvasTool } from './components/CanvasDock';
 import { useCanvasHistory } from './components/useCanvasHistory';
 import { DevTools } from './components/DevTools';
 import { initialNodes, nodeTypes } from './nodes';
-import { isDescriberNode } from './nodes/types';
+import { isDescriberNode, isSunburstNode, isNodeLocked } from './nodes/types';
 import type { AppNode } from './nodes/types';
 import { isTextNode, textVariableCount, variableHandleId, variableIndex } from './nodes/textVariables';
 import { imagesFromDrop, isFileNode } from './nodes/fileAsset';
@@ -73,12 +75,20 @@ function Flow() {
           }]);
           return;
         }
+        if (saved.format === 'momoflow-sunburst-node' && saved.node?.type === 'sunburst'
+          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
+          const data = restoreSunburstData(saved.node.data);
+          if (!data) return;
+          event.preventDefault();
+          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'sunburst', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
+          return;
+        }
         if (['image-describer', 'model-input'].includes(saved.node?.type) && saved.format === `momoflow-${saved.node.type}-node`
           && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y) && typeof saved.node.data?.model === 'string') {
           const { type, data, position } = saved.node;
           if (type === 'image-describer' && (typeof data.text !== 'string' || typeof data.instructions !== 'string' || !Number.isInteger(data.imageInputs) || data.imageInputs < 1)) return;
           const copy: AppNode = { id: crypto.randomUUID(), type, selected: true, position: { x: position.x + 40, y: position.y + 40 },
-            data: type === 'model-input' ? { model: data.model, options: Array.isArray(data.options) ? data.options.filter((v: unknown) => typeof v === 'string') : undefined } : { model: data.model, text: data.text, instructions: data.instructions, imageInputs: data.imageInputs, exposed: [] } } as AppNode;
+            data: type === 'model-input' ? { model: data.model, label: typeof data.label === 'string' ? data.label : undefined, parameter: ['quality', 'background', 'size', 'outputFormat'].includes(data.parameter) ? data.parameter : undefined, options: Array.isArray(data.options) ? data.options.filter((v: unknown) => typeof v === 'string') : undefined } : { model: data.model, text: data.text, instructions: data.instructions, imageInputs: data.imageInputs, exposed: [] } } as AppNode;
           event.preventDefault();
           setNodes((current) => [...current.map((node) => ({ ...node, selected: false })), copy]);
           return;
@@ -139,6 +149,7 @@ function Flow() {
       if (!dropTarget?.classList.contains('react-flow__pane')) return;
 
       if (fromNode.type === 'image-describer' && fromHandle.type === 'target') return;
+      if (fromNode.type === 'sunburst' && (fromHandle.type === 'source' || fromHandle.id !== 'prompt')) return;
       const id = `text-${crypto.randomUUID()}`;
       const fromSource = fromHandle.type === 'source';
       const newNode: AppNode = {
@@ -185,16 +196,18 @@ function Flow() {
         deletable: !node.data.locked,
         connectable: !node.data.locked && tool === 'select',
         style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
-      } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
+      } : isSunburstNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
       edges={edges.map((edge) => {
         const source = nodes.find((node) => node.id === edge.source);
         const fileSource = source && isFileNode(source) ? source : undefined;
         const textConnection = nodes.some((node) => (isTextNode(node) || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
-        return fileSource || textConnection ? {
+        const generatedSource = source && isSunburstNode(source);
+        const maskTarget = edge.targetHandle === 'mask' && nodes.some(node => node.id === edge.target && isSunburstNode(node));
+        return fileSource || textConnection || generatedSource ? {
           ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
-          style: { ...edge.style, ...(fileSource ? { stroke: filePortColors[fileOutputKind(fileSource.data)] } : {}) },
+          style: { ...edge.style, ...(maskTarget ? { stroke: '#e4ff97' } : generatedSource ? { stroke: '#97ffcd' } : fileSource ? { stroke: filePortColors[fileOutputKind(fileSource.data)] } : {}) },
         } : edge;
       })}
       edgeTypes={edgeTypes}
@@ -205,12 +218,23 @@ function Flow() {
         const currentEdges = getEdges();
         if (connection.source === connection.target) return false;
         const target = getNodes().find((node) => node.id === connection.target);
+        const source = getNodes().find(node => node.id === connection.source);
+        if (isNodeLocked(source) || isNodeLocked(target)) return false;
         if (target?.type === 'model-input') return false;
+        if (target && isSunburstNode(target)) {
+          if (currentEdges.some(edge => edge.target === target.id && edge.targetHandle === connection.targetHandle)) return false;
+          if (connection.targetHandle === 'prompt' || (target.data.exposed ?? []).some(field => field in sunburstFieldLabels && field === connection.targetHandle)) {
+            if (!source || !['text', 'image-describer', 'model-input'].includes(source.type ?? '')) return false;
+          } else if (connection.targetHandle === 'mask' || /^image-\d+$/.test(connection.targetHandle ?? '')) {
+            if (!source || !(isSunburstNode(source) || (source.type === 'file' && fileOutputKind(source.data) === 'image'))) return false;
+          } else return false;
+        }
+        if (source && isSunburstNode(source) && target?.type !== 'sunburst' && !(target?.type === 'image-describer' && connection.targetHandle?.startsWith('image-'))) return false;
         if (target?.type === 'image-describer') {
           if (currentEdges.some((e) => e.target === target.id && e.targetHandle === connection.targetHandle)) return false;
           const source = getNodes().find((n) => n.id === connection.source);
           if (connection.targetHandle?.startsWith('image-')) {
-            if (source?.type !== 'file' || fileOutputKind(source.data) !== 'image') return false;
+            if (!source || !(isSunburstNode(source) || (source.type === 'file' && fileOutputKind(source.data) === 'image'))) return false;
           } else if (!source || !['text', 'model-input', 'image-describer'].includes(source.type ?? '')) return false;
         }
         if (target?.type === 'text' && currentEdges.some((edge) => edge.target === connection.target
