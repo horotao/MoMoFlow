@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import { X } from 'lucide-react';
 import { TaskManager } from './TaskManager';
-import { advanceTasks, isActiveTask, type PreviewTask } from '../nodes/taskQueue';
+import { readyDescriberTasks, isActiveTask, type PreviewTask } from '../nodes/taskQueue';
 import { isDescriberNode, isNodeLocked } from '../nodes/types';
 import type { AppNode, ImageDescriberNode, ModelInputNode } from '../nodes/types';
 import { DescriberIcon } from './DescriberIcon';
@@ -10,7 +10,7 @@ import { DescriberModelSelect } from './DescriberModelSelect';
 import { resolveTextValue } from '../nodes/textVariables';
 import { describerModels } from '../nodes/describer';
 import { prepareDescriberRun } from '../nodes/describerRun';
-import { fileAssets } from '../nodes/fileCollection';
+import { requestDescription } from '../nodes/describerClient';
 
 export function DescriberPanel() {
   const nodes = useNodes<AppNode>();
@@ -30,9 +30,13 @@ export function DescriberPanel() {
   const [runs, setRuns] = useState(1);
   const [error, setError] = useState('');
   const pending = useRef<PreviewTask[]>([]);
+  const workers = useRef(new Map<string, { nodeId: string; controller: AbortController }>());
   const tasksTrigger = useRef<HTMLButtonElement>(null);
   const changeTasks = (update: (tasks: PreviewTask[]) => PreviewTask[]) => {
     pending.current = update(pending.current);
+    for (const [id, worker] of workers.current) {
+      if (!pending.current.some((task) => task.id === id && isActiveTask(task))) worker.controller.abort();
+    }
     setTasks(pending.current);
   };
   const effective = (node: ImageDescriberNode, field: 'model' | 'instructions') => {
@@ -45,6 +49,7 @@ export function DescriberPanel() {
       const result = prepareDescriberRun(getNodes(), getEdges(), Array.isArray(detail) ? detail : [detail], runs);
       if (result.error) { setError(result.error); return; }
       if (!result.tasks.length) return;
+      if (result.tasks.some((task) => task.model !== 'deepseek-flash')) { setError('请选择 deepseek-flash；其他模型尚未接入。'); return; }
       setError(''); setTasksOpen(true);
       pending.current = [...pending.current, ...result.tasks]; setTasks([...pending.current]);
     };
@@ -52,21 +57,38 @@ export function DescriberPanel() {
     return () => window.removeEventListener('describer-run', run);
   }, [getNodes, getEdges, runs]);
   useEffect(() => {
+    let disposed = false;
+    const activeWorkers = workers.current;
     const timer = window.setInterval(() => {
-      const next = advanceTasks(pending.current, Date.now(), (task) => {
-        const current = getNodes();
-        if (!current.some((n) => n.id === task.nodeId)) return 'The node was removed.';
-        const connected = getEdges().filter((edge) => edge.target === task.nodeId && edge.targetHandle?.startsWith('image-'));
-        if (!connected.some((edge) => {
-          const source = current.find((n) => n.id === edge.source);
-          return source?.type === 'file' && fileAssets(source.data).some((asset) => asset.kind === 'image');
-        })) return 'The image input is no longer available.';
-        return undefined;
-      });
-      if (next !== pending.current) { pending.current = next; setTasks(next); }
+      const ready = readyDescriberTasks(pending.current, [...activeWorkers.values()].map((worker) => worker.nodeId));
+      for (const task of ready) {
+        const controller = new AbortController();
+        activeWorkers.set(task.id, { nodeId: task.nodeId, controller });
+        const update = (state: PreviewTask['state'], error?: string) => {
+          if (disposed) return;
+          pending.current = pending.current.map((item) => item.id === task.id && isActiveTask(item) ? { ...item, state, error, started: item.started || Date.now(), progress: state === 'Done' ? 100 : 0 } : item);
+          if (!disposed) setTasks([...pending.current]);
+        };
+        update('Running');
+        const timeout = window.setTimeout(() => controller.abort(), 130000);
+        void (async () => {
+          try {
+            const node = getNodes().find((item) => item.id === task.nodeId);
+            if (!node || isNodeLocked(node)) throw new Error('节点已删除或锁定。');
+            const text = await requestDescription(task, controller.signal);
+            if (disposed || !pending.current.some((item) => item.id === task.id && item.state === 'Running')) return;
+            const current = getNodes().find((item) => item.id === task.nodeId);
+            if (!current || isNodeLocked(current)) throw new Error('节点已删除或锁定，未写入结果。');
+            rawUpdateNodeData(task.nodeId, { text });
+            update('Done');
+          } catch (error) {
+            update('Failed', controller.signal.aborted ? '请求已取消或超时，不会自动重试。' : error instanceof Error ? error.message : '请求失败。');
+          } finally { window.clearTimeout(timeout); activeWorkers.delete(task.id); }
+        })();
+      }
     }, 200);
-    return () => window.clearInterval(timer);
-  }, [getNodes, getEdges]);
+    return () => { disposed = true; window.clearInterval(timer); for (const worker of activeWorkers.values()) worker.controller.abort(); };
+  }, [getNodes, rawUpdateNodeData]);
   const expose = (field: 'model' | 'instructions') => {
     if (!selected || isNodeLocked(getNodes().find((node) => node.id === selected.id))) return;
     const exposed = selected.data.exposed ?? [];
@@ -122,7 +144,7 @@ export function DescriberPanel() {
             <span>{runs}</span>
             <button aria-label="Increment runs" disabled={!runnable.length || runs === 10} onClick={() => setRuns(runs + 1)}><DescriberIcon name="plus" /></button>
           </div></div>
-          <button disabled={!runnable.length} className="describer-primary" title="Preview run · No model requests" onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => isDescriberNode(node) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />Run selected</button>
+          <button disabled={!runnable.length} className="describer-primary" title="调用 DeepSeek 生成提示词" onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => isDescriberNode(node) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />Run selected</button>
         </div>
       </>}
     </aside>
@@ -131,10 +153,8 @@ export function DescriberPanel() {
       onRetry={(task) => {
         const node = getNodes().find((item) => item.id === task.nodeId);
         if (!node || !isDescriberNode(node) || node.data.locked) return;
-        changeTasks((all) => [...all, {
-        ...task, id: crypto.randomUUID(), batchId: crypto.randomUUID(), createdAt: Date.now(),
-        state: 'Queued', progress: 0, started: 0, error: undefined,
-      }]); }}
+        window.dispatchEvent(new CustomEvent('describer-run', { detail: [task.nodeId] }));
+      }}
       onFocus={(id) => {
         const node = getNodes().find((n) => n.id === id);
         if (!node) return;

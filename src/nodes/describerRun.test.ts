@@ -25,3 +25,13 @@ test('invalid selection fails validation before any partial batch is queued', ()
   assert.match(result.error ?? '', /image/);
   assert.deepEqual(result.tasks, []);
 });
+
+test('queued input snapshots preserve connected instructions and image URLs', () => {
+  const instruction: AppNode = { id: 'instructions', type: 'text', position: { x: 0, y: 0 }, data: { text: '只输出中文提示词' } };
+  const node = describer('a');
+  const result = prepareDescriberRun([image, node, instruction], [...edges, { id: 'instructions-edge', source: instruction.id, target: 'a', targetHandle: 'instructions' }], ['a'], 1);
+  assert.equal(result.tasks[0].instructions, '只输出中文提示词');
+  assert.deepEqual(result.tasks[0].images, ['blob:local']);
+  node.data.instructions = 'changed';
+  assert.equal(result.tasks[0].instructions, '只输出中文提示词');
+});

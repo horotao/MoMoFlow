@@ -1,6 +1,7 @@
 export type TaskState = 'Queued' | 'Running' | 'Done' | 'Cancelled' | 'Failed';
 export type PreviewTask = {
   id: string; batchId: string; nodeId: string; model: string; createdAt: number;
+  instructions?: string; images?: string[];
   progress: number; state: TaskState; started: number; error?: string;
 };
 export const isActiveTask = (task: PreviewTask) => task.state === 'Queued' || task.state === 'Running';
@@ -36,4 +37,14 @@ export function groupState(tasks: PreviewTask[]): TaskState {
 export function clearFinishedTasks(tasks: PreviewTask[]) {
   const activeBatches = new Set(tasks.filter(isActiveTask).map((task) => task.batchId));
   return tasks.filter((task) => activeBatches.has(task.batchId));
+}
+
+// Different nodes run concurrently; repeated runs of one node retain queue order.
+export function readyDescriberTasks(tasks: PreviewTask[], activeNodeIds: string[]): PreviewTask[] {
+  const busy = new Set([...activeNodeIds, ...tasks.filter((task) => task.state === 'Running').map((task) => task.nodeId)]);
+  return tasks.filter((task) => {
+    if (task.state !== 'Queued' || busy.has(task.nodeId)) return false;
+    busy.add(task.nodeId);
+    return true;
+  });
 }

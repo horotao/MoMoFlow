@@ -1,0 +1,31 @@
+import { Search, History, Bookmark, BriefcaseBusiness, Image, SquarePlay, AudioLines, Blocks, Images, Type, Import, ScanEye, ListFilter, MapPin, Sparkles, WandSparkles, type LucideIcon } from 'lucide-react';
+import type { AppNode } from '../nodes/types';
+import { defaultInstructions } from '../nodes/describer';
+import { defaultTextNodeText } from '../nodes/defaults';
+export type Category = 'Search' | 'Recents' | 'Saved' | 'Tools' | 'Image' | 'Video' | 'Models' | 'Assets';
+export type Item = { id: string; label: string; icon: LucideIcon; category: Category; group: string; color?: string; nodeType?: string };
+export const navigation: { name: Category; icon: LucideIcon; divider?: boolean }[] = [
+  { name: 'Search', icon: Search }, { name: 'Recents', icon: History }, { name: 'Saved', icon: Bookmark, divider: true },
+  { name: 'Tools', icon: BriefcaseBusiness }, { name: 'Image', icon: Image }, { name: 'Video', icon: SquarePlay },
+  { name: 'Models', icon: Blocks, divider: true }, { name: 'Assets', icon: Images },
+];
+export const items: Item[] = [
+  { id: 'text', label: 'Prompt', icon: Type, category: 'Tools', group: 'Text tools', nodeType: 'text' },
+  { id: 'image-describer', label: 'Image Describer', icon: ScanEye, category: 'Tools', group: 'Text tools', nodeType: 'image-describer' },
+  { id: 'file', label: 'Import', icon: Import, category: 'Tools', group: 'Helpers', nodeType: 'file' },
+  { id: 'model-input', label: 'Model Name', icon: ListFilter, category: 'Tools', group: 'Datatypes', nodeType: 'model-input' },
+  { id: 'position-logger', label: 'Position Logger', icon: MapPin, category: 'Tools', group: 'Helpers', nodeType: 'position-logger' },
+  { id: 'gpt-image', label: 'GPT Image', icon: Sparkles, category: 'Image', group: 'Generate from text' },
+  { id: 'nano-banana', label: 'Nano Banana', icon: Sparkles, color: '#a48cdd', category: 'Image', group: 'Generate from text' },
+  { id: 'seedance', label: 'Seedance', icon: AudioLines, color: '#6bc9ca', category: 'Video', group: 'Generate from text or image' },
+  { id: 'kling', label: 'Kling Video', icon: SquarePlay, color: '#b1e65b', category: 'Video', group: 'Generate from text or image' },
+  { id: 'background', label: 'Background Removal', icon: WandSparkles, color: '#9b7cde', category: 'Models', group: 'Community models' },
+  { id: 'upscale', label: 'Image Upscale', icon: Image, category: 'Models', group: 'Community models' },
+];
+
+export function createLibraryNode(id: string, position: { x: number; y: number }): AppNode | undefined {
+  const item = items.find(candidate => candidate.id === id);
+  if (!item?.nodeType) return;
+  const data = id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'file' ? {} : { label: item.label, category: item.category };
+  return { id: crypto.randomUUID(), type: item.nodeType, position, data, selected: true } as AppNode;
+}

@@ -1,0 +1,6 @@
+Test photographs, downloaded without edits (market uses Wikimedia 1280px thumbnail):
+market.jpg — Street-veggie-market-1.jpg, Wael.kenawey, CC BY-SA 4.0
+https://commons.wikimedia.org/wiki/File:Street-veggie-market-1.jpg
+library.jpg — Book shelves in the reading room.jpg, WienerLibraryWIR, CC BY-SA 4.0
+https://commons.wikimedia.org/wiki/File:Book_shelves_in_the_reading_room.jpg
+License: https://creativecommons.org/licenses/by-sa/4.0/

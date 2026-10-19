@@ -9,7 +9,7 @@ function TaskStatusIcon({ state }: { state: TaskState }) {
   </svg>;
 }
 function TaskProgress({ progress, label }: { progress: number; label: string }) {
-  return <span className="task-progress" role="progressbar" aria-label={label} aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-valuetext={`${progress}% (preview)`}><span className="task-progress-label">{progress}%</span><span className="task-progress-track"><span style={{ width: `${progress}%` }} /></span></span>;
+  return <span className="task-progress" role="progressbar" aria-label={label} aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-valuetext={`${progress}%`}><span className="task-progress-label">{progress}%</span><span className="task-progress-track"><span style={{ width: `${progress}%` }} /></span></span>;
 }
 
 type Props = {
@@ -30,23 +30,24 @@ export function TaskManager({ tasks, trigger, sidebarOpen, onClose, onFocus, onC
   }, [onClose, trigger]);
   const row = (task: PreviewTask) => {
     const active = isActiveTask(task);
-    const detail = `Frontend preview · ${task.model}${task.error ? ` · ${task.error}` : ''}`;
+    const detail = `${task.model}${task.error ? ` · ${task.error}` : ''}`;
     return <div className={`task-row state-${task.state.toLowerCase()}`} key={task.id}>
       <button className="task-main" title={detail} onClick={() => onFocus(task.nodeId)}>
         <span className="task-name"><TaskStatusIcon state={task.state} /><span>Image Describer</span></span>
-        <span className="task-status">{task.state === 'Running' ? <TaskProgress progress={task.progress} label="Image Describer progress" /> : task.state}</span>
+        <span className="task-status">{task.state === 'Running' ? 'Running…' : task.state}</span>
       </button>
       <div className="task-actions">
-        {(task.state === 'Failed' || task.state === 'Cancelled') && <button title="Retry preview" aria-label="Retry task" onClick={() => onRetry(task)}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 10a6 6 0 1 1 0 4M6 6v4h4" /></svg></button>}
+        {(task.state === 'Failed' || task.state === 'Cancelled') && <button title="重新调用（可能再次计费）" aria-label="Retry task" onClick={() => onRetry(task)}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 10a6 6 0 1 1 0 4M6 6v4h4" /></svg></button>}
         <button title={active ? 'Cancel' : 'Clear'} aria-label={active ? 'Cancel task' : 'Clear task'} onClick={() => onChange((all) => active ? all.map((t) => t.id === task.id ? { ...t, state: 'Cancelled' } : t) : all.filter((t) => t.id !== task.id))}><DescriberIcon name="close" /></button>
       </div>
+      {task.error && <div role="alert">{task.error}</div>}
     </div>;
   };
   return <section ref={root} id="task-manager" className={`describer-tasks task-manager nodrag nopan nowheel ${sidebarOpen ? 'with-sidebar' : ''}`} aria-label="Task manager" onKeyDown={(e) => {
     e.stopPropagation();
     if (e.key === 'Escape') { onClose(); trigger.current?.focus(); }
   }}>
-    <header><span title="Frontend preview · Simulated progress">Task manager</span><button title="Clear finished tasks; queued and running tasks are kept" disabled={clearFinishedTasks(tasks).length === tasks.length} onClick={() => onChange(clearFinishedTasks)}>Clear all</button><button aria-label="Close tasks" onClick={() => { onClose(); trigger.current?.focus(); }}><DescriberIcon name="close" /></button></header>
+    <header><span title="DeepSeek tasks">Task manager</span><button title="Clear finished tasks; queued and running tasks are kept" disabled={clearFinishedTasks(tasks).length === tasks.length} onClick={() => onChange(clearFinishedTasks)}>Clear all</button><button aria-label="Close tasks" onClick={() => { onClose(); trigger.current?.focus(); }}><DescriberIcon name="close" /></button></header>
     <div className="task-list">
       {!tasks.length && <div className="task-empty">No tasks yet</div>}
       {taskGroups(tasks).map((group) => {
@@ -66,6 +67,6 @@ export function TaskManager({ tasks, trigger, sidebarOpen, onClose, onFocus, onC
         </div>{open && <div className="task-batch-items" id={`batch-${id}`}>{group.map(row)}</div>}</div>;
       })}
     </div>
-    <span className="sr-only">Frontend preview. All task progress is simulated; no model requests are sent.</span>
+    <span className="sr-only">取消会停止等待，已提交的请求仍可能计费。</span>
   </section>;
 }

@@ -1,3 +1,5 @@
+import { CanvasSidebar } from './components/CanvasSidebar';
+import { createLibraryNode } from './components/libraryCatalog';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ReactFlow,
@@ -226,15 +228,22 @@ function Flow() {
       }}
       onDragOver={(event) => {
         const types = event.dataTransfer.types;
-        const internal = types.includes('application/x-momoflow-asset');
+        const internal = types.includes('application/x-momoflow-asset') || types.includes('application/x-momoflow-library');
         const external = types.includes('Files') || types.includes('text/uri-list') || types.includes('text/html');
         if (!internal && !external) return;
         event.preventDefault();
         event.dataTransfer.dropEffect = (event.target as HTMLElement).classList.contains('react-flow__pane')
-          ? internal ? 'move' : 'copy' : 'none';
+          ? internal && !types.includes('application/x-momoflow-library') ? 'move' : 'copy' : 'none';
       }}
       onDrop={(event) => {
         const transfer = event.dataTransfer;
+        if (transfer.types.includes('application/x-momoflow-library')) {
+          event.preventDefault();
+          if (!(event.target as HTMLElement).classList.contains('react-flow__pane')) return;
+          const node = createLibraryNode(transfer.getData('application/x-momoflow-library'), screenToFlowPosition({ x: event.clientX, y: event.clientY }));
+          if (node) setNodes(current => [...current.map(n => ({ ...n, selected: false })), node]);
+          return;
+        }
         if (transfer.types.includes('application/x-momoflow-asset')) { event.preventDefault(); return; }
         if (!transfer.types.some((type) => ['Files', 'text/uri-list', 'text/html'].includes(type))) return;
         // Never let a file drop navigate the browser. File-node media handles its own drops.
@@ -269,6 +278,7 @@ function Flow() {
       fitView
     >
       <Background />
+      <CanvasSidebar colorMode={colorMode} onThemeChange={() => setColorMode(mode => mode === 'dark' ? 'light' : 'dark')} />
       <DescriberPanel />
       {importError && <Panel position="top-center" className="canvas-import-error" role="alert">
         <span>{importError}</span><button type="button" aria-label="Dismiss import error" onClick={() => setImportError('')}>×</button>
@@ -281,7 +291,7 @@ function Flow() {
           const bounds = canvasRef.current?.getBoundingClientRect();
           if (!bounds) return;
           const position = screenToFlowPosition({ x: bounds.left + bounds.width / 2 - 230, y: bounds.top + bounds.height / 2 - 200 });
-          setNodes((all) => [...all.map((n) => ({ ...n, selected: false })), { id: crypto.randomUUID(), type: 'image-describer', selected: true, position, data: { text: '', model: 'google/gemini-3-pro', instructions: defaultInstructions, imageInputs: 1 } }]);
+          setNodes((all) => [...all.map((n) => ({ ...n, selected: false })), { id: crypto.randomUUID(), type: 'image-describer', selected: true, position, data: { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } }]);
         }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ fill: 'none' }}><rect x="3" y="3" width="13" height="13" rx="2" /><path d="m4 13 4-4 6 6m2-5h5v11H10v-4M13 3v3" /></svg></ControlButton>
         <ControlButton title="添加 File 节点" aria-label="添加 File 节点" onClick={() => {
           const bounds = canvasRef.current?.getBoundingClientRect();

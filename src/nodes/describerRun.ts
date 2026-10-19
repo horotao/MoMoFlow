@@ -20,7 +20,13 @@ export function prepareDescriberRun(nodes: AppNode[], edges: Edge[], ids: string
     const modelEdge = edges.find((edge) => edge.target === id && edge.targetHandle === 'model');
     const model = modelEdge ? resolveTextValue(modelEdge.source, nodes, edges) : node.data.model;
     if (!model.trim()) return { tasks: [], error: 'Choose a model for every selected node before running.' };
-    for (let index = 0; index < runs; index++) tasks.push({ id: crypto.randomUUID(), batchId, createdAt, nodeId: id, model, progress: 0, state: 'Queued', started: 0 });
+    const instructionEdge = edges.find((edge) => edge.target === id && edge.targetHandle === 'instructions');
+    const instructions = instructionEdge ? resolveTextValue(instructionEdge.source, nodes, edges) : node.data.instructions;
+    const images = inputs.sort((a, b) => Number(a.targetHandle?.slice(6)) - Number(b.targetHandle?.slice(6))).flatMap((edge) => {
+      const source = nodes.find((item) => item.id === edge.source);
+      return source?.type === 'file' ? fileAssets(source.data).filter((asset) => asset.kind === 'image').map((asset) => asset.url) : [];
+    });
+    for (let index = 0; index < runs; index++) tasks.push({ id: crypto.randomUUID(), batchId, createdAt, nodeId: id, model, instructions, images, progress: 0, state: 'Queued', started: 0 });
   }
   return { tasks };
 }
