@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { EventEmitter } from 'node:events';
@@ -31,8 +31,14 @@ async function invoke({ hook = 'configureServer', headers = {}, body = input, ke
   const req = Object.assign(Readable.from([Buffer.from(JSON.stringify(body))]), { url: '/api/sunburst', method, headers: { host: 'localhost:5173', 'content-type': 'application/json', ...headers }, socket: {} });
   let status = 0; let text = '';
   const res = Object.assign(new EventEmitter(), { destroyed: false, writableEnded: false, writeHead(code: number) { status = code; }, end(value: string) { text = value; this.writableEnded = true; } });
-  await handler(req, res, () => assert.fail('unexpected next'));
-  return { status, body: JSON.parse(text) };
+  const logs: Record<string, unknown>[] = [];
+  const logger = mock.method(console, 'error', (prefix: string, entry: string) => {
+    assert.equal(prefix, '[zenmux-sunburst]');
+    logs.push(JSON.parse(entry));
+  });
+  try { await handler(req, res, () => assert.fail('unexpected next')); }
+  finally { logger.mock.restore(); }
+  return { status, body: JSON.parse(text), logs };
 }
 for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
   test(`${hook}: credentials stay on server; only intended generation/edit endpoint receives payload`, async () => {
@@ -141,4 +147,64 @@ test('new aspect ratios and custom sizes are forwarded unchanged for generation 
     for (const images of [[], [png]]) assert.equal(buildSunburstRequest({ ...input, size, images }).body.size, size);
   }
   for (const size of ['1025x1024', '4096x2048', '512x512', '3072x3072', '2048x512']) assert.throws(() => buildSunburstRequest({ ...input, size }));
+});
+
+test('transport logs preserve nested network codes without logging private error context or retrying', async () => {
+  const key = 'configured-private-token';
+  const privateMessage = `Bearer ${key} ${png} ${input.prompt} https://private.example/?token=secret`;
+  const cause = Object.assign(new Error(privateMessage), { code: 'ECONNRESET', headers: { authorization: key } });
+  const error = new TypeError(privateMessage, { cause: new AggregateError([cause], privateMessage) });
+  let calls = 0;
+  const result = await invoke({ key, provider: async () => { calls++; throw error; } });
+  assert.equal(calls, 1);
+  assert.equal(result.status, 502);
+  assert.equal(result.body.error, '无法取得 ZenMux 结果；请检查网络及用量后再手动重试。');
+  assert.equal(result.body.diagnostic, undefined);
+  assert.equal(result.logs.length, 1);
+  const log = result.logs[0];
+  assert.equal(log.stage, 'request-provider');
+  assert.equal(log.endpoint, 'generations');
+  assert.equal(log.aborted, false);
+  assert.ok(Number(log.elapsedMs) >= 0);
+  assert.ok(!Number.isNaN(Date.parse(String(log.timestamp))));
+  assert.match(String(log.localRequestId), /^[0-9a-f-]{36}$/);
+  assert.deepEqual(log.error, { name: 'TypeError', causes: [{ name: 'AggregateError', causes: [{ name: 'Error', code: 'ECONNRESET' }] }] });
+  const serialized = JSON.stringify(log);
+  for (const secret of [key, png, input.prompt, 'private.example', 'authorization', 'stack']) assert.equal(serialized.includes(secret), false);
+});
+
+test('failure logs distinguish HTTP, parsing and invalid image failures; success stays quiet', async () => {
+  const http = await invoke({ body: { ...input, images: [png] }, provider: async () => Response.json({
+    error: { type: 'provider_api_error', code: 'upstream_unavailable', message: input.prompt },
+  }, { status: 503, headers: { 'x-request-id': 'request-123' } }) });
+  assert.equal(http.logs.length, 1);
+  assert.equal(http.logs[0].stage, 'read-provider-error');
+  assert.equal(http.logs[0].endpoint, 'edits');
+  assert.equal(http.logs[0].status, 503);
+  assert.equal(http.logs[0].requestId, 'request-123');
+  assert.equal(http.logs[0].code, 'upstream_unavailable');
+  assert.equal(JSON.stringify(http.logs).includes(input.prompt), false);
+  const parse = await invoke({ provider: async () => new Response(`invalid JSON ${input.prompt}`, { headers: { 'x-request-id': 'parse-123' } }) });
+  assert.equal(parse.logs[0].stage, 'read-result');
+  assert.equal(parse.logs[0].status, 200);
+  assert.deepEqual(parse.logs[0].error, { name: 'SyntaxError' });
+  assert.equal(JSON.stringify(parse.logs).includes(input.prompt), false);
+  const invalid = await invoke({ provider: async () => Response.json({ data: [] }) });
+  assert.equal(invalid.logs[0].stage, 'validate-result');
+  assert.deepEqual((await invoke()).logs, []);
+});
+
+test('logs redact identifier credentials and bound circular error causes', async () => {
+  const key = 'configured-private-token';
+  const error = Object.assign(new Error('private'), { code: key, cause: undefined as unknown });
+  error.cause = error;
+  const transport = await invoke({ key, provider: async () => { throw error; } });
+  assert.equal(transport.logs.length, 1);
+  assert.equal(JSON.stringify(transport.logs).includes(key), false);
+  assert.ok(JSON.stringify(transport.logs).length < 2000);
+  const http = await invoke({ key, provider: async () => Response.json({ error: {
+    type: key, code: 'https://private.example/?token=secret', message: key,
+  } }, { status: 500, headers: { 'x-request-id': key } }) });
+  assert.equal(http.logs.length, 1);
+  for (const secret of [key, 'private.example', 'token=secret']) assert.equal(JSON.stringify(http.logs).includes(secret), false);
 });

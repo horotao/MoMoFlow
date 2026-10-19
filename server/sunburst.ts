@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { randomUUID } from 'node:crypto';
 import type { Plugin } from 'vite';
 import { sunburstModel, validateSunburstSettings } from '../src/nodes/sunburst.ts';
 
@@ -21,6 +22,26 @@ function diagnosticText(value: unknown, apiKey: string, limit = 2000): string | 
     .replace(/[A-Za-z0-9+/=]{256,}/g, '[payload redacted]')
     .replace(/\p{Cc}/gu, ' ').trim();
   return text ? text.slice(0, limit) + (text.length > limit ? '… [truncated]' : '') : undefined;
+}
+
+// Log identifiers only: messages/stacks can echo prompts, images, URLs or headers.
+function logIdentifier(value: unknown, apiKey: string): string | undefined {
+  if (typeof value !== 'string' && typeof value !== 'number') return undefined;
+  const text = String(value);
+  if (!/^[A-Za-z0-9_.:-]{1,200}$/.test(text)) return undefined;
+  return diagnosticText(text, apiKey, 200);
+}
+
+type ErrorDiagnostic = { name?: string; code?: string; causes?: ErrorDiagnostic[] };
+function errorDiagnostic(error: unknown, apiKey: string, depth = 0): ErrorDiagnostic | undefined {
+  if (!error || typeof error !== 'object' || depth >= 3) return undefined;
+  const value = error as { name?: unknown; code?: unknown; cause?: unknown; errors?: unknown };
+  const nested = [value.cause, ...(Array.isArray(value.errors) ? value.errors.slice(0, 4) : [])];
+  const causes = nested.map(cause => errorDiagnostic(cause, apiKey, depth + 1)).filter(cause => cause !== undefined);
+  return {
+    name: logIdentifier(value.name, apiKey), code: logIdentifier(value.code, apiKey),
+    ...(causes.length ? { causes } : {}),
+  };
 }
 
 async function readErrorDiagnostic(response: Response, apiKey: string): Promise<Partial<ProviderDiagnostic>> {
@@ -122,15 +143,33 @@ export function sunburstPlugin(apiKey: string, providerFetch: typeof fetch = fet
     if (!req.headers['content-type']?.startsWith('application/json')) return send(415, { error: 'Expected application/json' });
     if (!apiKey) return send(503, { error: '请在 .env.local 配置 ZENMUX_API_KEY，然后重启开发服务器。' });
     const controller = new AbortController();
+    const startedAt = Date.now();
+    const localRequestId = randomUUID();
+    let stage = 'read-request';
+    let endpoint: string | undefined;
     let diagnostic: ProviderDiagnostic | undefined;
-    const sendFailure = (message: string) => send(502, {
-      error: [message, diagnostic?.type && `错误类型：${diagnostic.type}`,
-        diagnostic?.code && `错误代码：${diagnostic.code}`,
-        diagnostic?.message && `服务商说明：${diagnostic.message}`,
-        diagnostic && `ZenMux HTTP：${diagnostic.status}`,
-        diagnostic?.requestId && `Request ID：${diagnostic.requestId}`].filter(Boolean).join('\n'),
-      ...(diagnostic ? { diagnostic } : {}),
-    });
+    const sendFailure = (message: string, error?: unknown) => {
+      // Logging must never change request handling, even if a log sink fails.
+      try {
+        console.error('[zenmux-sunburst]', JSON.stringify({
+          timestamp: new Date().toISOString(), localRequestId, stage, endpoint,
+          elapsedMs: Date.now() - startedAt, aborted: controller.signal.aborted,
+          status: diagnostic?.status,
+          requestId: logIdentifier(diagnostic?.requestId, apiKey),
+          type: logIdentifier(diagnostic?.type, apiKey),
+          code: logIdentifier(diagnostic?.code, apiKey),
+          error: errorDiagnostic(error, apiKey),
+        }));
+      } catch { /* Diagnostics are best effort. */ }
+      send(502, {
+        error: [message, diagnostic?.type && `错误类型：${diagnostic.type}`,
+          diagnostic?.code && `错误代码：${diagnostic.code}`,
+          diagnostic?.message && `服务商说明：${diagnostic.message}`,
+          diagnostic && `ZenMux HTTP：${diagnostic.status}`,
+          diagnostic?.requestId && `Request ID：${diagnostic.requestId}`].filter(Boolean).join('\n'),
+        ...(diagnostic ? { diagnostic } : {}),
+      });
+    };
     const timeout = setTimeout(() => controller.abort(), 300000);
     const close = () => { if (!res.writableEnded) controller.abort(); };
     res.on('close', close);
@@ -144,7 +183,10 @@ export function sunburstPlugin(apiKey: string, providerFetch: typeof fetch = fet
       let request: ReturnType<typeof buildSunburstRequest>;
       try { request = buildSunburstRequest(JSON.parse(Buffer.concat(chunks).toString())); }
       catch (error) { return send(400, { error: error instanceof Error ? error.message : '请求格式错误。' }); }
+      endpoint = request.endpoint;
+      stage = 'build-payload';
       const payload = buildSunburstPayload(request);
+      stage = 'request-provider';
       const response = await providerFetch(`https://zenmux.ai/api/v1/images/${request.endpoint}`, {
         method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, ...payload.headers },
         body: payload.body, signal: controller.signal,
@@ -152,17 +194,21 @@ export function sunburstPlugin(apiKey: string, providerFetch: typeof fetch = fet
       const requestId = diagnosticText(response.headers.get('x-zenmux-requestid') ?? response.headers.get('x-request-id'), apiKey, 200);
       diagnostic = { status: response.status, ...(requestId ? { requestId } : {}) };
       if (!response.ok) {
+        stage = 'read-provider-error';
         diagnostic = { ...diagnostic, ...await readErrorDiagnostic(response, apiKey), ...(requestId ? { requestId } : {}) };
         const messages: Record<number, string> = { 401: 'ZenMux API Key 无效。', 402: 'ZenMux 余额不足。', 403: 'ZenMux 拒绝访问此模型。', 429: 'ZenMux 请求过于频繁，请稍后手动重试。', 400: 'ZenMux 拒绝了图片或参数，请检查输入图片、蒙版及参数。' };
         return sendFailure(messages[response.status] ?? `ZenMux 请求失败（${response.status}），不会自动重试。`);
       }
+      stage = 'read-result';
       const result = await response.json();
+      stage = 'validate-result';
       const data = result.data?.[0];
       if (typeof data?.b64_json !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(data.b64_json) || data.b64_json.length > maxBody) return sendFailure('ZenMux 未返回有效图片，结果未知，请检查用量后再手动重试。');
       const format = ['png', 'jpeg', 'webp'].includes(result.output_format) ? result.output_format : request.body.output_format;
+      stage = 'send-result';
       send(200, { image: `data:image/${format};base64,${data.b64_json}`, format });
-    } catch {
-      sendFailure(controller.signal.aborted ? '请求超时或已取消；已提交请求仍可能计费，不会自动重试。' : '无法取得 ZenMux 结果；请检查网络及用量后再手动重试。');
+    } catch (error) {
+      sendFailure(controller.signal.aborted ? '请求超时或已取消；已提交请求仍可能计费，不会自动重试。' : '无法取得 ZenMux 结果；请检查网络及用量后再手动重试。', error);
     } finally { clearTimeout(timeout); res.off('close', close); }
   };
   return { name: 'zenmux-sunburst', configureServer(server) { server.middlewares.use(middleware); }, configurePreviewServer(server) { server.middlewares.use(middleware); } };
