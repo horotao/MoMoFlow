@@ -1,3 +1,5 @@
+import { isPainterNode } from './types';
+import { imageOutput } from './sunburstRun';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useReactFlow, useViewport } from '@xyflow/react';
 import { nodeAssetUrls, writeAssetClipboard } from './assetResources';
@@ -9,7 +11,7 @@ import type { AppNode } from './types';
 export function TextNodeMenu({ id, locked, onRename, children }: {
   id: string; locked: boolean; onRename: () => void; children: ReactNode;
 }) {
-  const { getNode, getNodes, setNodes, updateNodeData, deleteElements } = useReactFlow<AppNode>();
+  const { getNode, getNodes, getEdges, setNodes, updateNodeData, deleteElements } = useReactFlow<AppNode>();
   const [open, setOpen] = useState(false);
   const [placement, setPlacement] = useState({ above: false, left: false });
   const [error, setError] = useState('');
@@ -22,18 +24,20 @@ export function TextNodeMenu({ id, locked, onRename, children }: {
 
   const act = async (action: string) => {
     const node = getNode(id);
-    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst')) return;
+    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'painter' && node.type !== 'preview')) return;
     setError('');
     try {
+      const edge = isPainterNode(node) ? getEdges().find(item => item.target === id && item.targetHandle === 'image') : undefined;
+      const snapshot = isPainterNode(node) && edge ? { ...node, data: { ...node.data, baseImage: imageOutput(getNode(edge.source), edge.sourceHandle, getNodes(), getEdges())[0] } } : node;
       if (action === 'duplicate') {
         const copy: AppNode = isTextNode(node) ? cloneTextNode(node) : {
-          ...node, id: `${node.type}-${crypto.randomUUID()}`, selected: true,
+          ...snapshot, id: `${node.type}-${crypto.randomUUID()}`, selected: true,
           position: { x: node.position.x + 40, y: node.position.y + 40 },
-          data: { ...node.data, locked: false, ...(node.type === 'image-describer' || node.type === 'sunburst' ? { exposed: [] } : {}) },
+          data: { ...snapshot.data, locked: false, ...(node.type === 'image-describer' || node.type === 'sunburst' ? { exposed: [] } : {}) },
         } as AppNode;
         setNodes((nodes) => [...nodes.map((item) => ({ ...item, selected: false })), copy]);
       } else if (action === 'cut' && !locked) {
-        await writeAssetClipboard(JSON.stringify({ format: `momoflow-${node.type}-node`, node }), nodeAssetUrls([node]));
+        await writeAssetClipboard(JSON.stringify({ format: `momoflow-${node.type}-node`, node: snapshot }), nodeAssetUrls([snapshot]));
         await deleteElements({ nodes: [{ id }] });
       } else if (action === 'delete' && !locked) {
         await deleteElements({ nodes: [{ id }] });

@@ -42,9 +42,9 @@ export function connectionChoices(pending: PendingConnection, nodes: AppNode[], 
     id: `${itemId}:${handleId ?? 'output'}`, itemId, handleId, portY, detail,
   });
   if (pending.direction === 'source') {
-    const kind = node.type === 'sunburst' ? 'image' : node.type === 'file' ? fileOutputKind(node.data)
+    const kind = ['sunburst', 'painter'].includes(node.type ?? '') ? 'image' : node.type === 'file' ? fileOutputKind(node.data)
       : ['text', 'image-describer', 'model-input', 'position-logger'].includes(node.type ?? '') ? 'text' : undefined;
-    if (kind === 'image') return [choice('image-describer', 'image-0'), choice('sunburst', 'image-0', 151, 'Image')];
+    if (kind === 'image') return [choice('preview', 'file', 89, 'File'), choice('image-describer', 'image-0'), choice('sunburst', 'image-0', 151, 'Image'), choice('painter', 'image', 89, 'Image'), ...(node.type === 'painter' && pending.handleId === 'mask' ? [choice('sunburst', 'mask', 209, 'Mask')] : [])];
     if (kind !== 'text') return [];
     const choices = [choice('text', 'variable-1')];
     if (node.type !== 'position-logger') choices.push(
@@ -56,9 +56,9 @@ export function connectionChoices(pending: PendingConnection, nodes: AppNode[], 
   if (edges.some(edge => edge.target === node.id && (node.type === 'text'
     ? variableIndex(edge.targetHandle) === variableIndex(pending.handleId)
     : edge.targetHandle === pending.handleId))) return [];
-  const imageInput = ['sunburst', 'image-describer'].includes(node.type ?? '')
+  const imageInput = (node.type === 'preview' && pending.handleId === 'file') || (node.type === 'painter' && pending.handleId === 'image') || ['sunburst', 'image-describer'].includes(node.type ?? '')
     && (pending.handleId?.startsWith('image-') || pending.handleId === 'mask');
-  if (imageInput) return [choice('file', 'file'), choice('sunburst', 'result')];
+  if (imageInput) return [choice('file', 'file'), choice('sunburst', 'result'), choice('painter', pending.handleId === 'mask' ? 'mask' : 'result', pending.handleId === 'mask' ? 149 : 89), ...(node.type === 'preview' ? [choice('painter', 'mask', 149, 'Mask')] : [])];
   const textInput = node.type === 'text' || node.type === 'position-logger'
     || (isSunburstNode(node) && (pending.handleId === 'prompt' || (node.data.exposed ?? []).some(field => field === pending.handleId)))
     || (isDescriberNode(node) && (node.data.exposed ?? []).some(field => field === pending.handleId));

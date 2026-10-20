@@ -1,3 +1,5 @@
+import { isPainterNode } from '../nodes/types';
+import { painterDocument } from '../nodes/painter';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { Edge } from '@xyflow/react';
 import { initialTextDocument } from '../nodes/textDocument';
@@ -17,7 +19,7 @@ function snapshot(nodes: AppNode[], edges: Edge[]): Snapshot {
 
 function signature({ nodes, edges }: Snapshot) {
   return JSON.stringify({
-    nodes: nodes.map(({ id, type, position, data }) => ({ id, type, position, data })),
+    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: isPainterNode(node) ? painterDocument(node.data) : node.data })),
     edges: edges.map((edge) => ({ ...edge, selected: undefined })),
   }, (key, value) => key === 'content' && Array.isArray(value) && value.length === 0 ? undefined : value);
 }
@@ -34,13 +36,17 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
     if (nodes.some((node) => node.dragging)) return;
     const next = snapshot(nodes, edges);
     const state = history.current;
-    if (signature(next) === signature(state.present)) return;
+    if (signature(next) === signature(state.present)) { state.present = next; return; }
     // Coalesce consecutive editor updates, but keep graph edits separate.
     const dataOnly = nodes.length === state.present.nodes.length
       && nodes.every((node, i) => node.id === state.present.nodes[i].id
         && JSON.stringify(node.position) === JSON.stringify(state.present.nodes[i].position))
       && JSON.stringify(edges) === JSON.stringify(state.present.edges);
-    if (!dataOnly || Date.now() - state.time > 750) {
+    const paintChanged = nodes.some(node => isPainterNode(node) && (() => {
+      const previous = state.present.nodes.find(item => item.id === node.id);
+      return isPainterNode(previous) && JSON.stringify(previous.data.strokes) !== JSON.stringify(node.data.strokes);
+    })());
+    if (paintChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;

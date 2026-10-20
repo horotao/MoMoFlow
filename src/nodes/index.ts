@@ -1,3 +1,5 @@
+import { PainterNode } from './PainterNode';
+import { PreviewNode } from './PreviewNode';
 import { SunburstNode } from './SunburstNode';
 import { ImageDescriberNode, ModelInputNode } from './ImageDescriberNode';
 import type { NodeTypes } from '@xyflow/react';
@@ -10,6 +12,8 @@ import type { AppNode } from './types';
 export const initialNodes: AppNode[] = [];
 
 export const nodeTypes = {
+  preview: PreviewNode,
+  painter: PainterNode,
   sunburst: SunburstNode,
   text: TextNode,
   'image-describer': ImageDescriberNode,

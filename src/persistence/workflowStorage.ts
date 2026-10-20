@@ -1,3 +1,4 @@
+import { isPainterNode } from '../nodes/types.ts';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources.ts';
 import type { Edge, Viewport } from '@xyflow/react';
 import type { AppNode, FileAsset, FileNode, SunburstNode } from '../nodes/types';
@@ -33,6 +34,12 @@ export function mapAssets(nodes: AppNode[], map: (asset: FileAsset) => FileAsset
         assets: data.assets?.map(map),
       } } as AppNode;
     }
+    if (isPainterNode(node)) return { ...node, data: { ...node.data,
+      baseImage: node.data.baseImage ? map(node.data.baseImage) : undefined,
+      result: node.data.result ? map(node.data.result) : undefined,
+      mask: node.data.mask ? map(node.data.mask) : undefined,
+      alphaMask: node.data.alphaMask ? map(node.data.alphaMask) : undefined,
+    } };
     if (node.type === 'sunburst') return { ...node, data: {
       ...node.data, results: (node.data as SunburstNode['data']).results?.map(map),
     } } as AppNode;
