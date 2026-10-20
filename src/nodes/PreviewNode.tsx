@@ -71,7 +71,7 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
           </div></div>
           {size?.width && size.height && <span className="file-media-resolution">{size.width} × {size.height}</span>}
         </div>
-      </> : <div className="preview-empty"><Eye size={28} strokeWidth={1} /><span>{active ? 'Image unavailable' : connected ? 'Waiting for image' : 'Connect an image to preview'}</span></div>}
+      </> : active && <div className="preview-empty" role="status"><span>Image unavailable</span></div>}
     </div>
     <span className="describer-port-label preview-port-label" style={{ top: 61 }}>File</span>
     <Handle id="file" type="target" position={Position.Left} className={`describer-port preview-port${connected ? ' is-connected' : ''}`}
