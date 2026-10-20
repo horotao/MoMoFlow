@@ -25,14 +25,15 @@
 .sunburst-prompt-asterisk { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--text-node-surface); pointer-events: none; }
 .react-flow .react-flow__node-sunburst .sunburst-port-prompt.is-connected { background: var(--text-node-surface); }
 .sunburst-port-prompt.is-connected .sunburst-prompt-asterisk { display: none; }
-.react-flow .sunburst-port-image { border-color: #97ffcd; }.sunburst-label-image { color: #97ffcd; }
-.react-flow .sunburst-port-mask { border-color: #e4ff97; }.sunburst-label-mask { color: #e4ff97; }
+.react-flow { --sunburst-image-port: #31885b; --sunburst-mask-port: #7c965a; }
+.react-flow.dark { --sunburst-image-port: #97ffcd; --sunburst-mask-port: #e4ff97; }
+.react-flow .sunburst-port-image { border-color: var(--sunburst-image-port); }.sunburst-label-image { color: #97ffcd; }
+.react-flow .sunburst-port-mask { border-color: var(--sunburst-mask-port); }.sunburst-label-mask { color: #e4ff97; }
 .react-flow .sunburst-port-image.is-connected::after { background: #97ffcd; }
 .react-flow .sunburst-port-mask.is-connected::after { background: #e4ff97; }
 .react-flow .sunburst-port-image:hover, .react-flow .sunburst-port-image.connectingto { background: #97ffcd; }
 .react-flow .sunburst-port-mask:hover, .react-flow .sunburst-port-mask.connectingto { background: #e4ff97; }
 .react-flow:not(.dark) .sunburst-label-image { color: #23754d; }.react-flow:not(.dark) .sunburst-label-mask { color: #677d23; }
-.react-flow:not(.dark) .sunburst-port-image { border-color: #31885b; }.react-flow:not(.dark) .sunburst-port-mask { border-color: #7c965a; }
 .sunburst-settings h2 { display: flex; align-items: center; gap: 8px; min-height: 24px; margin-bottom: 16px; }
 .sunburst-settings h2 svg { flex-shrink: 0; }
 .sunburst-settings h2 span { font-size: 11px; line-height: 16px; }

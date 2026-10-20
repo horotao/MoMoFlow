@@ -658,7 +658,7 @@
 .describer-output:hover .describer-expand, .describer-expand:focus-visible { opacity: 1; }
 .describer-run { display: flex; align-items: center; gap: 5px; border: 1px solid var(--text-node-border); border-radius: 5px; background: transparent; color: inherit; font: inherit; padding: 6px 10px; }
 .react-flow .describer-port { width: 15px; height: 15px; border: 3px solid #df8bf6; background: var(--text-node-surface); box-shadow: 0 0 0 5px var(--text-node-surface); }
-.react-flow .describer-port.image-port { border-color: #8bedbe; }
+.react-flow .describer-port.image-port { border-color: var(--media-port-image); }
 .describer-port-label { position: absolute; right: calc(100% + 20px); color: #df8bf6; font-size: 11px; white-space: nowrap; visibility: hidden; }
 .describer-port-label.output-label { left: calc(100% + 20px); right: auto; top: 61px; }
 .react-flow__node-image-describer:hover .describer-port-label, .react-flow__node-image-describer.selected .describer-port-label { visibility: visible; }
@@ -865,7 +865,7 @@
 
 /* Match the existing ports: retain the ring and add a separate center dot. */
 .react-flow .describer-port.is-connected::after { content: ''; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; transform: translate(-50%, -50%); border-radius: 50%; background: #df8bf6; pointer-events: none; }
-.react-flow .describer-port.image-port.is-connected::after { background: #8bedbe; }
+.react-flow .describer-port.image-port.is-connected::after { background: var(--media-port-image); }
 
 /* Overlapping selected nodes must not leak their port labels into a group selection. */
 .react-flow .react-flow__nodes:has(> .react-flow__node.selected ~ .react-flow__node.selected) .react-flow__node :is(.text-node-port-label, .describer-port-label, .file-node-port-label) {

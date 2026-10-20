@@ -1,0 +1,145 @@
+.connection-menu {
+  --connection-menu-surface: #ededed;
+  --connection-menu-text: #2c2c2c;
+  --connection-menu-input: #e2e2e2;
+  --connection-menu-muted: #808080;
+  --connection-menu-focus: #808080;
+  --connection-menu-active: #2c2c2c;
+  --connection-menu-active-text: #fff;
+  position: fixed;
+  z-index: 1100;
+  box-sizing: border-box;
+  width: 200px;
+  max-width: calc(100vw - 16px);
+  max-height: min(580px, calc(100vh - 16px));
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  border: 0;
+  border-radius: 13px;
+  overflow: visible;
+  background: var(--connection-menu-surface);
+  color: var(--connection-menu-text);
+  font: 450 11px/16px 'Text Node Inter', 'Text Node Chinese', system-ui, sans-serif;
+}
+.dark .connection-menu {
+  --connection-menu-surface: #1e1e1e;
+  --connection-menu-text: #fff;
+  --connection-menu-input: #383838;
+  --connection-menu-focus: #b3b3b3;
+  --connection-menu-active: #fff;
+  --connection-menu-active-text: #2c2c2c;
+}
+.connection-menu-search-row { display: flex; gap: 4px; margin-bottom: 4px; flex-shrink: 0; }
+.connection-menu-search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 24px;
+  gap: 4px;
+  padding: 0 4px;
+  border-radius: 5px;
+  background: var(--connection-menu-input);
+}
+.connection-menu-search:focus-within { outline: 1px solid var(--connection-menu-focus); }
+.connection-menu-search > svg { flex-shrink: 0; color: #b3b3b3; }
+.connection-menu-search input {
+  min-width: 0;
+  flex: 1;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+.connection-menu-search input::placeholder { color: var(--connection-menu-muted); opacity: 1; }
+.connection-menu-clear {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--connection-menu-muted);
+  cursor: pointer;
+}
+.connection-menu-clear:hover { color: var(--connection-menu-text); }
+.connection-menu-results { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.connection-menu-results button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.connection-menu-results button.is-active,
+.connection-menu-results button:hover {
+  background: var(--connection-menu-active);
+  color: var(--connection-menu-active-text);
+  outline: none;
+}
+.connection-menu-results button > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.connection-menu-status { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.connection-menu-filter-trigger {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--connection-menu-focus);
+  cursor: pointer;
+}
+.connection-menu-filter-trigger:hover,
+.connection-menu-filter-trigger[aria-expanded="true"] { background: #0000000d; }
+.dark .connection-menu-filter-trigger:hover,
+.dark .connection-menu-filter-trigger[aria-expanded="true"] { background: #ffffff0d; }
+.connection-menu-filter-trigger:focus-visible { outline: 1px solid var(--connection-menu-focus); }
+.connection-menu-filter {
+  position: fixed;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 130px;
+  max-width: calc(100vw - 16px);
+  padding: 8px;
+  border-radius: 13px;
+  background: var(--connection-menu-surface);
+  color: var(--connection-menu-text);
+  box-shadow: 0 3px 10px #0002;
+}
+.connection-menu-filter-heading { height: 24px; padding: 0 8px; display: flex; align-items: center; color: var(--connection-menu-focus); }
+.connection-menu-filter button {
+  width: 100%;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.connection-menu-filter button > svg { flex-shrink: 0; }
+.connection-menu-filter button:hover,
+.connection-menu-filter button:focus-visible { background: var(--connection-menu-active); color: var(--connection-menu-active-text); outline: none; }

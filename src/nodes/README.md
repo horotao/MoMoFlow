@@ -23,7 +23,8 @@
 | --- | --- |
 | [types.ts](./types.ts)、[index.ts](./index.ts) | 节点数据类型、`AppNode` 联合类型、类型判断，以及组件注册 |
 | [defaults.ts](./defaults.ts)、[describer.ts](./describer.ts)、[sunburst.ts](./sunburst.ts) | 文本默认值、描述器配置、Sunburst 参数与校验；创建节点时由节点库等入口使用 |
-| [App.tsx](../App.tsx) | 画布状态、连接校验、拖线创建节点、拖放和剪贴板入口，以及节点交互属性 |
+| [App.tsx](../App.tsx) | 画布状态、推荐菜单与拖线创建节点、拖放和剪贴板入口，以及节点交互属性 |
+| [connectionRules.ts](./connectionRules.ts)、[connectionRecommendations.ts](./connectionRecommendations.ts)、[ConnectionMenu.tsx](../components/ConnectionMenu.tsx) | 共用连接校验、按端口类型推荐节点，以及松手处的搜索菜单 |
 | [TextPromptEditor.tsx](./TextPromptEditor.tsx)、[textDocument.ts](./textDocument.ts)、[textVariables.ts](./textVariables.ts) | 富文本编辑、文档转换、变量端口编号与上游文本解析；变量视图见 `PromptVariableView.tsx` |
 | [fileAsset.ts](./fileAsset.ts)、[fileCollection.ts](./fileCollection.ts)、[fileMedia.ts](./fileMedia.ts) | 文件导入、集合与输出类型、拆分文件、媒体预览及下载 |
 | [describerRun.ts](./describerRun.ts)、[sunburstRun.ts](./sunburstRun.ts) | 从画布解析输入、校验运行条件、建立任务输入快照；`imageOutput` 定义图片输出语义 |
@@ -35,13 +36,16 @@
 
 ## 输入输出与交互约定
 
-- 连接规则以 `App.tsx` 的 `isValidConnection` 为入口：拒绝自连接、环路、涉及锁定节点的连接和连接到 `model-input` 的输入。同一个文本变量输入或描述器、Sunburst 输入端口只能连接一条边。
+- 连接规则由 `connectionRules.ts` 的 `canConnect` 统一校验，`App.tsx` 的 `isValidConnection` 和推荐菜单创建入口共用：拒绝自连接、环路、涉及锁定节点的连接和连接到 `model-input` 的输入。同一个文本变量输入或描述器、Sunburst 输入端口只能连接一条边。
+- 将输入或输出把手拖到空白画布会打开可搜索的推荐菜单，按方向和端口类型筛选已实现节点；选中后才创建节点并连接正确端口，创建与连线作为一次撤销记录。Escape、点击外部或移动画布关闭菜单，取消不修改图数据。落在已有节点上仍使用普通连接规则。
+- 从图片/遮罩输入反向选择 Import 时，允许先创建并连接空 File，之后由用户添加图片；该特例只适用于本次新建的 Import，运行前仍必须通过已有图片校验。推荐 Image Describer 的 System Instructions 时会同时暴露该输入。未知或不兼容的媒体输出不推荐文本节点。
 - Prompt 的变量端口从 `variable-1` 开始，图片端口从 `image-0` 开始。沿用 `variableHandleId`、`variableIndex` 等辅助函数，避免混用编号。端口数量或位置变化后调用 `useUpdateNodeInternals`，使连线位置跟随更新。
 - 连接期间，文本值通过 `resolveTextValue` 从当前图数据动态解析，不持续复制到下游节点数据中。参数从外部输入切回 **Use local value** 时例外：Image Describer 会将当前解析值写回本地参数并移除对应连线；Sunburst 也会保存当前有效参数值，校验失败时保留原本地值。具体入口见 [DescriberPanel.tsx](../components/DescriberPanel.tsx) 和 [SunburstSettings.tsx](../components/SunburstSettings.tsx)。
 - Prompt 连接到已有素材的 File 时会显示类型不兼容；连接空 File 时不显示该错误。两种情况下 File 都解析为空文本，不会转换成提示词内容；这与模型节点在连接时直接拒绝错误输入的行为不同。
 - Image Describer 和 Sunburst 的图片输入接受纯图片 File 集合或 Sunburst 结果。`imageOutput` 对 File 返回集合中的图片，对 Sunburst 只返回当前选中结果（没有有效选中项时取最后一张）。不要将 File 的预览选中项误当作唯一输出。
 - Sunburst 的 Prompt 和暴露参数接受 `text`、`image-describer`、`model-input` 的文本输出；Image Describer 的模型与指令输入也接受这些类型。Sunburst 图片输出只能连到 Sunburst 的图片/遮罩输入，或 Image Describer 的图片输入。
 - `model-input` 同时用于模型名称和 Sunburst 参数选项，`parameter` 标识参数用途，`options` 保存可选文本。Options 输入端口尚未实现，继续保持不可连接。
+- 从 Sunburst 暴露的参数输入反向选择 Model Name 时，复用 `sunburstParameterData`，按目标参数的当前本地值初始化名称、值和选项（保留自定义尺寸）；普通模型名称节点仍使用原默认值。
 - 对支持锁定的节点，数据更新、拖动、删除、连线和运行入口都需考虑 `locked`，异步结果写回前再次检查。节点内的编辑与点击控件按交互需要使用 `nodrag`、`nopan`、`nowheel`，避免与画布手势冲突。
 
 ## 模型运行约定

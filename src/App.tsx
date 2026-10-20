@@ -1,6 +1,8 @@
-import { sunburstFieldLabels } from './nodes/sunburst';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasSidebar } from './components/CanvasSidebar';
+import { ConnectionMenu } from './components/ConnectionMenu';
+import { canConnect } from './nodes/connectionRules';
+import { connectionChoices, choiceConnection, initializeConnectionParameter, type PendingConnection, type ConnectionChoice } from './nodes/connectionRecommendations';
 import { createLibraryNode } from './components/libraryCatalog';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -25,9 +27,9 @@ import { CanvasDock, type CanvasTool } from './components/CanvasDock';
 import { useCanvasHistory } from './components/useCanvasHistory';
 import { DevTools } from './components/DevTools';
 import { initialNodes, nodeTypes } from './nodes';
-import { isDescriberNode, isSunburstNode, isNodeLocked } from './nodes/types';
+import { isDescriberNode, isSunburstNode } from './nodes/types';
 import type { AppNode } from './nodes/types';
-import { isTextNode, textVariableCount, variableHandleId, variableIndex } from './nodes/textVariables';
+import { isTextNode, textVariableCount, variableIndex } from './nodes/textVariables';
 import { imagesFromDrop, isFileNode } from './nodes/fileAsset';
 import { fileOutputKind, filePortColors, isFileAsset } from './nodes/fileCollection';
 import { cloneTextNode } from './nodes/cloneTextNode';
@@ -55,6 +57,8 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
   const { screenToFlowPosition, getNodes, getEdges } = useReactFlow<AppNode>();
   const [tool, setTool] = useState<CanvasTool>('select');
   const [importError, setImportError] = useState('');
+  const [pendingConnection, setPendingConnection] = useState<PendingConnection | null>(null);
+  const dismissConnectionMenu = useCallback(() => setPendingConnection(null), []);
   const restore = useCallback((snapshot: { nodes: AppNode[]; edges: typeof edges }) => {
     setNodes(snapshot.nodes);
     setEdges(snapshot.edges);
@@ -155,34 +159,43 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
       const dropTarget = document.elementFromPoint(pointer.clientX, pointer.clientY);
       if (!dropTarget?.classList.contains('react-flow__pane')) return;
 
-      if (fromNode.type === 'image-describer' && fromHandle.type === 'target') return;
-      if (fromNode.type === 'sunburst' && (fromHandle.type === 'source' || fromHandle.id !== 'prompt')) return;
-      const id = `text-${crypto.randomUUID()}`;
-      const fromSource = fromHandle.type === 'source';
-      const newNode: AppNode = {
-        id,
-        type: 'text',
+      setPendingConnection({
+        nodeId: fromNode.id, handleId: fromHandle.id ?? null, direction: fromHandle.type,
+        screen: { x: pointer.clientX, y: pointer.clientY },
         position: screenToFlowPosition({ x: pointer.clientX, y: pointer.clientY }),
-        // Anchor the connecting handle at the release point in either direction.
-        origin: [fromSource ? 0 : 1, 91 / 405],
-        data: { text: defaultTextNodeText, variableCount: fromSource ? 2 : 0 },
-      };
-
-      setNodes((currentNodes) => [...currentNodes.map((node) =>
-        !fromSource && node.id === fromNode.id && isTextNode(node)
-          ? { ...node, data: { ...node.data, variableCount: Math.max(node.data.variableCount ?? 0, variableIndex(fromHandle.id) + 2) } }
-          : node,
-      ), newNode]);
-      setEdges((currentEdges) => addEdge({
-        id: `edge-${crypto.randomUUID()}`,
-        source: fromSource ? fromNode.id : id,
-        target: fromSource ? id : fromNode.id,
-        sourceHandle: fromSource ? fromHandle.id : null,
-        targetHandle: fromSource ? variableHandleId(0) : fromHandle.id,
-      }, currentEdges));
+      });
     },
-    [screenToFlowPosition, setNodes, setEdges],
+    [screenToFlowPosition],
   );
+
+  const chooseConnectionNode = useCallback((choice: ConnectionChoice) => {
+    if (!pendingConnection) return;
+    const currentNodes = getNodes();
+    const currentEdges = getEdges();
+    // Recheck after the menu has been open: its node may have been locked or removed.
+    const available = connectionChoices(pendingConnection, currentNodes, currentEdges);
+    if (!available.some(item => item.id === choice.id)) { setPendingConnection(null); return; }
+    const created = createLibraryNode(choice.itemId, pendingConnection.position);
+    if (!created) return;
+    const node = initializeConnectionParameter(created, pendingConnection, currentNodes);
+    if (isTextNode(node) && pendingConnection.direction === 'source') node.data.variableCount = 2;
+    if (choice.exposed && isDescriberNode(node)) node.data.exposed = [choice.exposed];
+    const connection = choiceConnection(pendingConnection, choice, node.id);
+    if (!canConnect(connection, [...currentNodes, node], currentEdges, node.type === 'file' ? node.id : undefined)) return;
+    // Place the new connecting port at the drop point, including reverse connections.
+    node.position = {
+      x: pendingConnection.position.x - (pendingConnection.direction === 'target' ? node.type === 'model-input' ? 250 : 460 : 0),
+      y: pendingConnection.position.y - choice.portY,
+    };
+    setNodes(current => [...current.map(item => {
+      const deselected = { ...item, selected: false };
+      return item.id === connection.target && isTextNode(item)
+        ? { ...item, selected: false, data: { ...item.data, variableCount: Math.max(item.data.variableCount ?? 0, variableIndex(connection.targetHandle) + 2) } }
+        : deselected;
+    }), node]);
+    setEdges(current => addEdge({ ...connection, id: `edge-${crypto.randomUUID()}` }, current));
+    setPendingConnection(null);
+  }, [pendingConnection, getNodes, getEdges, setNodes, setEdges]);
 
   return (
     <ReactFlow
@@ -209,55 +222,25 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
       onNodesChange={onNodesChange}
       edges={edges.map((edge) => {
         const source = nodes.find((node) => node.id === edge.source);
+        const target = nodes.find((node) => node.id === edge.target);
         const fileSource = source && isFileNode(source) ? source : undefined;
         const textConnection = nodes.some((node) => (isTextNode(node) || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
         const generatedSource = source && isSunburstNode(source);
-        const maskTarget = edge.targetHandle === 'mask' && nodes.some(node => node.id === edge.target && isSunburstNode(node));
+        const sunburstTarget = target && isSunburstNode(target);
+        const portColor = sunburstTarget && edge.targetHandle === 'mask' ? 'var(--sunburst-mask-port)'
+          : target?.type === 'image-describer' && /^image-\d+$/.test(edge.targetHandle ?? '') ? filePortColors.image
+          : (sunburstTarget && /^image-\d+$/.test(edge.targetHandle ?? '')) || generatedSource ? 'var(--sunburst-image-port)'
+          : fileSource ? filePortColors[fileOutputKind(fileSource.data)] : undefined;
         return fileSource || textConnection || generatedSource ? {
           ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
-          style: { ...edge.style, ...(maskTarget ? { stroke: '#e4ff97' } : generatedSource ? { stroke: '#97ffcd' } : fileSource ? { stroke: filePortColors[fileOutputKind(fileSource.data)] } : {}) },
+          style: { ...edge.style, ...(portColor ? { stroke: portColor } : {}) },
         } : edge;
       })}
       edgeTypes={edgeTypes}
       defaultEdgeOptions={defaultEdgeOptions}
       connectionLineComponent={ConnectionLine}
       onEdgesChange={onEdgesChange}
-      isValidConnection={(connection) => {
-        const currentEdges = getEdges();
-        if (connection.source === connection.target) return false;
-        const target = getNodes().find((node) => node.id === connection.target);
-        const source = getNodes().find(node => node.id === connection.source);
-        if (isNodeLocked(source) || isNodeLocked(target)) return false;
-        if (target?.type === 'model-input') return false;
-        if (target && isSunburstNode(target)) {
-          if (currentEdges.some(edge => edge.target === target.id && edge.targetHandle === connection.targetHandle)) return false;
-          if (connection.targetHandle === 'prompt' || (target.data.exposed ?? []).some(field => field in sunburstFieldLabels && field === connection.targetHandle)) {
-            if (!source || !['text', 'image-describer', 'model-input'].includes(source.type ?? '')) return false;
-          } else if (connection.targetHandle === 'mask' || /^image-\d+$/.test(connection.targetHandle ?? '')) {
-            if (!source || !(isSunburstNode(source) || (source.type === 'file' && fileOutputKind(source.data) === 'image'))) return false;
-          } else return false;
-        }
-        if (source && isSunburstNode(source) && target?.type !== 'sunburst' && !(target?.type === 'image-describer' && connection.targetHandle?.startsWith('image-'))) return false;
-        if (target?.type === 'image-describer') {
-          if (currentEdges.some((e) => e.target === target.id && e.targetHandle === connection.targetHandle)) return false;
-          const source = getNodes().find((n) => n.id === connection.source);
-          if (connection.targetHandle?.startsWith('image-')) {
-            if (!source || !(isSunburstNode(source) || (source.type === 'file' && fileOutputKind(source.data) === 'image'))) return false;
-          } else if (!source || !['text', 'model-input', 'image-describer'].includes(source.type ?? '')) return false;
-        }
-        if (target?.type === 'text' && currentEdges.some((edge) => edge.target === connection.target
-          && variableIndex(edge.targetHandle) === variableIndex(connection.targetHandle))) return false;
-        const pending = [connection.target];
-        const visited = new Set<string>();
-        while (pending.length) {
-          const id = pending.pop()!;
-          if (id === connection.source) return false;
-          if (visited.has(id)) continue;
-          visited.add(id);
-          pending.push(...currentEdges.filter((edge) => edge.source === id).map((edge) => edge.target));
-        }
-        return true;
-      }}
+      isValidConnection={(connection) => canConnect(connection, getNodes(), getEdges())}
       onDragOver={(event) => {
         const types = event.dataTransfer.types;
         const internal = types.includes('application/x-momoflow-asset') || types.includes('application/x-momoflow-library');
@@ -290,6 +273,8 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
           data: { assets, activeAssetId: assets[0].id },
         }]);
       }}
+      onConnectStart={dismissConnectionMenu}
+      onMoveStart={dismissConnectionMenu}
       onConnect={onConnect}
       onConnectEnd={onConnectEnd}
       onKeyDown={(event) => {
@@ -312,6 +297,12 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
       fitView={!saved}
     >
       <Background />
+      {pendingConnection && <ConnectionMenu
+        pending={pendingConnection}
+        choices={connectionChoices(pendingConnection, nodes, edges)}
+        onChoose={chooseConnectionNode}
+        onDismiss={dismissConnectionMenu}
+      />}
       <Panel position="bottom-left" className="canvas-save-status" role={persistence.error ? 'alert' : 'status'}>
         <span>{persistence.error || persistence.status}</span>
         {persistence.error && <button type="button" onClick={persistence.retry}>重试保存</button>}

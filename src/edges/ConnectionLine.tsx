@@ -5,7 +5,7 @@ import type { AppNode } from '../nodes/types';
 import { curveOptions } from './curve';
 
 export function ConnectionLine({
-  fromX, fromY, toX, toY, fromPosition, toPosition, fromNode, toNode,
+  fromX, fromY, toX, toY, fromPosition, toPosition, fromNode, fromHandle, toNode,
 }: ConnectionLineComponentProps) {
   const [path] = getBezierPath({
     sourceX: fromX,
@@ -17,13 +17,19 @@ export function ConnectionLine({
     ...curveOptions,
   });
   const source = fromNode as AppNode;
-  const fileColor = isFileNode(source) ? filePortColors[fileOutputKind(source.data)] : undefined;
+  // The starting handle determines the preview color, including reverse drags from inputs.
+  const handleId = fromHandle.id ?? '';
+  const portColor = isFileNode(source) ? filePortColors[fileOutputKind(source.data)]
+    : source.type === 'sunburst' && handleId === 'mask' ? 'var(--sunburst-mask-port)'
+    : source.type === 'sunburst' && (handleId === 'result' || /^image-\d+$/.test(handleId)) ? 'var(--sunburst-image-port)'
+    : source.type === 'image-describer' && /^image-\d+$/.test(handleId) ? filePortColors.image
+    : undefined;
   const isTextConnection = fromNode.type === 'text' || toNode?.type === 'text';
 
   return (
     <g className={isTextConnection ? 'text-variable-connection' : undefined}>
-      <path className="react-flow__connection-path" d={path} fill="none" style={fileColor ? { stroke: fileColor } : undefined} />
-      <circle className="connection-endpoint" cx={toX} cy={toY} r={3} style={fileColor ? { fill: fileColor, stroke: fileColor } : undefined} />
+      <path className="react-flow__connection-path" d={path} fill="none" style={portColor ? { stroke: portColor } : undefined} />
+      <circle className="connection-endpoint" cx={toX} cy={toY} r={3} style={portColor ? { fill: portColor, stroke: portColor } : undefined} />
     </g>
   );
 }
