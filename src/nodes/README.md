@@ -13,6 +13,7 @@
 | Image Describer：根据图片生成可继续编辑的文本 | `image-describer` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) | 图片输入 `image-0` 起；可暴露 `model`、`instructions` 文本输入；输出 `data.text` |
 | Model Name / 参数选项：提供一个可选的文本值 | `model-input` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) 中的 `ModelInputNode` | 输出当前 `data.model`；`options` 输入仅展示，不能连接 |
 | GPT Image 2.5 Sunburst：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`、`image-0` 起、`mask` 及暴露的参数输入；`result` 输出当前选中的结果图片 |
+| Crop：本地裁剪图片 | `crop` | [CropNode.tsx](./CropNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出裁剪后的 PNG |
 | Painter：在图片或空白画布上绘制 | `painter` | [PainterNode.tsx](./PainterNode.tsx) | 单图片输入 `image`；`result` 输出合成图片，`mask` 输出黑底白色绘制区域 |
 | Preview：查看上游图片与遮罩 | `preview` | [PreviewNode.tsx](./PreviewNode.tsx) | 单图片输入 `file`，无输出；实时显示上游图片 |
 | Position Logger：显示节点坐标的示例节点 | `position-logger` | [PositionLoggerNode.tsx](./PositionLoggerNode.tsx) | 左侧输入、右侧输出；不执行模型任务 |
@@ -38,25 +39,35 @@
 
 ## 输入输出与交互约定
 
-- 连接规则由 `connectionRules.ts` 的 `canConnect` 统一校验，`App.tsx` 的 `isValidConnection` 和推荐菜单创建入口共用：拒绝自连接、环路、涉及锁定节点的连接和连接到 `model-input` 的输入。同一个文本变量输入或描述器、Sunburst、Painter、Preview 输入端口只能连接一条边。
+- 连接规则由 `connectionRules.ts` 的 `canConnect` 统一校验，`App.tsx` 的 `isValidConnection` 和推荐菜单创建入口共用：拒绝自连接、环路、涉及锁定节点的连接和连接到 `model-input` 的输入。同一个文本变量输入或描述器、Sunburst、Painter、Crop、Preview 输入端口只能连接一条边。
 - 将输入或输出把手拖到空白画布会打开可搜索的推荐菜单，按方向和端口类型筛选已实现节点；选中后才创建节点并连接正确端口，创建与连线作为一次撤销记录。Escape、点击外部或移动画布关闭菜单，取消不修改图数据。落在已有节点上仍使用普通连接规则。
 - 从图片/遮罩输入反向选择 Import 时，允许先创建并连接空 File，之后由用户添加图片；该特例只适用于本次新建的 Import，运行前仍必须通过已有图片校验。推荐 Image Describer 的 System Instructions 时会同时暴露该输入。未知或不兼容的媒体输出不推荐文本节点。
 - Prompt 的变量端口从 `variable-1` 开始，图片端口从 `image-0` 开始。沿用 `variableHandleId`、`variableIndex` 等辅助函数，避免混用编号。端口数量或位置变化后调用 `useUpdateNodeInternals`，使连线位置跟随更新。
 - 连接期间，文本值通过 `resolveTextValue` 从当前图数据动态解析，不持续复制到下游节点数据中。参数从外部输入切回 **Use local value** 时例外：Image Describer 会将当前解析值写回本地参数并移除对应连线；Sunburst 也会保存当前有效参数值，校验失败时保留原本地值。具体入口见 [DescriberPanel.tsx](../components/DescriberPanel.tsx) 和 [SunburstSettings.tsx](../components/SunburstSettings.tsx)。
 - Prompt 连接到已有素材的 File 时会显示类型不兼容；连接空 File 时不显示该错误。两种情况下 File 都解析为空文本，不会转换成提示词内容；这与模型节点在连接时直接拒绝错误输入的行为不同。
-- Image Describer、Sunburst 和 Painter 的图片输入接受纯图片 File 集合、Sunburst 结果或 Painter 输出。Painter 使用集合的第一张图片作为底图。`imageOutput` 对 File 返回集合中的图片，对 Sunburst 只返回当前选中结果（没有有效选中项时取最后一张），对 Painter 按 `sourceHandle` 区分 Result 与 Mask，并在上游或绘制内容变化后拒绝尚未更新的输出。不要将 File 的预览选中项误当作唯一输出。
-- Sunburst 的 Prompt 和暴露参数接受 `text`、`image-describer`、`model-input` 的文本输出；Image Describer 的模型与指令输入也接受这些类型。Sunburst 和 Painter 图片输出可连到 Sunburst 的图片/遮罩输入、Image Describer 的图片输入或 Painter 的 Image 输入，以及 Preview 的 File 输入。
+- Image Describer、Sunburst、Painter 和 Crop 的图片输入接受纯图片 File 集合、Sunburst 结果、Painter 输出或 Crop 输出。Painter 和 Crop 使用集合的第一张图片作为底图。`imageOutput` 对 File 返回集合中的图片，对 Sunburst 只返回当前选中结果（没有有效选中项时取最后一张），对 Crop 返回当前有效的裁剪结果；对 Painter 按 `sourceHandle` 区分 Result 与 Mask，并在上游或绘制内容变化后拒绝尚未更新的输出。不要将 File 的预览选中项误当作唯一输出。
+- Sunburst 的 Prompt 和暴露参数接受 `text`、`image-describer`、`model-input` 的文本输出；Image Describer 的模型与指令输入也接受这些类型。Sunburst、Painter 和 Crop 图片输出可连到 Sunburst 的图片/遮罩输入、Image Describer 的图片输入或 Painter / Crop 的 Image 输入，以及 Preview 的 File 输入。
 - `model-input` 同时用于模型名称和 Sunburst 参数选项，`parameter` 标识参数用途，`options` 保存可选文本。Options 输入端口尚未实现，继续保持不可连接。
 - 从 Sunburst 暴露的参数输入反向选择 Model Name 时，复用 `sunburstParameterData`，按目标参数的当前本地值初始化名称、值和选项（保留自定义尺寸）；普通模型名称节点仍使用原默认值。
 - 对支持锁定的节点，数据更新、拖动、删除、连线和运行入口都需考虑 `locked`，异步结果写回前再次检查。节点内的编辑与点击控件按交互需要使用 `nodrag`、`nopan`、`nowheel`，避免与画布手势冲突。
 
 ## Preview 预览约定
 
-Preview 位于 Tools → Helpers，也出现在图片输出拖到空白处的推荐菜单中。`file` 输入接受纯图片 Import、Sunburst 当前结果、Painter Result 或黑白 Mask，同一个输入只允许一条连线，不接受文本或视频。输入反向拖线可创建 Import、Sunburst 或 Painter，并选择 Result / Mask。
+Preview 位于 Tools → Helpers，也出现在图片输出拖到空白处的推荐菜单中。`file` 输入接受纯图片 Import、Sunburst 当前结果、Painter Result / 黑白 Mask 或 Crop Output，同一个输入只允许一条连线，不接受文本或视频。输入反向拖线可创建 Import、Sunburst、Crop 或 Painter，并选择 Result / Mask。
 
 图片按原始比例展示，悬停显示尺寸、下载和全屏入口；双击图片也可打开共用的 FileGallery。Painter 的 Result 和 Mask 通过 `painterLivePreview.ts` 同步绘制帧，按住鼠标绘制、擦除或拖动形状时实时更新，取消笔画时同步恢复。绘制中和正式图片尚未导出时，下载与全屏入口暂不可用。实时画面仅存在内存中，不写入节点数据、历史、存储或模型输入；每笔仍在松开后提交一次。Import 图片集合可翻页查看，翻页不改变上游输出。未连接或上游未就绪时仅显示棋盘格，不显示居中图标与文字；图片加载失败时显示错误提示。断开或删除上游后立即清空，不缓存旧输出。解析入口为 `preview.ts`，连接与失效行为由 `preview.test.ts` 随 `npm test` 验证。
 
 Preview 不运行模型、不生成新的图片素材；节点、选中图片和连线随画布保存。支持重命名、锁定、复制粘贴、删除和撤销；复制或剪切得到的独立 Preview 不携带上游连线，需重新连接图片。主题、菜单、下载和全屏复用现有节点组件。
+
+## Crop 裁剪约定
+
+Crop 位于 Tools → Editing，也出现在图片连接的推荐菜单中。Input 接收 Import、Sunburst、Painter 或另一个 Crop 的图片；集合使用第一张图片。Output 输出原始分辨率下裁剪后的透明通道 PNG，不缩放图像、不运行模型或消耗额度。裁剪矩形以原图的归一化坐标保存，上游图片更换时保留相对选区。
+
+图像上显示裁剪框、四角/四边拖动区域、三分辅助线和框外遮罩。拖动内部移动选区；拖动边角调整大小，选区不会超过原图边界。底部 Aspect ratio 提供 21:9、16:9、4:3、3:2、1:1、2:3、3:4、9:16、9:21，选择后在整张原图中居中适配并锁定比例。Dimensions 的 W/H 是实际输出像素，失焦或 Enter 提交，Escape 取消；解锁时可独立修改，锁定时联动且限制在图片范围内。Reset 恢复整张原图并解除比例锁定。
+
+每次拖动结束提交一次，可撤销/重做；Escape 或指针取消恢复拖动前状态。连接的 Preview 在拖动中显示本地裁剪帧，正式输出在松开后导出。临时帧不进入保存、历史或模型请求。上游断开、替换或选区尚未导出时不向下游提供旧结果，异步导出检查最新图结构以防止过期回写。复制/剪切保留底图快照，副本无需原连线即可编辑；底图、结果和选区随 IndexedDB 保存，锁定节点禁止编辑。
+
+核心几何与剪贴板校验位于 [crop.ts](./crop.ts)，界面与导出位于 [CropNode.tsx](./CropNode.tsx)，实时预览位于 [cropLivePreview.ts](./cropLivePreview.ts)。`crop.test.ts` 使用现有 Node.js 测试运行器随 `npm test` 验证边界、比例、尺寸、输出失效、连接和素材恢复。
 
 ## Painter 绘制约定
 

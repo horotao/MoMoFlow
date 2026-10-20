@@ -1,3 +1,4 @@
+import { CropNode } from './CropNode';
 import { PainterNode } from './PainterNode';
 import { PreviewNode } from './PreviewNode';
 import { SunburstNode } from './SunburstNode';
@@ -12,6 +13,7 @@ import type { AppNode } from './types';
 export const initialNodes: AppNode[] = [];
 
 export const nodeTypes = {
+  crop: CropNode,
   preview: PreviewNode,
   painter: PainterNode,
   sunburst: SunburstNode,

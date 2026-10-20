@@ -1,4 +1,5 @@
-import { isPainterNode } from './types.ts';
+import { cropRevision } from './crop.ts';
+import { isCropNode, isPainterNode } from './types.ts';
 import { painterRevision } from './painter.ts';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, FileAsset, SunburstNode } from './types';
@@ -9,6 +10,16 @@ import { sunburstModel, validateSunburstSettings } from './sunburst.ts';
 import type { PreviewTask } from './taskQueue';
 
 export function imageOutput(node: AppNode | undefined, handle?: string | null, nodes?: AppNode[], edges?: Edge[], visited = new Set<string>()): FileAsset[] {
+  if (isCropNode(node)) {
+    if (visited.has(node.id)) return [];
+    visited.add(node.id);
+    if (nodes && edges) {
+      const edge = edges.find(item => item.target === node.id && item.targetHandle === 'image');
+      const source = edge ? imageOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges, visited)[0] : node.data.baseImage;
+      if (!source || node.data.outputRevision !== cropRevision(node.data, source.id)) return [];
+    }
+    return node.data.result ? [node.data.result] : [];
+  }
   if (isPainterNode(node)) {
     if (visited.has(node.id)) return [];
     visited.add(node.id);

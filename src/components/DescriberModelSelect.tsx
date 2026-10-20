@@ -3,15 +3,15 @@ import { createPortal } from 'react-dom';
 import { describerModels } from '../nodes/describer';
 import { DescriberIcon } from './DescriberIcon';
 
-export function DescriberModelSelect({ value, disabled, onChange, choices = describerModels, node = false, compact = false, label = 'Model', labels }: {
-  value: string; choices?: string[]; node?: boolean; compact?: boolean; label?: string; labels?: string[]; disabled?: boolean; onChange: (model: string) => void;
+export function DescriberModelSelect({ value, disabled, onChange, choices = describerModels, node = false, compact = false, label = 'Model', labels, includeCurrentValue = true, menuLabel }: {
+  value: string; choices?: readonly string[]; node?: boolean; compact?: boolean; label?: string; labels?: string[]; disabled?: boolean; includeCurrentValue?: boolean; menuLabel?: string; onChange: (model: string) => void;
 }) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const [placement, setPlacement] = useState<{ left: number; top: number; height: number; width: number } | null>(null);
   const [active, setActive] = useState(0);
-  const options = useMemo(() => choices.includes(value) ? choices : [value, ...choices], [value, choices]);
+  const options = useMemo(() => !includeCurrentValue || choices.includes(value) ? choices : [value, ...choices], [value, choices, includeCurrentValue]);
   const close = () => { setPlacement(null); trigger.current?.focus(); };
   const open = () => {
     if (disabled) return;
@@ -45,7 +45,7 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
     <button id={node || compact ? id + "-trigger" : "describer-model"} ref={trigger} role="combobox" aria-label={label} aria-haspopup="listbox" aria-expanded={Boolean(placement)} aria-controls={placement ? id : undefined} disabled={disabled} className="describer-model-trigger nodrag nopan" onClick={() => placement ? close() : open()} onKeyDown={(e) => {
       if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) { e.preventDefault(); open(); }
     }}><span>{labels?.[choices.indexOf(value)] ?? (value || 'Select an option')}</span><DescriberIcon name="chevron" /></button>
-    {placement && !disabled && createPortal(<div ref={list} id={id} role="listbox" aria-label={compact || label !== 'Model' ? label : "Models"} aria-activedescendant={`${id}-${active}`} tabIndex={-1} className="describer-model-menu nodrag nopan nowheel" style={placement} onKeyDown={(e) => {
+    {placement && !disabled && createPortal(<div ref={list} id={id} role="listbox" aria-label={menuLabel ?? (compact || label !== 'Model' ? label : "Models")} aria-activedescendant={`${id}-${active}`} tabIndex={-1} className="describer-model-menu nodrag nopan nowheel" style={placement} onKeyDown={(e) => {
       e.stopPropagation();
       if (e.key === 'Escape' || e.key === 'Tab') { if (e.key === 'Escape') e.preventDefault(); close(); return; }
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onChange(options[active]); close(); return; }
