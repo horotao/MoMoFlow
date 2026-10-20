@@ -1,5 +1,6 @@
+import { colorDocument } from '../nodes/colorCorrection';
 import { cropDocument } from '../nodes/crop';
-import { isCropNode, isPainterNode } from '../nodes/types';
+import { isColorCorrectionNode, isCropNode, isPainterNode } from '../nodes/types';
 import { painterDocument } from '../nodes/painter';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { Edge } from '@xyflow/react';
@@ -20,7 +21,7 @@ function snapshot(nodes: AppNode[], edges: Edge[]): Snapshot {
 
 function signature({ nodes, edges }: Snapshot) {
   return JSON.stringify({
-    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: isCropNode(node) ? cropDocument(node.data) : isPainterNode(node) ? painterDocument(node.data) : node.data })),
+    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: isColorCorrectionNode(node) ? colorDocument(node.data) : isCropNode(node) ? cropDocument(node.data) : isPainterNode(node) ? painterDocument(node.data) : node.data })),
     edges: edges.map((edge) => ({ ...edge, selected: undefined })),
   }, (key, value) => key === 'content' && Array.isArray(value) && value.length === 0 ? undefined : value);
 }
@@ -51,7 +52,11 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
       const previous = state.present.nodes.find(item => item.id === node.id);
       return isCropNode(previous) && JSON.stringify(previous.data.rect) !== JSON.stringify(node.data.rect);
     })());
-    if (cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
+    const colorChanged = nodes.some(node => isColorCorrectionNode(node) && (() => {
+      const previous = state.present.nodes.find(item => item.id === node.id);
+      return isColorCorrectionNode(previous) && JSON.stringify(previous.data.settings) !== JSON.stringify(node.data.settings);
+    })());
+    if (colorChanged || cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;

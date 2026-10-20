@@ -1,3 +1,4 @@
+import { ColorCorrectionNode } from './ColorCorrectionNode';
 import { CropNode } from './CropNode';
 import { PainterNode } from './PainterNode';
 import { PreviewNode } from './PreviewNode';
@@ -13,6 +14,7 @@ import type { AppNode } from './types';
 export const initialNodes: AppNode[] = [];
 
 export const nodeTypes = {
+  'color-correction': ColorCorrectionNode,
   crop: CropNode,
   preview: PreviewNode,
   painter: PainterNode,

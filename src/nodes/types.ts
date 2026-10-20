@@ -1,3 +1,4 @@
+import type { ColorCorrectionData } from './colorCorrection';
 import type { CropData } from './crop';
 import type { PainterData } from './painter';
 import type { Node, BuiltInNode } from '@xyflow/react';
@@ -16,7 +17,8 @@ export const isSunburstNode = (node: AppNode): node is SunburstNode => node.type
 export type PainterNode = Node<PainterData, 'painter'>;
 export type PreviewNode = Node<{ label?: string; locked?: boolean; activeAssetId?: string }, 'preview'>;
 export type CropNode = Node<CropData, 'crop'>;
-export type AppNode = CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
+export type ColorCorrectionNode = Node<ColorCorrectionData, 'color-correction'>;
+export type AppNode = ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
 
 export const isDescriberNode = (node: AppNode): node is ImageDescriberNode => node.type === 'image-describer' && 'imageInputs' in node.data;
 
@@ -25,3 +27,5 @@ export const isNodeLocked = (node: AppNode | undefined): boolean => Boolean(node
 export const isPainterNode = (node: AppNode | undefined): node is PainterNode => node?.type === 'painter' && 'strokes' in node.data;
 
 export const isCropNode = (node: AppNode | undefined): node is CropNode => node?.type === 'crop' && 'rect' in node.data;
+
+export const isColorCorrectionNode = (node: AppNode | undefined): node is ColorCorrectionNode => node?.type === 'color-correction' && 'settings' in node.data;

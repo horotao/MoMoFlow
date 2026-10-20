@@ -1,4 +1,4 @@
-import { isCropNode, isPainterNode } from './types';
+import { isColorCorrectionNode, isCropNode, isPainterNode } from './types';
 import { imageOutput } from './sunburstRun';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useReactFlow, useViewport } from '@xyflow/react';
@@ -24,11 +24,11 @@ export function TextNodeMenu({ id, locked, onRename, children }: {
 
   const act = async (action: string) => {
     const node = getNode(id);
-    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop')) return;
+    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop' && node.type !== 'color-correction')) return;
     setError('');
     try {
-      const edge = (isPainterNode(node) || isCropNode(node)) ? getEdges().find(item => item.target === id && item.targetHandle === 'image') : undefined;
-      const snapshot: AppNode = (isPainterNode(node) || isCropNode(node)) && edge ? { ...node, data: { ...node.data, baseImage: imageOutput(getNode(edge.source), edge.sourceHandle, getNodes(), getEdges())[0] } } as AppNode : node;
+      const edge = (isPainterNode(node) || isCropNode(node) || isColorCorrectionNode(node)) ? getEdges().find(item => item.target === id && item.targetHandle === (isColorCorrectionNode(node) ? 'file' : 'image')) : undefined;
+      const snapshot: AppNode = (isPainterNode(node) || isCropNode(node) || isColorCorrectionNode(node)) && edge ? { ...node, data: { ...node.data, baseImage: imageOutput(getNode(edge.source), edge.sourceHandle, getNodes(), getEdges())[0] } } as AppNode : node;
       if (action === 'duplicate') {
         const copy: AppNode = isTextNode(node) ? cloneTextNode(node) : {
           ...snapshot, id: `${node.type}-${crypto.randomUUID()}`, selected: true,

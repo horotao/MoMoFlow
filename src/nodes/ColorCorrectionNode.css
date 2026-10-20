@@ -1,0 +1,21 @@
+.react-flow .react-flow__node-color-correction { height: auto; gap: 20px; }
+.react-flow .react-flow__node-color-correction.selected, .react-flow .react-flow__node-color-correction:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
+.react-flow__node-color-correction .text-node-title { min-width: 0; gap: 10px; }
+.react-flow__node-color-correction .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.react-flow__node-color-correction .text-node-title > svg { flex-shrink: 0; }
+.react-flow__node-color-correction:hover .describer-port-label, .react-flow__node-color-correction.selected .describer-port-label { visibility: visible; }
+.color-image { touch-action: none; }
+.color-settings { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.color-setting { display: grid; grid-template-columns: 82px minmax(0, 1fr) 50px; align-items: center; gap: 8px; height: 26px; }
+.color-setting label { color: var(--text-node-secondary); font-size: 11px; }
+.color-setting input[type="number"] { box-sizing: border-box; width: 50px; height: 24px; border: 1px solid transparent; border-radius: 4px; padding: 0 8px; background: var(--text-node-input); color: var(--text-node-primary); font: inherit; font-size: 11px; appearance: textfield; }
+.color-setting input[type="number"]::-webkit-inner-spin-button, .color-setting input[type="number"]::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.color-setting input[type="range"] { appearance: none; background: transparent; width: 100%; min-width: 0; height: 24px; margin: 0; cursor: pointer; touch-action: none; }
+.color-setting input[type="range"]::-webkit-slider-runnable-track { height: 2px; background: var(--text-node-border); border-radius: 2px; }
+.color-setting input[type="range"]::-webkit-slider-thumb { appearance: none; width: 8px; height: 8px; margin-top: -3px; border-radius: 50%; background: var(--text-node-primary); border: 0; }
+.color-setting input[type="range"]::-moz-range-track { height: 2px; background: var(--text-node-border); }
+.color-setting input[type="range"]::-moz-range-thumb { width: 8px; height: 8px; border-radius: 50%; background: var(--text-node-primary); border: 0; }
+.color-reset { align-self: flex-end; border: 0; background: transparent; color: var(--text-node-primary); font: inherit; font-size: 11px; padding: 6px 8px; border-radius: 4px; margin-top: 8px; cursor: pointer; }
+.color-reset:hover { background: var(--text-node-input); }
+.color-settings :disabled { opacity: .4; cursor: default; }
+.color-settings input:focus-visible, .color-reset:focus-visible { outline: 1px solid var(--text-node-border-selected); outline-offset: 2px; }
