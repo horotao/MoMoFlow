@@ -21,7 +21,10 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
     const top = Math.max(12, Math.min(rect.top - index * 24 - 8, window.innerHeight - height - 12));
     setActive(index);
     if (compact) {
-      setPlacement({ width: rect.width + 16, left: Math.max(8, Math.min(rect.left - 8, window.innerWidth - rect.width - 24)), top, height });
+      // The portal keeps screen-sized text while the canvas scales its trigger.
+      // Preserve the unscaled control width so zooming out cannot clip options.
+      const width = Math.min(Math.max(rect.width, trigger.current!.offsetWidth) + 16, window.innerWidth - 16);
+      setPlacement({ width, left: Math.max(8, Math.min(rect.left - 8, window.innerWidth - width - 8)), top, height });
       return;
     }
     setPlacement({ width: node ? Math.max(220, rect.width + 16) : 220, left: Math.max(12, Math.min(rect.left - (node ? 8 : 37), window.innerWidth - (node ? Math.max(220, rect.width + 16) : 220) - 12)), top, height });
