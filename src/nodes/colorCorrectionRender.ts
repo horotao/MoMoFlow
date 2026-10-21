@@ -3,7 +3,7 @@ import type { ColorReply, ColorRequest } from './colorCorrectionProtocol';
 
 type WorkerPort = Pick<Worker, 'postMessage' | 'terminate' | 'onmessage' | 'onerror'>;
 type Job = {
-  settings: ColorSettings; exportPng: boolean;
+  settings: ColorSettings; exportPng: boolean; draft: boolean;
   resolve: (frame: ColorReply | undefined) => void;
   reject: (error: Error) => void;
 };
@@ -39,10 +39,10 @@ export class ColorRenderer {
     worker.postMessage({ type: 'source', source } satisfies ColorRequest, [source]);
   }
 
-  render(settings: ColorSettings, exportPng: boolean): Promise<ColorReply | undefined> {
+  render(settings: ColorSettings, exportPng: boolean, draft = false): Promise<ColorReply | undefined> {
     if (this.stopped) return Promise.reject(new Error('调色线程已关闭。'));
     return new Promise((resolve, reject) => {
-      const job = { settings, exportPng, resolve, reject };
+      const job = { settings, exportPng, draft, resolve, reject };
       if (!this.active) this.start(job);
       else {
         this.pending?.resolve(undefined);
@@ -53,7 +53,7 @@ export class ColorRenderer {
 
   private start(job: Job) {
     this.active = job;
-    this.worker.postMessage({ type: 'render', settings: job.settings, exportPng: job.exportPng } satisfies ColorRequest);
+    this.worker.postMessage({ type: 'render', settings: job.settings, exportPng: job.exportPng, draft: job.draft } satisfies ColorRequest);
   }
 
   dispose() {

@@ -23,15 +23,16 @@ function fixture() {
 
 test('rapid slider requests keep only the latest waiting frame and preserve the final export', async () => {
   const f = fixture();
-  const first = f.renderer.render(defaultColorSettings, false);
-  const skipped = f.renderer.render({ ...defaultColorSettings, exposure: 1 }, false);
+  const first = f.renderer.render(defaultColorSettings, false, true);
+  const skipped = f.renderer.render({ ...defaultColorSettings, exposure: 1 }, false, true);
   const latest = f.renderer.render({ ...defaultColorSettings, exposure: 2 }, true);
   assert.equal(await skipped, undefined);
   assert.equal(f.sent.length, 2); // source plus the active render
+  assert.deepEqual(f.sent[1], { type: 'render', settings: defaultColorSettings, exportPng: false, draft: true });
   const firstFrame = { width: 50 };
   f.reply(firstFrame);
   assert.equal(await first, firstFrame);
-  assert.deepEqual(f.sent[2], { type: 'render', settings: { ...defaultColorSettings, exposure: 2 }, exportPng: true });
+  assert.deepEqual(f.sent[2], { type: 'render', settings: { ...defaultColorSettings, exposure: 2 }, exportPng: true, draft: false });
   const finalFrame = { width: 50, blob: new Blob(['png']) };
   f.reply(finalFrame);
   assert.equal(await latest, finalFrame);

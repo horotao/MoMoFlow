@@ -48,7 +48,7 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
   const dragging = useRef(false);
   const cancelledGesture = useRef(false);
   const gesture = useRef(0);
-  const [displayed, setDisplayed] = useState<{ image: HTMLImageElement; revision: string }>();
+  const [displayed, setDisplayed] = useState<{ image: HTMLImageElement; revision: string; draft: boolean }>();
   const [engine, setEngine] = useState<{ image: HTMLImageElement; renderer: ColorRenderer }>();
   const [original, setOriginal] = useState(false);
   const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
@@ -102,7 +102,7 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
     const isCurrent = () => current.current.image === image && current.current.revision === revision
       && current.current.locked === data.locked && gesture.current === epoch;
     setError('');
-    void engine.renderer.render(settings, !draft && !data.locked).then(frame => {
+    void engine.renderer.render(settings, !draft && !data.locked, Boolean(draft)).then(frame => {
       if (!frame) return;
       try {
         // Completed frames within the same drag remain useful while the latest
@@ -111,7 +111,7 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
         const target = canvas.current;
         target.width = frame.bitmap.width; target.height = frame.bitmap.height;
         target.getContext('2d')?.drawImage(frame.bitmap, 0, 0);
-        setDisplayed({ image, revision: colorRevision({ settings }, inputId) });
+        setDisplayed({ image, revision: colorRevision({ settings }, inputId), draft: Boolean(draft) });
         if (draft) {
           colorLivePreviews.publish(id, { canvas: target, width: image.naturalWidth, height: image.naturalHeight });
           return;
@@ -153,7 +153,7 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
               onKeyUp={event => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); setOriginal(false); } }}>
               {original ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
-            <button className="file-icon-button" type="button" aria-label="Download corrected image" title="Download image" disabled={!output || Boolean(draft) || displayed?.image !== image || displayed?.revision !== revision}
+            <button className="file-icon-button" type="button" aria-label="Download corrected image" title="Download image" disabled={!output || Boolean(draft) || displayed?.draft || displayed?.image !== image || displayed?.revision !== revision}
               onClick={() => { if (output) { setError(''); void downloadAsset(output).catch(() => setError('下载失败，请重试。')); } }}><FileIcon name="download" /></button>
           </div>
           {width && height && <span className="file-media-resolution">{width} × {height}</span>}

@@ -1,0 +1,14 @@
+.react-flow .react-flow__node-blur { height: auto; gap: 20px; }
+.react-flow .react-flow__node-blur.selected, .react-flow .react-flow__node-blur:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
+.react-flow__node-blur .text-node-title { min-width: 0; gap: 10px; }
+.react-flow__node-blur .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.react-flow__node-blur .text-node-title > svg { flex-shrink: 0; }
+.react-flow__node-blur:hover .describer-port-label, .react-flow__node-blur.selected .describer-port-label { visibility: visible; }
+.blur-settings.color-settings { flex-direction: row; gap: 24px; align-items: center; }
+.blur-type { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.blur-type > span { color: var(--text-node-secondary); font-size: 11px; }
+.blur-type .describer-model-trigger { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; width: 96px; height: 24px; min-height: 24px; padding: 0 0 0 8px; border: 1px solid var(--text-node-border); border-radius: 5px; background: var(--text-node-surface); color: var(--text-node-primary); font: inherit; font-size: 11px; font-weight: 450; line-height: 16px; text-align: left; cursor: pointer; }
+.blur-type .describer-model-trigger:hover:not(:disabled) { background: var(--text-node-input); }
+.blur-type .describer-model-trigger svg { width: 24px; height: 24px; flex-shrink: 0; }
+.blur-settings .color-setting { flex: 1; min-width: 0; grid-template-columns: auto minmax(0, 1fr) 40px; }
+.blur-settings .color-setting input[type="number"] { width: 40px; padding: 0 6px; }

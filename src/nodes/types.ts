@@ -1,3 +1,4 @@
+import type { BlurData } from './blur';
 import type { ColorCorrectionData } from './colorCorrection';
 import type { CropData } from './crop';
 import type { PainterData } from './painter';
@@ -18,7 +19,9 @@ export type PainterNode = Node<PainterData, 'painter'>;
 export type PreviewNode = Node<{ label?: string; locked?: boolean; activeAssetId?: string }, 'preview'>;
 export type CropNode = Node<CropData, 'crop'>;
 export type ColorCorrectionNode = Node<ColorCorrectionData, 'color-correction'>;
-export type AppNode = ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
+export type BlurNode = Node<BlurData, 'blur'>;
+export const isBlurNode = (node: AppNode | undefined): node is BlurNode => node?.type === 'blur' && 'settings' in node.data;
+export type AppNode = BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
 
 export const isDescriberNode = (node: AppNode): node is ImageDescriberNode => node.type === 'image-describer' && 'imageInputs' in node.data;
 

@@ -9,6 +9,7 @@ import './nodes/PainterNode.css';
 import './nodes/PreviewNode.css';
 import './nodes/CropNode.css';
 import './nodes/ColorCorrectionNode.css';
+import './nodes/BlurNode.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
