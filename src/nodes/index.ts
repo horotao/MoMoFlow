@@ -1,3 +1,4 @@
+import { LevelsNode } from './LevelsNode';
 import { BlurNode } from './BlurNode';
 import { ColorCorrectionNode } from './ColorCorrectionNode';
 import { CropNode } from './CropNode';
@@ -15,6 +16,7 @@ import type { AppNode } from './types';
 export const initialNodes: AppNode[] = [];
 
 export const nodeTypes = {
+  levels: LevelsNode,
   blur: BlurNode,
   'color-correction': ColorCorrectionNode,
   crop: CropNode,

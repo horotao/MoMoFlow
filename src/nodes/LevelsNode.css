@@ -1,0 +1,29 @@
+.react-flow .react-flow__node-levels { height: auto; gap: 16px; }
+.react-flow .react-flow__node-levels.selected, .react-flow .react-flow__node-levels:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
+.react-flow__node-levels .text-node-title { min-width: 0; gap: 10px; }
+.react-flow__node-levels .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.react-flow__node-levels .text-node-title > svg { flex-shrink: 0; }
+.react-flow__node-levels:hover .describer-port-label, .react-flow__node-levels.selected .describer-port-label { visibility: visible; }
+.levels-settings { display: flex; flex-direction: column; gap: 16px; width: 100%; font-size: 11px; }
+.levels-row { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 16px; align-items: start; }
+.levels-row > span { color: var(--text-node-secondary); line-height: 24px; }
+.levels-channel-actions { display: flex; align-items: center; justify-content: space-between; }
+.levels-channel .color-reset { margin: 0; padding: 0 8px; height: 24px; }
+.levels-channel .describer-model-trigger { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; width: 100px; height: 24px; min-height: 24px; padding: 0 0 0 8px; border: 1px solid var(--text-node-border); border-radius: 5px; background: var(--text-node-surface); color: var(--text-node-primary); font: inherit; line-height: 16px; cursor: pointer; }
+.levels-channel .describer-model-trigger:hover:not(:disabled) { background: var(--text-node-input); }
+.levels-channel .describer-model-trigger svg { width: 24px; height: 24px; }
+.levels-histogram > span { line-height: 16px; }
+.levels-histogram-plot { width: 100%; height: 80px; background: color-mix(in srgb, var(--text-node-primary) 5%, transparent); }
+.levels-histogram canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; filter: brightness(0); }
+.dark .levels-histogram canvas { filter: none; }
+.levels-track { position: relative; height: 16px; margin: 0 2px; touch-action: none; cursor: pointer; }
+.levels-track::before { content: ''; position: absolute; left: 0; right: 0; top: 7px; height: 2px; background: var(--text-node-border); }
+.levels-thumb { position: absolute; top: 3px; transform: translateX(-50%); width: 10px; height: 10px; padding: 0; border-radius: 50%; border: 1px solid #6b6b6b; cursor: ew-resize; background: #fff; touch-action: none; }
+.levels-thumb::after { content: ''; position: absolute; inset: -5px; border-radius: 50%; }
+.levels-thumb-inputMin, .levels-thumb-outputMin { background: #050505; }
+.levels-thumb-gamma { background: #969696; }
+.levels-numbers { display: flex; justify-content: space-between; margin-top: 4px; }
+.levels-numbers input { box-sizing: border-box; width: 50px; height: 24px; padding: 0 8px; border: 1px solid transparent; border-radius: 4px; background: var(--text-node-input); color: var(--text-node-primary); font: inherit; appearance: textfield; }
+.levels-numbers input::-webkit-inner-spin-button, .levels-numbers input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.levels-settings :disabled { opacity: .4; cursor: default; }
+.levels-settings :focus-visible { outline: 1px solid var(--text-node-border-selected); outline-offset: 2px; }

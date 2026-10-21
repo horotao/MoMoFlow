@@ -1,9 +1,10 @@
+import { defaultLevelsSettings } from '../nodes/levels';
 import { defaultBlurSettings } from '../nodes/blur';
 import { defaultColorSettings } from '../nodes/colorCorrection';
 import { defaultCropData } from '../nodes/crop';
 import { defaultPainterData } from '../nodes/painter';
 import { defaultSunburstSettings, sunburstName } from '../nodes/sunburst';
-import { Blend, SlidersVertical, Crop, Eye, Paintbrush, Search, History, Bookmark, BriefcaseBusiness, Image, SquarePlay, AudioLines, Blocks, Images, Type, Import, ScanEye, ListFilter, MapPin, Sparkles, WandSparkles, type LucideIcon } from 'lucide-react';
+import { ChartNoAxesCombined, Blend, SlidersVertical, Crop, Eye, Paintbrush, Search, History, Bookmark, BriefcaseBusiness, Image, SquarePlay, AudioLines, Blocks, Images, Type, Import, ScanEye, ListFilter, MapPin, Sparkles, WandSparkles, type LucideIcon } from 'lucide-react';
 import type { AppNode } from '../nodes/types';
 import { defaultInstructions } from '../nodes/describer';
 import { defaultTextNodeText } from '../nodes/defaults';
@@ -23,6 +24,7 @@ export const items: Item[] = [
   { id: 'position-logger', label: 'Position Logger', icon: MapPin, category: 'Tools', group: 'Helpers', nodeType: 'position-logger' },
   { id: 'sunburst', label: sunburstName, icon: Sparkles, category: 'Image', group: 'Generate from text', nodeType: 'sunburst' },
   { id: 'color-correction', label: 'Color correction', icon: SlidersVertical, category: 'Tools', group: 'Editing', nodeType: 'color-correction' },
+  { id: 'levels', label: 'Levels', icon: ChartNoAxesCombined, category: 'Tools', group: 'Editing', nodeType: 'levels' },
   { id: 'blur', label: 'Blur', icon: Blend, category: 'Tools', group: 'Editing', nodeType: 'blur' },
   { id: 'crop', label: 'Crop', icon: Crop, category: 'Tools', group: 'Editing', nodeType: 'crop' },
   { id: 'painter', label: 'Painter', icon: Paintbrush, category: 'Tools', group: 'Editing', nodeType: 'painter' },
@@ -37,6 +39,6 @@ export const items: Item[] = [
 export function createLibraryNode(id: string, position: { x: number; y: number }): AppNode | undefined {
   const item = items.find(candidate => candidate.id === id);
   if (!item?.nodeType) return;
-  const data = id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'sunburst' ? { ...defaultSunburstSettings, imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
+  const data = id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'sunburst' ? { ...defaultSunburstSettings, imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
   return { id: crypto.randomUUID(), type: item.nodeType, position, data, selected: true } as AppNode;
 }

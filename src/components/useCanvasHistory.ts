@@ -1,3 +1,5 @@
+import { levelsDocument } from '../nodes/levels';
+import { isLevelsNode } from '../nodes/types';
 import { blurDocument } from '../nodes/blur';
 import { isBlurNode } from '../nodes/types';
 import { colorDocument } from '../nodes/colorCorrection';
@@ -23,7 +25,7 @@ function snapshot(nodes: AppNode[], edges: Edge[]): Snapshot {
 
 function signature({ nodes, edges }: Snapshot) {
   return JSON.stringify({
-    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: isBlurNode(node) ? blurDocument(node.data) : isColorCorrectionNode(node) ? colorDocument(node.data) : isCropNode(node) ? cropDocument(node.data) : isPainterNode(node) ? painterDocument(node.data) : node.data })),
+    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: isLevelsNode(node) ? levelsDocument(node.data) : isBlurNode(node) ? blurDocument(node.data) : isColorCorrectionNode(node) ? colorDocument(node.data) : isCropNode(node) ? cropDocument(node.data) : isPainterNode(node) ? painterDocument(node.data) : node.data })),
     edges: edges.map((edge) => ({ ...edge, selected: undefined })),
   }, (key, value) => key === 'content' && Array.isArray(value) && value.length === 0 ? undefined : value);
 }
@@ -54,6 +56,10 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
       const previous = state.present.nodes.find(item => item.id === node.id);
       return isCropNode(previous) && JSON.stringify(previous.data.rect) !== JSON.stringify(node.data.rect);
     })());
+    const levelsChanged = nodes.some(node => isLevelsNode(node) && (() => {
+      const previous = state.present.nodes.find(item => item.id === node.id);
+      return isLevelsNode(previous) && JSON.stringify(previous.data.settings) !== JSON.stringify(node.data.settings);
+    })());
     const blurChanged = nodes.some(node => isBlurNode(node) && (() => {
       const previous = state.present.nodes.find(item => item.id === node.id);
       return isBlurNode(previous) && JSON.stringify(previous.data.settings) !== JSON.stringify(node.data.settings);
@@ -62,7 +68,7 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
       const previous = state.present.nodes.find(item => item.id === node.id);
       return isColorCorrectionNode(previous) && JSON.stringify(previous.data.settings) !== JSON.stringify(node.data.settings);
     })());
-    if (blurChanged || colorChanged || cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
+    if (levelsChanged || blurChanged || colorChanged || cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;
