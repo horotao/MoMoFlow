@@ -1,10 +1,11 @@
+import { InvertIcon } from '../nodes/InvertIcon';
 import { defaultLevelsSettings } from '../nodes/levels';
 import { defaultBlurSettings } from '../nodes/blur';
 import { defaultColorSettings } from '../nodes/colorCorrection';
 import { defaultCropData } from '../nodes/crop';
 import { defaultPainterData } from '../nodes/painter';
 import { defaultSunburstSettings, sunburstName } from '../nodes/sunburst';
-import { Contrast, ChartNoAxesCombined, Blend, SlidersVertical, Crop, Eye, Paintbrush, Search, History, Bookmark, BriefcaseBusiness, Image, SquarePlay, AudioLines, Blocks, Images, Type, Import, ScanEye, ListFilter, MapPin, Sparkles, WandSparkles, type LucideIcon } from 'lucide-react';
+import { ChartNoAxesCombined, Blend, SlidersVertical, Crop, Eye, Paintbrush, Search, History, Bookmark, BriefcaseBusiness, Image, SquarePlay, AudioLines, Blocks, Images, Type, Import, ScanEye, ListFilter, MapPin, Sparkles, WandSparkles, type LucideIcon } from 'lucide-react';
 import type { AppNode } from '../nodes/types';
 import { defaultInstructions } from '../nodes/describer';
 import { defaultTextNodeText } from '../nodes/defaults';
@@ -25,7 +26,7 @@ export const items: Item[] = [
   { id: 'sunburst', label: sunburstName, icon: Sparkles, category: 'Image', group: 'Generate from text', nodeType: 'sunburst' },
   { id: 'color-correction', label: 'Color correction', icon: SlidersVertical, category: 'Tools', group: 'Editing', nodeType: 'color-correction' },
   { id: 'levels', label: 'Levels', icon: ChartNoAxesCombined, category: 'Tools', group: 'Editing', nodeType: 'levels' },
-  { id: 'invert', label: 'Invert', icon: Contrast, category: 'Tools', group: 'Editing', nodeType: 'invert' },
+  { id: 'invert', label: 'Invert', icon: InvertIcon, category: 'Tools', group: 'Editing', nodeType: 'invert' },
   { id: 'blur', label: 'Blur', icon: Blend, category: 'Tools', group: 'Editing', nodeType: 'blur' },
   { id: 'crop', label: 'Crop', icon: Crop, category: 'Tools', group: 'Editing', nodeType: 'crop' },
   { id: 'painter', label: 'Painter', icon: Paintbrush, category: 'Tools', group: 'Editing', nodeType: 'painter' },
