@@ -1,0 +1,13 @@
+.react-flow .react-flow__node-rotate-flip { height: auto; gap: 16px; }
+.react-flow .react-flow__node-rotate-flip.selected, .react-flow .react-flow__node-rotate-flip:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
+.react-flow__node-rotate-flip .text-node-title { min-width: 0; gap: 8px; }
+.react-flow__node-rotate-flip .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.react-flow__node-rotate-flip .text-node-title > svg { flex-shrink: 0; }
+.react-flow__node-rotate-flip:hover .describer-port-label, .react-flow__node-rotate-flip.selected .describer-port-label { visibility: visible; }
+.rotate-flip-controls { display: flex; align-items: center; width: 100%; gap: 4px; }
+.rotate-flip-controls > button { display: flex; justify-content: center; align-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; color: var(--text-node-primary); background: transparent; cursor: pointer; }
+.rotate-flip-controls > button:hover:not(:disabled) { background: var(--text-node-input); }
+.rotate-flip-controls > button:focus-visible { outline: 1px solid var(--text-node-primary); outline-offset: 2px; }
+.rotate-flip-controls > .rotate-flip-reset { margin-left: auto; width: auto; padding: 0 8px; font: inherit; font-size: 11px; }
+.rotate-flip-media-top.file-media-top { justify-content: flex-end; }
+.react-flow__node-rotate-flip button:disabled { opacity: .4; cursor: default; }

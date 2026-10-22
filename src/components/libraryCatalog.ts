@@ -1,3 +1,5 @@
+import { RotateFlipIcon } from '../nodes/RotateFlipIcon';
+import { defaultRotateFlipSettings } from '../nodes/rotateFlip';
 import { InvertIcon } from '../nodes/InvertIcon';
 import { defaultLevelsSettings } from '../nodes/levels';
 import { defaultBlurSettings } from '../nodes/blur';
@@ -24,6 +26,7 @@ export const items: Item[] = [
   { id: 'model-input', label: 'Model Name', icon: ListFilter, category: 'Tools', group: 'Datatypes', nodeType: 'model-input' },
   { id: 'position-logger', label: 'Position Logger', icon: MapPin, category: 'Tools', group: 'Helpers', nodeType: 'position-logger' },
   { id: 'sunburst', label: sunburstName, icon: Sparkles, category: 'Image', group: 'Generate from text', nodeType: 'sunburst' },
+  { id: 'rotate-flip', label: 'Rotate and flip', icon: RotateFlipIcon, category: 'Tools', group: 'Editing', nodeType: 'rotate-flip' },
   { id: 'color-correction', label: 'Color correction', icon: SlidersVertical, category: 'Tools', group: 'Editing', nodeType: 'color-correction' },
   { id: 'levels', label: 'Levels', icon: ChartNoAxesCombined, category: 'Tools', group: 'Editing', nodeType: 'levels' },
   { id: 'invert', label: 'Invert', icon: InvertIcon, category: 'Tools', group: 'Editing', nodeType: 'invert' },
@@ -41,6 +44,6 @@ export const items: Item[] = [
 export function createLibraryNode(id: string, position: { x: number; y: number }): AppNode | undefined {
   const item = items.find(candidate => candidate.id === id);
   if (!item?.nodeType) return;
-  const data = id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'sunburst' ? { ...defaultSunburstSettings, imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'invert' || id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
+  const data = id === 'rotate-flip' ? { settings: { ...defaultRotateFlipSettings } } : id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'sunburst' ? { ...defaultSunburstSettings, imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'invert' || id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
   return { id: crypto.randomUUID(), type: item.nodeType, position, data, selected: true } as AppNode;
 }

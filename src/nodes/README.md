@@ -15,6 +15,7 @@
 | GPT Image 2.5 Sunburst：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`、`image-0` 起、`mask` 及暴露的参数输入；`result` 输出当前选中的结果图片 |
 | Color correction：本地图片调色 | `color-correction` | [ColorCorrectionNode.tsx](./ColorCorrectionNode.tsx) | 单图片输入 `file`（File）；`result` 输出调色后的 PNG |
 | Levels：本地图片色阶 | `levels` | [LevelsNode.tsx](./LevelsNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
+| Rotate and flip：本地旋转与镜像 | `rotate-flip` | [RotateFlipNode.tsx](./RotateFlipNode.tsx) | 单图片输入 `image`（Input）；`result`（Result）输出旋转后的原分辨率 PNG |
 | Invert：本地图片 / 遮罩反选 | `invert` | [InvertNode.tsx](./InvertNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸反色 PNG |
 | Blur：本地图片模糊 | `blur` | [BlurNode.tsx](./BlurNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
 | Crop：本地裁剪图片 | `crop` | [CropNode.tsx](./CropNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出裁剪后的 PNG |
@@ -152,3 +153,11 @@ Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排�
 画布改动需手动验证节点拖动、坐标更新、新建连线、缩放和小地图；根据改动检查锁定、复制粘贴、撤销与刷新恢复。编辑器改动还需验证 Tab 建议、中文输入、撤销、粘贴和内联变量；模型流程改动需检查缺少输入、重复运行、取消、失败与结果写回。
 
 新增、删除节点，或修改输入输出、运行条件、注册方式及本文已记录的开发约定时，同步更新相应内容。仅调整内部实现或样式且不影响描述时，无需更新。本文保留稳定约定和代码入口，不逐行复述实现，也不充当逐次变更日志；复杂节点需要更详细说明时，可另建文档并在此链接。
+
+## Rotate and flip
+
+入口位于 Tools → Editing，或从图像端口拖出后的兼容节点菜单。底部三个按钮从左到右为顺时针旋转 90°、水平镜像、垂直镜像，右侧 Reset 恢复 0° 并清除两种镜像。与 Weavy 一致，旋转按 0° / 90° / 180° / 270° 循环，镜像各自切换，最终先旋转再按输出图像的水平 / 垂直轴翻转；操作按钮的先后次序不改变这套组合规则。
+
+接入图像后自动在本地处理，无需运行模型。90° / 270° 交换输出宽高；整数坐标变换保留透明通道，不裁切、不缩小导出。悬停显示下载和实际尺寸；预览与下载来自同一份原分辨率画布。支持 Import、Painter Result / Mask 及其他图像节点输入，并可连接 Preview、其他图像处理节点、Sunburst 和 Image Describer。参数、输入或连接变化会立即使旧结果失效，未完成的结果不可下载，过期异步任务不会覆盖新结果。
+
+支持重命名、锁定、创建副本、剪切粘贴、逐次撤销重做与 IndexedDB 保存恢复；独立副本保留底图，派生图像不增加撤销步骤。设置、旋转矩阵和剪贴板校验见 `rotateFlip.ts`，界面与 PNG 导出见 `RotateFlipNode.tsx`。`rotateFlip.test.ts` 使用现有 Node.js 内置测试运行器，随 `npm test` 检查非正方形像素方向、组合顺序、连续操作、输出失效、连接约束和素材恢复。

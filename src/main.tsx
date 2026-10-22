@@ -12,6 +12,7 @@ import './nodes/ColorCorrectionNode.css';
 import './nodes/BlurNode.css';
 import './nodes/LevelsNode.css';
 import './nodes/InvertNode.css';
+import './nodes/RotateFlipNode.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
