@@ -19,9 +19,9 @@ test('text and image outputs recommend compatible implemented inputs with stable
     ['text', 'variable-1'], ['sunburst', 'prompt'], ['image-describer', 'instructions'],
   ]);
   assert.deepEqual(connectionChoices(pending('image', 'source', 'file'), [image], []).map(c => [c.itemId, c.handleId]), [
-    ['preview', 'file'], ['image-describer', 'image-0'], ['sunburst', 'image-0'], ['painter', 'image'], ['levels', 'image'], ['blur', 'image'], ['crop', 'image'], ['color-correction', 'file'],
+    ['preview', 'file'], ['image-describer', 'image-0'], ['sunburst', 'image-0'], ['painter', 'image'], ['invert', 'image'], ['levels', 'image'], ['blur', 'image'], ['crop', 'image'], ['color-correction', 'file'],
   ]);
-  assert.deepEqual(connectionChoices(pending('generator', 'source', 'result'), [generator], []).map(c => c.itemId), ['preview', 'image-describer', 'sunburst', 'painter', 'levels', 'blur', 'crop', 'color-correction']);
+  assert.deepEqual(connectionChoices(pending('generator', 'source', 'result'), [generator], []).map(c => c.itemId), ['preview', 'image-describer', 'sunburst', 'painter', 'invert', 'levels', 'blur', 'crop', 'color-correction']);
 });
 
 test('non-image and empty files never suggest incompatible text or image consumers', () => {
@@ -34,7 +34,7 @@ test('reverse image and mask connections retain the exact target handle and offe
   for (const handle of ['image-0', 'mask']) {
     const start = pending('generator', 'target', handle);
     const choices = connectionChoices(start, [generator], []);
-    assert.deepEqual(choices.map(c => c.itemId), ['file', 'sunburst', 'painter', 'levels', 'blur', 'crop', 'color-correction']);
+    assert.deepEqual(choices.map(c => c.itemId), ['file', 'sunburst', 'painter', 'invert', 'levels', 'blur', 'crop', 'color-correction']);
     assert.deepEqual(choiceConnection(start, choices[0], 'new'), { source: 'new', sourceHandle: 'file', target: 'generator', targetHandle: handle });
     const empty: AppNode = { id: 'new', type: 'file', position: { x: 0, y: 0 }, data: {} };
     const connection = choiceConnection(start, choices[0], 'new');

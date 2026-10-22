@@ -1,3 +1,4 @@
+import { InvertNode } from './InvertNode';
 import { LevelsNode } from './LevelsNode';
 import { BlurNode } from './BlurNode';
 import { ColorCorrectionNode } from './ColorCorrectionNode';
@@ -16,6 +17,7 @@ import type { AppNode } from './types';
 export const initialNodes: AppNode[] = [];
 
 export const nodeTypes = {
+  invert: InvertNode,
   levels: LevelsNode,
   blur: BlurNode,
   'color-correction': ColorCorrectionNode,

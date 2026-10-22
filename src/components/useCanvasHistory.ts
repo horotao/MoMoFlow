@@ -1,3 +1,5 @@
+import { invertDocument } from '../nodes/invert';
+import { isInvertNode } from '../nodes/types';
 import { levelsDocument } from '../nodes/levels';
 import { isLevelsNode } from '../nodes/types';
 import { blurDocument } from '../nodes/blur';
@@ -25,7 +27,7 @@ function snapshot(nodes: AppNode[], edges: Edge[]): Snapshot {
 
 function signature({ nodes, edges }: Snapshot) {
   return JSON.stringify({
-    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: isLevelsNode(node) ? levelsDocument(node.data) : isBlurNode(node) ? blurDocument(node.data) : isColorCorrectionNode(node) ? colorDocument(node.data) : isCropNode(node) ? cropDocument(node.data) : isPainterNode(node) ? painterDocument(node.data) : node.data })),
+    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: isInvertNode(node) ? invertDocument(node.data) : isLevelsNode(node) ? levelsDocument(node.data) : isBlurNode(node) ? blurDocument(node.data) : isColorCorrectionNode(node) ? colorDocument(node.data) : isCropNode(node) ? cropDocument(node.data) : isPainterNode(node) ? painterDocument(node.data) : node.data })),
     edges: edges.map((edge) => ({ ...edge, selected: undefined })),
   }, (key, value) => key === 'content' && Array.isArray(value) && value.length === 0 ? undefined : value);
 }
