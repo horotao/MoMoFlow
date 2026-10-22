@@ -4,7 +4,7 @@
 
 ## 现有节点
 
-以下十一种类型已在 [index.ts](./index.ts) 的 `nodeTypes` 中注册。`initialNodes` 当前为空，默认不预置节点。
+以下十三种类型已在 [index.ts](./index.ts) 的 `nodeTypes` 中注册。`initialNodes` 当前为空，默认不预置节点。
 
 | 显示名称 / 用途 | 类型标识 | 组件文件 | 输入与输出 |
 | --- | --- | --- | --- |
@@ -15,6 +15,7 @@
 | GPT Image 2.5 Sunburst：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`、`image-0` 起、`mask` 及暴露的参数输入；`result` 输出当前选中的结果图片 |
 | Color correction：本地图片调色 | `color-correction` | [ColorCorrectionNode.tsx](./ColorCorrectionNode.tsx) | 单图片输入 `file`（File）；`result` 输出调色后的 PNG |
 | Levels：本地图片色阶 | `levels` | [LevelsNode.tsx](./LevelsNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
+| Invert：本地图片 / 遮罩反选 | `invert` | [InvertNode.tsx](./InvertNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸反色 PNG |
 | Blur：本地图片模糊 | `blur` | [BlurNode.tsx](./BlurNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
 | Crop：本地裁剪图片 | `crop` | [CropNode.tsx](./CropNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出裁剪后的 PNG |
 | Painter：在图片或空白画布上绘制 | `painter` | [PainterNode.tsx](./PainterNode.tsx) | 单图片输入 `image`；`result` 输出合成图片，`mask` 输出黑底白色绘制区域 |
@@ -42,21 +43,21 @@
 
 ## 输入输出与交互约定
 
-- 连接规则由 `connectionRules.ts` 的 `canConnect` 统一校验，`App.tsx` 的 `isValidConnection` 和推荐菜单创建入口共用：拒绝自连接、环路、涉及锁定节点的连接和连接到 `model-input` 的输入。同一个文本变量输入或描述器、Sunburst、Painter、Crop、Color correction、Blur、Levels、Preview 输入端口只能连接一条边。
+- 连接规则由 `connectionRules.ts` 的 `canConnect` 统一校验，`App.tsx` 的 `isValidConnection` 和推荐菜单创建入口共用：拒绝自连接、环路、涉及锁定节点的连接和连接到 `model-input` 的输入。同一个文本变量输入或描述器、Sunburst、Painter、Crop、Color correction、Blur、Invert、Levels、Preview 输入端口只能连接一条边。
 - 将输入或输出把手拖到空白画布会打开可搜索的推荐菜单，按方向和端口类型筛选已实现节点；选中后才创建节点并连接正确端口，创建与连线作为一次撤销记录。Escape、点击外部或移动画布关闭菜单，取消不修改图数据。落在已有节点上仍使用普通连接规则。
 - 从图片/遮罩输入反向选择 Import 时，允许先创建并连接空 File，之后由用户添加图片；该特例只适用于本次新建的 Import，运行前仍必须通过已有图片校验。推荐 Image Describer 的 System Instructions 时会同时暴露该输入。未知或不兼容的媒体输出不推荐文本节点。
 - Prompt 的变量端口从 `variable-1` 开始，图片端口从 `image-0` 开始。沿用 `variableHandleId`、`variableIndex` 等辅助函数，避免混用编号。端口数量或位置变化后调用 `useUpdateNodeInternals`，使连线位置跟随更新。
 - 连接期间，文本值通过 `resolveTextValue` 从当前图数据动态解析，不持续复制到下游节点数据中。参数从外部输入切回 **Use local value** 时例外：Image Describer 会将当前解析值写回本地参数并移除对应连线；Sunburst 也会保存当前有效参数值，校验失败时保留原本地值。具体入口见 [DescriberPanel.tsx](../components/DescriberPanel.tsx) 和 [SunburstSettings.tsx](../components/SunburstSettings.tsx)。
 - Prompt 连接到已有素材的 File 时会显示类型不兼容；连接空 File 时不显示该错误。两种情况下 File 都解析为空文本，不会转换成提示词内容；这与模型节点在连接时直接拒绝错误输入的行为不同。
-- Image Describer、Sunburst、Painter、Crop、Blur、Levels 和 Color correction 的图片输入接受纯图片 File 集合、Sunburst 结果、Painter、Crop、Blur、Levels 或 Color correction 输出。Painter、Crop、Blur、Levels 和 Color correction 使用集合的第一张图片作为底图。`imageOutput` 对 File 返回集合中的图片，对 Sunburst 只返回当前选中结果（没有有效选中项时取最后一张），对 Crop、Blur、Levels 和 Color correction 返回当前有效的处理结果；对 Painter 按 `sourceHandle` 区分 Result 与 Mask，并在上游或绘制内容变化后拒绝尚未更新的输出。不要将 File 的预览选中项误当作唯一输出。
-- Sunburst 的 Prompt 和暴露参数接受 `text`、`image-describer`、`model-input` 的文本输出；Image Describer 的模型与指令输入也接受这些类型。Sunburst、Painter、Crop、Blur、Levels 和 Color correction 图片输出可连到 Sunburst 的图片/遮罩输入、Image Describer 的图片输入或 Painter / Crop / Blur / Levels 的 Image 输入，以及 Color correction / Preview 的 File 输入。
+- Image Describer、Sunburst、Painter、Crop、Blur、Invert、Levels 和 Color correction 的图片输入接受纯图片 File 集合、Sunburst 结果、Painter、Crop、Blur、Invert、Levels 或 Color correction 输出。Painter、Crop、Blur、Invert、Levels 和 Color correction 使用集合的第一张图片作为底图。`imageOutput` 对 File 返回集合中的图片，对 Sunburst 只返回当前选中结果（没有有效选中项时取最后一张），对 Crop、Blur、Invert、Levels 和 Color correction 返回当前有效的处理结果；对 Painter 按 `sourceHandle` 区分 Result 与 Mask，并在上游或绘制内容变化后拒绝尚未更新的输出。不要将 File 的预览选中项误当作唯一输出。
+- Sunburst 的 Prompt 和暴露参数接受 `text`、`image-describer`、`model-input` 的文本输出；Image Describer 的模型与指令输入也接受这些类型。Sunburst、Painter、Crop、Blur、Invert、Levels 和 Color correction 图片输出可连到 Sunburst 的图片/遮罩输入、Image Describer 的图片输入或 Painter / Crop / Blur / Invert / Levels 的 Image 输入，以及 Color correction / Preview 的 File 输入。
 - `model-input` 同时用于模型名称和 Sunburst 参数选项，`parameter` 标识参数用途，`options` 保存可选文本。Options 输入端口尚未实现，继续保持不可连接。
 - 从 Sunburst 暴露的参数输入反向选择 Model Name 时，复用 `sunburstParameterData`，按目标参数的当前本地值初始化名称、值和选项（保留自定义尺寸）；普通模型名称节点仍使用原默认值。
 - 对支持锁定的节点，数据更新、拖动、删除、连线和运行入口都需考虑 `locked`，异步结果写回前再次检查。节点内的编辑与点击控件按交互需要使用 `nodrag`、`nopan`、`nowheel`，避免与画布手势冲突。
 
 ## Preview 预览约定
 
-Preview 位于 Tools → Helpers，也出现在图片输出拖到空白处的推荐菜单中。`file` 输入接受纯图片 Import、Sunburst 当前结果、Painter Result / 黑白 Mask、Crop / Blur / Levels Output 或 Color correction Result，同一个输入只允许一条连线，不接受文本或视频。输入反向拖线可创建 Import、Sunburst、Crop、Blur、Levels、Color correction 或 Painter，并选择 Result / Mask。
+Preview 位于 Tools → Helpers，也出现在图片输出拖到空白处的推荐菜单中。`file` 输入接受纯图片 Import、Sunburst 当前结果、Painter Result / 黑白 Mask、Crop / Blur / Invert / Levels Output 或 Color correction Result，同一个输入只允许一条连线，不接受文本或视频。输入反向拖线可创建 Import、Sunburst、Crop、Blur、Invert、Levels、Color correction 或 Painter，并选择 Result / Mask。
 
 图片按原始比例展示，悬停显示尺寸、下载和全屏入口；双击图片也可打开共用的 FileGallery。Painter 的 Result 和 Mask 通过 `painterLivePreview.ts` 同步绘制帧，按住鼠标绘制、擦除或拖动形状时实时更新，取消笔画时同步恢复。绘制中和正式图片尚未导出时，下载与全屏入口暂不可用。实时画面仅存在内存中，不写入节点数据、历史、存储或模型输入；每笔仍在松开后提交一次。Import 图片集合可翻页查看，翻页不改变上游输出。未连接或上游未就绪时仅显示棋盘格，不显示居中图标与文字；图片加载失败时显示错误提示。断开或删除上游后立即清空，不缓存旧输出。解析入口为 `preview.ts`，连接与失效行为由 `preview.test.ts` 随 `npm test` 验证。
 
@@ -81,6 +82,16 @@ Levels 位于 Tools → Editing 和图片连线推荐菜单。Input（`image`）
 Gamma 滑块采用对数位置映射，向右增大并提亮；黑白点变动时中点随输入范围定位。滑块支持指针拖动及方向键，Shift 加速、Home / End 到边界；数字框 Enter / 失焦提交、Escape 取消。每次拖动只记录一次撤销；512 边长的独立线程提供拖动预览，松开后用原尺寸处理得到 PNG，再从相同像素生成最终预览。下载等待准确结果。保留透明度、原图比较、尺寸显示和 Preview 实时联动；换图、取消、锁定后拒绝迟到的结果，下游不能读取过期输出。
 
 支持重命名、锁定、副本、剪切粘贴、撤销重做及 IndexedDB 素材恢复；独立副本保留底图。数据及像素算法见 `levels.ts`，处理线程和请求合并见 `levels.worker.ts` / `levelsRender.ts`。`levels.test.ts`、`levelsRender.test.ts` 使用现有 Node.js 内置测试运行器，随 `npm test` 验证像素映射、透明度、直方图、连线约束、输出失效、素材保存和请求取消。
+
+## Invert 反选约定
+
+Invert 位于 Tools → Editing 和图片连接推荐菜单。Input（`image`）接收上游图片或 Painter 的黑白 Mask，图片集合取第一张；Output（`result`）输出原尺寸 PNG，可连接 Preview、其他图片处理节点、Sunburst 图片/遮罩输入和 Image Describer。在浏览器本地按 `255 − RGB` 反色，黑白遮罩互换黑白，保留灰度软边与透明通道；普通彩色图片输出反色图片，不强制二值化。
+
+Invert Output 接入 Sunburst Mask 时，仅在请求准备阶段将完全不透明的遮罩按亮度转换为透明 PNG：白色为透明编辑区域，黑色为不透明保护区域，灰色保留部分透明的软边。已有透明区域的遮罩沿用原透明通道。转换不改变 Invert 素材、预览、下载或其他下游图片输入；原图仍须另接 Sunburst Image，遮罩仍须与第一张原图尺寸一致且存在透明区域。`sunburstRun.ts` 在任务快照中标记转换方式，`sunburstClient.ts` 在本地完成转换和校验，不向服务端发送该标记；`invert.test.ts` 和 `sunburstClient.test.ts` 随 `npm test` 验证这条路径、软边、取消及已有透明遮罩兼容性。
+
+图片按原比例展示，无需额外参数或运行按钮。悬停或键盘聚焦时，左上角显示隐藏效果按钮：点击切换原图，再点击恢复反选；此对比仅影响当前预览，不改变 Output 和下载内容。右上角下载反选 PNG，左下角显示原始像素尺寸。未连接或上游未就绪时显示棋盘格，处理完成前禁用下载；输入变化、断开或删除后不显示或传递旧结果，导出回写前检查当前连接和锁定状态。
+
+支持重命名、锁定、副本、剪切粘贴、撤销重做及 IndexedDB 保存恢复；独立副本保留输入底图，派生结果不增加撤销步骤。核心像素算法和数据在 `invert.ts`，界面与导出在 `InvertNode.tsx`。`invert.test.ts` 随 `npm test` 验证黑白/灰度/透明像素、Painter Mask 输入、连线限制、链式失效和素材恢复。
 
 ## Blur 模糊约定
 

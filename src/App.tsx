@@ -1,3 +1,4 @@
+import { restoreInvertData } from './nodes/invert';
 import { restoreLevelsData } from './nodes/levels';
 import { restoreBlurData } from './nodes/blur';
 import { restoreColorData } from './nodes/colorCorrection';
@@ -100,6 +101,14 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
             position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 },
             data: { label: typeof saved.node.data?.label === 'string' ? saved.node.data.label : undefined },
           }]);
+          return;
+        }
+        if (saved.format === 'momoflow-invert-node' && saved.node?.type === 'invert'
+          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
+          const data = restoreInvertData(saved.node.data);
+          if (!data) return;
+          event.preventDefault();
+          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'invert', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
           return;
         }
         if (saved.format === 'momoflow-levels-node' && saved.node?.type === 'levels'
@@ -273,7 +282,7 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
         deletable: !node.data.locked,
         connectable: !node.data.locked && tool === 'select',
         style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
-      } : (isSunburstNode(node) || isPainterNode(node) || node.type === 'crop' || node.type === 'color-correction' || node.type === 'blur' || node.type === 'levels' || node.type === 'preview') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
+      } : (isSunburstNode(node) || isPainterNode(node) || node.type === 'crop' || node.type === 'color-correction' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'preview') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
       edges={edges.map((edge) => {
@@ -281,7 +290,7 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
         const target = nodes.find((node) => node.id === edge.target);
         const fileSource = source && isFileNode(source) ? source : undefined;
         const textConnection = nodes.some((node) => (isTextNode(node) || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
-        const generatedSource = source && (isSunburstNode(source) || source.type === 'painter' || source.type === 'crop' || source.type === 'color-correction' || source.type === 'blur' || source.type === 'levels');
+        const generatedSource = source && (isSunburstNode(source) || source.type === 'painter' || source.type === 'crop' || source.type === 'color-correction' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert');
         const sunburstTarget = target && isSunburstNode(target);
         const portColor = (source?.type === 'painter' && edge.sourceHandle === 'mask') || (sunburstTarget && edge.targetHandle === 'mask') ? 'var(--sunburst-mask-port)'
           : target?.type === 'image-describer' && /^image-\d+$/.test(edge.targetHandle ?? '') ? filePortColors.image

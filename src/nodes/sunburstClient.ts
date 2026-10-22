@@ -18,13 +18,14 @@ const dataUrl = (blob: Blob) => new Promise<string>((resolve, reject) => {
 });
 
 export async function requestSunburst(input: SunburstRequest, signal: AbortSignal): Promise<FileAsset> {
+  const { maskMode, ...request } = input;
   const blobs: Blob[] = []; let total = 0;
   for (const url of input.images) {
     const blob = await readImage(url, signal); total += blob.size;
     if (total > 46 * 1024 * 1024) throw new Error('输入图片总大小不能超过 46 MiB。');
     blobs.push(blob);
   }
-  const mask = input.mask ? await readImage(input.mask, signal, true) : undefined;
+  let mask = input.mask ? await readImage(input.mask, signal, true) : undefined;
   if (total + (mask?.size ?? 0) > 46 * 1024 * 1024) throw new Error('输入图片总大小不能超过 46 MiB。');
   if (mask) {
     if (!blobs.length) throw new Error('使用 Mask 时必须连接 Image。');
@@ -36,9 +37,26 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
         const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
         const context = canvas.getContext('2d'); if (!context) throw new Error('无法验证 Mask。');
         context.drawImage(bitmap, 0, 0);
-        const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+        const imageData = context.getImageData(0, 0, bitmap.width, bitmap.height);
+        const pixels = imageData.data;
         let transparent = false;
         for (let index = 3; index < pixels.length; index += 4) { if (pixels[index] < 255) { transparent = true; break; } }
+        if (!transparent && maskMode === 'luminance') {
+          // Match Painter's white = edit convention without changing the Invert asset.
+          for (let index = 0; index < pixels.length; index += 4) {
+            const alpha = 255 - Math.round(.299 * pixels[index] + .587 * pixels[index + 1] + .114 * pixels[index + 2]);
+            pixels[index] = pixels[index + 1] = pixels[index + 2] = 0;
+            pixels[index + 3] = alpha;
+            if (alpha < 255) transparent = true;
+          }
+          if (transparent) {
+            context.putImageData(imageData, 0, 0);
+            mask = await new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('无法导出 Mask。')), 'image/png'));
+            signal.throwIfAborted();
+            if (mask.size > 32 * 1024 * 1024) throw new Error('单张图片不能超过 32 MiB。');
+            if (total + mask.size > 46 * 1024 * 1024) throw new Error('输入图片总大小不能超过 46 MiB。');
+          }
+        }
         if (!transparent) throw new Error('Mask 需要透明区域，透明部分表示要编辑的区域。');
       } finally { bitmap.close(); }
     } finally { first.close(); }
@@ -46,7 +64,7 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
   signal.throwIfAborted();
   const response = await fetch('/api/sunburst', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, signal,
-    body: JSON.stringify({ ...input, images: await Promise.all(blobs.map(dataUrl)), ...(mask ? { mask: await dataUrl(mask) } : {}) }),
+    body: JSON.stringify({ ...request, images: await Promise.all(blobs.map(dataUrl)), ...(mask ? { mask: await dataUrl(mask) } : {}) }),
   });
   const result = await response.json().catch(() => { throw new Error('本地图片 API 不可用，请通过 npm run dev 启动服务。'); });
   if (!response.ok) throw new Error(result.error || '图片生成失败。');

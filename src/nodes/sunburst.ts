@@ -13,7 +13,11 @@ export type SunburstSettings = {
 };
 export const sunburstFieldLabels: Record<keyof SunburstSettings, string> = { quality: 'Quality', background: 'Background', size: 'Aspect Ratio', outputFormat: 'Output Format' };
 export const defaultSunburstSettings: SunburstSettings = { quality: 'medium', background: 'auto', size: 'auto', outputFormat: 'png' };
-export type SunburstRequest = SunburstSettings & { prompt: string; images: string[]; mask?: string };
+export type SunburstRequest = SunburstSettings & {
+  prompt: string; images: string[]; mask?: string;
+  // Client-only hint: convert opaque Invert masks; preserve existing alpha masks.
+  maskMode?: 'luminance';
+};
 
 export function validateSunburstSettings(value: unknown): SunburstSettings {
   if (!value || typeof value !== 'object') throw new Error('图片参数格式错误。');

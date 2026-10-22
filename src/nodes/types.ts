@@ -1,3 +1,4 @@
+import type { InvertData } from './invert';
 import type { LevelsData } from './levels';
 import type { BlurData } from './blur';
 import type { ColorCorrectionData } from './colorCorrection';
@@ -24,7 +25,9 @@ export type BlurNode = Node<BlurData, 'blur'>;
 export const isBlurNode = (node: AppNode | undefined): node is BlurNode => node?.type === 'blur' && 'settings' in node.data;
 export type LevelsNode = Node<LevelsData, 'levels'>;
 export const isLevelsNode = (node: AppNode | undefined): node is LevelsNode => node?.type === 'levels' && 'settings' in node.data;
-export type AppNode = LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
+export type InvertNode = Node<InvertData, 'invert'>;
+export const isInvertNode = (node: AppNode | undefined): node is InvertNode => node?.type === 'invert';
+export type AppNode = InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
 
 export const isDescriberNode = (node: AppNode): node is ImageDescriberNode => node.type === 'image-describer' && 'imageInputs' in node.data;
 

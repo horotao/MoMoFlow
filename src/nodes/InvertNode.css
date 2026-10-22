@@ -1,0 +1,8 @@
+.react-flow .react-flow__node-invert { --text-node-primary: #292929; height: auto; gap: 16px; }
+.react-flow.dark .react-flow__node-invert { --text-node-primary: #f3f3f3; }
+.react-flow .react-flow__node-invert.selected, .react-flow .react-flow__node-invert:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
+.react-flow__node-invert .text-node-title { min-width: 0; gap: 8px; color: var(--text-node-primary); font-size: 16px; line-height: 20px; }
+.react-flow__node-invert .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.react-flow__node-invert .text-node-title > svg { flex-shrink: 0; }
+.react-flow__node-invert:hover .describer-port-label, .react-flow__node-invert.selected .describer-port-label { visibility: visible; }
+.react-flow__node-invert .file-icon-button:disabled { opacity: .4; cursor: default; }
