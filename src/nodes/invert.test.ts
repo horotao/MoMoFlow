@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { invertPixels, invertRevision, restoreInvertData, invertDocument } from './invert.ts';
-import { imageOutput } from './sunburstRun.ts';
+import { imageOutput, prepareSunburstRun } from './sunburstRun.ts';
+import { defaultSunburstSettings } from './sunburst.ts';
 import { canConnect } from './connectionRules.ts';
 import { connectionChoices, type PendingConnection } from './connectionRecommendations.ts';
 import { mapAssets } from '../persistence/workflowStorage.ts';
@@ -48,6 +49,44 @@ test('Painter black/white mask connects to Invert and downstream image tools', (
     const targetHandle = ['preview', 'color-correction'].includes(type) ? 'file' : ['sunburst', 'image-describer'].includes(type) ? 'image-0' : 'image';
     assert.equal(canConnect({ id: 'out', source: 'invert', sourceHandle: 'result', target: 'target', targetHandle }, [invert, target], []), true, type);
   }
+});
+
+test('Painter → Invert → Sunburst converts only the mask request and rejects stale output', () => {
+  const painter: AppNode = { id: 'painter', type: 'painter', position: { x: 0, y: 0 }, data: {
+    ...defaultPainterData, mask: asset('mask'), alphaMask: asset('alpha'), outputRevision: painterRevision(defaultPainterData, ''),
+  } };
+  const maskInvert: InvertNode = { ...invert, data: { ...invert.data, outputRevision: invertRevision('mask') } };
+  const generator: AppNode = { id: 'generator', type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, imageInputs: 1 } };
+  const prompt: AppNode = { id: 'prompt', type: 'text', position: { x: 0, y: 0 }, data: { text: 'Edit the unpainted area' } };
+  const nodes = [file, painter, maskInvert, generator, prompt];
+  const maskEdge = { id: 'mask', source: 'invert', sourceHandle: 'result', target: 'generator', targetHandle: 'mask' };
+  const edges = [
+    { ...input, source: 'painter', sourceHandle: 'mask' }, maskEdge,
+    { id: 'image', source: 'file', sourceHandle: 'file', target: 'generator', targetHandle: 'image-0' },
+    { id: 'prompt', source: 'prompt', target: 'generator', targetHandle: 'prompt' },
+  ];
+  assert.ok(canConnect(maskEdge, nodes, edges.filter(edge => edge !== maskEdge)));
+  const run = prepareSunburstRun(nodes, edges, ['generator'], 1);
+  assert.equal(run.error, undefined);
+  assert.equal(run.tasks[0].imageRequest?.mask, 'blob:result');
+  assert.equal(run.tasks[0].imageRequest?.maskMode, 'luminance');
+  assert.deepEqual(run.tasks[0].imageRequest?.images, ['blob:input']);
+  assert.deepEqual(imageOutput(maskInvert, 'result', nodes, edges), [invert.data.result]);
+
+  const directEdges = edges.map(edge => edge === maskEdge ? { ...edge, source: 'painter', sourceHandle: 'mask' } : edge);
+  const direct = prepareSunburstRun(nodes, directEdges, ['generator'], 1).tasks[0].imageRequest;
+  assert.equal(direct?.mask, 'blob:alpha');
+  assert.equal(direct?.maskMode, undefined);
+  const imageOnlyEdges = edges.filter(edge => edge.id !== 'mask').map(edge => edge.id === 'image' ? { ...edge, source: 'invert', sourceHandle: 'result' } : edge);
+  const imageOnly = prepareSunburstRun(nodes, imageOnlyEdges, ['generator'], 1).tasks[0].imageRequest;
+  assert.deepEqual(imageOnly?.images, ['blob:result']);
+  assert.equal(imageOnly?.maskMode, undefined);
+
+  const disconnected = prepareSunburstRun(nodes, edges.filter(edge => edge.id !== input.id), ['generator'], 1);
+  assert.equal(disconnected.tasks.length, 0);
+  assert.match(disconnected.error!, /Mask/);
+  const editedNodes = nodes.map(node => node.id === 'painter' ? { ...painter, data: { ...painter.data, background: '#ffffff' } } : node);
+  assert.equal(prepareSunburstRun(editedNodes, edges, ['generator'], 1).tasks.length, 0);
 });
 
 test('connection rules reject incompatible inputs, locked nodes, occupied inputs, wrong handles and cycles', () => {

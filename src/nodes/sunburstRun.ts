@@ -14,6 +14,7 @@ import { isNodeLocked, isSunburstNode } from './types.ts';
 import { fileAssets } from './fileCollection.ts';
 import { resolveTextValue } from './textVariables.ts';
 import { sunburstModel, validateSunburstSettings } from './sunburst.ts';
+import type { SunburstRequest } from './sunburst';
 import type { PreviewTask } from './taskQueue';
 
 export function imageOutput(node: AppNode | undefined, handle?: string | null, nodes?: AppNode[], edges?: Edge[], visited = new Set<string>()): FileAsset[] {
@@ -115,14 +116,16 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
       if (images.length > 16) throw new Error('最多支持 16 张参考图片。');
       const maskEdge = inputs.find(edge => edge.targetHandle === 'mask');
       let mask: string | undefined;
+      let maskMode: SunburstRequest['maskMode'];
       if (maskEdge) {
         const source = nodes.find(item => item.id === maskEdge.source);
         const assets = imageOutput(source, source?.type === 'painter' && maskEdge.sourceHandle === 'mask' ? 'alpha-mask' : maskEdge.sourceHandle, nodes, edges);
         if (assets.length !== 1) throw new Error('Mask 必须连接一张 PNG 图片。');
         if (!images.length) throw new Error('使用 Mask 时必须连接 Image。');
         mask = assets[0].url;
+        if (isInvertNode(source)) maskMode = 'luminance';
       }
-      for (let index = 0; index < runs; index++) tasks.push({ id: crypto.randomUUID(), batchId, createdAt, nodeId: id, model: sunburstModel, imageRequest: { ...settings, prompt, images, mask }, progress: 0, state: 'Queued', started: 0 });
+      for (let index = 0; index < runs; index++) tasks.push({ id: crypto.randomUUID(), batchId, createdAt, nodeId: id, model: sunburstModel, imageRequest: { ...settings, prompt, images, mask, ...(maskMode ? { maskMode } : {}) }, progress: 0, state: 'Queued', started: 0 });
     }
     return { tasks };
   } catch (error) { return { tasks: [], error: error instanceof Error ? error.message : '输入参数无效。' }; }
