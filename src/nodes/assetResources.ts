@@ -1,4 +1,4 @@
-import { isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from './types.ts';
+import { isColorPaletteNode, isCompositorNode, isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from './types.ts';
 import type { PreviewTask } from './taskQueue';
 import type { AppNode, FileNode, SunburstNode } from './types';
 
@@ -72,7 +72,15 @@ export class AssetResources {
 export function nodeAssetUrls(nodes: Iterable<AppNode>): Set<string> {
   const urls = new Set<string>();
   for (const node of nodes) {
-    if (node.type === 'file') {
+    if (isCompositorNode(node)) {
+      if (node.data.result) urls.add(node.data.result.url);
+      for (const layer of node.data.document.layers) {
+        const asset = layer.source.kind === 'asset' ? layer.source.asset : layer.source.kind === 'input' ? layer.source.fallback : undefined;
+        if (asset) urls.add(asset.url);
+      }
+    } else if (isColorPaletteNode(node)) {
+      if (node.data.result) urls.add(node.data.result.url);
+    } else if (node.type === 'file') {
       const data = node.data as FileNode['data'];
       if (data.asset) urls.add(data.asset.url);
       for (const asset of data.assets ?? []) urls.add(asset.url);

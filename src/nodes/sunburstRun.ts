@@ -1,3 +1,7 @@
+import { paletteRevision } from './colorPalette.ts';
+import { isColorPaletteNode } from './types.ts';
+import { compositorPending, compositorRevision, type CompositorInputs } from './compositor.ts';
+import { isCompositorNode } from './types.ts';
 import { rotateFlipRevision } from './rotateFlip.ts';
 import { isRotateFlipNode } from './types.ts';
 import { invertRevision } from './invert.ts';
@@ -19,85 +23,131 @@ import { sunburstModel, validateSunburstSettings } from './sunburst.ts';
 import type { SunburstRequest } from './sunburst';
 import type { PreviewTask } from './taskQueue';
 
+// The cache belongs to one synchronous graph read. Never reuse it after edits,
+// undo, reconnection or IndexedDB restore; each of those must recheck revisions.
+function imageResolution(nodes?: AppNode[], edges?: Edge[], visited = new Set<string>()) {
+  const hasGraph = Boolean(nodes && edges);
+  const nodeById = new Map(nodes?.map(node => [node.id, node]));
+  const incoming = new Map<string, Edge[]>();
+  for (const edge of edges ?? []) {
+    const inputs = incoming.get(edge.target) ?? [];
+    inputs.push(edge); incoming.set(edge.target, inputs);
+  }
+  const outputs = new Map<string, Map<string | null | undefined, FileAsset[]>>();
+  const active = new Set(visited);
+  let cycles = 0;
+  const resolve = (node: AppNode | undefined, handle?: string | null): FileAsset[] => {
+    if (!node) return [];
+    // Only the current path is a cycle. Sibling ports may share any upstream.
+    if (active.has(node.id)) { cycles++; return []; }
+    const cached = outputs.get(node.id)?.get(handle);
+    if (cached) return cached;
+    active.add(node.id);
+    const before = cycles;
+    try {
+      const result = evaluate(node, handle);
+      // A cycle-truncated result can depend on the path that reached it.
+      if (cycles === before) {
+        const ports = outputs.get(node.id) ?? new Map();
+        ports.set(handle, result); outputs.set(node.id, ports);
+      }
+      return result;
+    } finally { active.delete(node.id); }
+  };
+  const resolveInputs = (id: string): CompositorInputs => {
+    const result: CompositorInputs = {};
+    for (const edge of incoming.get(id) ?? []) if (edge.targetHandle) {
+      result[edge.targetHandle] = { connected: true, asset: resolve(nodeById.get(edge.source), edge.sourceHandle)[0] };
+    }
+    return result;
+  };
+  const evaluate = (node: AppNode, handle?: string | null): FileAsset[] => {
+    if (isColorPaletteNode(node)) {
+      return handle === 'image' && node.data.colors.length && node.data.result && node.data.outputRevision === paletteRevision(node.data.colors) ? [node.data.result] : [];
+    }
+    if (isCompositorNode(node)) {
+      if (handle !== 'result') return [];
+      if (hasGraph) {
+        const inputs = resolveInputs(node.id);
+        if (compositorPending(node.data.document, inputs) || node.data.outputRevision !== compositorRevision(node.data.document, inputs)) return [];
+      }
+      return node.data.result ? [node.data.result] : [];
+    }
+    if (isRotateFlipNode(node)) {
+      if (handle !== 'result') return [];
+      if (hasGraph) {
+        const edge = (incoming.get(node.id) ?? []).find(item => item.targetHandle === 'image');
+        const source = edge ? resolve(nodeById.get(edge.source), edge.sourceHandle)[0] : node.data.baseImage;
+        if (!source || node.data.outputRevision !== rotateFlipRevision(node.data, source.id)) return [];
+      }
+      return node.data.result ? [node.data.result] : [];
+    }
+    if (isInvertNode(node)) {
+      if (handle !== 'result') return [];
+      if (hasGraph) {
+        const edge = (incoming.get(node.id) ?? []).find(item => item.targetHandle === 'image');
+        const source = edge ? resolve(nodeById.get(edge.source), edge.sourceHandle)[0] : node.data.baseImage;
+        if (!source || node.data.outputRevision !== invertRevision(source.id)) return [];
+      }
+      return node.data.result ? [node.data.result] : [];
+    }
+    if (isLevelsNode(node)) {
+      if (handle !== 'result') return [];
+      if (hasGraph) {
+        const edge = (incoming.get(node.id) ?? []).find(item => item.targetHandle === 'image');
+        const source = edge ? resolve(nodeById.get(edge.source), edge.sourceHandle)[0] : node.data.baseImage;
+        if (!source || node.data.outputRevision !== levelsRevision(node.data, source.id)) return [];
+      }
+      return node.data.result ? [node.data.result] : [];
+    }
+    if (isBlurNode(node)) {
+      if (handle !== 'result') return [];
+      if (hasGraph) {
+        const edge = (incoming.get(node.id) ?? []).find(item => item.targetHandle === 'image');
+        const source = edge ? resolve(nodeById.get(edge.source), edge.sourceHandle)[0] : node.data.baseImage;
+        if (!source || node.data.outputRevision !== blurRevision(node.data, source.id)) return [];
+      }
+      return node.data.result ? [node.data.result] : [];
+    }
+    if (isColorCorrectionNode(node)) {
+      if (handle !== 'result') return [];
+      if (hasGraph) {
+        const edge = (incoming.get(node.id) ?? []).find(item => item.targetHandle === 'file');
+        const source = edge ? resolve(nodeById.get(edge.source), edge.sourceHandle)[0] : node.data.baseImage;
+        if (!source || node.data.outputRevision !== colorRevision(node.data, source.id)) return [];
+      }
+      return node.data.result ? [node.data.result] : [];
+    }
+    if (isCropNode(node)) {
+      if (hasGraph) {
+        const edge = (incoming.get(node.id) ?? []).find(item => item.targetHandle === 'image');
+        const source = edge ? resolve(nodeById.get(edge.source), edge.sourceHandle)[0] : node.data.baseImage;
+        if (!source || node.data.outputRevision !== cropRevision(node.data, source.id)) return [];
+      }
+      return node.data.result ? [node.data.result] : [];
+    }
+    if (isPainterNode(node)) {
+      if (hasGraph) {
+        const edge = (incoming.get(node.id) ?? []).find(item => item.targetHandle === 'image');
+        const source = edge ? resolve(nodeById.get(edge.source), edge.sourceHandle)[0] : node.data.baseImage;
+        if ((edge && !source) || node.data.outputRevision !== painterRevision(node.data, source?.id ?? '')) return [];
+      }
+      const asset = handle === 'mask' ? node.data.mask : handle === 'alpha-mask' ? node.data.alphaMask : node.data.result;
+      return asset ? [asset] : [];
+    }
+    if (node?.type === 'file') return fileAssets(node.data).filter(asset => asset.kind === 'image');
+    if (node && isSunburstNode(node)) {
+      const results = node.data.results ?? [];
+      const active = results.find(asset => asset.id === node.data.activeResultId) ?? results[results.length - 1];
+      return active ? [active] : [];
+    }
+    return [];
+  };
+  return { output: resolve, inputs: resolveInputs };
+}
+
 export function imageOutput(node: AppNode | undefined, handle?: string | null, nodes?: AppNode[], edges?: Edge[], visited = new Set<string>()): FileAsset[] {
-  if (isRotateFlipNode(node)) {
-    if (handle !== 'result' || visited.has(node.id)) return [];
-    visited.add(node.id);
-    if (nodes && edges) {
-      const edge = edges.find(item => item.target === node.id && item.targetHandle === 'image');
-      const source = edge ? imageOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges, visited)[0] : node.data.baseImage;
-      if (!source || node.data.outputRevision !== rotateFlipRevision(node.data, source.id)) return [];
-    }
-    return node.data.result ? [node.data.result] : [];
-  }
-  if (isInvertNode(node)) {
-    if (handle !== 'result' || visited.has(node.id)) return [];
-    visited.add(node.id);
-    if (nodes && edges) {
-      const edge = edges.find(item => item.target === node.id && item.targetHandle === 'image');
-      const source = edge ? imageOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges, visited)[0] : node.data.baseImage;
-      if (!source || node.data.outputRevision !== invertRevision(source.id)) return [];
-    }
-    return node.data.result ? [node.data.result] : [];
-  }
-  if (isLevelsNode(node)) {
-    if (handle !== 'result' || visited.has(node.id)) return [];
-    visited.add(node.id);
-    if (nodes && edges) {
-      const edge = edges.find(item => item.target === node.id && item.targetHandle === 'image');
-      const source = edge ? imageOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges, visited)[0] : node.data.baseImage;
-      if (!source || node.data.outputRevision !== levelsRevision(node.data, source.id)) return [];
-    }
-    return node.data.result ? [node.data.result] : [];
-  }
-  if (isBlurNode(node)) {
-    if (handle !== 'result' || visited.has(node.id)) return [];
-    visited.add(node.id);
-    if (nodes && edges) {
-      const edge = edges.find(item => item.target === node.id && item.targetHandle === 'image');
-      const source = edge ? imageOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges, visited)[0] : node.data.baseImage;
-      if (!source || node.data.outputRevision !== blurRevision(node.data, source.id)) return [];
-    }
-    return node.data.result ? [node.data.result] : [];
-  }
-  if (isColorCorrectionNode(node)) {
-    if (handle !== 'result' || visited.has(node.id)) return [];
-    visited.add(node.id);
-    if (nodes && edges) {
-      const edge = edges.find(item => item.target === node.id && item.targetHandle === 'file');
-      const source = edge ? imageOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges, visited)[0] : node.data.baseImage;
-      if (!source || node.data.outputRevision !== colorRevision(node.data, source.id)) return [];
-    }
-    return node.data.result ? [node.data.result] : [];
-  }
-  if (isCropNode(node)) {
-    if (visited.has(node.id)) return [];
-    visited.add(node.id);
-    if (nodes && edges) {
-      const edge = edges.find(item => item.target === node.id && item.targetHandle === 'image');
-      const source = edge ? imageOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges, visited)[0] : node.data.baseImage;
-      if (!source || node.data.outputRevision !== cropRevision(node.data, source.id)) return [];
-    }
-    return node.data.result ? [node.data.result] : [];
-  }
-  if (isPainterNode(node)) {
-    if (visited.has(node.id)) return [];
-    visited.add(node.id);
-    if (nodes && edges) {
-      const edge = edges.find(item => item.target === node.id && item.targetHandle === 'image');
-      const source = edge ? imageOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges, visited)[0] : node.data.baseImage;
-      if ((edge && !source) || node.data.outputRevision !== painterRevision(node.data, source?.id ?? '')) return [];
-    }
-    const asset = handle === 'mask' ? node.data.mask : handle === 'alpha-mask' ? node.data.alphaMask : node.data.result;
-    return asset ? [asset] : [];
-  }
-  if (node?.type === 'file') return fileAssets(node.data).filter(asset => asset.kind === 'image');
-  if (node && isSunburstNode(node)) {
-    const results = node.data.results ?? [];
-    const active = results.find(asset => asset.id === node.data.activeResultId) ?? results[results.length - 1];
-    return active ? [active] : [];
-  }
-  return [];
+  return imageResolution(nodes, edges, visited).output(node, handle);
 }
 
 export function effectiveSunburstSettings(node: SunburstNode, nodes: AppNode[], edges: Edge[]) {
@@ -141,4 +191,9 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
     }
     return { tasks };
   } catch (error) { return { tasks: [], error: error instanceof Error ? error.message : '输入参数无效。' }; }
+}
+
+// Share validated outputs across every layer port, with a separate path guard.
+export function compositorInputs(id: string, nodes: AppNode[], edges: Edge[], visited = new Set([id])): CompositorInputs {
+  return imageResolution(nodes, edges, visited).inputs(id);
 }

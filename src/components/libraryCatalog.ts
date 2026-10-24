@@ -1,3 +1,5 @@
+import { defaultCompositorDocument } from '../nodes/compositor';
+import { Layers, Palette } from 'lucide-react';
 import { RotateFlipIcon } from '../nodes/RotateFlipIcon';
 import { defaultRotateFlipSettings } from '../nodes/rotateFlip';
 import { InvertIcon } from '../nodes/InvertIcon';
@@ -19,6 +21,8 @@ export const navigation: { name: Category; icon: LucideIcon; divider?: boolean }
   { name: 'Models', icon: Blocks, divider: true }, { name: 'Assets', icon: Images },
 ];
 export const items: Item[] = [
+  { id: 'color-palette', label: 'Color palette', icon: Palette, category: 'Tools', group: 'Editing', nodeType: 'color-palette' },
+  { id: 'compositor', label: 'Compositor', icon: Layers, category: 'Tools', group: 'Editing', nodeType: 'compositor' },
   { id: 'text', label: 'Prompt', icon: Type, category: 'Tools', group: 'Text tools', nodeType: 'text' },
   { id: 'image-describer', label: 'Image Describer', icon: ScanEye, category: 'Tools', group: 'Text tools', nodeType: 'image-describer' },
   { id: 'file', label: 'Import', icon: Import, category: 'Tools', group: 'Helpers', nodeType: 'file' },
@@ -44,6 +48,6 @@ export const items: Item[] = [
 export function createLibraryNode(id: string, position: { x: number; y: number }): AppNode | undefined {
   const item = items.find(candidate => candidate.id === id);
   if (!item?.nodeType) return;
-  const data = id === 'rotate-flip' ? { settings: { ...defaultRotateFlipSettings } } : id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'sunburst' ? { ...defaultSunburstSettings, imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'invert' || id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
+  const data = id === 'color-palette' ? { colors: [] } : id === 'compositor' ? { document: defaultCompositorDocument() } : id === 'rotate-flip' ? { settings: { ...defaultRotateFlipSettings } } : id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'sunburst' ? { ...defaultSunburstSettings, imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'invert' || id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
   return { id: crypto.randomUUID(), type: item.nodeType, position, data, selected: true } as AppNode;
 }

@@ -1,3 +1,5 @@
+import { ColorPaletteNode } from './ColorPaletteNode';
+import { CompositorNode } from './compositor/CompositorNode';
 import { RotateFlipNode } from './RotateFlipNode';
 import { InvertNode } from './InvertNode';
 import { LevelsNode } from './LevelsNode';
@@ -18,6 +20,8 @@ import type { AppNode } from './types';
 export const initialNodes: AppNode[] = [];
 
 export const nodeTypes = {
+  'color-palette': ColorPaletteNode,
+  compositor: CompositorNode,
   'rotate-flip': RotateFlipNode,
   invert: InvertNode,
   levels: LevelsNode,

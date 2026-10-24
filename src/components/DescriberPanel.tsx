@@ -1,3 +1,5 @@
+import { ColorPaletteColors } from '../nodes/ColorPaletteColors';
+import { isColorPaletteNode } from '../nodes/types';
 import { ModelOptionsSettings } from './ModelOptionsSettings';
 import { SunburstSettings } from './SunburstSettings';
 import { prepareSunburstRun } from '../nodes/sunburstRun';
@@ -29,7 +31,8 @@ export function DescriberPanel() {
   const selectedImage = nodes.find((node) => isSunburstNode(node) && node.selected);
   const selected = nodes.find((n): n is ImageDescriberNode => n.type === 'image-describer' && Boolean(n.selected));
   const selectedModel = nodes.find((n): n is ModelInputNode => n.type === 'model-input' && Boolean(n.selected));
-  const panelOpen = Boolean(selected || selectedModel || selectedImage);
+  const selectedPalette = nodes.find(node => isColorPaletteNode(node) && node.selected);
+  const panelOpen = Boolean(selected || selectedModel || selectedImage || selectedPalette);
   const [tasksOpen, setTasksOpen] = useState(false);
   const [tasks, setTasks] = useState<PreviewTask[]>([]);
   useLayoutEffect(() => assetResources.retain(tasks.filter(isActiveTask).flatMap(taskAssetUrls)), [tasks]);
@@ -127,16 +130,17 @@ export function DescriberPanel() {
     setEdges((all) => [...all, { id: crypto.randomUUID(), source: id, target: selected.id, targetHandle: field }]);
   };
   return <>
-    <aside className={`describer-panel nodrag nopan nowheel ${panelOpen ? 'is-open' : ''}`} aria-label={selectedImage ? "GPT Image 2.5 Sunburst settings" : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => e.stopPropagation()}>
-      {selectedImage && <div className="sunburst-provider"><span>ZenMux</span><span>按用量计费</span></div>}
+    <aside className={`describer-panel nodrag nopan nowheel ${panelOpen ? 'is-open' : ''}`} aria-label={selectedPalette ? "Color palette settings" : selectedImage ? "GPT Image 2.5 Sunburst settings" : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => { if (!(selectedPalette && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !(e.target as HTMLElement).closest('input'))) e.stopPropagation(); }}>
+      {!selectedPalette && selectedImage && <div className="sunburst-provider"><span>ZenMux</span><span>按用量计费</span></div>}
       <div className="describer-panel-top">
         <button ref={tasksTrigger} className={tasksOpen ? 'active' : ''} aria-controls={tasksOpen ? 'task-manager' : undefined} aria-expanded={tasksOpen} onClick={() => setTasksOpen(!tasksOpen)}>
           Tasks<DescriberIcon name="chevron" />{tasks.filter(isActiveTask).length || ''}
         </button>
       </div>
-      {selectedModel && !selectedImage && <ModelOptionsSettings key={selectedModel.id} node={selectedModel} onChange={data => updateNodeData(selectedModel.id, data)} />}
-      {selectedImage && isSunburstNode(selectedImage) && <SunburstSettings key={selectedImage.id} node={selectedImage} />}
-      {selected && !selectedImage && <>
+      {selectedPalette && isColorPaletteNode(selectedPalette) && <div className="describer-settings palette-settings"><h2>{selectedPalette.data.label || 'Color palette'}</h2><label>Color palette</label><ColorPaletteColors key={selectedPalette.id} node={selectedPalette} /></div>}
+      {selectedModel && !selectedPalette && !selectedImage && <ModelOptionsSettings key={selectedModel.id} node={selectedModel} onChange={data => updateNodeData(selectedModel.id, data)} />}
+      {!selectedPalette && selectedImage && isSunburstNode(selectedImage) && <SunburstSettings key={selectedImage.id} node={selectedImage} />}
+      {selected && !selectedPalette && !selectedImage && <>
         <div className="describer-settings" key={selected.id}>
           <h2>Image Describer</h2>
           <div className="describer-field">
@@ -155,7 +159,7 @@ export function DescriberPanel() {
           </div>
         </div>
       </>}
-      {(selected || selectedImage) && <>
+      {!selectedPalette && (selected || selectedImage) && <>
         <div className="describer-panel-bottom">
           <h3>Run selected nodes</h3>
           <div className="describer-runs"><span>Runs</span><div>

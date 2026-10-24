@@ -1,3 +1,5 @@
+import type { ColorPaletteData } from './colorPalette';
+import type { CompositorData } from './compositor';
 import type { RotateFlipData } from './rotateFlip';
 import type { InvertData } from './invert';
 import type { LevelsData } from './levels';
@@ -30,7 +32,11 @@ export type InvertNode = Node<InvertData, 'invert'>;
 export const isInvertNode = (node: AppNode | undefined): node is InvertNode => node?.type === 'invert';
 export type RotateFlipNode = Node<RotateFlipData, 'rotate-flip'>;
 export const isRotateFlipNode = (node: AppNode | undefined): node is RotateFlipNode => node?.type === 'rotate-flip' && 'settings' in node.data;
-export type AppNode = RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
+export type CompositorNode = Node<CompositorData, 'compositor'>;
+export const isCompositorNode = (node: AppNode | undefined): node is CompositorNode => node?.type === 'compositor';
+export type ColorPaletteNode = Node<ColorPaletteData, 'color-palette'>;
+export const isColorPaletteNode = (node: AppNode | undefined): node is ColorPaletteNode => node?.type === 'color-palette';
+export type AppNode = ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
 
 export const isDescriberNode = (node: AppNode): node is ImageDescriberNode => node.type === 'image-describer' && 'imageInputs' in node.data;
 

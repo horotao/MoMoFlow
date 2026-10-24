@@ -1,6 +1,6 @@
 import type { Connection, Edge, XYPosition } from '@xyflow/react';
 import type { AppNode } from './types';
-import { isNodeLocked, isSunburstNode, isDescriberNode } from './types.ts';
+import { isCompositorNode, isNodeLocked, isSunburstNode, isDescriberNode } from './types.ts';
 import { fileOutputKind } from './fileCollection.ts';
 import { variableIndex } from './textVariables.ts';
 import { sunburstParameterData } from './sunburst.ts';
@@ -42,9 +42,9 @@ export function connectionChoices(pending: PendingConnection, nodes: AppNode[], 
     id: `${itemId}:${handleId ?? 'output'}`, itemId, handleId, portY, detail,
   });
   if (pending.direction === 'source') {
-    const kind = ['sunburst', 'painter', 'rotate-flip', 'invert', 'levels', 'blur', 'crop', 'color-correction'].includes(node.type ?? '') ? 'image' : node.type === 'file' ? fileOutputKind(node.data)
+    const kind = node.type === 'color-palette' ? (pending.handleId === 'image' ? 'image' : pending.handleId === 'text' ? 'text' : undefined) : ['compositor', 'sunburst', 'painter', 'rotate-flip', 'invert', 'levels', 'blur', 'crop', 'color-correction'].includes(node.type ?? '') ? 'image' : node.type === 'file' ? fileOutputKind(node.data)
       : ['text', 'image-describer', 'model-input', 'position-logger'].includes(node.type ?? '') ? 'text' : undefined;
-    if (kind === 'image') return [choice('preview', 'file', 89, 'File'), choice('image-describer', 'image-0'), choice('sunburst', 'image-0', 151, 'Image'), choice('painter', 'image', 89, 'Image'), choice('rotate-flip', 'image', 89, 'Input'), choice('invert', 'image', 89, 'Input'), choice('levels', 'image', 89, 'Input'), choice('blur', 'image', 89, 'Input'), choice('crop', 'image', 89, 'Input'), choice('color-correction', 'file', 89, 'File'), ...(node.type === 'painter' && pending.handleId === 'mask' ? [choice('sunburst', 'mask', 209, 'Mask')] : [])];
+    if (kind === 'image') return [choice('compositor', 'background', 89, 'Background'), choice('compositor', 'layer-1', 149, 'Layer 1'), choice('preview', 'file', 89, 'File'), choice('image-describer', 'image-0'), choice('sunburst', 'image-0', 151, 'Image'), choice('painter', 'image', 89, 'Image'), choice('rotate-flip', 'image', 89, 'Input'), choice('invert', 'image', 89, 'Input'), choice('levels', 'image', 89, 'Input'), choice('blur', 'image', 89, 'Input'), choice('crop', 'image', 89, 'Input'), choice('color-correction', 'file', 89, 'File'), ...(node.type === 'painter' && pending.handleId === 'mask' ? [choice('sunburst', 'mask', 209, 'Mask')] : [])];
     if (kind !== 'text') return [];
     const choices = [choice('text', 'variable-1')];
     if (node.type !== 'position-logger') choices.push(
@@ -56,11 +56,11 @@ export function connectionChoices(pending: PendingConnection, nodes: AppNode[], 
   if (edges.some(edge => edge.target === node.id && (node.type === 'text'
     ? variableIndex(edge.targetHandle) === variableIndex(pending.handleId)
     : edge.targetHandle === pending.handleId))) return [];
-  const imageInput = (['preview', 'color-correction'].includes(node.type ?? '') && pending.handleId === 'file') || (['painter', 'rotate-flip', 'invert', 'levels', 'blur', 'crop'].includes(node.type ?? '') && pending.handleId === 'image') || ['sunburst', 'image-describer'].includes(node.type ?? '')
+  const imageInput = (isCompositorNode(node) && node.data.document.inputs.some(input => input.id === pending.handleId)) || (['preview', 'color-correction'].includes(node.type ?? '') && pending.handleId === 'file') || (['painter', 'rotate-flip', 'invert', 'levels', 'blur', 'crop'].includes(node.type ?? '') && pending.handleId === 'image') || ['sunburst', 'image-describer'].includes(node.type ?? '')
     && (pending.handleId?.startsWith('image-') || pending.handleId === 'mask');
-  if (imageInput) return [choice('file', 'file'), choice('sunburst', 'result'), choice('painter', pending.handleId === 'mask' ? 'mask' : 'result', pending.handleId === 'mask' ? 149 : 89), choice('rotate-flip', 'result', 89, 'Result'), choice('invert', 'result', 89, 'Output'), choice('levels', 'result', 89, 'Output'), choice('blur', 'result', 89, 'Output'), choice('crop', 'result', 89, 'Output'), choice('color-correction', 'result', 89, 'Result'), ...(['preview', 'invert'].includes(node.type ?? '') ? [choice('painter', 'mask', 149, 'Mask')] : [])];
+  if (imageInput) return [choice('file', 'file'), choice('color-palette', 'image', 89, 'Image'), choice('compositor', 'result', 89, 'Output'), choice('sunburst', 'result'), choice('painter', pending.handleId === 'mask' ? 'mask' : 'result', pending.handleId === 'mask' ? 149 : 89), choice('rotate-flip', 'result', 89, 'Result'), choice('invert', 'result', 89, 'Output'), choice('levels', 'result', 89, 'Output'), choice('blur', 'result', 89, 'Output'), choice('crop', 'result', 89, 'Output'), choice('color-correction', 'result', 89, 'Result'), ...(['preview', 'invert'].includes(node.type ?? '') ? [choice('painter', 'mask', 149, 'Mask')] : [])];
   const textInput = node.type === 'text' || node.type === 'position-logger'
     || (isSunburstNode(node) && (pending.handleId === 'prompt' || (node.data.exposed ?? []).some(field => field === pending.handleId)))
     || (isDescriberNode(node) && (node.data.exposed ?? []).some(field => field === pending.handleId));
-  return textInput ? [choice('text', null), choice('model-input', null, 32), choice('image-describer', null)] : [];
+  return textInput ? [choice('text', null), choice('model-input', null, 32), choice('image-describer', null), choice('color-palette', 'text', 149, 'Text')] : [];
 }

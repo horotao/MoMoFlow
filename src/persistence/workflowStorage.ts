@@ -1,4 +1,4 @@
-import { isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from '../nodes/types.ts';
+import { isColorPaletteNode, isCompositorNode, isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from '../nodes/types.ts';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources.ts';
 import type { Edge, Viewport } from '@xyflow/react';
 import type { AppNode, FileAsset, FileNode, SunburstNode } from '../nodes/types';
@@ -10,7 +10,6 @@ export type Workflow = {
   colorMode: 'light' | 'dark';
 };
 type StoredWorkflow = Workflow & { version: 1; revision?: string };
-const databaseName = 'momoflow-canvas';
 const documentKey = 'current';
 
 // Drop React Flow's temporary interaction/measurement state, retain node content.
@@ -26,6 +25,12 @@ export function workflowSnapshot(workflow: Workflow): StoredWorkflow {
 
 export function mapAssets(nodes: AppNode[], map: (asset: FileAsset) => FileAsset): AppNode[] {
   return nodes.map(node => {
+    if (isCompositorNode(node)) return { ...node, data: { ...node.data,
+      result: node.data.result ? map(node.data.result) : undefined,
+      document: { ...node.data.document, layers: node.data.document.layers.map(layer => layer.source.kind === 'asset'
+        ? { ...layer, source: { kind: 'asset' as const, asset: map(layer.source.asset) } } : layer.source.kind === 'input' ? { ...layer, source: { ...layer.source, fallback: layer.source.fallback ? map(layer.source.fallback) : undefined } } : layer) },
+    } };
+    if (isColorPaletteNode(node)) return { ...node, data: { ...node.data, result: node.data.result ? map(node.data.result) : undefined } };
     if (node.type === 'file') {
       const data = node.data as FileNode['data'];
       return { ...node, data: {
@@ -60,6 +65,8 @@ function completed(transaction: IDBTransaction): Promise<void> {
 }
 
 export class WorkflowStorage {
+  private databaseName: string;
+  constructor(databaseName = 'momoflow-canvas') { this.databaseName = databaseName; }
   private database?: Promise<IDBDatabase>;
   private assetKeys = new Map<string, string>();
   private storedKeys = new Set<string>();
@@ -69,7 +76,7 @@ export class WorkflowStorage {
 
   private open(): Promise<IDBDatabase> {
     if (!this.database) this.database = new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open(databaseName, 1);
+      const request = indexedDB.open(this.databaseName, 1);
       request.onupgradeneeded = () => {
         request.result.createObjectStore('workflows');
         request.result.createObjectStore('assets');

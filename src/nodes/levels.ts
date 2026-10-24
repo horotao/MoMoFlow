@@ -46,8 +46,9 @@ export function restoreLevelsData(value: unknown): LevelsData | undefined {
     baseImage: data.baseImage };
 }
 // Weavy's middle handle is logarithmic: left = 0.1, center = 1, right = 10.
-export function levelsGammaPosition(settings: ChannelLevels) {
-  return Math.round(settings.inputMin + (settings.inputMax - settings.inputMin) * (1 + Math.log10(settings.gamma)) / 2);
+export function levelsGammaPosition(settings: ChannelLevels, rounded = true) {
+  const position = settings.inputMin + (settings.inputMax - settings.inputMin) * (1 + Math.log10(settings.gamma)) / 2;
+  return rounded ? Math.round(position) : position;
 }
 export function levelsGammaAt(position: number, settings: ChannelLevels) {
   const span = settings.inputMax - settings.inputMin;

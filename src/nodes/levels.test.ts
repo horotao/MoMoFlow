@@ -129,6 +129,7 @@ test('Gamma handle matches reference positions and moves right to brighten', asy
     assert.equal(levelsGammaPosition({ ...settings, gamma }), expected);
   }
   assert.equal(levelsGammaPosition({ ...settings, inputMin: 64, gamma: 2 }), 188);
+  assert.equal(levelsGammaPosition({ ...settings, gamma: 1 }, false), 127.5, 'compact multi-thumb editor preserves the exact neutral position');
   assert.ok(Math.abs(levelsGammaAt(153, settings) - 1.584893192) < 1e-8);
   assert.equal(levelsGammaAt(128, { ...settings, inputMin: 128, inputMax: 128 }), 1);
 });

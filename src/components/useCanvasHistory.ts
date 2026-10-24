@@ -1,3 +1,8 @@
+import { paletteDocument } from '../nodes/colorPalette';
+import { isColorPaletteNode } from '../nodes/types';
+import { createContext } from 'react';
+import { compositorDocument } from '../nodes/compositor';
+import { isCompositorNode } from '../nodes/types';
 import { rotateFlipDocument } from '../nodes/rotateFlip';
 import { isRotateFlipNode } from '../nodes/types';
 import { invertDocument } from '../nodes/invert';
@@ -17,6 +22,8 @@ import { isTextNode, variableHandleId, variableIndex } from '../nodes/textVariab
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources';
 import type { AppNode } from '../nodes/types';
 
+export const CanvasHistoryContext = createContext({ canUndo: false, canRedo: false, undo: () => {}, redo: () => {} });
+
 type Snapshot = { nodes: AppNode[]; edges: Edge[] };
 
 // Selection, measured geometry and viewport changes are not document edits.
@@ -29,7 +36,7 @@ function snapshot(nodes: AppNode[], edges: Edge[]): Snapshot {
 
 function signature({ nodes, edges }: Snapshot) {
   return JSON.stringify({
-    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: isRotateFlipNode(node) ? rotateFlipDocument(node.data) : isInvertNode(node) ? invertDocument(node.data) : isLevelsNode(node) ? levelsDocument(node.data) : isBlurNode(node) ? blurDocument(node.data) : isColorCorrectionNode(node) ? colorDocument(node.data) : isCropNode(node) ? cropDocument(node.data) : isPainterNode(node) ? painterDocument(node.data) : node.data })),
+    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: isColorPaletteNode(node) ? paletteDocument(node.data) : isCompositorNode(node) ? compositorDocument(node.data) : isRotateFlipNode(node) ? rotateFlipDocument(node.data) : isInvertNode(node) ? invertDocument(node.data) : isLevelsNode(node) ? levelsDocument(node.data) : isBlurNode(node) ? blurDocument(node.data) : isColorCorrectionNode(node) ? colorDocument(node.data) : isCropNode(node) ? cropDocument(node.data) : isPainterNode(node) ? painterDocument(node.data) : node.data })),
     edges: edges.map((edge) => ({ ...edge, selected: undefined })),
   }, (key, value) => key === 'content' && Array.isArray(value) && value.length === 0 ? undefined : value);
 }
@@ -76,7 +83,15 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
       const previous = state.present.nodes.find(item => item.id === node.id);
       return isColorCorrectionNode(previous) && JSON.stringify(previous.data.settings) !== JSON.stringify(node.data.settings);
     })());
-    if (rotateFlipChanged || levelsChanged || blurChanged || colorChanged || cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
+    const compositorChanged = nodes.some(node => isCompositorNode(node) && (() => {
+      const previous = state.present.nodes.find(item => item.id === node.id);
+      return isCompositorNode(previous) && JSON.stringify(previous.data.document) !== JSON.stringify(node.data.document);
+    })());
+    const paletteChanged = nodes.some(node => isColorPaletteNode(node) && (() => {
+      const previous = state.present.nodes.find(item => item.id === node.id);
+      return isColorPaletteNode(previous) && JSON.stringify(previous.data.colors) !== JSON.stringify(node.data.colors);
+    })());
+    if (paletteChanged || compositorChanged || rotateFlipChanged || levelsChanged || blurChanged || colorChanged || cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;

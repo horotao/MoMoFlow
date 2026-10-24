@@ -1,0 +1,206 @@
+import { defaultText, normalizePath } from '../src/nodes/compositorGraphics';
+import { CompositorRenderer } from '../src/nodes/compositor/renderer';
+import { compositorInputs, imageOutput } from '../src/nodes/sunburstRun';
+import { compositorRevision, createLayer, defaultCompositorDocument, newEffect, snapshotCompositor } from '../src/nodes/compositor';
+import { assetResources } from '../src/nodes/assetResources';
+import { WorkflowStorage } from '../src/persistence/workflowStorage';
+import type { AppNode, CompositorNode, FileAsset } from '../src/nodes/types';
+import { compositorKeyboardChecks, compositorPenCommitChecks } from './compositor-keyboard.test';
+
+const results = document.querySelector<HTMLPreElement>('#results')!;
+const images = document.querySelector('#images')!;
+function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
+function pixels(bitmap: ImageBitmap) {
+  const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
+  const context = canvas.getContext('2d')!; context.drawImage(bitmap, 0, 0);
+  return { canvas, data: context.getImageData(0, 0, canvas.width, canvas.height).data };
+}
+async function asset(id: string, color: string, width = 8, height = 6): Promise<FileAsset> {
+  const canvas = new OffscreenCanvas(width, height), context = canvas.getContext('2d')!;
+  context.fillStyle = color; context.fillRect(0, 0, width, height);
+  const blob = await canvas.convertToBlob({ type: 'image/png' });
+  return { id, name: `${id}.png`, kind: 'image', url: assetResources.create(blob), width, height };
+}
+(document.querySelector('#run') as HTMLButtonElement).onclick = async () => {
+  results.textContent = 'Running…'; images.replaceChildren();
+  const messages: string[] = [], owner = Symbol('browser verification'), renderer = new CompositorRenderer(false), draft = new CompositorRenderer(true);
+  const database = `momoflow-compositor-test-${crypto.randomUUID()}`, storage = new WorkflowStorage(database);
+  let reload: WorkflowStorage | undefined;
+  const urls: string[] = [];
+  const record = (message: string) => { messages.push(`PASS ${message}`); results.textContent = messages.join('\n'); };
+  const render = async (doc: ReturnType<typeof defaultCompositorDocument>, inputs: Parameters<typeof compositorRevision>[1]) => {
+    const frame = await renderer.render(doc, inputs); assert(frame?.blob, 'Missing PNG');
+    const image = pixels(frame.bitmap), png = await createImageBitmap(frame.blob), decoded = pixels(png);
+    assert(image.data.length === decoded.data.length && image.data.every((value, i) => value === decoded.data[i]), 'PNG differs from rendered pixels');
+    png.close(); frame.bitmap.close();
+    return { ...frame, data: image.data, canvas: image.canvas };
+  };
+  try {
+    const red = await asset('red', 'rgb(200,100,50)'), blue = await asset('blue', 'rgb(20,100,200)'), green = await asset('green', 'rgb(0,255,0)');
+    urls.push(red.url, blue.url, green.url); assetResources.adopt(owner, urls);
+    let doc = defaultCompositorDocument();
+    const inputs = { background: { connected: true, asset: red }, 'layer-1': { connected: true, asset: blue } };
+    let result = await render(doc, inputs);
+    assert(result.layout.width === 8 && result.layout.height === 6, 'Automatic dimensions');
+    assert(result.data[0] === 20 && result.data[2] === 200, 'Upper layer does not cover background');
+    images.append(result.canvas); record('Real two-layer composition and exact preview/PNG equality');
+    doc.layers[1].opacity = .5;
+    result = await render(doc, inputs);
+    assert(Math.abs(result.data[0] - 110) <= 1 && Math.abs(result.data[2] - 125) <= 1, 'Opacity pixels'); record('Layer opacity preserves source pixels');
+    doc.layers[1].opacity = 1; doc.layers[1].blendMode = 'multiply';
+    result = await render(doc, inputs);
+    assert(Math.abs(result.data[0] - 16) <= 1 && Math.abs(result.data[1] - 39) <= 1 && Math.abs(result.data[2] - 39) <= 1, 'Multiply pixels'); record('Multiply blend with known pixel values');
+    doc.layers[1].visible = false;
+    result = await render(doc, inputs); assert(result.data[0] === 200, 'Hidden layer is visible');
+    doc.layers.reverse(); doc.layers[0].visible = true;
+    result = await render(doc, inputs); assert(result.data[0] === 200, 'Stack order'); record('Visibility and stack order');
+    doc = defaultCompositorDocument();
+    doc.canvas.autoSize = false; doc.canvas.width = 8; doc.canvas.height = 6;
+    doc.layers[1].transform = { x: 3, y: 2, width: 2, height: 2, rotation: 90 };
+    result = await render(doc, inputs);
+    assert(result.data[0] === 200 && result.data[(2 * 8 + 3) * 4] === 20 && result.data[(4 * 8 + 3) * 4] === 200, 'Transform bounds'); record('Position, dimensions and rotation affect actual output pixels');
+    doc.layers[1].stroke = { enabled: true, color: '#ffffff', width: 1 };
+    result = await render(doc, inputs); assert(result.data[(2 * 8 + 3) * 4] === 255, 'Stroke'); record('Stroke rendered into PNG');
+    doc = defaultCompositorDocument(); doc.layers[1].effects = [newEffect('invert')];
+    result = await render(doc, inputs); assert(result.data[0] === 235 && result.data[2] === 55, 'Invert pixels');
+    doc.layers[1].effects[0].enabled = false;
+    result = await render(doc, inputs); assert(result.data[0] === 20, 'Disable effect');
+    doc.layers[1].effects = [newEffect('blur'), newEffect('color'), newEffect('levels'), newEffect('invert')];
+    const correction = doc.layers[1].effects[1]; if (correction.type === 'color') correction.settings.exposure = 1;
+    const levels = doc.layers[1].effects[2]; if (levels.type === 'levels') levels.settings.RGB.gamma = 1.6;
+    result = await render(doc, inputs); assert(result.data[0] !== 235, 'Effect parameters');
+    const before = result.data.slice(); doc.layers[1].effects.reverse();
+    result = await render(doc, inputs); assert(result.data.some((value, i) => value !== before[i]), 'Effect order'); record('Blur, Color correction, Levels, Invert, enable/disable and effect ordering');
+    const draftFrame = await draft.render(doc, inputs); assert(draftFrame && !draftFrame.blob, 'Preview must not produce a workflow PNG');
+    const draftPixels = pixels(draftFrame.bitmap); draftFrame.bitmap.close();
+    assert(draftPixels.data.every((value, i) => value === result.data[i]), 'Small draft mismatch'); record('Draft and native paths agree at matching resolution');
+    const effectVersion = result.data.slice();
+    doc.layers[1].effects.find(effect => effect.type === 'blur')!.enabled = false;
+    await render(doc, inputs);
+    doc.layers[1].effects.find(effect => effect.type === 'blur')!.enabled = true;
+    result = await render(doc, inputs);
+    assert(result.data.every((value, i) => value === effectVersion[i]), 'Re-enabled effect cache changed native pixels');
+    const fresh = new CompositorRenderer(false);
+    try {
+      // Same parameter stack but a different source must not reuse cached pixels.
+      const replacementInputs = { ...inputs, 'layer-1': { connected: true, asset: green } };
+      const cached = await render(doc, replacementInputs), uncached = await fresh.render(doc, replacementInputs);
+      assert(uncached, 'Fresh comparison frame');
+      const expected = pixels(uncached.bitmap); uncached.bitmap.close();
+      assert(cached.data.every((value, i) => value === expected.data[i]), 'Source replacement reused stale effect pixels');
+    } finally { fresh.dispose(); }
+    record('Effect on/off cache preserves exact PNG pixels and source replacement invalidates cached variants');
+    doc = defaultCompositorDocument();
+    const first = renderer.render(doc, inputs), superseded = renderer.render(doc, inputs), final = renderer.render(doc, { ...inputs, 'layer-1': { connected: true, asset: green } });
+    const [a, b, c] = await Promise.all([first, superseded, final]);
+    assert(a && !b && c, 'Queue must coalesce pending work'); assert(pixels(c.bitmap).data[1] === 255, 'Latest input did not win'); a.bitmap.close(); c.bitmap.close(); record('Latest pending render wins; superseded request completes without leaking');
+    const node: CompositorNode = { id: 'comp', type: 'compositor', position: { x: 0, y: 0 }, data: { document: doc } };
+    const source: AppNode = { id: 'file', type: 'file', position: { x: 0, y: 0 }, data: { assets: [red] } };
+    const edges = [{ id: 'in', source: 'file', sourceHandle: 'file', target: 'comp', targetHandle: 'background' }];
+    result = await render(doc, compositorInputs('comp', [node, source], edges));
+    const output = { id: 'output', name: 'Compositor.png', kind: 'image' as const, url: assetResources.create(result.blob!), width: 8, height: 6 };
+    urls.push(output.url); assetResources.adopt(owner, urls);
+    node.data.result = output; node.data.outputRevision = compositorRevision(doc, compositorInputs('comp', [source, node], edges));
+    assert(imageOutput(node, 'result', [source, node], edges)[0].id === output.id, 'Graph output missing');
+    assert(imageOutput(node, 'result', [source, node], []).length === 0, 'Disconnected output stale'); record('Workflow output freshness and input disconnection');
+    node.data.document = snapshotCompositor(doc, inputs); node.data.document.timeline.enabled = true;
+    const savedLevels = newEffect('levels');
+    assert(savedLevels.type === 'levels', 'Levels fixture');
+    savedLevels.settings.RGB = { inputMin: 31, gamma: 1.6, inputMax: 220, outputMin: 5, outputMax: 240 };
+    savedLevels.settings.R.outputMax = 200;
+    node.data.document.layers[1].effects = [savedLevels];
+    const savedInputs = compositorInputs('comp', [source, node], edges);
+    const savedResult = await render(node.data.document, savedInputs);
+    const savedUrl = assetResources.create(savedResult.blob!); urls.push(savedUrl); assetResources.adopt(owner, urls);
+    node.data.result = { ...output, id: 'edited-output', url: savedUrl };
+    node.data.outputRevision = compositorRevision(node.data.document, savedInputs);
+    await storage.save({ nodes: [source, node], edges, colorMode: 'dark', viewport: { x: 0, y: 0, zoom: 1 } });
+    reload = new WorkflowStorage(database); const restored = await reload.load(); assert(restored, 'Load failed');
+    const restoredNode = restored.nodes.find(node => node.type === 'compositor') as CompositorNode;
+    assert(restoredNode.data.document.timeline.enabled, 'Timeline state lost');
+    assert(JSON.stringify(restoredNode.data.document.layers[1].effects) === JSON.stringify([savedLevels]), 'Non-destructive channel levels were not restored');
+    assert(restoredNode.data.result?.url !== output.url, 'Blob URL was not recreated');
+    const restoredInputs = compositorInputs(restoredNode.id, restored.nodes, restored.edges);
+    result = await render(restoredNode.data.document, restoredInputs);
+    assert(result.layout.width === 8 && result.data.every((value, i) => value === savedResult.data[i]), 'Restored source/output mismatch'); record('IndexedDB round trip restores graph, input snapshots, channel Levels settings and exact image bytes');
+    doc = defaultCompositorDocument();
+    doc.layers[0].visible = false; doc.layers[1].visible = false; doc.canvas.autoSize = false;
+    doc.canvas.width = 3; doc.canvas.height = 2;
+    result = await render(doc, {}); assert(result.data.every(value => value === 0), 'Transparent canvas');
+    doc.canvas.fill = '#336699'; result = await render(doc, {}); assert(result.data[0] === 51 && result.data[1] === 102 && result.data[2] === 153 && result.data[3] === 255, 'Solid fill'); record('Transparent canvas and solid fill');
+    const invalidInputs = { background: { connected: true, asset: { ...red, url: 'http://127.0.0.1:5173/nonexistent-compositor-test.png' } } };
+    let rejected = false; try { await renderer.render(defaultCompositorDocument(), invalidInputs); } catch { rejected = true; }
+    assert(rejected, 'Unreadable source must fail'); record('Unreadable source errors instead of publishing a partial result');
+    const large = await asset('effect-budget', '#ffffff', 1025, 1025);
+    urls.push(large.url); assetResources.adopt(owner, urls);
+    const overBudget = defaultCompositorDocument();
+    overBudget.layers = Array.from({ length: 64 }, (_, index) => ({ ...createLayer(`budget-${index}`, 'Budget', { kind: 'asset', asset: large }), effects: [newEffect('invert')] }));
+    let budgetError = '';
+    try { await renderer.render(overBudget, {}); } catch (error) { budgetError = String(error); }
+    assert(budgetError.includes('64MP'), 'Repeated effect buffers must have a scene budget');
+    await render(doc, {}); record('Effect memory budget rejects oversized scenes and the worker recovers');
+    const graphics = defaultCompositorDocument();
+    graphics.canvas = { width: 160, height: 120, autoSize: false, aspectLocked: false, fill: null };
+    const rectangle = { ...createLayer('rectangle', 'Rectangle', { kind: 'shape', shape: 'rectangle', fill: '#ff0000' }), transform: { x: 40, y: 30, width: 50, height: 40, rotation: 0 } };
+    graphics.layers.push(rectangle);
+    const at = (data: Uint8ClampedArray, x: number, y: number) => Array.from(data.slice((y * 160 + x) * 4, (y * 160 + x) * 4 + 4));
+    result = await render(graphics, {});
+    assert(at(result.data, 60, 50).join() === '255,0,0,255' && at(result.data, 39, 50)[3] === 0, 'Rectangle geometry');
+    for (const shape of ['ellipse', 'triangle', 'star'] as const) {
+      rectangle.source = { kind: 'shape', shape, fill: '#ff0000' };
+      result = await render(graphics, {});
+      assert(at(result.data, 65, 50)[3] === 255 && at(result.data, 40, 30)[3] === 0, `${shape} geometry`);
+    }
+    record('Rectangle, ellipse, triangle and star produce distinct native vector pixels');
+    rectangle.source = { kind: 'shape', shape: 'rectangle', fill: '#ff0000' }; rectangle.effects = [newEffect('blur')];
+    const blur = rectangle.effects[0]; if (blur.type === 'blur') blur.settings.size = 10;
+    result = await render(graphics, {});
+    assert(at(result.data, 38, 50)[3] > 0 && at(result.data, 38, 50)[3] < 255, 'Blur clipped outside vector bounds');
+    rectangle.effects[0].enabled = false;
+    result = await render(graphics, {}); assert(at(result.data, 38, 50)[3] === 0 && at(result.data, 60, 50)[0] === 255, 'Vector effect toggle');
+    rectangle.effects = [newEffect('invert')];
+    result = await render(graphics, {}); assert(at(result.data, 60, 50).join() === '0,255,255,255', 'Vector invert');
+    record('Vector effects preserve transparent soft edges and native enable/disable output');
+    const geometry = normalizePath([{ x: 30, y: 60, out: { x: 30, y: 10 } }, { x: 120, y: 60, in: { x: 120, y: 10 } }], false);
+    const path = { ...createLayer('curve', 'Vector', geometry.source), transform: geometry.transform, stroke: { enabled: true, color: '#ffffff', width: 12, cap: 'round' as const } };
+    graphics.layers = [...graphics.layers.slice(0, 2), path];
+    result = await render(graphics, {});
+    assert(at(result.data, 75, 23)[3] > 0 && at(result.data, 75, 60)[3] === 0 && at(result.data, 27, 60)[3] > 0, 'Cubic curve or thick endpoint clipping');
+    record('Bézier curve and thick round endpoints render beyond the path bounds');
+    const textLayer = { ...createLayer('text', 'Text', { ...defaultText(), text: 'MoMo\n中文', fontSize: 25, fill: '#38bdf8' }), transform: { x: 12, y: 10, width: 130, height: 90, rotation: 0 } };
+    graphics.layers = [...graphics.layers.slice(0, 2), textLayer];
+    result = await render(graphics, {});
+    const textPixels = result.data.slice();
+    assert(textPixels.filter((value, index) => index % 4 === 3 && value > 0).length > 400, 'Font did not render');
+    assert(textPixels.some((value, index) => index > 40 * 160 * 4 && index % 4 === 3 && value > 0), 'Chinese line missing');
+    textLayer.source = { ...defaultText(), text: 'MoMo\n中文', fontSize: 25, fill: '#38bdf8', fontWeight: 700, align: 'right' };
+    result = await render(graphics, {});
+    assert(result.data.some((value, index) => value !== textPixels[index]), 'Typography edit has no effect');
+    const nativeText = result.data.slice(), textDraft = await draft.render(graphics, {});
+    assert(textDraft, 'Text draft'); const textDraftPixels = pixels(textDraft.bitmap); textDraft.bitmap.close();
+    assert(textDraftPixels.data.every((value, index) => value === nativeText[index]), 'Text draft/native mismatch');
+    images.append(result.canvas); record('Bundled font and Chinese text, typography edits, draft/native/PNG pixel equality');
+    graphics.layers.push(rectangle, path); textLayer.effects = [newEffect('invert')];
+    result = await render(graphics, {});
+    const graphicUrl = assetResources.create(result.blob!); urls.push(graphicUrl); assetResources.adopt(owner, urls);
+    const graphicNode: CompositorNode = { id: 'graphics', type: 'compositor', position: { x: 0, y: 0 }, data: { document: graphics, result: { id: 'graphic-output', name: 'Graphics.png', kind: 'image', url: graphicUrl, width: 160, height: 120 }, outputRevision: compositorRevision(graphics, {}) } };
+    assert(imageOutput(graphicNode, 'result', [graphicNode], [])[0]?.url === graphicUrl, 'Graphic workflow output unavailable');
+    await storage.save({ nodes: [source, node, graphicNode], edges, colorMode: 'dark', viewport: { x: 0, y: 0, zoom: 1 } });
+    reload.dispose(); reload = new WorkflowStorage(database);
+    const recovered = await reload.load(); assert(recovered, 'Graphics persistence load');
+    const recoveredGraphics = recovered.nodes.find(node => node.id === 'graphics') as CompositorNode;
+    assert(JSON.stringify(recoveredGraphics.data.document) === JSON.stringify(graphics), 'Graphic parameters changed after reload');
+    const recoveredFrame = await render(recoveredGraphics.data.document, {});
+    assert(recoveredFrame.data.every((value, index) => value === result.data[index]), 'Graphics restored output pixels changed');
+    assert(imageOutput(recoveredGraphics, 'result', recovered.nodes, recovered.edges).length === 1, 'Restored graphic output not consumable');
+    record('Editable text/shapes/curves/effects survive IndexedDB with exact output and downstream availability');
+    await compositorKeyboardChecks(record);
+    await compositorPenCommitChecks(record);
+    results.textContent = `${messages.join('\n')}\n\nALL ${messages.length} BROWSER CHECKS PASSED`;
+  } catch (error) { results.textContent = `${messages.join('\n')}\nFAIL ${error instanceof Error ? error.stack : error}`; }
+  finally {
+    renderer.dispose(); draft.dispose(); reload?.dispose(); storage.dispose();
+    assetResources.discard(urls); assetResources.release(owner);
+    indexedDB.deleteDatabase(database);
+  }
+};

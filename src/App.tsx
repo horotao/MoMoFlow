@@ -1,3 +1,5 @@
+import { restorePaletteData } from './nodes/colorPalette';
+import { restoreCompositorData } from './nodes/compositor';
 import { restoreRotateFlipData } from './nodes/rotateFlip';
 import { restoreInvertData } from './nodes/invert';
 import { restoreLevelsData } from './nodes/levels';
@@ -32,7 +34,7 @@ import {
 import { DescriberPanel } from './components/DescriberPanel';
 import { defaultInstructions } from './nodes/describer';
 import { CanvasDock, type CanvasTool } from './components/CanvasDock';
-import { useCanvasHistory } from './components/useCanvasHistory';
+import { CanvasHistoryContext, useCanvasHistory } from './components/useCanvasHistory';
 import { DevTools } from './components/DevTools';
 import { initialNodes, nodeTypes } from './nodes';
 import { isDescriberNode, isSunburstNode } from './nodes/types';
@@ -76,7 +78,7 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
   const canvasRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const pasteNode = (event: ClipboardEvent) => {
-      if (event.defaultPrevented || (event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return;
+      if (event.defaultPrevented || (event.target as HTMLElement).closest('input, textarea, [contenteditable="true"], [data-compositor-editor]')) return;
       try {
         const saved = JSON.parse(event.clipboardData?.getData('text/plain') ?? '');
         if (saved.format === 'momoflow-file-node' && saved.node?.type === 'file'
@@ -102,6 +104,22 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
             position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 },
             data: { label: typeof saved.node.data?.label === 'string' ? saved.node.data.label : undefined },
           }]);
+          return;
+        }
+        if (saved.format === 'momoflow-color-palette-node' && saved.node?.type === 'color-palette'
+          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
+          const data = restorePaletteData(saved.node.data);
+          if (!data) return;
+          event.preventDefault();
+          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'color-palette', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
+          return;
+        }
+        if (saved.format === 'momoflow-compositor-node' && saved.node?.type === 'compositor'
+          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
+          const data = restoreCompositorData(saved.node.data);
+          if (!data) return;
+          event.preventDefault();
+          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'compositor', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
           return;
         }
         if (saved.format === 'momoflow-rotate-flip-node' && saved.node?.type === 'rotate-flip'
@@ -272,7 +290,7 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
   }, [pendingConnection, getNodes, getEdges, setNodes, setEdges]);
 
   return (
-    <ReactFlow
+    <CanvasHistoryContext.Provider value={history}><ReactFlow
       ref={canvasRef}
       minZoom={0.01}
       colorMode={colorMode}
@@ -291,15 +309,15 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
         deletable: !node.data.locked,
         connectable: !node.data.locked && tool === 'select',
         style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
-      } : (isSunburstNode(node) || isPainterNode(node) || node.type === 'crop' || node.type === 'color-correction' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'preview') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
+      } : (isSunburstNode(node) || isPainterNode(node) || node.type === 'crop' || node.type === 'color-correction' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
       edges={edges.map((edge) => {
         const source = nodes.find((node) => node.id === edge.source);
         const target = nodes.find((node) => node.id === edge.target);
         const fileSource = source && isFileNode(source) ? source : undefined;
-        const textConnection = nodes.some((node) => (isTextNode(node) || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
-        const generatedSource = source && (isSunburstNode(source) || source.type === 'painter' || source.type === 'crop' || source.type === 'color-correction' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'rotate-flip');
+        const textConnection = (source?.type === 'color-palette' && edge.sourceHandle === 'text') || nodes.some((node) => (isTextNode(node) || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
+        const generatedSource = source && (isSunburstNode(source) || source.type === 'painter' || source.type === 'crop' || source.type === 'color-correction' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'rotate-flip' || source.type === 'compositor' || (source.type === 'color-palette' && edge.sourceHandle === 'image'));
         const sunburstTarget = target && isSunburstNode(target);
         const portColor = (source?.type === 'painter' && edge.sourceHandle === 'mask') || (sunburstTarget && edge.targetHandle === 'mask') ? 'var(--sunburst-mask-port)'
           : target?.type === 'image-describer' && /^image-\d+$/.test(edge.targetHandle ?? '') ? filePortColors.image
@@ -352,7 +370,7 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
       onConnect={onConnect}
       onConnectEnd={onConnectEnd}
       onKeyDown={(event) => {
-        if ((event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]') || event.nativeEvent.isComposing) return;
+        if ((event.target as HTMLElement).closest('input, textarea, [contenteditable="true"], [data-compositor-editor]') || event.nativeEvent.isComposing) return;
         if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
           event.preventDefault();
           if (event.shiftKey) history.redo(); else history.undo();
@@ -428,7 +446,7 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
           </svg>
         </ControlButton>
       </Controls>
-    </ReactFlow>
+    </ReactFlow></CanvasHistoryContext.Provider>
   );
 }
 

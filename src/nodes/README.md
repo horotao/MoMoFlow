@@ -4,7 +4,7 @@
 
 ## 现有节点
 
-以下十三种类型已在 [index.ts](./index.ts) 的 `nodeTypes` 中注册。`initialNodes` 当前为空，默认不预置节点。
+以下十六种类型已在 [index.ts](./index.ts) 的 `nodeTypes` 中注册。`initialNodes` 当前为空，默认不预置节点。
 
 | 显示名称 / 用途 | 类型标识 | 组件文件 | 输入与输出 |
 | --- | --- | --- | --- |
@@ -13,6 +13,8 @@
 | Image Describer：根据图片生成可继续编辑的文本 | `image-describer` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) | 图片输入 `image-0` 起；可暴露 `model`、`instructions` 文本输入；输出 `data.text` |
 | Model Name / 参数选项：提供一个可选的文本值 | `model-input` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) 中的 `ModelInputNode` | 输出当前 `data.model`；`options` 输入仅展示，不能连接 |
 | GPT Image 2.5 Sunburst：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`、`image-0` 起、`mask` 及暴露的参数输入；`result` 输出当前选中的结果图片 |
+| Color palette：制作最多十色色板 | `color-palette` | [ColorPaletteNode.tsx](./ColorPaletteNode.tsx) | 无输入；`image`（Image）输出纯色条 PNG，`text`（Text）输出按顺序以 `*` 连接的 HEX 色值 |
+| Compositor：图片、文本与矢量图层合成 | `compositor` | [CompositorNode.tsx](./compositor/CompositorNode.tsx) | `background`、`layer-1` 起的动态图片输入；`result`（Output）输出实际合成 PNG；独立图层编辑器见[使用与架构](../../docs/compositor.md) |
 | Color correction：本地图片调色 | `color-correction` | [ColorCorrectionNode.tsx](./ColorCorrectionNode.tsx) | 单图片输入 `file`（File）；`result` 输出调色后的 PNG |
 | Levels：本地图片色阶 | `levels` | [LevelsNode.tsx](./LevelsNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
 | Rotate and flip：本地旋转与镜像 | `rotate-flip` | [RotateFlipNode.tsx](./RotateFlipNode.tsx) | 单图片输入 `image`（Input）；`result`（Result）输出旋转后的原分辨率 PNG |
@@ -24,6 +26,10 @@
 | Position Logger：显示节点坐标的示例节点 | `position-logger` | [PositionLoggerNode.tsx](./PositionLoggerNode.tsx) | 左侧输入、右侧输出；不执行模型任务 |
 
 节点库的名称、分类和创建数据在 [libraryCatalog.ts](../components/libraryCatalog.ts) 中维护。只有提供 `nodeType` 的条目才能通过 `createLibraryNode` 创建节点；目录中的展示卡片不等于已实现的节点，不应为占位卡片生成替代节点。
+
+Compositor 文本、形状及钢笔交互与验证入口见 [合成编辑器文档](../../docs/compositor.md)。锚点在不同缩放下保持固定命中区，可越界调整及插入曲线点；交互草稿按帧更新，提交仍复用工作流历史与持久化。
+
+Compositor 输出解析在每次读取中按节点与输出端口复用校验结果，环路检查独立跟踪当前路径；缓存不跨编辑、撤销或恢复复用。`compositorResolution.test.ts` 随 `npm test` 检查共享上游、输出端口区分、失效和环路；浏览器验证页同时运行 Enter 键回归。
 
 ## 代码入口与职责
 
@@ -44,7 +50,7 @@
 
 ## 输入输出与交互约定
 
-- 连接规则由 `connectionRules.ts` 的 `canConnect` 统一校验，`App.tsx` 的 `isValidConnection` 和推荐菜单创建入口共用：拒绝自连接、环路、涉及锁定节点的连接和连接到 `model-input` 的输入。同一个文本变量输入或描述器、Sunburst、Painter、Crop、Color correction、Blur、Invert、Levels、Preview 输入端口只能连接一条边。
+- 连接规则由 `connectionRules.ts` 的 `canConnect` 统一校验，`App.tsx` 的 `isValidConnection` 和推荐菜单创建入口共用：拒绝自连接、环路、涉及锁定节点的连接和连接到 `model-input` 的输入。同一个文本变量输入或描述器、Sunburst、Compositor、Painter、Crop、Color correction、Blur、Invert、Levels、Preview 输入端口只能连接一条边。
 - 将输入或输出把手拖到空白画布会打开可搜索的推荐菜单，按方向和端口类型筛选已实现节点；选中后才创建节点并连接正确端口，创建与连线作为一次撤销记录。Escape、点击外部或移动画布关闭菜单，取消不修改图数据。落在已有节点上仍使用普通连接规则。
 - 从图片/遮罩输入反向选择 Import 时，允许先创建并连接空 File，之后由用户添加图片；该特例只适用于本次新建的 Import，运行前仍必须通过已有图片校验。推荐 Image Describer 的 System Instructions 时会同时暴露该输入。未知或不兼容的媒体输出不推荐文本节点。
 - Prompt 的变量端口从 `variable-1` 开始，图片端口从 `image-0` 开始。沿用 `variableHandleId`、`variableIndex` 等辅助函数，避免混用编号。端口数量或位置变化后调用 `useUpdateNodeInternals`，使连线位置跟随更新。
@@ -55,6 +61,20 @@
 - `model-input` 同时用于模型名称和 Sunburst 参数选项，`parameter` 标识参数用途，`options` 保存可选文本。Options 输入端口尚未实现，继续保持不可连接。
 - 从 Sunburst 暴露的参数输入反向选择 Model Name 时，复用 `sunburstParameterData`，按目标参数的当前本地值初始化名称、值和选项（保留自定义尺寸）；普通模型名称节点仍使用原默认值。
 - 对支持锁定的节点，数据更新、拖动、删除、连线和运行入口都需考虑 `locked`，异步结果写回前再次检查。节点内的编辑与点击控件按交互需要使用 `nodrag`、`nopan`、`nowheel`，避免与画布手势冲突。
+
+## Color palette 色板约定
+
+Color palette 位于 Tools → Editing，默认是棋盘格和居中的 Select color；点击节点打开右侧 Color palette 设置。最多添加 10 种颜色，允许重复。侧栏可添加白色初始色、输入 HEX（支持三位或六位）、打开颜色选择器、删除和拖动排序；节点内可直接改色、删除和排序，未满十色时可在顶部、底部和色条交界处插入。色条始终等高并显示 HEX，悬停当前色条才显示拖动和删除控件，不改变其他颜色。拖动时保持原顺序，以细线提示插入位置，节点内其他色条变暗；松开后一次性排序，拖出列表取消。拖动手柄也支持方向键、Home / End；Escape 取消排序，锁定后禁止修改。
+
+节点没有输入，Image（`image`）输出 1024 × 1024 的纯色横条 PNG，不包含 HEX 和编辑控件；Text（`text`）输出大写 HEX，以 `*` 连接，顺序与画布一致。Image 可连接所有图片消费者（包括 Compositor、Preview、Sunburst 和 Image Describer）；Text 可连接 Prompt 变量、Sunburst 文本输入和 Image Describer 文本参数。连接推荐按输出端口区分类型，反向创建也支持这两个端口。空色板无图片且文本为空；改色或排序后立即使旧图片失效，导出完成才提供新图片，迟到的结果不会覆盖新状态。
+
+每次添加、删除、排序、HEX 提交或颜色选择手势各记录一次撤销；颜色选择器拖动时先在弹窗预览，松开提交。派生图片不增加撤销记录。支持重命名、锁定、副本、剪切粘贴和 IndexedDB 恢复；颜色顺序和 PNG 素材随画布保存，素材引用复用现有生命周期。数据与纯函数见 [colorPalette.ts](./colorPalette.ts)，颜色列表和弹窗见 `ColorPaletteColors.tsx` / `ColorPalettePicker.tsx`。`colorPalette.test.ts` 使用现有 Node.js 测试运行器，随 `npm test` 检查十色上限、排序、文本、输出失效、双端口连接、剪贴板校验和素材映射。
+
+## Compositor 合成约定
+
+Compositor 位于 Tools → Editing。稳定的 Background / Layer 输入映射与内部堆叠顺序分开保存；上游图片更新保留已有图层参数，普通输入断开后清除对应画面。多个端口可使用同一上游。编辑器采用 Layers / Assets、Canvas、Properties 三栏；素材可预览、搜索和拖入画布，图层菜单与底部缩放菜单支持键盘操作。画布提供八向缩放、旋转及屏幕距离吸附辅助线，支持约束方向、中心缩放与手势取消。底部还提供文本、钢笔和矩形/椭圆/三角形/星形工具：文字可双击编辑，钢笔保存可编辑的锚点和 Bézier 控制柄，新增图层共用撤销与持久化，不新增输入端口。提供变换、重排、显示/锁定、尺寸/填充与有序的 Blur、Color correction、Invert、Levels 效果，复用现有像素算法。Levels 使用 Inputs 三手柄 / Outputs 双手柄和 RGB/R/G/B 通道，中间调复用对数 Gamma 映射。
+
+Output 是当前文档与输入共同确定的原尺寸 PNG，可供所有现有图片消费者读取，Compositor 也接受这些图片节点的输出。连接仍待处理或结果版本过期时 `imageOutput` 拒绝旧输出。节点和编辑器共用同一合成帧；效果开关等离散操作先反馈快速预览，再替换为原尺寸帧，只有原尺寸结果发布到 Output；受限效果缓存复用最近的开关组合。松手提交历史，输出和素材按现有 IndexedDB / 资源引用机制保存。复制节点保留输入素材快照，普通断线不保留旧画面。Timeline 只保存基础开关和扩展结构，不执行视频处理。详细限制、快捷键、模块入口及浏览器像素检查见 [Compositor 文档](../../docs/compositor.md)。
 
 ## Preview 预览约定
 
