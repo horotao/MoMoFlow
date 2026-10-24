@@ -29,6 +29,13 @@ function HexField({ hex, disabled, onChange, index }: { hex: string; disabled: b
 export function ColorPaletteColors({ node, inline = false }: { node: Pick<ColorPaletteNode, 'id' | 'data'>; inline?: boolean }) {
   const { getNode, updateNodeData, setNodes } = useReactFlow<AppNode>();
   const list = useRef<HTMLDivElement>(null);
+  const [dragPreview] = useState(() => {
+    // A detached, loaded <img> uses its intrinsic bitmap in Chromium. A
+    // detached canvas has no layout and falls back to the oversized row image.
+    const image = new Image();
+    image.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=';
+    return image;
+  });
   const [drag, setDrag] = useState<{ id: string; before: PaletteColor[]; slot: number | null; line: number }>();
   const dragging = useRef<typeof drag>();
   const colors = node.data.colors;
@@ -88,14 +95,22 @@ export function ColorPaletteColors({ node, inline = false }: { node: Pick<ColorP
         event.preventDefault(); event.stopPropagation(); move(event.clientX, event.clientY); finish();
       }}>
       {colors.map((color, index) => <div key={color.id} className={`palette-color-row${activeDrag?.id === color.id ? ' is-dragging' : ''}`}
-        style={inline ? { backgroundColor: color.hex, color: paletteInk(color.hex) } : undefined}
+        style={inline ? { color: paletteInk(color.hex) } : undefined}
         draggable={!locked && colors.length > 1}
         onDragStart={event => {
           if (locked || (event.target as HTMLElement).closest('input, .palette-remove')) { event.preventDefault(); return; }
+          if (inline && (!dragPreview.complete || !dragPreview.naturalWidth)) { event.preventDefault(); return; }
           event.stopPropagation(); event.dataTransfer.effectAllowed = 'move';
           event.dataTransfer.setData('application/x-momoflow-palette-color', color.id);
+          if (inline) {
+            // Chromium's default drag snapshot ignores the React Flow zoom.
+            // The highlighted source row and insertion line are our preview;
+            // suppress the extra, unscaled bitmap without canceling native DnD.
+            event.dataTransfer.setDragImage(dragPreview, 0, 0);
+          }
           start(color.id);
         }} onDragEnd={event => { event.stopPropagation(); cancel(); }}>
+        {inline && <span className="palette-color-fill" style={{ backgroundColor: color.hex }} aria-hidden="true" />}
         <button type="button" className="palette-grip" aria-label={`Move color ${index + 1}`} title="Drag to reorder · ↑ / ↓" disabled={locked}
           onPointerDown={event => {
             if (event.pointerType === 'mouse' || event.button !== 0 || locked || colors.length < 2) return;

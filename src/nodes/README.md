@@ -66,9 +66,15 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 
 Color palette 位于 Tools → Editing，默认是棋盘格和居中的 Select color；点击节点打开右侧 Color palette 设置。最多添加 10 种颜色，允许重复。侧栏可添加白色初始色、输入 HEX（支持三位或六位）、打开颜色选择器、删除和拖动排序；节点内可直接改色、删除和排序，未满十色时可在顶部、底部和色条交界处插入。色条始终等高并显示 HEX，悬停当前色条才显示拖动和删除控件，不改变其他颜色。拖动时保持原顺序，以细线提示插入位置，节点内其他色条变暗；松开后一次性排序，拖出列表取消。拖动手柄也支持方向键、Home / End；Escape 取消排序，锁定后禁止修改。
 
+节点内拖动时，当前色条及拖动、删除图标保持完整亮度；其余色条背景与文字分别以 100ms 过渡到 16% 不透明度，衬底为节点底色。使用原位色条和插入线提供反馈，禁用浏览器额外生成的浮动拖拽图像，避免它忽略画布缩放而变大；侧栏仍使用原生拖拽预览。放开或取消后恢复；启用减少动态效果时跳过过渡。
+
 节点没有输入，Image（`image`）输出 1024 × 1024 的纯色横条 PNG，不包含 HEX 和编辑控件；Text（`text`）输出大写 HEX，以 `*` 连接，顺序与画布一致。Image 可连接所有图片消费者（包括 Compositor、Preview、Sunburst 和 Image Describer）；Text 可连接 Prompt 变量、Sunburst 文本输入和 Image Describer 文本参数。连接推荐按输出端口区分类型，反向创建也支持这两个端口。空色板无图片且文本为空；改色或排序后立即使旧图片失效，导出完成才提供新图片，迟到的结果不会覆盖新状态。
 
 每次添加、删除、排序、HEX 提交或颜色选择手势各记录一次撤销；颜色选择器拖动时先在弹窗预览，松开提交。派生图片不增加撤销记录。支持重命名、锁定、副本、剪切粘贴和 IndexedDB 恢复；颜色顺序和 PNG 素材随画布保存，素材引用复用现有生命周期。数据与纯函数见 [colorPalette.ts](./colorPalette.ts)，颜色列表和弹窗见 `ColorPaletteColors.tsx` / `ColorPalettePicker.tsx`。`colorPalette.test.ts` 使用现有 Node.js 测试运行器，随 `npm test` 检查十色上限、排序、文本、输出失效、双端口连接、剪贴板校验和素材映射。
+
+选色弹窗的 HEX 在 Enter、失焦或点击外部关闭时提交合法值；无效值与 Escape 不产生修改。弹窗及滑块上的 Cmd/Ctrl+Z、Cmd/Ctrl+Shift+Z 操作画布历史，HEX 输入框保留原生文本撤销。浏览器回归测试在 `tests/color-palette-picker.test.tsx`，沿用项目现有的浏览器测试页方式，无新增测试依赖：运行 `npm run dev` 后打开 `/tests/color-palette-picker.html`，页面自动挂载真实节点、侧栏、弹窗和画布历史并报告结果。覆盖外部关闭保存、HEX 规范化、取消、重复提交、弹窗/滑块撤销重做、文本撤销与中文输入保护，以及连续编辑的历史边界；另覆盖 53% / 100% / 150% 缩放下的合成拖拽事件、预览图片加载、取消、落点排序、单步撤销重做与侧栏同步；测试使用独立状态，不读写已保存的工作流。
+
+原生拖拽验收页为 `/tests/color-palette-native-drag.html`（入口 `tests/color-palette-native-drag.test.tsx`），同样通过 Vite 运行且不读写用户工作流。用真实鼠标在节点中拖动，页面检查可信 `dragstart`、透传原生 `setDragImage`、已加载的 1×1 透明图片和可信 `dragend`；`Broken canvas control` 使用旧实现作负例，必须失败，`Fixed image` 应通过。分别检查 53% / 100% / 150%，拖出及 Escape 取消后顺序/历史不变，落点后节点和侧栏同步且可单步撤销重做。原生预览使用预加载的离屏 `HTMLImageElement`，不可用没有布局的 canvas 替代。页面的 PASS 仅代表原生调用及图片有效，浏览器页面截图不包含系统拖拽图层；大色条是否消失仍必须用系统目视或能包含该图层的录屏对照确认，不得用合成事件或页面截图代替。
 
 ## Compositor 合成约定
 

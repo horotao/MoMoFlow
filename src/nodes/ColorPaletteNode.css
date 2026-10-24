@@ -11,10 +11,13 @@
 .palette-empty { position: absolute; inset: 0; width: 100%; background: transparent; color: var(--text-node-secondary); font-size: 16px !important; }
 .palette-color-list { position: relative; display: flex; flex-direction: column; }
 .palette-canvas .palette-color-list { position: absolute; inset: 0; }
+.palette-canvas .palette-color-list:not(:empty) { background: var(--text-node-surface, #fff); }
 .palette-color-row { position: relative; display: flex; align-items: center; }
 .palette-canvas .palette-color-row { flex: 1 1 0; min-height: 24px; padding: 0 24px 0 8px; }
+.palette-color-fill { position: absolute; inset: 0; pointer-events: none; }
 .palette-edit-color { position: absolute; inset: 0; width: 100%; background: transparent; }
-.palette-hex-label { pointer-events: none; font-size: 11px; line-height: 16px; }
+.palette-hex-label { position: relative; pointer-events: none; font-size: 11px; line-height: 16px; }
+.palette-color-fill, .palette-hex-label { opacity: var(--palette-row-opacity, 1); transition: opacity .1s; }
 .palette-grip, .palette-remove { position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; background: transparent; }
 .palette-grip { cursor: grab !important; touch-action: none; }
 .palette-grip:active { cursor: grabbing !important; }
@@ -22,12 +25,12 @@
 .palette-canvas .palette-remove { margin-left: auto; width: 28px; height: 28px; border-radius: 4px; }
 .palette-canvas .palette-grip, .palette-canvas .palette-remove { opacity: 0; transition: opacity .1s; }
 .palette-color-row:hover .palette-grip, .palette-color-row:hover .palette-remove,
-.palette-color-row:focus-within .palette-grip, .palette-color-row:focus-within .palette-remove { opacity: 1; }
+.palette-color-row:focus-within .palette-grip, .palette-color-row:focus-within .palette-remove { opacity: var(--palette-row-opacity, 1); }
 .palette-canvas .palette-remove:hover { background: color-mix(in srgb, currentColor 16%, transparent); }
 .palette-grip svg, .palette-remove svg { flex-shrink: 0; }
-.palette-canvas.is-sorting { background: var(--text-node-surface, #fff); }
-.palette-canvas.is-sorting .palette-color-row:not(.is-dragging) { opacity: .15; }
+.palette-canvas.is-sorting .palette-color-row:not(.is-dragging) { --palette-row-opacity: .16; }
 .is-sorting .palette-color-row.is-dragging .palette-grip { opacity: 1; }
+.palette-canvas.is-sorting .palette-color-row.is-dragging .palette-remove { opacity: 1; }
 .palette-drop-line { position: absolute; left: 0; right: 0; height: 1px; transform: translateY(-50%); background: var(--panel-text, var(--text-node-primary)); z-index: 5; pointer-events: none; }
 .palette-settings .palette-drop-line { left: -16px; right: -16px; }
 .palette-settings .palette-color-row.is-dragging::before { content: ''; position: absolute; inset: 0 -16px; background: var(--panel-input); pointer-events: none; }
@@ -50,5 +53,5 @@
 .describer-panel .palette-add { margin-top: 6px; height: 24px; padding: 0 4px; gap: 0; }
 .palette-picker .painter-color-numbers { grid-template-columns: 42px minmax(0, 1fr); }
 .palette-picker .painter-color-sliders { padding: 12px 0; }
-@media (hover: none) { .palette-color-row .palette-grip, .palette-color-row .palette-remove, .palette-insert svg { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .palette-color-row .palette-grip, .palette-color-row .palette-remove { transition: none; } }
+@media (hover: none) { .palette-color-row .palette-grip, .palette-color-row .palette-remove, .palette-insert svg { opacity: var(--palette-row-opacity, 1); } }
+@media (prefers-reduced-motion: reduce) { .palette-color-fill, .palette-hex-label, .palette-color-row .palette-grip, .palette-color-row .palette-remove { transition: none; } }
