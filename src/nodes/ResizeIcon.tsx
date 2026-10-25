@@ -11,8 +11,14 @@ export const ResizeIcon = forwardRef<SVGSVGElement, SVGProps<SVGSVGElement> & { 
 );
 
 export function AspectRatioIcon({ locked }: { locked: boolean }) {
+  if (!locked) {
+    return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path fill="currentColor" fillRule="evenodd" clipRule="evenodd" d="M7.5 7h9a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5M6 7.5A1.5 1.5 0 0 1 7.5 6h9A1.5 1.5 0 0 1 18 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 16.5zM9.5 9a.5.5 0 0 0-.5.5v2a.5.5 0 0 0 1 0V10h1.5a.5.5 0 0 0 0-1zm5.5 3.5a.5.5 0 0 0-1 0V14h-1.5a.5.5 0 0 0 0 1h2a.5.5 0 0 0 .5-.5z" />
+    </svg>;
+  }
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <rect x="5" y="5" width="14" height="14" rx="1" />
-    {locked ? <><path d="M8 11V8h3m2 8h3v-3" /><path d="m10 10 4 4" strokeDasharray="1 2.5" /></> : <><path d="M8 12h8m-2-2 2 2-2 2M12 8v8m-2-2 2 2 2-2" /></>}
+    <path d="M8 11V8h3m2 8h3v-3" />
+    <path d="m10 10 4 4" strokeDasharray="1 2.5" />
   </svg>;
 }
