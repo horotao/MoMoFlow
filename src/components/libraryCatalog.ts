@@ -1,3 +1,5 @@
+import { CompareIcon } from '../nodes/CompareIcon';
+import { defaultCompareData } from '../nodes/compare';
 import { ResizeIcon } from '../nodes/ResizeIcon';
 import { defaultResizeSettings } from '../nodes/resize';
 import { defaultCompositorDocument } from '../nodes/compositor';
@@ -29,6 +31,7 @@ export const items: Item[] = [
   { id: 'image-describer', label: 'Image Describer', icon: ScanEye, category: 'Tools', group: 'Text tools', nodeType: 'image-describer' },
   { id: 'file', label: 'Import', icon: Import, category: 'Tools', group: 'Helpers', nodeType: 'file' },
   { id: 'preview', label: 'Preview', icon: Eye, category: 'Tools', group: 'Helpers', nodeType: 'preview' },
+  { id: 'compare', label: 'Compare', icon: CompareIcon, category: 'Tools', group: 'Helpers', nodeType: 'compare' },
   { id: 'model-input', label: 'Model Name', icon: ListFilter, category: 'Tools', group: 'Datatypes', nodeType: 'model-input' },
   { id: 'position-logger', label: 'Position Logger', icon: MapPin, category: 'Tools', group: 'Helpers', nodeType: 'position-logger' },
   { id: 'sunburst', label: sunburstName, icon: Sparkles, category: 'Image', group: 'Generate from text', nodeType: 'sunburst' },
@@ -51,6 +54,6 @@ export const items: Item[] = [
 export function createLibraryNode(id: string, position: { x: number; y: number }): AppNode | undefined {
   const item = items.find(candidate => candidate.id === id);
   if (!item?.nodeType) return;
-  const data = id === 'resize' ? { settings: { ...defaultResizeSettings } } : id === 'color-palette' ? { colors: [] } : id === 'compositor' ? { document: defaultCompositorDocument() } : id === 'rotate-flip' ? { settings: { ...defaultRotateFlipSettings } } : id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'sunburst' ? { ...defaultSunburstSettings, imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'invert' || id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
+  const data = id === 'compare' ? { ...defaultCompareData } : id === 'resize' ? { settings: { ...defaultResizeSettings } } : id === 'color-palette' ? { colors: [] } : id === 'compositor' ? { document: defaultCompositorDocument() } : id === 'rotate-flip' ? { settings: { ...defaultRotateFlipSettings } } : id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'sunburst' ? { ...defaultSunburstSettings, imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'invert' || id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
   return { id: crypto.randomUUID(), type: item.nodeType, position, data, selected: true } as AppNode;
 }

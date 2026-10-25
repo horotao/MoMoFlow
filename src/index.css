@@ -219,7 +219,7 @@
 }
 
 /* Text node: Figma Prompt, 460 × 405 in both themes. */
-.react-flow .react-flow__node-text, .react-flow .react-flow__node-image-describer, .react-flow .react-flow__node-model-input, .react-flow .react-flow__node-sunburst, .react-flow .react-flow__node-painter, .react-flow .react-flow__node-preview, .react-flow .react-flow__node-crop, .react-flow .react-flow__node-color-correction, .react-flow .react-flow__node-blur, .react-flow .react-flow__node-levels, .react-flow .react-flow__node-invert, .react-flow .react-flow__node-resize, .react-flow .react-flow__node-rotate-flip, .react-flow .react-flow__node-compositor, .react-flow .react-flow__node-color-palette {
+.react-flow .react-flow__node-compare, .react-flow .react-flow__node-text, .react-flow .react-flow__node-image-describer, .react-flow .react-flow__node-model-input, .react-flow .react-flow__node-sunburst, .react-flow .react-flow__node-painter, .react-flow .react-flow__node-preview, .react-flow .react-flow__node-crop, .react-flow .react-flow__node-color-correction, .react-flow .react-flow__node-blur, .react-flow .react-flow__node-levels, .react-flow .react-flow__node-invert, .react-flow .react-flow__node-resize, .react-flow .react-flow__node-rotate-flip, .react-flow .react-flow__node-compositor, .react-flow .react-flow__node-color-palette {
   --text-node-surface: #fff;
   --text-node-input: #f3f3f5;
   --text-node-border: #dcdce1;
@@ -245,7 +245,7 @@
   line-height: 22px;
 }
 
-.react-flow.dark .react-flow__node-text, .react-flow.dark .react-flow__node-image-describer, .react-flow.dark .react-flow__node-model-input, .react-flow.dark .react-flow__node-sunburst, .react-flow.dark .react-flow__node-painter, .react-flow.dark .react-flow__node-preview, .react-flow.dark .react-flow__node-crop, .react-flow.dark .react-flow__node-color-correction, .react-flow.dark .react-flow__node-blur, .react-flow.dark .react-flow__node-levels, .react-flow.dark .react-flow__node-invert, .react-flow.dark .react-flow__node-resize, .react-flow.dark .react-flow__node-rotate-flip, .react-flow.dark .react-flow__node-compositor, .react-flow.dark .react-flow__node-color-palette {
+.react-flow.dark .react-flow__node-compare, .react-flow.dark .react-flow__node-text, .react-flow.dark .react-flow__node-image-describer, .react-flow.dark .react-flow__node-model-input, .react-flow.dark .react-flow__node-sunburst, .react-flow.dark .react-flow__node-painter, .react-flow.dark .react-flow__node-preview, .react-flow.dark .react-flow__node-crop, .react-flow.dark .react-flow__node-color-correction, .react-flow.dark .react-flow__node-blur, .react-flow.dark .react-flow__node-levels, .react-flow.dark .react-flow__node-invert, .react-flow.dark .react-flow__node-resize, .react-flow.dark .react-flow__node-rotate-flip, .react-flow.dark .react-flow__node-compositor, .react-flow.dark .react-flow__node-color-palette {
   --text-node-surface: #2c2c2c;
   --text-node-input: #383838;
   --text-node-border: #444;

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, SunburstNode } from './types';
-import { connectionChoices, choiceConnection, initializeConnectionParameter, type PendingConnection } from './connectionRecommendations.ts';
+import { connectionChoices, choiceConnection, initializeConnectionParameter, type PendingConnection, type ConnectionChoice } from './connectionRecommendations.ts';
 import { canConnect } from './connectionRules.ts';
 import { defaultSunburstSettings } from './sunburst.ts';
 import { prepareSunburstRun } from './sunburstRun.ts';
@@ -19,9 +19,9 @@ test('text and image outputs recommend compatible implemented inputs with stable
     ['text', 'variable-1'], ['sunburst', 'prompt'], ['image-describer', 'instructions'],
   ]);
   assert.deepEqual(connectionChoices(pending('image', 'source', 'file'), [image], []).map(c => [c.itemId, c.handleId]), [
-    ['compositor', 'background'], ['compositor', 'layer-1'], ['preview', 'file'], ['image-describer', 'image-0'], ['sunburst', 'image-0'], ['painter', 'image'], ['resize', 'image'], ['rotate-flip', 'image'], ['invert', 'image'], ['levels', 'image'], ['blur', 'image'], ['crop', 'image'], ['color-correction', 'file'],
+    ['compare', 'input-1'], ['compositor', 'background'], ['compositor', 'layer-1'], ['preview', 'file'], ['image-describer', 'image-0'], ['sunburst', 'image-0'], ['painter', 'image'], ['resize', 'image'], ['rotate-flip', 'image'], ['invert', 'image'], ['levels', 'image'], ['blur', 'image'], ['crop', 'image'], ['color-correction', 'file'],
   ]);
-  assert.deepEqual(connectionChoices(pending('generator', 'source', 'result'), [generator], []).map(c => c.itemId), ['compositor', 'compositor', 'preview', 'image-describer', 'sunburst', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'blur', 'crop', 'color-correction']);
+  assert.deepEqual(connectionChoices(pending('generator', 'source', 'result'), [generator], []).map(c => c.itemId), ['compare', 'compositor', 'compositor', 'preview', 'image-describer', 'sunburst', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'blur', 'crop', 'color-correction']);
 });
 
 test('non-image and empty files never suggest incompatible text or image consumers', () => {
@@ -34,7 +34,7 @@ test('reverse image and mask connections retain the exact target handle and offe
   for (const handle of ['image-0', 'mask']) {
     const start = pending('generator', 'target', handle);
     const choices = connectionChoices(start, [generator], []);
-    assert.deepEqual(choices.map(c => c.itemId), ['file', 'color-palette', 'compositor', 'sunburst', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'blur', 'crop', 'color-correction']);
+    assert.deepEqual(choices.map(c => c.itemId), ['file', 'compare', 'color-palette', 'compositor', 'sunburst', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'blur', 'crop', 'color-correction']);
     assert.deepEqual(choiceConnection(start, choices[0], 'new'), { source: 'new', sourceHandle: 'file', target: 'generator', targetHandle: handle });
     const empty: AppNode = { id: 'new', type: 'file', position: { x: 0, y: 0 }, data: {} };
     const connection = choiceConnection(start, choices[0], 'new');
@@ -99,4 +99,19 @@ test('parameter initialization leaves ordinary model nodes and other recommendat
   }
   const target: SunburstNode = { ...generator, data: { ...generator.data, exposed: ['quality'] } };
   assert.equal(initializeConnectionParameter(text, pending(target.id, 'target', 'quality'), [target]), text);
+});
+
+
+test('Compare quick creation appears once in either direction and preserves the dragged port', () => {
+  const compare: AppNode = { id: 'compare', type: 'compare', position: { x: 0, y: 0 }, data: { mode: 'slider', split: .5 } };
+  const created = { ...compare, id: 'new' };
+  for (const direction of ['source', 'target'] as const) for (const index of [1, 2]) {
+    const start = pending('compare', direction, `${direction === 'source' ? 'output' : 'input'}-${index}`);
+    const choices: ConnectionChoice[] = connectionChoices(start, [compare], []).filter(choice => choice.itemId === 'compare');
+    assert.equal(choices.length, 1);
+    assert.equal(choices[0].handleId, direction === 'source' ? 'input-1' : 'output-1');
+    const connection = choiceConnection(start, choices[0], created.id);
+    assert.equal(direction === 'source' ? connection.sourceHandle : connection.targetHandle, start.handleId);
+    assert.ok(canConnect(connection, [compare, created], []));
+  }
 });

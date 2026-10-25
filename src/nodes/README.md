@@ -17,6 +17,7 @@
 | Compositor：图片、文本与矢量图层合成 | `compositor` | [CompositorNode.tsx](./compositor/CompositorNode.tsx) | `background`、`layer-1` 起的动态图片输入；`result`（Output）输出实际合成 PNG；独立图层编辑器见[使用与架构](../../docs/compositor.md) |
 | Color correction：本地图片调色 | `color-correction` | [ColorCorrectionNode.tsx](./ColorCorrectionNode.tsx) | 单图片输入 `file`（File）；`result` 输出调色后的 PNG |
 | Levels：本地图片色阶 | `levels` | [LevelsNode.tsx](./LevelsNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
+| Compare：双图片对比 | `compare` | [CompareNode.tsx](./CompareNode.tsx) | `input-1` / `input-2`（Input 1 / Input 2）；`output-1` / `output-2`（Output 1 / Output 2）分别透传对应输入 |
 | Resize：本地调整图片宽高 | `resize` | [ResizeNode.tsx](./ResizeNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出指定尺寸 PNG |
 | Rotate and flip：本地旋转与镜像 | `rotate-flip` | [RotateFlipNode.tsx](./RotateFlipNode.tsx) | 单图片输入 `image`（Input）；`result`（Result）输出旋转后的原分辨率 PNG |
 | Invert：本地图片 / 遮罩反选 | `invert` | [InvertNode.tsx](./InvertNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸反色 PNG |
@@ -199,3 +200,14 @@ Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排�
 每次从原始输入本地重采样，保留透明通道；预览最多 1024 像素长边，预览容器保持目标宽高比，位图填满容器以消除预览取整产生的边缘空隙；节点高度随比例变化。下载和下游收到的 PNG 使用实际目标尺寸。参数、输入或连接变化立即使旧输出失效，过期异步结果不会写回。接受所有现有图片输出，包括 Painter 的 Result / Mask；输出可连接 Preview、图片处理节点、Compositor、Sunburst 图片/遮罩和 Image Describer。支持重命名、锁定、独立副本、剪切粘贴和 IndexedDB 保存恢复，沿用项目现有历史及素材生命周期。
 
 尺寸规则、输出版本与剪贴板校验见 `resize.ts`；`resize.test.ts` 随 `npm test` 覆盖比例、自定义尺寸、边界、连接、输出失效及素材映射，并检查连续小尺寸取整、宽高交替调整、重新锁定、Reset、旧数据和剪贴板中的比例恢复。浏览器回归沿用现有独立测试页机制：启动 `npm run dev` 后打开 `/tests/resize.html`，`tests/resize.test.tsx` 挂载真实 Resize / Preview / File 节点，自动验证宽高、PNG 分辨率与透明区域、下游预览、Reset、键盘撤销重做、非法输入、锁定、IndexedDB 保存恢复、断开重连、替换输入及 4K 输出；另覆盖 3840 × 2160 缩小后恢复的比例、保存与撤销后的比例、细长/扁宽预览铺满以及 100 × 300 不受高度限制。页面使用独立数据和测试数据库，不读取用户工作流，也可继续手动检查连线、拖动、缩放和主题。
+
+
+## Compare
+
+从 Tools → Helpers 或搜索 Compare 添加。Slider 左侧显示 Input 1，右侧显示 Input 2；拖动分割线实时对比，松开时提交一次历史记录。Reset 恢复 50%，居中时禁用；方向键微调，Shift 加大步长，Home / End 到两端，Escape 取消拖动。Toggle 默认显示 Image 2，按住左上角眼睛（或 Space / Enter）显示 Image 1，松开、失焦或取消时恢复；与 Weavy 的按住预览行为一致。切换模式时分割线回到中间。
+
+预览按第一张可用图片比例布局，两张图等比例居中；仅一路可用时显示该图，无输入时显示棋盘格。左右端口分别位于 89 / 149px，每个输入只允许一条图片连线；支持两路连接同一来源，拒绝环路、锁定节点及非图片输入。两个输出分别透传原始图片，保留原生尺寸、透明度和资源标识，不导出对比拼图；模式、拖动与临时预览不改变输出。
+
+模式和分割位置参与撤销重做与工作流保存。副本、剪切粘贴保存两路输入快照；已有连线优先于快照，上游暂不可用时不返回旧快照。支持重命名、锁定和删除，素材生命周期与 IndexedDB 复用现有机制。无模型请求或付费调用。
+
+`compare.test.ts` 使用现有 Node.js 测试运行器，随 `npm test` 验证双输出、断开重连、递归、连接规则、剪贴板校验和素材映射。启动 `npm run dev` 后打开 `/tests/compare.html`，可在隔离画布检查 Slider / Toggle、撤销重做、主题、连线和缩放；该页使用独立测试数据库，不访问用户工作流。

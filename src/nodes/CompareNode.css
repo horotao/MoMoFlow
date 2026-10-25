@@ -1,0 +1,31 @@
+.react-flow .react-flow__node-compare { height: auto; min-height: 184px; gap: 16px; }
+.react-flow .react-flow__node-compare.selected, .react-flow .react-flow__node-compare:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
+.react-flow__node-compare .text-node-title { min-width: 0; gap: 8px; }
+.react-flow__node-compare .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.react-flow__node-compare .text-node-title > svg { flex-shrink: 0; }
+.react-flow__node-compare:hover .describer-port-label, .react-flow__node-compare.selected .describer-port-label { visibility: visible; }
+.compare-layer, .compare-slider { position: absolute; inset: 0; }
+.compare-layer { background: inherit; }
+.compare-layer img { width: 100%; height: 100%; object-fit: contain; display: block; user-select: none; }
+.compare-slider { cursor: ew-resize; touch-action: none; outline: none; }
+.compare-slider[aria-disabled="true"] { cursor: default; }
+.compare-divider { position: absolute; top: 0; bottom: 0; width: 1px; background: #fff9; box-shadow: 0 0 0 1px #0003; pointer-events: none; }
+.compare-grip { position: absolute; left: 0; transform: translate(-50%, -50%); width: 24px; height: 24px; color: #ffffffb3; opacity: 0; }
+.compare-grip > svg { display: block; width: 24px; height: 24px; }
+.compare-image-label { position: absolute; top: 50%; transform: translateY(-50%); padding: 0 4px; border-radius: 2px; background: #0e0e1366; color: #ffffffe5; font-size: 9px; font-weight: 500; line-height: 14px; white-space: nowrap; }
+.compare-image-label-first { right: 40px; }
+.compare-image-label-second { left: 40px; }
+.compare-slider:hover .compare-grip, .compare-slider.is-dragging .compare-grip, .compare-slider:focus-visible .compare-grip { opacity: 1; }
+.compare-slider:focus-visible .compare-grip { color: #fff; filter: drop-shadow(0 0 2px #0009); }
+.compare-toggle { position: absolute; left: 8px; top: 8px; display: flex; align-items: center; color: white; }
+.compare-toggle .file-icon-button { color: white; }
+.compare-toggle > span { padding: 1px 4px; border-radius: 2px; background: #0005; font-size: 9px; line-height: 12px; }
+.compare-controls { width: 100%; display: flex; align-items: center; gap: 4px; height: 24px; font-size: 11px; }
+.compare-controls .describer-model-trigger { display: flex; align-items: center; justify-content: space-between; flex: 0 0 96px; box-sizing: border-box; width: 96px; min-height: 24px; height: 24px; padding: 0 0 0 8px; border: 1px solid var(--text-node-border); border-radius: 5px; background: var(--text-node-surface); color: var(--text-node-primary); font: inherit; font-size: 11px; font-weight: 450; line-height: 16px; text-align: left; cursor: pointer; }
+.compare-controls .describer-model-trigger > span { min-width: 0; }
+.compare-controls .describer-model-trigger svg { display: block; width: 24px; height: 24px; flex: 0 0 24px; }
+.compare-controls .describer-model-trigger:hover:not(:disabled), .compare-controls .describer-model-trigger[aria-expanded="true"] { background: var(--text-node-input); }
+.compare-controls .describer-model-trigger:disabled { opacity: .4; cursor: default; }
+.compare-reset { margin-left: auto; padding: 0 8px; height: 24px; border: 0; border-radius: 4px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.compare-reset:hover:not(:disabled) { background: var(--text-node-input); }
+.compare-reset:disabled { opacity: .4; cursor: default; }

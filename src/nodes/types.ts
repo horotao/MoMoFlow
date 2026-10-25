@@ -1,3 +1,4 @@
+import type { CompareData } from './compare';
 import type { ResizeData } from './resize';
 import type { ColorPaletteData } from './colorPalette';
 import type { CompositorData } from './compositor';
@@ -40,7 +41,9 @@ export type CompositorNode = Node<CompositorData, 'compositor'>;
 export const isCompositorNode = (node: AppNode | undefined): node is CompositorNode => node?.type === 'compositor';
 export type ColorPaletteNode = Node<ColorPaletteData, 'color-palette'>;
 export const isColorPaletteNode = (node: AppNode | undefined): node is ColorPaletteNode => node?.type === 'color-palette';
-export type AppNode = ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
+export type CompareNode = Node<CompareData, 'compare'>;
+export const isCompareNode = (node: AppNode | undefined): node is CompareNode => node?.type === 'compare';
+export type AppNode = CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
 
 export const isDescriberNode = (node: AppNode): node is ImageDescriberNode => node.type === 'image-describer' && 'imageInputs' in node.data;
 

@@ -1,3 +1,4 @@
+import { CompareNode } from './CompareNode';
 import { ResizeNode } from './ResizeNode';
 import { ColorPaletteNode } from './ColorPaletteNode';
 import { CompositorNode } from './compositor/CompositorNode';
@@ -21,6 +22,7 @@ import type { AppNode } from './types';
 export const initialNodes: AppNode[] = [];
 
 export const nodeTypes = {
+  compare: CompareNode,
   'color-palette': ColorPaletteNode,
   compositor: CompositorNode,
   resize: ResizeNode,

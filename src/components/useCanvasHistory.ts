@@ -97,7 +97,8 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
       const previous = state.present.nodes.find(item => item.id === node.id);
       return isColorPaletteNode(previous) && JSON.stringify(previous.data.colors) !== JSON.stringify(node.data.colors);
     })());
-    if (resizeChanged || paletteChanged || compositorChanged || rotateFlipChanged || levelsChanged || blurChanged || colorChanged || cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
+    const compareChanged = nodes.some(node => node.type === 'compare' && JSON.stringify(node.data) !== JSON.stringify(state.present.nodes.find(item => item.id === node.id)?.data));
+    if (compareChanged || resizeChanged || paletteChanged || compositorChanged || rotateFlipChanged || levelsChanged || blurChanged || colorChanged || cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;

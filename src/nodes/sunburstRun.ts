@@ -1,3 +1,5 @@
+import { compareInput } from './compare.ts';
+import { isCompareNode } from './types.ts';
 import { resizeRevision } from './resize.ts';
 import { isResizeNode } from './types.ts';
 import { paletteRevision } from './colorPalette.ts';
@@ -64,6 +66,14 @@ function imageResolution(nodes?: AppNode[], edges?: Edge[], visited = new Set<st
     return result;
   };
   const evaluate = (node: AppNode, handle?: string | null): FileAsset[] => {
+    if (isCompareNode(node)) {
+      const input = compareInput(handle);
+      if (!input) return [];
+      const edge = (incoming.get(node.id) ?? []).find(item => item.targetHandle === input);
+      if (edge) return resolve(nodeById.get(edge.source), edge.sourceHandle).slice(0, 1);
+      const asset = input === 'input-1' ? node.data.input1 : node.data.input2;
+      return asset ? [asset] : [];
+    }
     if (isColorPaletteNode(node)) {
       return handle === 'image' && node.data.colors.length && node.data.result && node.data.outputRevision === paletteRevision(node.data.colors) ? [node.data.result] : [];
     }
