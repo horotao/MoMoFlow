@@ -4,7 +4,7 @@
 
 ## 现有节点
 
-以下十六种类型已在 [index.ts](./index.ts) 的 `nodeTypes` 中注册。`initialNodes` 当前为空，默认不预置节点。
+以下节点类型已在 [index.ts](./index.ts) 的 `nodeTypes` 中注册。`initialNodes` 当前为空，默认不预置节点。
 
 | 显示名称 / 用途 | 类型标识 | 组件文件 | 输入与输出 |
 | --- | --- | --- | --- |
@@ -17,6 +17,7 @@
 | Compositor：图片、文本与矢量图层合成 | `compositor` | [CompositorNode.tsx](./compositor/CompositorNode.tsx) | `background`、`layer-1` 起的动态图片输入；`result`（Output）输出实际合成 PNG；独立图层编辑器见[使用与架构](../../docs/compositor.md) |
 | Color correction：本地图片调色 | `color-correction` | [ColorCorrectionNode.tsx](./ColorCorrectionNode.tsx) | 单图片输入 `file`（File）；`result` 输出调色后的 PNG |
 | Levels：本地图片色阶 | `levels` | [LevelsNode.tsx](./LevelsNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
+| Resize：本地调整图片宽高 | `resize` | [ResizeNode.tsx](./ResizeNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出指定尺寸 PNG |
 | Rotate and flip：本地旋转与镜像 | `rotate-flip` | [RotateFlipNode.tsx](./RotateFlipNode.tsx) | 单图片输入 `image`（Input）；`result`（Result）输出旋转后的原分辨率 PNG |
 | Invert：本地图片 / 遮罩反选 | `invert` | [InvertNode.tsx](./InvertNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸反色 PNG |
 | Blur：本地图片模糊 | `blur` | [BlurNode.tsx](./BlurNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
@@ -50,7 +51,7 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 
 ## 输入输出与交互约定
 
-- 连接规则由 `connectionRules.ts` 的 `canConnect` 统一校验，`App.tsx` 的 `isValidConnection` 和推荐菜单创建入口共用：拒绝自连接、环路、涉及锁定节点的连接和连接到 `model-input` 的输入。同一个文本变量输入或描述器、Sunburst、Compositor、Painter、Crop、Color correction、Blur、Invert、Levels、Preview 输入端口只能连接一条边。
+- 连接规则由 `connectionRules.ts` 的 `canConnect` 统一校验，`App.tsx` 的 `isValidConnection` 和推荐菜单创建入口共用：拒绝自连接、环路、涉及锁定节点的连接和连接到 `model-input` 的输入。同一个文本变量输入或描述器、Sunburst、Compositor、Painter、Crop、Color correction、Blur、Invert、Levels、Resize、Preview 输入端口只能连接一条边。
 - 将输入或输出把手拖到空白画布会打开可搜索的推荐菜单，按方向和端口类型筛选已实现节点；选中后才创建节点并连接正确端口，创建与连线作为一次撤销记录。Escape、点击外部或移动画布关闭菜单，取消不修改图数据。落在已有节点上仍使用普通连接规则。
 - 从图片/遮罩输入反向选择 Import 时，允许先创建并连接空 File，之后由用户添加图片；该特例只适用于本次新建的 Import，运行前仍必须通过已有图片校验。推荐 Image Describer 的 System Instructions 时会同时暴露该输入。未知或不兼容的媒体输出不推荐文本节点。
 - Prompt 的变量端口从 `variable-1` 开始，图片端口从 `image-0` 开始。沿用 `variableHandleId`、`variableIndex` 等辅助函数，避免混用编号。端口数量或位置变化后调用 `useUpdateNodeInternals`，使连线位置跟随更新。
@@ -174,7 +175,7 @@ Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排�
 
 ## 验证与文档维护
 
-按仓库要求运行 `npm test`、`npm run lint`、`npm run build`，并用 `git diff --check` 检查补丁。现有测试使用 Node.js 内置测试运行器，覆盖节点逻辑、持久化和服务端校验；测试使用受控输入或响应，不需要真实模型额度。新测试采用有明确含义的 `*.test.ts` 或 `*.test.tsx` 文件名，并确保测试命令实际能够运行它。
+按仓库要求运行 `npm run check`，统一执行测试、lint、含类型检查的构建、节点文档和补丁空白检查。`npm run check:docs` 会核对本页节点索引与 `nodeTypes` 注册表及本页的本地链接；端口语义、运行条件和持久化约定仍需人工同步审查。现有测试使用 Node.js 内置测试运行器，覆盖节点逻辑、持久化和服务端校验；测试使用受控输入或响应，不需要真实模型额度。新测试采用有明确含义的 `*.test.ts` 或 `*.test.tsx` 文件名，并确保测试命令实际能够运行它；浏览器 `tests/*.test.tsx` 通过相应 HTML 页面执行，不属于 `npm test`。机制与验收入口见[代码质量检查](../../docs/code-quality.md)。
 
 画布改动需手动验证节点拖动、坐标更新、新建连线、缩放和小地图；根据改动检查锁定、复制粘贴、撤销与刷新恢复。编辑器改动还需验证 Tab 建议、中文输入、撤销、粘贴和内联变量；模型流程改动需检查缺少输入、重复运行、取消、失败与结果写回。
 
@@ -187,3 +188,14 @@ Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排�
 接入图像后自动在本地处理，无需运行模型。90° / 270° 交换输出宽高；整数坐标变换保留透明通道，不裁切、不缩小导出。悬停显示下载和实际尺寸；预览与下载来自同一份原分辨率画布。支持 Import、Painter Result / Mask 及其他图像节点输入，并可连接 Preview、其他图像处理节点、Sunburst 和 Image Describer。参数、输入或连接变化会立即使旧结果失效，未完成的结果不可下载，过期异步任务不会覆盖新结果。
 
 支持重命名、锁定、创建副本、剪切粘贴、逐次撤销重做与 IndexedDB 保存恢复；独立副本保留底图，派生图像不增加撤销步骤。设置、旋转矩阵和剪贴板校验见 `rotateFlip.ts`，界面与 PNG 导出见 `RotateFlipNode.tsx`。`rotateFlip.test.ts` 使用现有 Node.js 内置测试运行器，随 `npm test` 检查非正方形像素方向、组合顺序、连续操作、输出失效、连接约束和素材恢复。
+
+
+## Resize
+
+入口位于 Tools → Editing，也可通过图片端口的连接推荐菜单创建。W / H 显示输出像素尺寸，首次接入默认使用原图尺寸。默认锁定比例，首次调整时保存未取整的宽高比，后续修改任意一边均沿用该比例计算，避免连续缩小、放大产生取整误差；解锁后可独立修改宽高，图像拉伸到指定尺寸。重新锁定采用当前宽高比，Reset 清除之前保存的比例。锁定比例随撤销、复制粘贴和保存恢复保留；旧数据未记录比例时，以当前尺寸作为首次调整的基准。右侧 Reset 恢复当前输入原图的尺寸，并保留比例锁定状态；尚未手动设定尺寸或 Reset 后，上游尺寸变化会自动跟随原图。
+
+输入在 Enter 或失焦时提交，Escape 取消，输入过程中不反复生成图片。尺寸为正整数，小数四舍五入；空输入恢复原值，无效或超限输入保留原值并提示。每边上限 16384 像素、总像素上限 64 × 1024²。没有图片时尺寸编辑和 Reset 禁用。每次操作独立撤销，比例按钮及 Reset 上的 Cmd/Ctrl+Z、Cmd/Ctrl+Shift+Z 透传画布，尺寸输入保留原生文本撤销。
+
+每次从原始输入本地重采样，保留透明通道；预览最多 1024 像素长边，预览容器保持目标宽高比，位图填满容器以消除预览取整产生的边缘空隙；节点高度随比例变化。下载和下游收到的 PNG 使用实际目标尺寸。参数、输入或连接变化立即使旧输出失效，过期异步结果不会写回。接受所有现有图片输出，包括 Painter 的 Result / Mask；输出可连接 Preview、图片处理节点、Compositor、Sunburst 图片/遮罩和 Image Describer。支持重命名、锁定、独立副本、剪切粘贴和 IndexedDB 保存恢复，沿用项目现有历史及素材生命周期。
+
+尺寸规则、输出版本与剪贴板校验见 `resize.ts`；`resize.test.ts` 随 `npm test` 覆盖比例、自定义尺寸、边界、连接、输出失效及素材映射，并检查连续小尺寸取整、宽高交替调整、重新锁定、Reset、旧数据和剪贴板中的比例恢复。浏览器回归沿用现有独立测试页机制：启动 `npm run dev` 后打开 `/tests/resize.html`，`tests/resize.test.tsx` 挂载真实 Resize / Preview / File 节点，自动验证宽高、PNG 分辨率与透明区域、下游预览、Reset、键盘撤销重做、非法输入、锁定、IndexedDB 保存恢复、断开重连、替换输入及 4K 输出；另覆盖 3840 × 2160 缩小后恢复的比例、保存与撤销后的比例、细长/扁宽预览铺满以及 100 × 300 不受高度限制。页面使用独立数据和测试数据库，不读取用户工作流，也可继续手动检查连线、拖动、缩放和主题。

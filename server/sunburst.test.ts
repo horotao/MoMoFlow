@@ -2,7 +2,9 @@ import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { EventEmitter } from 'node:events';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import { buildSunburstPayload, buildSunburstRequest, sunburstPlugin } from './sunburst.ts';
+import { captureMiddleware } from './testMiddleware.ts';
 import { defaultSunburstSettings, sunburstModel } from '../src/nodes/sunburst.ts';
 const png = 'data:image/png;base64,aGVsbG8=';
 const input = { ...defaultSunburstSettings, prompt: 'A green circle', images: [] };
@@ -23,11 +25,9 @@ test('invalid settings and source data never reach the provider', () => {
     { ...input, mask: png }, { ...input, images: [png], mask: 'data:image/jpeg;base64,aGVsbG8=' }]) assert.throws(() => buildSunburstRequest(bad));
 });
 async function invoke({ hook = 'configureServer', headers = {}, body = input, key = 'test-only', provider = async () => new Response(JSON.stringify({ data: [{ b64_json: 'aGVsbG8=' }] })), method = 'POST' }: {
-  hook?: 'configureServer' | 'configurePreviewServer'; headers?: Record<string, string>; body?: unknown; key?: string; provider?: typeof fetch; method?: string;
+  hook?: 'configureServer' | 'configurePreviewServer'; headers?: Record<string, string | undefined>; body?: unknown; key?: string; provider?: typeof fetch; method?: string;
 } = {}) {
-  let handler;
-  const plugin = sunburstPlugin(key, provider);
-  plugin[hook]({ middlewares: { use(value) { handler = value; } } });
+  const handler = captureMiddleware(sunburstPlugin(key, provider), hook);
   const req = Object.assign(Readable.from([Buffer.from(JSON.stringify(body))]), { url: '/api/sunburst', method, headers: { host: 'localhost:5173', 'content-type': 'application/json', ...headers }, socket: {} });
   let status = 0; let text = '';
   const res = Object.assign(new EventEmitter(), { destroyed: false, writableEnded: false, writeHead(code: number) { status = code; }, end(value: string) { text = value; this.writableEnded = true; } });
@@ -36,7 +36,7 @@ async function invoke({ hook = 'configureServer', headers = {}, body = input, ke
     assert.equal(prefix, '[zenmux-sunburst]');
     logs.push(JSON.parse(entry));
   });
-  try { await handler(req, res, () => assert.fail('unexpected next')); }
+  try { await handler(req as unknown as IncomingMessage, res as unknown as ServerResponse, () => assert.fail('unexpected next')); }
   finally { logger.mock.restore(); }
   return { status, body: JSON.parse(text), logs };
 }
@@ -46,13 +46,16 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
       let calls = 0;
       const result = await invoke({ hook, body: { ...input, images }, provider: async (url, options) => {
         calls++; assert.equal(url, `https://zenmux.ai/api/v1/images/${images.length ? 'edits' : 'generations'}`);
-        assert.equal(options.headers.Authorization, 'Bearer test-only');
+        assert.ok(options);
+        assert.equal(new Headers(options.headers).get('Authorization'), 'Bearer test-only');
         if (images.length) {
           assert.ok(options.body instanceof FormData);
           assert.equal(options.body.get('model'), sunburstModel);
           assert.equal(options.body.getAll('image[]').length, images.length);
           assert.equal(new Headers(options.headers).has('content-type'), false);
         } else {
+          assert.equal(typeof options.body, 'string');
+          if (typeof options.body !== 'string') assert.fail('Expected a JSON request body');
           assert.equal(JSON.parse(options.body).model, sunburstModel);
           assert.equal(new Headers(options.headers).get('content-type'), 'application/json');
         }

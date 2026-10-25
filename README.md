@@ -2,6 +2,9 @@
 
 # React Flow starter (Vite + TS)
 
+MoMoFlow 的统一质量检查入口为 `npm run check`，开发时可用 `npm run check:quick`。
+本地和 CI 使用 `.nvmrc` 指定的 Node.js 24；检查覆盖范围、Codex Hook 启用与浏览器验收说明见 [代码质量检查](docs/code-quality.md)。
+
 We've put together this template to serve as a starting point for folks
 interested in React Flow. You can use this both as a base for your own React
 Flow applications, or for small experiments or bug reports.

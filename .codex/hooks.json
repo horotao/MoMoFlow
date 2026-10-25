@@ -1,0 +1,17 @@
+{
+  "description": "MoMoFlow：复用项目检查命令，在结束任务前检查文件；相同内容通过后不重复执行。",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node --experimental-strip-types \"$(git rev-parse --show-toplevel)/scripts/codex-quality-hook.ts\"",
+            "timeout": 600,
+            "statusMessage": "检查 MoMoFlow 代码质量"
+          }
+        ]
+      }
+    ]
+  }
+}

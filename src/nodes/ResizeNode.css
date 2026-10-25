@@ -1,0 +1,21 @@
+.react-flow .react-flow__node-resize { height: auto; gap: 16px; }
+.react-flow .react-flow__node-resize.selected, .react-flow .react-flow__node-resize:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
+.react-flow__node-resize .text-node-title { min-width: 0; gap: 8px; }
+.react-flow__node-resize .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.react-flow__node-resize .text-node-title > svg { flex-shrink: 0; }
+.react-flow__node-resize:hover .describer-port-label, .react-flow__node-resize.selected .describer-port-label { visibility: visible; }
+.resize-controls { display: flex; align-items: center; width: 100%; gap: 4px; }
+.resize-controls > button { display: flex; justify-content: center; align-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; color: var(--text-node-primary); background: transparent; cursor: pointer; }
+.resize-controls > button:hover:not(:disabled) { background: var(--text-node-input); }
+.resize-controls > button:focus-visible { outline: 1px solid var(--text-node-primary); outline-offset: 2px; }
+.resize-controls > .resize-reset { margin-left: auto; width: auto; padding: 0 8px; font: inherit; font-size: 11px; }
+.resize-media-top.file-media-top { justify-content: flex-end; }
+.react-flow__node-resize button:disabled { opacity: .4; cursor: default; }
+/* The preview bitmap is rounded to whole pixels; the container owns the exact output ratio. */
+.react-flow__node-resize .preview-image > canvas { object-fit: fill; }
+
+.resize-dimension { display: flex; align-items: center; gap: 4px; width: 80px; height: 24px; padding: 0 8px; box-sizing: border-box; border-radius: 4px; background: var(--text-node-input); color: var(--text-node-primary); font-size: 11px; }
+.resize-dimension > span { opacity: .7; }
+.resize-dimension > input { width: 100%; min-width: 0; padding: 0; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; }
+.resize-dimension:focus-within { outline: 1px solid var(--text-node-primary); }
+.resize-dimension:has(input:disabled) { opacity: .4; }

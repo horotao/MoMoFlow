@@ -1,4 +1,4 @@
-import { isColorPaletteNode, isCompositorNode, isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from '../nodes/types.ts';
+import { isColorPaletteNode, isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from '../nodes/types.ts';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources.ts';
 import type { Edge, Viewport } from '@xyflow/react';
 import type { AppNode, FileAsset, FileNode, SunburstNode } from '../nodes/types';
@@ -39,7 +39,7 @@ export function mapAssets(nodes: AppNode[], map: (asset: FileAsset) => FileAsset
         assets: data.assets?.map(map),
       } } as AppNode;
     }
-    if (isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) return { ...node, data: { ...node.data,
+    if (isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) return { ...node, data: { ...node.data,
       baseImage: node.data.baseImage ? map(node.data.baseImage) : undefined,
       result: node.data.result ? map(node.data.result) : undefined,
     } } as AppNode;

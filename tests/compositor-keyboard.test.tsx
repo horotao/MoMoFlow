@@ -5,7 +5,7 @@ import { CanvasHistoryContext, useCanvasHistory } from '../src/components/useCan
 import { CompositorEditor } from '../src/nodes/compositor/CompositorEditor';
 import { createLayer, defaultCompositorDocument, type CompositorDocument } from '../src/nodes/compositor';
 import { defaultText } from '../src/nodes/compositorGraphics';
-import type { AppNode, CompositorNode } from '../src/nodes/types';
+import { isCompositorNode, type AppNode, type CompositorNode } from '../src/nodes/types';
 
 // Runs in the existing real-browser check page, without touching the workflow.
 // Synthetic keydowns test cancellation; trusted Enter activation is also checked
@@ -74,7 +74,7 @@ export async function compositorPenCommitChecks(record: (message: string) => voi
     committed = (nodes[0] as CompositorNode).data.document;
     return <CanvasHistoryContext.Provider value={history}>{open
       ? <CompositorEditor id="pen-qa" name="Pen QA" document={draft ?? committed} inputs={{}} locked={false} error="" pending={false} previewing={Boolean(draft)}
-        onChange={document => { commits++; setDraft(undefined); setNodes(current => current.map(node => ({ ...node, data: { ...node.data, document } }))); }} onDraft={setDraft} onClose={() => setOpen(false)} />
+        onChange={document => { commits++; setDraft(undefined); setNodes(current => current.map(node => isCompositorNode(node) ? { ...node, data: { ...node.data, document } } : node)); }} onDraft={setDraft} onClose={() => setOpen(false)} />
       : <button onClick={() => setOpen(true)}>Reopen pen QA</button>}
     </CanvasHistoryContext.Provider>;
   }

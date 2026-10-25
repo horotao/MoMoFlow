@@ -1,6 +1,6 @@
 import { snapshotCompositor } from './compositor';
 import { compositorInputs } from './sunburstRun';
-import { isCompositorNode, isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from './types';
+import { isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from './types';
 import { imageOutput } from './sunburstRun';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useReactFlow, useViewport } from '@xyflow/react';
@@ -26,11 +26,11 @@ export function TextNodeMenu({ id, locked, onRename, children }: {
 
   const act = async (action: string) => {
     const node = getNode(id);
-    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop' && node.type !== 'color-correction' && node.type !== 'blur' && node.type !== 'levels' && node.type !== 'invert' && node.type !== 'rotate-flip' && node.type !== 'compositor' && node.type !== 'color-palette')) return;
+    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop' && node.type !== 'color-correction' && node.type !== 'blur' && node.type !== 'levels' && node.type !== 'invert' && node.type !== 'rotate-flip' && node.type !== 'resize' && node.type !== 'compositor' && node.type !== 'color-palette')) return;
     setError('');
     try {
-      const edge = (isPainterNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) ? getEdges().find(item => item.target === id && item.targetHandle === (isColorCorrectionNode(node) ? 'file' : 'image')) : undefined;
-      const snapshot: AppNode = isCompositorNode(node) ? { ...node, data: { ...node.data, document: snapshotCompositor(node.data.document, compositorInputs(id, getNodes(), getEdges())), outputRevision: undefined } } : (isPainterNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) && edge ? { ...node, data: { ...node.data, baseImage: imageOutput(getNode(edge.source), edge.sourceHandle, getNodes(), getEdges())[0] } } as AppNode : node;
+      const edge = (isPainterNode(node) || isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) ? getEdges().find(item => item.target === id && item.targetHandle === (isColorCorrectionNode(node) ? 'file' : 'image')) : undefined;
+      const snapshot: AppNode = isCompositorNode(node) ? { ...node, data: { ...node.data, document: snapshotCompositor(node.data.document, compositorInputs(id, getNodes(), getEdges())), outputRevision: undefined } } : (isPainterNode(node) || isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) && edge ? { ...node, data: { ...node.data, baseImage: imageOutput(getNode(edge.source), edge.sourceHandle, getNodes(), getEdges())[0] } } as AppNode : node;
       if (action === 'duplicate') {
         const copy: AppNode = isTextNode(node) ? cloneTextNode(node) : {
           ...snapshot, id: `${node.type}-${crypto.randomUUID()}`, selected: true,

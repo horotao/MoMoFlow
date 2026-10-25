@@ -1,3 +1,5 @@
+import { resizeRevision } from './resize.ts';
+import { isResizeNode } from './types.ts';
 import { paletteRevision } from './colorPalette.ts';
 import { isColorPaletteNode } from './types.ts';
 import { compositorPending, compositorRevision, type CompositorInputs } from './compositor.ts';
@@ -70,6 +72,15 @@ function imageResolution(nodes?: AppNode[], edges?: Edge[], visited = new Set<st
       if (hasGraph) {
         const inputs = resolveInputs(node.id);
         if (compositorPending(node.data.document, inputs) || node.data.outputRevision !== compositorRevision(node.data.document, inputs)) return [];
+      }
+      return node.data.result ? [node.data.result] : [];
+    }
+    if (isResizeNode(node)) {
+      if (handle !== 'result') return [];
+      if (hasGraph) {
+        const edge = (incoming.get(node.id) ?? []).find(item => item.targetHandle === 'image');
+        const source = edge ? resolve(nodeById.get(edge.source), edge.sourceHandle)[0] : node.data.baseImage;
+        if (!source || node.data.outputRevision !== resizeRevision(node.data, source.id)) return [];
       }
       return node.data.result ? [node.data.result] : [];
     }

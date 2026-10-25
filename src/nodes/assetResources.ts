@@ -1,4 +1,4 @@
-import { isColorPaletteNode, isCompositorNode, isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from './types.ts';
+import { isColorPaletteNode, isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from './types.ts';
 import type { PreviewTask } from './taskQueue';
 import type { AppNode, FileNode, SunburstNode } from './types';
 
@@ -84,7 +84,7 @@ export function nodeAssetUrls(nodes: Iterable<AppNode>): Set<string> {
       const data = node.data as FileNode['data'];
       if (data.asset) urls.add(data.asset.url);
       for (const asset of data.assets ?? []) urls.add(asset.url);
-    } else if (isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) {
+    } else if (isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) {
       for (const asset of [node.data.result, node.data.baseImage]) if (asset) urls.add(asset.url);
     } else if (isPainterNode(node)) {
       for (const asset of [node.data.result, node.data.mask, node.data.alphaMask, node.data.baseImage]) if (asset) urls.add(asset.url);

@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Local quality-check results and Codex hook cache
+.codex/.quality/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

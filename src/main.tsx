@@ -13,6 +13,7 @@ import './nodes/BlurNode.css';
 import './nodes/LevelsNode.css';
 import './nodes/InvertNode.css';
 import './nodes/RotateFlipNode.css';
+import './nodes/ResizeNode.css';
 import './nodes/ColorPaletteNode.css';
 import './nodes/compositor/Compositor.css';
 

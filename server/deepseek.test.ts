@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createServer } from 'node:http';
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { buildDeepSeekRequest, deepseekPlugin } from './deepseek.ts';
+import { captureMiddleware } from './testMiddleware.ts';
 const image = 'data:image/png;base64,aGVsbG8=';
 test('vision payload preserves instructions and ordered images in user content only', () => {
   const body = buildDeepSeekRequest({ model: 'deepseek-flash', instructions: '使用中文', images: [image, image] });
@@ -19,9 +20,7 @@ test('unsupported models, empty images, remote URLs and unsupported formats fail
   ]) assert.throws(() => buildDeepSeekRequest(input));
 });
 test('local endpoint reports missing credentials and rejects cross-origin requests', async () => {
-  let handler;
-  const plugin = deepseekPlugin('');
-  plugin.configureServer({ middlewares: { use(value) { handler = value; } } });
+  const handler = captureMiddleware(deepseekPlugin(''), 'configureServer');
   const server = createServer((req, res) => handler(req, res, () => res.end()));
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   try {
@@ -35,12 +34,10 @@ test('local endpoint reports missing credentials and rejects cross-origin reques
 });
 
 // Invoke the actual dev/preview middleware without opening ports or using real credentials.
-async function invokeLocalApi(hook: 'configureServer' | 'configurePreviewServer', headers: Record<string, string>, encrypted = false) {
+async function invokeLocalApi(hook: 'configureServer' | 'configurePreviewServer', headers: Record<string, string | undefined>, encrypted = false) {
   const { Readable } = await import('node:stream');
   const { EventEmitter } = await import('node:events');
-  let handler;
-  const plugin = deepseekPlugin('test-only-key');
-  plugin[hook]({ middlewares: { use(value) { handler = value; } } });
+  const handler = captureMiddleware(deepseekPlugin('test-only-key'), hook);
   const body = JSON.stringify({ model: 'deepseek-flash', instructions: '使用中文', images: [image] });
   const req = Object.assign(Readable.from([Buffer.from(body)]), {
     url: '/api/describer', method: 'POST', headers: { 'content-type': 'application/json', ...headers }, socket: { encrypted },
@@ -52,7 +49,7 @@ async function invokeLocalApi(hook: 'configureServer' | 'configurePreviewServer'
     writeHead(value: number) { status = value; },
     end(value: string) { result = value; this.writableEnded = true; },
   });
-  await handler(req, res, () => assert.fail('API must not fall through'));
+  await handler(req as unknown as IncomingMessage, res as unknown as ServerResponse, () => assert.fail('API must not fall through'));
   return { status, body: JSON.parse(result) };
 }
 
@@ -79,9 +76,10 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
     assert.equal(upstream.mock.callCount(), 0);
   });
   test(`${hook} allows local same-origin and local CLI requests and preserves provider output`, async (t) => {
-    const upstream = t.mock.method(globalThis, 'fetch', async (url, options) => {
+    const upstream = t.mock.method(globalThis, 'fetch', async (url: Parameters<typeof fetch>[0], options?: RequestInit) => {
       assert.equal(url, 'https://api.deepseek.com/chat/completions');
-      assert.equal(options.headers.Authorization, 'Bearer test-only-key');
+      assert.equal(new Headers(options?.headers).get('Authorization'), 'Bearer test-only-key');
+      assert.ok(options && typeof options.body === 'string');
       assert.equal(JSON.parse(options.body).model, 'deepseek-flash');
       return new Response(JSON.stringify({ choices: [{ message: { content: '测试图片提示词' }, finish_reason: 'stop' }], usage: { total_tokens: 10 } }));
     });

@@ -109,7 +109,7 @@ function imageUpload(dataUrl: string) {
 
 // Local image inputs use the documented file-upload form, avoiding data-URL
 // conversion in the provider's JSON edit adapter. Generation remains JSON.
-export function buildSunburstPayload(request: ReturnType<typeof buildSunburstRequest>) {
+export function buildSunburstPayload(request: ReturnType<typeof buildSunburstRequest>): { body: string | FormData; headers: Record<string, string> } {
   if (request.endpoint === 'generations') return { body: JSON.stringify(request.body), headers: { 'Content-Type': 'application/json' } };
   const form = new FormData();
   const { images, mask, ...settings } = request.body;
