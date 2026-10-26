@@ -39,7 +39,6 @@ import { DescriberPanel } from './components/DescriberPanel';
 import { defaultInstructions } from './nodes/describer';
 import { CanvasDock, type CanvasTool } from './components/CanvasDock';
 import { CanvasHistoryContext, useCanvasHistory } from './components/useCanvasHistory';
-import { DevTools } from './components/DevTools';
 import { initialNodes, nodeTypes } from './nodes';
 import { isDescriberNode, isSunburstNode } from './nodes/types';
 import type { AppNode } from './nodes/types';
@@ -465,7 +464,6 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         <span>{importError}</span><button type="button" aria-label="Dismiss import error" onClick={() => setImportError('')}>×</button>
       </Panel>}
       <CanvasDock tool={tool} onToolChange={setTool} colorMode={colorMode} {...history} />
-      <DevTools position="top-left" />
       <MiniMap />
       <Controls showInteractive={false}>
         <ControlButton title="添加 Image Describer" aria-label="添加 Image Describer" onClick={() => {

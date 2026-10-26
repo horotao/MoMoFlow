@@ -46,10 +46,8 @@
 .library-help p { display: flex; justify-content: space-between; }.library-help span, .library-help small { color: var(--library-muted); }
 .library-workflow-title { position: absolute; top: 16px; left: 72px; width: 220px; height: 46px; display: flex; align-items: center; padding: 0 12px; border: 1px solid #ddd; border-radius: 8px; background: #f5f5f5; font: 500 13px 'Text Node Inter', sans-serif; z-index: 5; box-sizing: border-box; }
 .dark .library-workflow-title { background: #2c2c2c; border-color: #373737; color: #f5f5f5; }
-.react-flow .devtools-toggle { left: 310px; }
 .react-flow .react-flow__controls { display: none; }
 @media (max-height: 740px) { .library-nav button { height: 52px; }.library-nav-divider::after { margin: 5px auto; }.library-footer { gap: 4px; padding: 4px 0; } }
-@media (max-width: 760px) { .react-flow .devtools-toggle { display: none; } }
 @media (prefers-reduced-motion: reduce) { .library-drawer { transition: none; } }
 
 .library-content-category { padding-top: 30px; }

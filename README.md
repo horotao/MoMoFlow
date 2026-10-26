@@ -78,11 +78,11 @@ npx shadcn@latest add dialog
 ```
 
 添加后需核对 React 18 兼容性，尤其是引用传递应使用 `forwardRef`，不能直接采用仅适用于 React 19 的 ref 参数写法。
-不要覆盖现有 DevTools。React Flow CSS 通过 `src/index.css` 中的 `layer(base)` 在 Tailwind 之后加载，
+React Flow CSS 通过 `src/index.css` 中的 `layer(base)` 在 Tailwind 之后加载，
 现有画布样式也放在同一层，避免破坏 React Flow 深色主题的优先级。
 
 验证命令：`npm run lint`、`npm run build`。手动检查拖动、坐标更新、双向拖线创建节点、
-普通连线、主题切换、缩放、小地图及 DevTools。
+普通连线、主题切换、缩放及小地图。
 
 ## DeepSeek 图片反推提示词（本地测试）
 
