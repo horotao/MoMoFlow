@@ -1,0 +1,20 @@
+.react-flow { --router-empty-port: #60606b; --router-text-port: #b34bd1; }
+.react-flow.dark { --router-empty-port: #fff; --router-text-port: #e28cf8; }
+.react-flow .react-flow__node.react-flow__node-router { width: 250px; height: 62px; padding: 16px; }
+.react-flow .react-flow__node-router.selected, .react-flow .react-flow__node-router:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
+.react-flow__node-router .text-node-title { min-width: 0; gap: 4px; }
+.react-flow__node-router .text-node-title > svg { flex-shrink: 0; }
+.react-flow__node-router .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 2px 4px; }
+.react-flow__node-router .text-node-rename { width: 142px; min-width: 0; }
+.react-flow .router-port { top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border: 8px solid var(--text-node-surface); border-radius: 50%; background: var(--router-port); }
+.react-flow .router-port.react-flow__handle-left { left: -16px; }
+.react-flow .router-port.react-flow__handle-right { right: -16px; }
+.router-port::after { content: ''; position: absolute; inset: 3px; background: var(--text-node-surface); border-radius: 50%; pointer-events: none; }
+.router-port.is-connected::before { content: ''; position: absolute; inset: 5px; background: var(--router-port); border-radius: 50%; z-index: 1; pointer-events: none; }
+.router-port-label { position: absolute; top: -20px; color: var(--router-port); font-size: 12px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .2s; }
+.router-port.react-flow__handle-left .router-port-label { right: 30px; }
+.router-port.react-flow__handle-right .router-port-label { left: 30px; }
+.react-flow__node-router:hover .router-port-label, .react-flow__node-router.selected .router-port-label { opacity: 1; }
+.react-flow__node-router:has(.text-node-menu) { z-index: 1002 !important; }
+.react-flow__nodes:has(> .react-flow__node.selected ~ .react-flow__node.selected) .router-port-label { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .router-port-label { transition: none; } }

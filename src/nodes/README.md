@@ -8,6 +8,7 @@
 
 | 显示名称 / 用途 | 类型标识 | 组件文件 | 输入与输出 |
 | --- | --- | --- | --- |
+| Router：整理连线、统一更换上游 | `router` | [RouterNode.tsx](./RouterNode.tsx) | 单输入 `input`（Input）；`output`（Output）原样透传，可连接多个下游 |
 | Prompt：编辑文本、组合上游变量 | `text` | [TextNode.tsx](./TextNode.tsx) | 变量输入 `variable-1` 起；输出解析后的文本 |
 | Import / File：导入、预览和管理文件集合 | `file` | [FileNode.tsx](./FileNode.tsx) | 无输入端口；通过 `file` 端口输出文件，端口类型随集合内容变化 |
 | Image Describer：根据图片生成可继续编辑的文本 | `image-describer` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) | 图片输入 `image-0` 起；可暴露 `model`、`instructions` 文本输入；输出 `data.text` |
@@ -40,8 +41,8 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 | --- | --- |
 | [types.ts](./types.ts)、[index.ts](./index.ts) | 节点数据类型、`AppNode` 联合类型、类型判断，以及组件注册 |
 | [defaults.ts](./defaults.ts)、[describer.ts](./describer.ts)、[sunburst.ts](./sunburst.ts) | 文本默认值、描述器配置、Sunburst 参数与校验；创建节点时由节点库等入口使用 |
-| [App.tsx](../App.tsx) | 画布状态、推荐菜单与拖线创建节点、拖放和剪贴板入口，以及节点交互属性 |
-| [connectionRules.ts](./connectionRules.ts)、[connectionRecommendations.ts](./connectionRecommendations.ts)、[ConnectionMenu.tsx](../components/ConnectionMenu.tsx) | 共用连接校验、按端口类型推荐节点，以及松手处的搜索菜单 |
+| [App.tsx](../App.tsx) | 画布状态、右键与拖线创建节点菜单、拖放和剪贴板入口，以及节点交互属性 |
+| [connectionRules.ts](./connectionRules.ts)、[connectionRecommendations.ts](./connectionRecommendations.ts)、[ConnectionMenu.tsx](../components/ConnectionMenu.tsx) | 共用连接校验、按端口类型推荐节点，以及右键和拖线共用的搜索菜单 |
 | [TextPromptEditor.tsx](./TextPromptEditor.tsx)、[textDocument.ts](./textDocument.ts)、[textVariables.ts](./textVariables.ts) | 富文本编辑、文档转换、变量端口编号与上游文本解析；变量视图见 `PromptVariableView.tsx` |
 | [fileAsset.ts](./fileAsset.ts)、[fileCollection.ts](./fileCollection.ts)、[fileMedia.ts](./fileMedia.ts) | 文件导入、集合与输出类型、拆分文件、媒体预览及下载 |
 | [describerRun.ts](./describerRun.ts)、[sunburstRun.ts](./sunburstRun.ts) | 从画布解析输入、校验运行条件、建立任务输入快照；`imageOutput` 定义图片输出语义 |
@@ -55,6 +56,7 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 
 - 连接规则由 `connectionRules.ts` 的 `canConnect` 统一校验，`App.tsx` 的 `isValidConnection` 和推荐菜单创建入口共用：拒绝自连接、环路、涉及锁定节点的连接和连接到 `model-input` 的输入。同一个文本变量输入或描述器、Sunburst、Compositor、Painter、Crop、Color correction、Blur、Invert、Levels、Resize、Preview 输入端口只能连接一条边。
 - 将输入或输出把手拖到空白画布会打开可搜索的推荐菜单，按方向和端口类型筛选已实现节点；选中后才创建节点并连接正确端口，创建与连线作为一次撤销记录。Escape、点击外部或移动画布关闭菜单，取消不修改图数据。落在已有节点上仍使用普通连接规则。
+- 右键单击空白画布打开同一快捷创建菜单，显示节点库中全部已实现节点，不按端口筛选；选择后在右键对应的画布坐标创建并选中节点，不附加连线。搜索、键盘选择和关闭方式与拖线菜单一致；选择工具和手形工具均支持，右键拖动画布仍用于平移。
 - 从图片/遮罩输入反向选择 Import 时，允许先创建并连接空 File，之后由用户添加图片；该特例只适用于本次新建的 Import，运行前仍必须通过已有图片校验。推荐 Image Describer 的 System Instructions 时会同时暴露该输入。未知或不兼容的媒体输出不推荐文本节点。
 - Prompt 的变量端口从 `variable-1` 开始，图片端口从 `image-0` 开始。沿用 `variableHandleId`、`variableIndex` 等辅助函数，避免混用编号。端口数量或位置变化后调用 `useUpdateNodeInternals`，使连线位置跟随更新。
 - 连接期间，文本值通过 `resolveTextValue` 从当前图数据动态解析，不持续复制到下游节点数据中。参数从外部输入切回 **Use local value** 时例外：Image Describer 会将当前解析值写回本地参数并移除对应连线；Sunburst 也会保存当前有效参数值，校验失败时保留原本地值。具体入口见 [DescriberPanel.tsx](../components/DescriberPanel.tsx) 和 [SunburstSettings.tsx](../components/SunburstSettings.tsx)。
@@ -226,3 +228,14 @@ Worker 使用有界任务队列；拖动时 512px 草稿，释放时原尺寸 PN
 `blend.test.ts`、`blendMath.test.ts` 和 `blendWeavy.test.ts` 随 `npm test` 检查模式、全部通道输入与 alpha 对、边界、连接、失效、剪贴板、素材映射，以及 108 张实际 Weavy PNG 的独立参照。原始参照和元数据保存在 `tests/fixtures/blend-weavy.*`。
 
 启动 `npm run dev` 后访问 `/tests/blend.html`，执行真实 Worker / PNG、4K、历史、持久化和交互验收；使用独立数据库，不读取或改写用户画布。`/tests/blend-modes.html` 将 18 种模式 × 六档透明度的真实 Worker / PNG 与 Weavy 导出逐像素对照，另核对预览。2026-10-26 完整对照已通过，详细指标与允许的量化误差见上述核验记录；历史九模式与原生 Canvas 诊断不再代表当前算法。
+
+
+## Router
+
+从 Tools → Helpers、搜索 Router 或拖线到空白处的推荐菜单添加；双击可连接的输出端口也会在其右侧创建并连接一个 Router，已有分支保留。默认尺寸 250 × 62，单行图标、名称和菜单，左右居中的 Input / Output；端口颜色与图标跟随输入类型，空节点使用中性色，兼容浅色和深色主题。
+
+Router 直接从当前图解析来源，不保存文本或素材副本，不运行模型。Input 只保留一条连线，拖入新来源会替换旧线并保留所有下游分支，替换前校验整个 Router 链的消费者；不允许用文本替换仍连接图片输入的来源，反向亦然。Output 可连接多个兼容输入，也可继续连接 Router。空 Router 可以先连接下游，之后接入的来源必须匹配下游要求；推荐菜单随输入和下游约束筛选。环路、自连接、无效端口和涉及锁定节点的新连接会被拒绝。
+
+文本、图片集合、各节点的具体输出端口保持原语义：File 传递整个图片集合，Sunburst 传递选中结果，色板区分 Image / Text，Painter 区分 Result / Mask。Router 后的 Sunburst Mask 仍使用 Painter 的透明遮罩或 Invert 的亮度转换。断开或上游失效后没有旧值残留，Preview 的绘制和调色实时预览也能穿过 Router 链。视频、音频和 3D File 可以接入 Router 并继续中转，能否连接其他节点仍由已有消费者支持范围决定。
+
+支持重命名、锁定、副本、剪切粘贴、撤销重做和 IndexedDB 保存恢复；单独复制 Router 不复制上游内容和连线。创建并连接、替换输入各算一次撤销。数据解析及快捷创建在 `router.ts`；`router.test.ts` 使用现有 Node.js 测试运行器随 `npm test` 验证透传、集合、分支、替换、环路、类型限制、遮罩和保存恢复。浏览器验收入口为 `/tests/router.html`（`tests/router.test.tsx`），运行 `npm run dev` 后打开，使用独立数据库和真实画布检查菜单、文本 / 图片透传、历史与持久化，也可手动检查拖动、连线、缩放和小地图。

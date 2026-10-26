@@ -1,3 +1,4 @@
+import { resolveOutputSource, outputKind } from './router.ts';
 import { blendRevision } from './blend.ts';
 import { isBlendNode, type BlendNode } from './types.ts';
 import { compareInput } from './compare.ts';
@@ -68,6 +69,11 @@ function imageResolution(nodes?: AppNode[], edges?: Edge[], visited = new Set<st
     return result;
   };
   const evaluate = (node: AppNode, handle?: string | null): FileAsset[] => {
+    if (node.type === 'router') {
+      if (handle !== 'output' || !['image', 'mask'].includes(outputKind(node, handle, nodes, edges) ?? '')) return [];
+      const edge = (incoming.get(node.id) ?? []).find(item => item.targetHandle === 'input');
+      return edge ? resolve(nodeById.get(edge.source), edge.sourceHandle) : [];
+    }
     if (isBlendNode(node)) {
       if (handle !== 'result') return [];
       if (hasGraph) {
@@ -214,8 +220,9 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
       let mask: string | undefined;
       let maskMode: SunburstRequest['maskMode'];
       if (maskEdge) {
-        const source = nodes.find(item => item.id === maskEdge.source);
-        const assets = imageOutput(source, source?.type === 'painter' && maskEdge.sourceHandle === 'mask' ? 'alpha-mask' : maskEdge.sourceHandle, nodes, edges);
+        const origin = resolveOutputSource(nodes.find(item => item.id === maskEdge.source), maskEdge.sourceHandle, nodes, edges);
+        const source = origin?.node;
+        const assets = imageOutput(source, source?.type === 'painter' && origin?.handle === 'mask' ? 'alpha-mask' : origin?.handle, nodes, edges);
         if (assets.length !== 1) throw new Error('Mask 必须连接一张 PNG 图片。');
         if (!images.length) throw new Error('使用 Mask 时必须连接 Image。');
         mask = assets[0].url;

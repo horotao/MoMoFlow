@@ -1,3 +1,4 @@
+import { resolveOutputSource } from './router';
 import { levelsLivePreviews } from './levelsLivePreview';
 import { blurLivePreviews } from './blurLivePreview';
 import { colorLivePreviews } from './colorCorrectionLivePreview';
@@ -23,8 +24,9 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
   const [failedUrl, setFailedUrl] = useState(''), [error, setError] = useState('');
   const [measured, setMeasured] = useState<{ url: string; width: number; height: number }>();
   const inputEdge = edges.find(edge => edge.target === id && edge.targetHandle === 'file');
-  const source = nodes.find(node => node.id === inputEdge?.source);
-  const painterId = source?.type === 'painter' && ['result', 'mask'].includes(inputEdge?.sourceHandle ?? '') ? source.id : undefined;
+  const origin = resolveOutputSource(nodes.find(node => node.id === inputEdge?.source), inputEdge?.sourceHandle, nodes, edges);
+  const source = origin?.node;
+  const painterId = source?.type === 'painter' && ['result', 'mask'].includes(origin?.handle ?? '') ? source.id : undefined;
   const live = useSyncExternalStore(
     useCallback(listener => painterLivePreviews.subscribe(painterId, listener), [painterId]),
     useCallback(() => painterLivePreviews.get(painterId), [painterId]),
@@ -62,10 +64,10 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
   useLayoutEffect(() => {
     const target = liveCanvas.current;
     if (!target || (!live && !cropLive && !colorLive && !levelsLive && !blurLive)) return;
-    const image = levelsLive?.canvas ?? blurLive?.canvas ?? colorLive?.canvas ?? cropLive?.canvas ?? (inputEdge?.sourceHandle === 'mask' ? live!.mask : live!.result);
+    const image = levelsLive?.canvas ?? blurLive?.canvas ?? colorLive?.canvas ?? cropLive?.canvas ?? (origin?.handle === 'mask' ? live!.mask : live!.result);
     target.width = image.width; target.height = image.height;
     target.getContext('2d')?.drawImage(image, 0, 0);
-  }, [live, cropLive, colorLive, levelsLive, blurLive, inputEdge?.sourceHandle]);
+  }, [live, cropLive, colorLive, levelsLive, blurLive, origin?.handle]);
   useEffect(() => internals(id), [id, aspectRatio, internals]);
   useEffect(() => { if (!activeUrl) setFullscreen(false); setError(''); }, [activeUrl]);
 
@@ -80,7 +82,7 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
     </header>
     <div className={`preview-image${active || live || cropLive || colorLive || levelsLive || blurLive ? ' has-image' : ''}`} style={{ aspectRatio }}>
       {live || cropLive || colorLive || levelsLive || blurLive || (active && active.url !== failedUrl) ? <>
-        {live || cropLive || colorLive || levelsLive || blurLive ? <canvas ref={liveCanvas} aria-label={levelsLive ? 'Live Levels preview' : blurLive ? 'Live Blur preview' : colorLive ? 'Live Color correction preview' : cropLive ? 'Live Crop preview' : `Live Painter ${inputEdge?.sourceHandle === 'mask' ? 'Mask' : 'Result'} preview`} data-drawing={Boolean(cropLive || colorLive || levelsLive || blurLive) || live?.drawing}
+        {live || cropLive || colorLive || levelsLive || blurLive ? <canvas ref={liveCanvas} aria-label={levelsLive ? 'Live Levels preview' : blurLive ? 'Live Blur preview' : colorLive ? 'Live Color correction preview' : cropLive ? 'Live Crop preview' : `Live Painter ${origin?.handle === 'mask' ? 'Mask' : 'Result'} preview`} data-drawing={Boolean(cropLive || colorLive || levelsLive || blurLive) || live?.drawing}
           onDoubleClick={event => { event.stopPropagation(); show(); }} /> : active && <img key={active.url} src={active.url} alt={active.name} draggable={false} onDoubleClick={event => { event.stopPropagation(); show(); }}
           onLoad={event => setMeasured({ url: active.url, width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
           onError={() => setFailedUrl(active.url)} />}

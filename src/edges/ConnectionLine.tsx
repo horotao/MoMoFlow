@@ -1,3 +1,5 @@
+import { useEdges, useNodes } from '@xyflow/react';
+import { outputKind, outputColor } from '../nodes/router';
 import { getBezierPath, type ConnectionLineComponentProps } from '@xyflow/react';
 import { isFileNode } from '../nodes/fileAsset';
 import { fileOutputKind, filePortColors } from '../nodes/fileCollection';
@@ -7,6 +9,7 @@ import { curveOptions } from './curve';
 export function ConnectionLine({
   fromX, fromY, toX, toY, fromPosition, toPosition, fromNode, fromHandle, toNode,
 }: ConnectionLineComponentProps) {
+  const nodes = useNodes<AppNode>(), edges = useEdges();
   const [path] = getBezierPath({
     sourceX: fromX,
     sourceY: fromY,
@@ -19,7 +22,7 @@ export function ConnectionLine({
   const source = fromNode as AppNode;
   // The starting handle determines the preview color, including reverse drags from inputs.
   const handleId = fromHandle.id ?? '';
-  const portColor = isFileNode(source) ? filePortColors[fileOutputKind(source.data)]
+  const portColor = source.type === 'router' ? outputColor(outputKind(source, 'output', nodes, edges)) : isFileNode(source) ? filePortColors[fileOutputKind(source.data)]
     : source.type === 'preview' ? 'var(--sunburst-mask-port)'
     : ['sunburst', 'painter'].includes(source.type ?? '') && handleId === 'mask' ? 'var(--sunburst-mask-port)'
     : ['sunburst', 'painter'].includes(source.type ?? '') && (handleId === 'image' || handleId === 'result' || /^image-\d+$/.test(handleId)) ? 'var(--sunburst-image-port)'

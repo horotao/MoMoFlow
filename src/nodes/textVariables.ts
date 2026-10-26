@@ -1,3 +1,4 @@
+import { resolveOutputSource, outputKind } from './router.ts';
 import { paletteText } from './colorPalette.ts';
 import { isColorPaletteNode } from './types.ts';
 import type { Edge } from '@xyflow/react';
@@ -25,6 +26,11 @@ export function resolveTextValue(id: string, nodes: AppNode[], edges: Edge[], vi
   if (visited.has(id)) return '';
   const node = nodes.find((item) => item.id === id);
   if (!node || node.type === 'file') return '';
+  if (node.type === 'router') {
+    const source = resolveOutputSource(node, 'output', nodes, edges);
+    return source && outputKind(source.node, source.handle) === 'text'
+      ? resolveTextValue(source.node.id, nodes, edges, new Set(visited).add(id)) : '';
+  }
   if (isColorPaletteNode(node)) return paletteText(node.data.colors);
   if (node.type === 'image-describer' && 'text' in node.data) return node.data.text;
   if (node.type === 'model-input' && 'model' in node.data) return node.data.model;

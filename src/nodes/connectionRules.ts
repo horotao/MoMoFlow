@@ -4,9 +4,60 @@ import { isCompositorNode, isNodeLocked, isSunburstNode } from './types.ts';
 import { fileAssets, fileOutputKind } from './fileCollection.ts';
 import { variableIndex } from './textVariables.ts';
 import { sunburstFieldLabels } from './sunburst.ts';
+import { outputKind, replaceRouterInput, resolveOutputSource } from './router.ts';
+
+// Validate Router edits against their actual consumers before replacing the input.
+export function canConnect(connection: Connection | Edge, nodes: AppNode[], currentEdges: Edge[], pendingImportId?: string): boolean {
+  const source = nodes.find(node => node.id === connection.source), target = nodes.find(node => node.id === connection.target);
+  if (!source || !target || isNodeLocked(source) || isNodeLocked(target) || source.id === target.id) return false;
+  if (source.type !== 'router' && target.type !== 'router') return canConnectDirect(connection, nodes, currentEdges, pendingImportId);
+  if ((source.type === 'router' && connection.sourceHandle !== 'output') || (target.type === 'router' && connection.targetHandle !== 'input')) return false;
+  if (source.type !== 'router' && !outputKind(source, connection.sourceHandle)) return false;
+  const remaining = replaceRouterInput(connection, nodes, currentEdges);
+  const graph = [...remaining, { ...connection, id: 'router-candidate' }];
+  const visited = new Set<string>(), queue = [target.id];
+  while (queue.length) {
+    const id = queue.pop()!;
+    if (id === source.id) return false;
+    if (visited.has(id)) continue;
+    visited.add(id);
+    queue.push(...remaining.filter(edge => edge.source === id).map(edge => edge.target));
+  }
+  const checkConsumer = (edge: Connection | Edge) => {
+    const output = resolveOutputSource(nodes.find(node => node.id === edge.source), edge.sourceHandle, nodes, graph);
+    const consumer = nodes.find(node => node.id === edge.target);
+    if (!consumer) return false;
+    const kind = output && outputKind(output.node, output.handle);
+    if (consumer.type === 'text' && output && kind !== 'text') return false;
+    // An empty Router can be wired first; its future input must satisfy all branches.
+    const candidates: { node: AppNode; handle: string | null | undefined }[] = output ? [output] : [
+      { node: { id: edge.source, type: 'text', position: { x: 0, y: 0 }, data: { text: '' } }, handle: null },
+      { node: { id: edge.source, type: 'file', position: { x: 0, y: 0 }, data: {} }, handle: 'file' },
+    ];
+    return candidates.some(candidate => {
+      const virtualSource = { ...candidate.node, id: edge.source, data: { ...candidate.node.data, locked: false } } as AppNode;
+      const virtualNodes = nodes.map(node => node.id === edge.source ? virtualSource : node.id === edge.target ? { ...node, data: { ...node.data, locked: false } } as AppNode : node);
+      return canConnectDirect({ ...edge, sourceHandle: candidate.handle ?? null }, virtualNodes,
+        graph.filter(item => !(item.source === edge.source && item.target === edge.target && item.targetHandle === edge.targetHandle)),
+        !output || candidate.node.id === pendingImportId ? edge.source : undefined);
+    });
+  };
+  if (target.type !== 'router') return checkConsumer(connection);
+  const routed = [target.id], checked = new Set<string>();
+  while (routed.length) {
+    const id = routed.pop()!;
+    if (checked.has(id)) continue;
+    checked.add(id);
+    for (const edge of graph.filter(item => item.source === id)) {
+      if (nodes.find(node => node.id === edge.target)?.type === 'router') routed.push(edge.target);
+      else if (!checkConsumer(edge)) return false;
+    }
+  }
+  return true;
+}
 
 // A newly added Import may be wired before the user supplies its first image.
-export function canConnect(connection: Connection | Edge, nodes: AppNode[], currentEdges: Edge[], pendingImportId?: string): boolean {
+function canConnectDirect(connection: Connection | Edge, nodes: AppNode[], currentEdges: Edge[], pendingImportId?: string): boolean {
   if (connection.source === connection.target) return false;
   const target = nodes.find((node) => node.id === connection.target);
   const source = nodes.find(node => node.id === connection.source);

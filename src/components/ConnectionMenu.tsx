@@ -4,14 +4,17 @@ import { items } from './libraryCatalog';
 import type { ConnectionChoice, PendingConnection } from '../nodes/connectionRecommendations';
 import './ConnectionMenu.css';
 
+export type NodeMenuChoice = Pick<ConnectionChoice, 'id' | 'itemId' | 'detail'>;
+
 type Props = {
-  pending: PendingConnection;
-  choices: ConnectionChoice[];
-  onChoose: (choice: ConnectionChoice) => void;
+  screen: PendingConnection['screen'];
+  mode: 'create' | 'connect';
+  choices: NodeMenuChoice[];
+  onChoose: (choice: NodeMenuChoice) => void;
   onDismiss: () => void;
 };
 
-export function ConnectionMenu({ pending, choices, onChoose, onDismiss }: Props) {
+export function ConnectionMenu({ screen, mode, choices, onChoose, onDismiss }: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
@@ -24,7 +27,7 @@ export function ConnectionMenu({ pending, choices, onChoose, onDismiss }: Props)
   const [query, setQuery] = useState('');
   // Opening and typing keep focus in search without highlighting a result.
   const [active, setActive] = useState(-1);
-  const [position, setPosition] = useState(pending.screen);
+  const [position, setPosition] = useState(screen);
   // Built-in catalog nodes remain available for both creator filters, as in Weavy.
   const matches = choices.flatMap(choice => {
     const item = items.find(item => item.id === choice.itemId && item.nodeType);
@@ -37,11 +40,11 @@ export function ConnectionMenu({ pending, choices, onChoose, onDismiss }: Props)
     if (!menu) return;
     const bounds = menu.getBoundingClientRect();
     setPosition({
-      x: Math.max(8, Math.min(pending.screen.x, window.innerWidth - bounds.width - 8)),
-      y: Math.max(8, Math.min(pending.screen.y + 5, window.innerHeight - bounds.height - 8)),
+      x: Math.max(8, Math.min(screen.x, window.innerWidth - bounds.width - 8)),
+      y: Math.max(8, Math.min(screen.y + 5, window.innerHeight - bounds.height - 8)),
     });
-  }, [pending, matches.length]);
-  useLayoutEffect(() => { searchRef.current?.focus(); }, [pending]);
+  }, [screen, matches.length]);
+  useLayoutEffect(() => { searchRef.current?.focus(); }, [screen]);
   useLayoutEffect(() => {
     if (!filterOpen || !filterRef.current || !filterButtonRef.current) return;
     const trigger = filterButtonRef.current.getBoundingClientRect();
@@ -87,7 +90,7 @@ export function ConnectionMenu({ pending, choices, onChoose, onDismiss }: Props)
     }
   };
 
-  return <div ref={menuRef} className="connection-menu nodrag nopan nowheel" role="dialog" aria-label="推荐节点"
+  return <div ref={menuRef} className="connection-menu nodrag nopan nowheel" role="dialog" aria-label={mode === 'create' ? '创建节点' : '推荐节点'}
     style={{ left: position.x, top: position.y }}
     onPointerDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}
     onKeyDown={event => {
@@ -118,7 +121,7 @@ export function ConnectionMenu({ pending, choices, onChoose, onDismiss }: Props)
     <div className="connection-menu-search">
       <Search size={16} strokeWidth={1.5} aria-hidden="true" />
       <input ref={searchRef} value={query} autoComplete="off" spellCheck={false}
-        aria-label="搜索可连接节点" placeholder="Search" onFocus={() => setActive(-1)}
+        aria-label={mode === 'create' ? '搜索节点' : '搜索可连接节点'} placeholder="Search" onFocus={() => setActive(-1)}
         onChange={event => { setQuery(event.target.value); setActive(-1); }}
         role="combobox" aria-expanded="true" aria-controls="connection-recommendations" aria-autocomplete="list" />
       {query && <button type="button" className="connection-menu-clear" aria-label="清空搜索" tabIndex={-1}
@@ -159,7 +162,7 @@ export function ConnectionMenu({ pending, choices, onChoose, onDismiss }: Props)
         {creator === value && <Check size={14} strokeWidth={1.25} aria-hidden="true" />}
       </button>)}
     </div>}
-    <div id="connection-recommendations" role="listbox" aria-label="可连接节点" className="connection-menu-results">
+    <div id="connection-recommendations" role="listbox" aria-label={mode === 'create' ? '可创建节点' : '可连接节点'} className="connection-menu-results">
       {matches.map(({ choice, item }, index) => <button type="button" role="option" aria-selected={activeIndex === index}
         ref={element => { optionRefs.current[index] = element; }} tabIndex={-1}
         id={`connection-choice-${index}`} key={choice.id} className={activeIndex === index ? 'is-active' : ''}
@@ -171,6 +174,6 @@ export function ConnectionMenu({ pending, choices, onChoose, onDismiss }: Props)
         <span>{item.label}</span>
       </button>)}
     </div>
-    {!matches.length && <span className="connection-menu-status" role="status">{choices.length ? '没有匹配的节点' : '暂无可连接的节点'}</span>}
+    {!matches.length && <span className="connection-menu-status" role="status">{choices.length ? '没有匹配的节点' : mode === 'create' ? '暂无可创建的节点' : '暂无可连接的节点'}</span>}
   </div>;
 }

@@ -1,3 +1,4 @@
+import { outputColor, outputKind, replaceRouterInput, routerFromOutput } from './nodes/router';
 import { restoreBlendData } from './nodes/blend';
 import { restoreCompareData } from './nodes/compare';
 import { restoreResizeData } from './nodes/resize';
@@ -13,10 +14,10 @@ import { isPainterNode, isNodeLocked } from './nodes/types';
 import { restorePainterData } from './nodes/painter';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasSidebar } from './components/CanvasSidebar';
-import { ConnectionMenu } from './components/ConnectionMenu';
+import { ConnectionMenu, type NodeMenuChoice } from './components/ConnectionMenu';
 import { canConnect } from './nodes/connectionRules';
-import { connectionChoices, choiceConnection, initializeConnectionParameter, type PendingConnection, type ConnectionChoice } from './nodes/connectionRecommendations';
-import { createLibraryNode } from './components/libraryCatalog';
+import { connectionChoices, choiceConnection, initializeConnectionParameter, type PendingConnection } from './nodes/connectionRecommendations';
+import { createLibraryNode, items } from './components/libraryCatalog';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
@@ -55,8 +56,10 @@ import { WorkflowStorage, type Workflow } from './persistence/workflowStorage';
 import { useWorkflowPersistence } from './persistence/useWorkflowPersistence';
 
 const defaultEdgeOptions = { type: 'default', pathOptions: curveOptions };
+type PendingNodeMenu = PendingConnection | Pick<PendingConnection, 'screen' | 'position'>;
+const creationChoices: NodeMenuChoice[] = items.filter(item => item.nodeType).map(item => ({ id: item.id, itemId: item.id }));
 
-function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | null }) {
+export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | null }) {
   const [colorMode, setColorMode] = useState<'light' | 'dark'>(saved?.colorMode ?? 'dark');
   const [viewport, setViewport] = useState(saved?.viewport ?? { x: 0, y: 0, zoom: 1 });
   useEffect(() => {
@@ -70,8 +73,8 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
   const { screenToFlowPosition, getNodes, getEdges } = useReactFlow<AppNode>();
   const [tool, setTool] = useState<CanvasTool>('select');
   const [importError, setImportError] = useState('');
-  const [pendingConnection, setPendingConnection] = useState<PendingConnection | null>(null);
-  const dismissConnectionMenu = useCallback(() => setPendingConnection(null), []);
+  const [pendingNodeMenu, setPendingNodeMenu] = useState<PendingNodeMenu | null>(null);
+  const dismissNodeMenu = useCallback(() => setPendingNodeMenu(null), []);
   const restore = useCallback((snapshot: { nodes: AppNode[]; edges: typeof edges }) => {
     setNodes(snapshot.nodes);
     setEdges(snapshot.edges);
@@ -99,11 +102,11 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
           }]);
           return;
         }
-        if (saved.format === 'momoflow-preview-node' && saved.node?.type === 'preview'
+        if ((saved.format === 'momoflow-preview-node' && saved.node?.type === 'preview' || saved.format === 'momoflow-router-node' && saved.node?.type === 'router')
           && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
           event.preventDefault();
           setNodes(current => [...current.map(node => ({ ...node, selected: false })), {
-            id: crypto.randomUUID(), type: 'preview', selected: true,
+            id: crypto.randomUUID(), type: saved.node.type, selected: true,
             position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 },
             data: { label: typeof saved.node.data?.label === 'string' ? saved.node.data.label : undefined },
           }]);
@@ -254,14 +257,15 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
   }, [screenToFlowPosition, setNodes]);
   const onConnect: OnConnect = useCallback(
     (connection) => {
-      setEdges((edges) => addEdge(connection, edges));
+      if (!canConnect(connection, getNodes(), getEdges())) return;
+      setEdges((edges) => addEdge(connection, replaceRouterInput(connection, getNodes(), edges)));
       setNodes((currentNodes) => currentNodes.map((node) =>
         node.id === connection.target && isTextNode(node)
           ? { ...node, data: { ...node.data, variableCount: Math.max(node.data.variableCount ?? 0, variableIndex(connection.targetHandle) + 2) } }
           : node,
       ));
     },
-    [setEdges, setNodes]
+    [setEdges, setNodes, getNodes, getEdges]
   );
 
   const onConnectEnd: OnConnectEnd = useCallback(
@@ -278,7 +282,7 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
       const dropTarget = document.elementFromPoint(pointer.clientX, pointer.clientY);
       if (!dropTarget?.classList.contains('react-flow__pane')) return;
 
-      setPendingConnection({
+      setPendingNodeMenu({
         nodeId: fromNode.id, handleId: fromHandle.id ?? null, direction: fromHandle.type,
         screen: { x: pointer.clientX, y: pointer.clientY },
         position: screenToFlowPosition({ x: pointer.clientX, y: pointer.clientY }),
@@ -287,13 +291,21 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
     [screenToFlowPosition],
   );
 
-  const chooseConnectionNode = useCallback((choice: ConnectionChoice) => {
-    if (!pendingConnection) return;
+  const chooseNode = useCallback((selected: NodeMenuChoice) => {
+    if (!pendingNodeMenu) return;
+    if (!('nodeId' in pendingNodeMenu)) {
+      const node = createLibraryNode(selected.itemId, pendingNodeMenu.position);
+      if (node) setNodes(current => [...current.map(item => ({ ...item, selected: false })), node]);
+      setPendingNodeMenu(null);
+      return;
+    }
+    const pendingConnection = pendingNodeMenu;
     const currentNodes = getNodes();
     const currentEdges = getEdges();
     // Recheck after the menu has been open: its node may have been locked or removed.
     const available = connectionChoices(pendingConnection, currentNodes, currentEdges);
-    if (!available.some(item => item.id === choice.id)) { setPendingConnection(null); return; }
+    const choice = available.find(item => item.id === selected.id);
+    if (!choice) { setPendingNodeMenu(null); return; }
     const created = createLibraryNode(choice.itemId, pendingConnection.position);
     if (!created) return;
     const node = initializeConnectionParameter(created, pendingConnection, currentNodes);
@@ -303,7 +315,7 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
     if (!canConnect(connection, [...currentNodes, node], currentEdges, node.type === 'file' ? node.id : undefined)) return;
     // Place the new connecting port at the drop point, including reverse connections.
     node.position = {
-      x: pendingConnection.position.x - (pendingConnection.direction === 'target' ? node.type === 'model-input' ? 250 : 460 : 0),
+      x: pendingConnection.position.x - (pendingConnection.direction === 'target' ? node.type === 'model-input' || node.type === 'router' ? 250 : 460 : 0),
       y: pendingConnection.position.y - choice.portY,
     };
     setNodes(current => [...current.map(item => {
@@ -312,9 +324,9 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
         ? { ...item, selected: false, data: { ...item.data, variableCount: Math.max(item.data.variableCount ?? 0, variableIndex(connection.targetHandle) + 2) } }
         : deselected;
     }), node]);
-    setEdges(current => addEdge({ ...connection, id: `edge-${crypto.randomUUID()}` }, current));
-    setPendingConnection(null);
-  }, [pendingConnection, getNodes, getEdges, setNodes, setEdges]);
+    setEdges(current => addEdge({ ...connection, id: `edge-${crypto.randomUUID()}` }, replaceRouterInput(connection, currentNodes, current)));
+    setPendingNodeMenu(null);
+  }, [pendingNodeMenu, getNodes, getEdges, setNodes, setEdges]);
 
   return (
     <CanvasHistoryContext.Provider value={history}><ReactFlow
@@ -322,7 +334,7 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
       minZoom={0.01}
       colorMode={colorMode}
       className={`canvas-tool-${tool}`}
-      panOnDrag={tool === 'hand' ? true : [1, 2]}
+      panOnDrag={tool === 'hand' ? [0, 1, 2] : [1, 2]}
       selectionOnDrag={tool === 'select'}
       nodesDraggable={tool === 'select'}
       nodesConnectable={tool === 'select'}
@@ -336,12 +348,16 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
         deletable: !node.data.locked,
         connectable: !node.data.locked && tool === 'select',
         style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
-      } : (isSunburstNode(node) || isPainterNode(node) || node.type === 'crop' || node.type === 'color-correction' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'blend' || node.type === 'compare' || node.type === 'resize' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
+      } : (isSunburstNode(node) || isPainterNode(node) || node.type === 'crop' || node.type === 'color-correction' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'blend' || node.type === 'compare' || node.type === 'resize' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview' || node.type === 'router') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
       edges={edges.map((edge) => {
         const source = nodes.find((node) => node.id === edge.source);
         const target = nodes.find((node) => node.id === edge.target);
+        if (source?.type === 'router' || target?.type === 'router') return {
+          ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
+          style: { ...edge.style, stroke: outputColor(outputKind(source, edge.sourceHandle, nodes, edges)) },
+        };
         const fileSource = source && isFileNode(source) ? source : undefined;
         const textConnection = (source?.type === 'color-palette' && edge.sourceHandle === 'text') || nodes.some((node) => (isTextNode(node) || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
         const generatedSource = source && (isSunburstNode(source) || source.type === 'painter' || source.type === 'crop' || source.type === 'color-correction' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'rotate-flip' || source.type === 'blend' || source.type === 'compare' || source.type === 'resize' || source.type === 'compositor' || (source.type === 'color-palette' && edge.sourceHandle === 'image'));
@@ -392,8 +408,24 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
           data: { assets, activeAssetId: assets[0].id },
         }]);
       }}
-      onConnectStart={dismissConnectionMenu}
-      onMoveStart={dismissConnectionMenu}
+      onDoubleClickCapture={event => {
+        const handle = (event.target as HTMLElement).closest<HTMLElement>('.react-flow__handle.source');
+        if (!handle || tool !== 'select') return;
+        event.preventDefault(); event.stopPropagation();
+        const bounds = handle.getBoundingClientRect();
+        const port = screenToFlowPosition({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 });
+        const graph = routerFromOutput(handle.dataset.nodeid ?? '', handle.dataset.handleid ?? null,
+          { x: port.x + 100, y: port.y - 31 }, getNodes(), getEdges(), crypto.randomUUID());
+        if (graph) { setNodes(graph.nodes); setEdges(graph.edges); setPendingNodeMenu(null); }
+      }}
+      onPaneContextMenu={event => {
+        if (!(event.target instanceof Element) || !event.target.classList.contains('react-flow__pane')) return;
+        event.preventDefault();
+        const screen = { x: event.clientX, y: event.clientY };
+        setPendingNodeMenu({ screen, position: screenToFlowPosition(screen) });
+      }}
+      onConnectStart={dismissNodeMenu}
+      onMoveStart={dismissNodeMenu}
       onConnect={onConnect}
       onConnectEnd={onConnectEnd}
       onKeyDown={(event) => {
@@ -416,11 +448,12 @@ function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | 
       fitView={!saved}
     >
       <Background />
-      {pendingConnection && <ConnectionMenu
-        pending={pendingConnection}
-        choices={connectionChoices(pendingConnection, nodes, edges)}
-        onChoose={chooseConnectionNode}
-        onDismiss={dismissConnectionMenu}
+      {pendingNodeMenu && <ConnectionMenu
+        screen={pendingNodeMenu.screen}
+        mode={'nodeId' in pendingNodeMenu ? 'connect' : 'create'}
+        choices={'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes, edges) : creationChoices}
+        onChoose={chooseNode}
+        onDismiss={dismissNodeMenu}
       />}
       <Panel position="bottom-left" className="canvas-save-status" role={persistence.error ? 'alert' : 'status'}>
         <span>{persistence.error || persistence.status}</span>

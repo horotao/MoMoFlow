@@ -1,3 +1,4 @@
+import { RouterNode } from './RouterNode';
 import { BlendNode } from './BlendNode';
 import { CompareNode } from './CompareNode';
 import { ResizeNode } from './ResizeNode';
@@ -23,6 +24,7 @@ import type { AppNode } from './types';
 export const initialNodes: AppNode[] = [];
 
 export const nodeTypes = {
+  router: RouterNode,
   blend: BlendNode,
   compare: CompareNode,
   'color-palette': ColorPaletteNode,

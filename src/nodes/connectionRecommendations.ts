@@ -1,3 +1,5 @@
+import { canConnect } from './connectionRules.ts';
+import { outputKind, resolveOutputSource } from './router.ts';
 import type { Connection, Edge, XYPosition } from '@xyflow/react';
 import type { AppNode } from './types';
 import { isCompositorNode, isNodeLocked, isSunburstNode, isDescriberNode } from './types.ts';
@@ -35,7 +37,7 @@ export function initializeConnectionParameter(node: AppNode, pending: PendingCon
   return field ? { ...node, data: sunburstParameterData(field, target.data[field]) } : node;
 }
 
-export function connectionChoices(pending: PendingConnection, nodes: AppNode[], edges: Edge[]): ConnectionChoice[] {
+function directConnectionChoices(pending: PendingConnection, nodes: AppNode[], edges: Edge[]): ConnectionChoice[] {
   const node = nodes.find(item => item.id === pending.nodeId);
   if (!node || isNodeLocked(node)) return [];
   const choice = (itemId: string, handleId: string | null, portY = 91, detail?: string): ConnectionChoice => ({
@@ -63,4 +65,36 @@ export function connectionChoices(pending: PendingConnection, nodes: AppNode[], 
     || (isSunburstNode(node) && (pending.handleId === 'prompt' || (node.data.exposed ?? []).some(field => field === pending.handleId)))
     || (isDescriberNode(node) && (node.data.exposed ?? []).some(field => field === pending.handleId));
   return textInput ? [choice('text', null), choice('model-input', null, 32), choice('image-describer', null), choice('color-palette', 'text', 149, 'Text')] : [];
+}
+
+export function connectionChoices(pending: PendingConnection, nodes: AppNode[], edges: Edge[]): ConnectionChoice[] {
+  const node = nodes.find(item => item.id === pending.nodeId);
+  if (!node || isNodeLocked(node)) return [];
+  const router: ConnectionChoice = { id: `router:${pending.direction === 'source' ? 'input' : 'output'}`, itemId: 'router', handleId: pending.direction === 'source' ? 'input' : 'output', portY: 31 };
+  if (node.type !== 'router') {
+    const choices = directConnectionChoices(pending, nodes, edges);
+    return pending.direction === 'source' ? (outputKind(node, pending.handleId) ? [...choices, router] : choices) : choices.length ? [...choices, router] : [];
+  }
+  if (pending.handleId !== (pending.direction === 'source' ? 'output' : 'input')) return [];
+  const origin = pending.direction === 'source' ? resolveOutputSource(node, 'output', nodes, edges) : undefined;
+  if (origin) {
+    const virtualNodes = nodes.map(item => item.id === node.id ? { ...origin.node, id: node.id, data: { ...origin.node.data, locked: false } } as AppNode : item);
+    return [...directConnectionChoices({ ...pending, handleId: origin.handle ?? null }, virtualNodes, edges), router];
+  }
+  const placeholders: AppNode[] = [
+    { id: node.id, type: 'text', position: node.position, data: { text: '' } },
+    { id: node.id, type: 'preview', position: node.position, data: {} },
+  ];
+  const choices = placeholders.flatMap(placeholder => directConnectionChoices(
+    { ...pending, handleId: pending.direction === 'target' ? placeholder.type === 'text' ? 'variable-1' : 'file' : placeholder.type === 'text' ? null : 'image' },
+    nodes.map(item => item.id === node.id ? pending.direction === 'source' && placeholder.type === 'preview' ? { ...placeholder, type: 'color-palette', data: { colors: [] } } as AppNode : placeholder : item),
+    edges.filter(edge => edge.target !== node.id),
+  ));
+  const unique = [...new Map([...choices, router].map(choice => [choice.id, choice])).values()];
+  if (pending.direction === 'source') return unique;
+  return unique.filter(choice => {
+    // Only type/port metadata is read during connection validation.
+    const candidate = { id: '__router-choice__', type: choice.itemId, position: node.position, data: {} } as AppNode;
+    return canConnect(choiceConnection(pending, choice, candidate.id), [...nodes, candidate], edges, candidate.type === 'file' ? candidate.id : undefined);
+  });
 }
