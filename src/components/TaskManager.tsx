@@ -1,17 +1,19 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { DescriberIcon } from './DescriberIcon';
+import { ModelRunSpinner } from './ModelRunButton';
 import { clearFinishedTasks, groupState, isActiveTask, taskGroups, type PreviewTask, type TaskState } from '../nodes/taskQueue';
 
 const taskStateLabels: Record<TaskState, string> = { Queued: '排队中', Running: '运行中…', Done: '已完成', Cancelled: '已取消', Failed: '失败' };
 
 function TaskStatusIcon({ state }: { state: TaskState }) {
   if (state === 'Done') return <DescriberIcon name="done" />;
+  if (state === 'Running') return <ModelRunSpinner />;
   return <svg className={`task-status-icon state-${state.toLowerCase()}`} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" aria-hidden="true">
-    {state === 'Running' ? <><circle cx="12" cy="12" r="6.5" opacity=".25" /><path className="task-spinner" d="M12 5.5a6.5 6.5 0 0 1 6.5 6.5" /></> : <><circle cx="12" cy="12" r="6.5" />{state === 'Queued' ? <path d="M12 8v4l2.5 1.5" /> : state === 'Failed' ? <path d="M12 8.5v4M12 15h.01" /> : <path d="m9.5 9.5 5 5m0-5-5 5" />}</>}
+    <circle cx="12" cy="12" r="6.5" />{state === 'Queued' ? <path d="M12 8v4l2.5 1.5" /> : state === 'Failed' ? <path d="M12 8.5v4M12 15h.01" /> : <path d="m9.5 9.5 5 5m0-5-5 5" />}
   </svg>;
 }
 function TaskProgress({ progress, label }: { progress: number; label: string }) {
-  return <span className="task-progress" role="progressbar" aria-label={label} aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-valuetext={`${progress}%`}><span className="task-progress-label">{progress}%</span><span className="task-progress-track"><span style={{ width: `${progress}%` }} /></span></span>;
+  return <span className="task-progress" role="progressbar" aria-label={label} title="预估进度，实际完成以模型返回结果为准" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-valuetext={`预估 ${progress}%`}><span className="task-progress-label">{progress}%</span><span className="task-progress-track"><span style={{ width: `${progress}%` }} /></span></span>;
 }
 
 type Props = {
@@ -36,7 +38,7 @@ export function TaskManager({ tasks, trigger, sidebarOpen, onClose, onFocus, onC
     return <div className={`task-row state-${task.state.toLowerCase()}`} key={task.id}>
       <button className="task-main" title={detail} onClick={() => onFocus(task.nodeId)}>
         <span className="task-name"><TaskStatusIcon state={task.state} /><span>{task.imageRequest ? 'GPT Image 2.5 Sunburst' : '图像描述'}</span></span>
-        <span className="task-status">{taskStateLabels[task.state]}</span>
+        <span className="task-status">{task.state === 'Running' ? <TaskProgress progress={task.progress} label="任务预估进度" /> : taskStateLabels[task.state]}</span>
       </button>
       <div className="task-actions">
         {(task.state === 'Failed' || task.state === 'Cancelled') && <button title="重新调用（可能再次计费）" aria-label="重试任务" onClick={() => onRetry(task)}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 10a6 6 0 1 1 0 4M6 6v4h4" /></svg></button>}

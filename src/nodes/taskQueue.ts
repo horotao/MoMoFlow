@@ -7,6 +7,23 @@ export type PreviewTask = {
 };
 export const isActiveTask = (task: PreviewTask) => task.state === 'Queued' || task.state === 'Running';
 
+// The synchronous model APIs do not report progress. Ease toward 95%, and only
+// let the actual response mark a task Done. Never advance cancelled/failed tasks.
+export function advanceEstimatedProgress(tasks: PreviewTask[], now: number): PreviewTask[] {
+  let changed = false;
+  const next = tasks.map(task => {
+    if (task.state !== 'Running') return task;
+    const duration = task.imageRequest ? 90000 : 30000;
+    const elapsed = Math.max(0, now - task.started);
+    const estimate = Math.min(95, Math.floor(96 * (1 - Math.exp(-elapsed / (duration / 2)))));
+    const progress = Math.max(task.progress, estimate);
+    if (progress === task.progress) return task;
+    changed = true;
+    return { ...task, progress };
+  });
+  return changed ? next : tasks;
+}
+
 // The preview queue has one worker. Terminal tasks never resume or change later.
 export function advanceTasks(tasks: PreviewTask[], now: number, validate: (task: PreviewTask) => string | undefined): PreviewTask[] {
   const active = tasks.find(isActiveTask);

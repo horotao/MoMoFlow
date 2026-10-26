@@ -64,6 +64,7 @@ CI 使用完整 Git 历史，PR 以目标分支基点、推送以事件的前一
 | Color palette 编辑器 | `/tests/color-palette-picker.html` |
 | Color palette 原生拖动 | `/tests/color-palette-native-drag.html`，需真实鼠标与不同缩放验证 |
 | Resize 尺寸、透明区域、比例与持久化 | `/tests/resize.html` |
+| 模型运行进度、动画、完成、失败与取消隔离 | `/tests/model-run-progress.html`；沿用浏览器测试页，无新增依赖，所有模型响应均为本地模拟 |
 
 画布修改检查拖动、坐标、连线、缩放、小地图、主题、撤销与刷新恢复。文本编辑修改还需检查中文输入法、Tab 建议、粘贴和变量；图片处理按需检查交互草稿与原尺寸 / 4K 输出一致。测试页使用隔离场景，不应向用户的现有工作流插入验收素材。
 

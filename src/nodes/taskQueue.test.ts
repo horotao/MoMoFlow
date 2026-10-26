@@ -1,7 +1,34 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readyDescriberTasks, advanceTasks, clearFinishedTasks, groupState, isActiveTask, taskGroups, type PreviewTask } from './taskQueue.ts';
+import { advanceEstimatedProgress, readyDescriberTasks, advanceTasks, clearFinishedTasks, groupState, isActiveTask, taskGroups, type PreviewTask } from './taskQueue.ts';
+import { defaultSunburstSettings } from './sunburst.ts';
 const task = (id: string): PreviewTask => ({ id, batchId: 'batch', nodeId: 'node', model: 'preview', createdAt: 100, started: 0, progress: 0, state: 'Queued' });
+test('estimated progress advances monotonically but never completes a real request', () => {
+  const initial: PreviewTask[] = [{ ...task('real'), state: 'Running', started: 1000 }];
+  const advanced = advanceEstimatedProgress(initial, 6000);
+  assert.ok(advanced[0].progress > 0 && advanced[0].progress < 95);
+  assert.equal(initial[0].progress, 0);
+  assert.equal(advanceEstimatedProgress(advanced, 2000), advanced, 'clock moving backwards cannot regress progress');
+  const waiting = advanceEstimatedProgress(advanced, 10000000);
+  assert.equal(waiting[0].progress, 95);
+  assert.equal(waiting[0].state, 'Running');
+  assert.equal(advanceEstimatedProgress(waiting, 20000000), waiting);
+});
+test('estimates preserve queued and terminal tasks, including completed 100 percent', () => {
+  const tasks: PreviewTask[] = [task('queued'), { ...task('cancelled'), state: 'Cancelled', progress: 32 }, { ...task('failed'), state: 'Failed', progress: 48 }, { ...task('done'), state: 'Done', progress: 100 }];
+  assert.equal(advanceEstimatedProgress(tasks, 100000), tasks);
+});
+test('image requests estimate more slowly and progress updates keep same-node scheduling ordered', () => {
+  const tasks: PreviewTask[] = [
+    { ...task('image'), state: 'Running', started: 1000, imageRequest: { ...defaultSunburstSettings, prompt: 'test', images: [] } },
+    { ...task('text'), nodeId: 'text', state: 'Running', started: 1000 },
+    task('next'),
+  ];
+  const advanced = advanceEstimatedProgress(tasks, 11000);
+  assert.ok(advanced[0].progress > 0 && advanced[0].progress < advanced[1].progress);
+  assert.deepEqual(readyDescriberTasks(advanced, []), []);
+  assert.equal(advanced[2], tasks[2]);
+});
 test('preview runs one job at a time and completes at 100 percent without mutating prior snapshots', () => {
   const initial = [task('a'), task('b')];
   const running = advanceTasks(initial, 1000, () => undefined);

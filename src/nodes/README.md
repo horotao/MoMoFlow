@@ -52,6 +52,7 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 | [describerRun.ts](./describerRun.ts)、[sunburstRun.ts](./sunburstRun.ts) | 从画布解析输入、校验运行条件、建立任务输入快照；`imageOutput` 定义图片输出语义 |
 | [describerClient.ts](./describerClient.ts)、[sunburstClient.ts](./sunburstClient.ts) | 浏览器请求与响应处理；服务端接入位于根目录 `server/` |
 | [taskQueue.ts](./taskQueue.ts)、[DescriberPanel.tsx](../components/DescriberPanel.tsx)、[TaskManager.tsx](../components/TaskManager.tsx) | 任务状态与调度、实际请求和结果写回、任务列表及取消与重试 |
+| [ModelRunButton.tsx](../components/ModelRunButton.tsx)、[useModelTasks.ts](../components/useModelTasks.ts)、[ModelTasksProvider.tsx](../components/ModelTasksProvider.tsx) | 节点和任务面板共享临时运行状态，显示启动、旋转圆环、百分比和取消操作；不写入画布历史或持久化 |
 | [TextNodeMenu.tsx](./TextNodeMenu.tsx)、[cloneTextNode.ts](./cloneTextNode.ts)、[sunburstClipboard.ts](./sunburstClipboard.ts) | 节点菜单及现有类型的复制、粘贴与克隆处理 |
 | [assetResources.ts](./assetResources.ts)、[workflowStorage.ts](../persistence/workflowStorage.ts)、[useWorkflowPersistence.ts](../persistence/useWorkflowPersistence.ts) | 素材引用生命周期、IndexedDB 保存恢复及自动保存；撤销历史见 [useCanvasHistory.ts](../components/useCanvasHistory.ts) |
 | [index.css](../index.css)、[SunburstNode.css](./SunburstNode.css) | 共享节点样式、主题和 Sunburst 专用样式 |
@@ -70,6 +71,8 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 - `model-input` 同时用于模型名称和 Sunburst 参数选项，`parameter` 标识参数用途，`options` 保存可选文本。Options 输入端口尚未实现，继续保持不可连接。
 - 从 Sunburst 暴露的参数输入反向选择 Model Name 时，复用 `sunburstParameterData`，按目标参数的当前本地值初始化名称、值和选项（保留自定义尺寸）；普通模型名称节点仍使用原默认值。
 - 对支持锁定的节点，数据更新、拖动、删除、连线和运行入口都需考虑 `locked`，异步结果写回前再次检查。节点内的编辑与点击控件按交互需要使用 `nodrag`、`nopan`、`nowheel`，避免与画布手势冲突。
+- Sunburst 和 Image Describer 运行时将运行按钮替换为 Weavy 样式的 32px 进度框：启动状态、每秒一圈的圆环、百分比与取消按钮。现有接口没有进度回传，百分比明确标注为预估，平滑趋近 95% 后等待真实响应；只有成功响应和结果写回后才完成。节点取消操作停止该节点的运行与排队任务，不影响其他节点；任务面板仍可单独取消一项。运行结束或失败后恢复运行按钮，失败详情保留在任务列表。减少动态效果时圆环改为 4 秒四步旋转。
+- `taskQueue.test.ts` 随 `npm test` 验证预估进度不提前完成、不倒退、不推进终态；`/tests/model-run-progress.html` 使用真实节点、调度与本地受控响应验证动画、完成、失败、并发取消隔离和迟到结果保护，不调用真实模型，不读写用户工作流。
 
 ## Color palette 色板约定
 

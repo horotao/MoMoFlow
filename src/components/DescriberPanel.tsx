@@ -9,7 +9,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import { X } from 'lucide-react';
 import { TaskManager } from './TaskManager';
-import { readyDescriberTasks, isActiveTask, type PreviewTask } from '../nodes/taskQueue';
+import { advanceEstimatedProgress, readyDescriberTasks, isActiveTask, type PreviewTask } from '../nodes/taskQueue';
+import { useModelTasks, useModelTaskStore } from './useModelTasks';
 import { isDescriberNode, isNodeLocked, isSunburstNode } from '../nodes/types';
 import type { AppNode, FileAsset, ImageDescriberNode, ModelInputNode } from '../nodes/types';
 import { DescriberIcon } from './DescriberIcon';
@@ -34,20 +35,19 @@ export function DescriberPanel() {
   const selectedPalette = nodes.find(node => isColorPaletteNode(node) && node.selected);
   const panelOpen = Boolean(selected || selectedModel || selectedImage || selectedPalette);
   const [tasksOpen, setTasksOpen] = useState(false);
-  const [tasks, setTasks] = useState<PreviewTask[]>([]);
+  const tasks = useModelTasks();
+  const taskStore = useModelTaskStore();
   useLayoutEffect(() => assetResources.retain(tasks.filter(isActiveTask).flatMap(taskAssetUrls)), [tasks]);
   const [runs, setRuns] = useState(1);
   const [error, setError] = useState('');
-  const pending = useRef<PreviewTask[]>([]);
   const workers = useRef(new Map<string, { nodeId: string; controller: AbortController }>());
   const tasksTrigger = useRef<HTMLButtonElement>(null);
-  const changeTasks = (update: (tasks: PreviewTask[]) => PreviewTask[]) => {
-    pending.current = update(pending.current);
+  const changeTasks = taskStore.update;
+  useEffect(() => taskStore.subscribe(() => {
     for (const [id, worker] of workers.current) {
-      if (!pending.current.some((task) => task.id === id && isActiveTask(task))) worker.controller.abort();
+      if (!taskStore.getSnapshot().some(task => task.id === id && isActiveTask(task))) worker.controller.abort();
     }
-    setTasks(pending.current);
-  };
+  }), [taskStore]);
   const effective = (node: ImageDescriberNode, field: 'model' | 'instructions') => {
     const edge = edges.find((e) => e.target === node.id && e.targetHandle === field);
     return edge ? resolveTextValue(edge.source, nodes, edges) : node.data[field];
@@ -56,7 +56,7 @@ export function DescriberPanel() {
     const run = (event: Event) => {
       const detail = (event as CustomEvent<string | string[]>).detail;
       const ids = Array.isArray(detail) ? detail : [detail];
-      if (pending.current.some(task => ids.includes(task.nodeId) && isActiveTask(task))) { setError('选中节点已有运行中的任务，请等待完成后再运行。'); return; }
+      if (taskStore.getSnapshot().some(task => ids.includes(task.nodeId) && isActiveTask(task))) { setError('选中节点已有运行中的任务，请等待完成后再运行。'); return; }
       const description = prepareDescriberRun(getNodes(), getEdges(), ids, runs);
       const generation = prepareSunburstRun(getNodes(), getEdges(), ids, runs);
       const result = { tasks: [...description.tasks, ...generation.tasks], error: description.error || generation.error };
@@ -64,24 +64,24 @@ export function DescriberPanel() {
       if (!result.tasks.length) return;
       if (result.tasks.some((task) => !task.imageRequest && task.model !== 'deepseek-flash')) { setError('请选择 deepseek-flash；其他模型尚未接入。'); return; }
       setError(''); setTasksOpen(true);
-      pending.current = [...pending.current, ...result.tasks]; setTasks([...pending.current]);
+      taskStore.update(current => [...current, ...result.tasks]);
     };
     window.addEventListener('describer-run', run);
     window.addEventListener('sunburst-run', run);
     return () => { window.removeEventListener('describer-run', run); window.removeEventListener('sunburst-run', run); };
-  }, [getNodes, getEdges, runs]);
+  }, [getNodes, getEdges, runs, taskStore]);
   useEffect(() => {
     let disposed = false;
     const activeWorkers = workers.current;
     const timer = window.setInterval(() => {
-      const ready = readyDescriberTasks(pending.current, [...activeWorkers.values()].map((worker) => worker.nodeId));
+      taskStore.update(current => advanceEstimatedProgress(current, Date.now()));
+      const ready = readyDescriberTasks(taskStore.getSnapshot(), [...activeWorkers.values()].map((worker) => worker.nodeId));
       for (const task of ready) {
         const controller = new AbortController();
         activeWorkers.set(task.id, { nodeId: task.nodeId, controller });
         const update = (state: PreviewTask['state'], error?: string) => {
           if (disposed) return;
-          pending.current = pending.current.map((item) => item.id === task.id && isActiveTask(item) ? { ...item, state, error, started: item.started || Date.now(), progress: state === 'Done' ? 100 : 0 } : item);
-          if (!disposed) setTasks([...pending.current]);
+          taskStore.update(current => current.map(item => item.id === task.id && isActiveTask(item) ? { ...item, state, error, started: item.started || Date.now(), progress: state === 'Done' ? 100 : item.progress } : item));
         };
         update('Running');
         const releaseAssets = assetResources.retain(taskAssetUrls(task));
@@ -94,7 +94,7 @@ export function DescriberPanel() {
             if (!node || isNodeLocked(node)) throw new Error('节点已删除或锁定。');
             const result = task.imageRequest ? await requestSunburst(task.imageRequest, controller.signal) : await requestDescription(task, controller.signal);
             if (typeof result !== 'string') generated = result;
-            if (disposed || !pending.current.some((item) => item.id === task.id && item.state === 'Running')) return;
+            if (disposed || !taskStore.getSnapshot().some((item) => item.id === task.id && item.state === 'Running')) return;
             const current = getNodes().find((item) => item.id === task.nodeId);
             if (!current || isNodeLocked(current)) throw new Error('节点已删除或锁定，未写入结果。');
             if (typeof result === 'string') rawUpdateNodeData(task.nodeId, { text: result });
@@ -113,7 +113,7 @@ export function DescriberPanel() {
       }
     }, 200);
     return () => { disposed = true; window.clearInterval(timer); for (const worker of activeWorkers.values()) worker.controller.abort(); };
-  }, [getNodes, rawUpdateNodeData]);
+  }, [getNodes, rawUpdateNodeData, taskStore]);
   const expose = (field: 'model' | 'instructions') => {
     if (!selected || isNodeLocked(getNodes().find((node) => node.id === selected.id))) return;
     const exposed = selected.data.exposed ?? [];

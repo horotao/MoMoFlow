@@ -5,6 +5,7 @@ import type { AppNode, SunburstNode as Sunburst } from './types';
 import { isNodeLocked } from './types';
 import { sunburstName, sunburstFieldLabels } from './sunburst';
 import { OpenAIIcon } from '../components/OpenAIIcon';
+import { ModelRunButton } from '../components/ModelRunButton';
 import { TextNodeMenu } from './TextNodeMenu';
 import { FileGallery } from './FileGallery';
 import { FileIcon } from './FileIcon';
@@ -77,7 +78,7 @@ export function SunburstNode({ id, data, isConnectable }: NodeProps<Sunburst>) {
       </div></>}
     </div>
     </div>
-    <div className="sunburst-actions"><button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= 16} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />添加图片输入</button><button className="sunburst-run nodrag nopan" disabled={data.locked} onClick={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('sunburst-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</button></div>
+    <div className="sunburst-actions"><button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= 16} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />添加图片输入</button><ModelRunButton nodeId={id} className="sunburst-run nodrag nopan" disabled={data.locked} onRun={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('sunburst-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</ModelRunButton></div>
     {ports.map(port => <div className="describer-port-wrapper" key={port.id}>
       <span className={`describer-port-label sunburst-label-${port.kind}`} style={{ top: port.top - 28 }}>{port.label}{port.kind === 'prompt' && <sup>*</sup>}</span>
       <Handle id={port.id} type="target" position={Position.Left} className={`describer-port sunburst-port-${port.kind}${edges.some(edge => edge.target === id && edge.targetHandle === port.id) ? ' is-connected' : ''}`} style={{ top: port.top }} aria-label={`${port.label} input`} isConnectable={isConnectable && !edges.some(edge => edge.target === id && edge.targetHandle === port.id)}>

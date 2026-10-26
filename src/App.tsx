@@ -36,6 +36,7 @@ import {
 } from '@xyflow/react';
 
 import { DescriberPanel } from './components/DescriberPanel';
+import { ModelTasksProvider } from './components/ModelTasksProvider';
 import { defaultInstructions } from './nodes/describer';
 import { CanvasDock, type CanvasTool } from './components/CanvasDock';
 import { CanvasHistoryContext, useCanvasHistory } from './components/useCanvasHistory';
@@ -533,7 +534,7 @@ export default function App() {
   </div>;
   return (
     <ReactFlowProvider>
-      <Flow storage={loaded.storage} saved={loaded.saved} />
+      <ModelTasksProvider><Flow storage={loaded.storage} saved={loaded.saved} /></ModelTasksProvider>
     </ReactFlowProvider>
   );
 }
