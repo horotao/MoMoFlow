@@ -24,7 +24,7 @@ function Dimension({ axis, value, max, disabled, onCommit }: { axis: 'width' | '
   const [draft, setDraft] = useState(String(value));
   const cancelled = useRef(false);
   useEffect(() => setDraft(String(value)), [value]);
-  return <label className="crop-dimension"><span>{axis === 'width' ? 'W' : 'H'}</span><input type="number" aria-label={axis === 'width' ? 'Crop width' : 'Crop height'} min={1} max={max} step={1}
+  return <label className="crop-dimension"><span>{axis === 'width' ? '宽' : '高'}</span><input type="number" aria-label={axis === 'width' ? '裁剪宽度' : '裁剪高度'} min={1} max={max} step={1}
     disabled={disabled} value={draft} onChange={event => setDraft(event.target.value)}
     onBlur={() => { if (cancelled.current) { cancelled.current = false; setDraft(String(value)); return; } setDraft(String(value)); if (draft.trim() && Number.isFinite(Number(draft)) && Number(draft) >= 1) onCommit(Number(draft)); }}
     onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { cancelled.current = true; setDraft(String(value)); event.currentTarget.blur(); } }} /></label>;
@@ -119,33 +119,33 @@ export function CropNode({ id, data, isConnectable }: NodeProps<CropNodeType>) {
       <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '裁剪'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
     </header>
     <div className={`crop-surface nodrag nopan nowheel${enabled ? '' : ' is-passive'}`} ref={surface} style={{ aspectRatio: input ? `${width} / ${height}` : '1' }}
-      tabIndex={0} aria-label="Crop image area" onPointerMove={move} onPointerUp={finish} onPointerCancel={clearGesture} onLostPointerCapture={() => { if (gesture.current) clearGesture(); }}
+      tabIndex={0} aria-label="图片裁剪区域" onPointerMove={move} onPointerUp={finish} onPointerCancel={clearGesture} onLostPointerCapture={() => { if (gesture.current) clearGesture(); }}
       onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); clearGesture(); } }}>
-      {image && <><img src={input!.url} alt="Crop source" draggable={false} />
+      {image && <><img src={input!.url} alt="裁剪原图" draggable={false} />
         <svg className="crop-shade" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
           <path fillRule="evenodd" d={`M0 0H1V1H0Z M${rect.x} ${rect.y}h${rect.width}v${rect.height}h${-rect.width}Z`} />
         </svg>
-        <div className="crop-selection" aria-label="Move crop selection" style={{ left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.width * 100}%`, height: `${rect.height * 100}%` }} onPointerDown={event => start(event, 'move')}>
+        <div className="crop-selection" aria-label="移动裁剪选区" style={{ left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.width * 100}%`, height: `${rect.height * 100}%` }} onPointerDown={event => start(event, 'move')}>
           <div className="crop-grid"><i /><i /><i /><i /></div>
-          {(['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const).map(handle => <div key={handle} className={`crop-handle crop-handle-${handle}`} aria-label={`Resize crop ${handle}`} onPointerDown={event => start(event, handle)} />)}
+          {(['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const).map(handle => <div key={handle} className={`crop-handle crop-handle-${handle}`} aria-label={`调整裁剪选区${{ nw: '左上角', n: '上边', ne: '右上角', e: '右边', se: '右下角', s: '下边', sw: '左下角', w: '左边' }[handle]}`} onPointerDown={event => start(event, handle)} />)}
         </div></>}
     </div>
     <div className="crop-settings nodrag nopan nowheel" onKeyDown={event => event.stopPropagation()}>
-      <div className="crop-setting-row"><span>Aspect ratio</span><div className="crop-ratio">
-        <DescriberModelSelect compact label="Aspect ratio" menuLabel="Aspect ratio presets" value={label} choices={cropRatios} includeCurrentValue={false} disabled={!enabled}
+      <div className="crop-setting-row"><span>宽高比</span><div className="crop-ratio">
+        <DescriberModelSelect compact label="宽高比" menuLabel="预设宽高比" value={label} choices={cropRatios} includeCurrentValue={false} disabled={!enabled}
           onChange={ratio => { const [w, h] = ratio.split(':').map(Number); patch({ rect: fitCropRatio(fullCrop, w / h, width, height), aspectLocked: true }); }} />
-      </div><button className="crop-reset" type="button" disabled={!enabled} onClick={() => patch({ rect: { ...fullCrop }, aspectLocked: false })}>Reset</button></div>
-      <div className="crop-setting-row"><span>Dimensions</span><div className="crop-dimensions">
+      </div><button className="crop-reset" type="button" disabled={!enabled} onClick={() => patch({ rect: { ...fullCrop }, aspectLocked: false })}>重置</button></div>
+      <div className="crop-setting-row"><span>尺寸</span><div className="crop-dimensions">
         <Dimension axis="width" value={pixels.width} max={width} disabled={!enabled} onCommit={value => patch({ rect: resizeCropDimension(data.rect, 'width', value, width, height, data.aspectLocked) })} />
         <Dimension axis="height" value={pixels.height} max={height} disabled={!enabled} onCommit={value => patch({ rect: resizeCropDimension(data.rect, 'height', value, width, height, data.aspectLocked) })} />
-        <button type="button" role="checkbox" aria-checked={data.aspectLocked} aria-label="Lock aspect ratio" title="Lock aspect ratio" disabled={!enabled} onClick={() => patch({ aspectLocked: !data.aspectLocked })}>
+        <button type="button" role="checkbox" aria-checked={data.aspectLocked} aria-label="锁定宽高比" title="锁定宽高比" disabled={!enabled} onClick={() => patch({ aspectLocked: !data.aspectLocked })}>
           {data.aspectLocked ? <LockKeyhole size={16} /> : <UnlockKeyhole size={16} />}</button>
       </div></div>
     </div>
-    {[{ handle: 'image', label: 'Input', output: false }, { handle: 'result', label: 'Output', output: true }].map(port => {
+    {[{ handle: 'image', label: '输入', output: false }, { handle: 'result', label: '输出', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
       return <div className="describer-port-wrapper" key={port.handle}><span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && <span className="crop-required">*</span>}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }} aria-label={`Crop ${port.label}`}
+        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }} aria-label={`裁剪${port.label}`}
           className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`} isConnectable={isConnectable && !data.locked && (port.output || !connected)} /></div>;
     })}
     {error && <div role="alert" className="crop-error">{error}</div>}

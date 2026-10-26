@@ -17,13 +17,13 @@ const shapes = { rectangle: Square, ellipse: Circle, triangle: Triangle, star: S
 const shapeNames = { rectangle: '矩形', ellipse: '椭圆', triangle: '三角形', star: '星形' };
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-function Slider({ label, value, max = 100, onChange, percent = false }: { label: string; value: number; max?: number; onChange: (value: number) => void; percent?: boolean }) {
-  return <label className="painter-field"><span>{label}</span><input aria-label={`${label} slider`} type="range" min={label === 'Size' ? 1 : 0} max={max} value={value} onChange={e => onChange(Number(e.target.value))} /><input aria-label={label} type="number" min={label === 'Size' ? 1 : 0} max={max} value={value} onChange={e => onChange(clamp(Number(e.target.value), label === 'Size' ? 1 : 0, max))} /><span className="painter-unit">{percent ? '%' : ''}</span></label>;
+function Slider({ label, value, min = 0, max = 100, onChange, percent = false }: { label: string; value: number; min?: number; max?: number; onChange: (value: number) => void; percent?: boolean }) {
+  return <label className="painter-field"><span>{label}</span><input aria-label={`${label}滑块`} type="range" min={min} max={max} value={value} onChange={e => onChange(Number(e.target.value))} /><input aria-label={label} type="number" min={min} max={max} value={value} onChange={e => onChange(clamp(Number(e.target.value), min, max))} /><span className="painter-unit">{percent ? '%' : ''}</span></label>;
 }
 function ColorField({ label, color, opacity, onColor, onOpacity }: { label: string; color: string; opacity: number; onColor: (value: string) => void; onOpacity: (value: number) => void }) {
   const [draft, setDraft] = useState(color.slice(1));
   useEffect(() => setDraft(color.slice(1)), [color]);
-  return <div className="painter-field painter-color"><span>{label}</span><div className="painter-color-value"><PainterColorPicker label={label} color={color} opacity={opacity} onColor={onColor} onOpacity={onOpacity} /><input aria-label={label} value={draft.toUpperCase()} maxLength={6} onChange={e => { const next = e.target.value.replace(/[^0-9a-f]/gi, ''); setDraft(next); if (next.length === 6) onColor(`#${next}`); }} onBlur={() => setDraft(color.slice(1))} /></div><input aria-label={`${label} opacity`} type="number" min="0" max="100" value={Math.round(opacity * 100)} onChange={e => onOpacity(clamp(Number(e.target.value), 0, 100) / 100)} /><span className="painter-unit">%</span></div>;
+  return <div className="painter-field painter-color"><span>{label}</span><div className="painter-color-value"><PainterColorPicker label={label} color={color} opacity={opacity} onColor={onColor} onOpacity={onOpacity} /><input aria-label={label} value={draft.toUpperCase()} maxLength={6} onChange={e => { const next = e.target.value.replace(/[^0-9a-f]/gi, ''); setDraft(next); if (next.length === 6) onColor(`#${next}`); }} onBlur={() => setDraft(color.slice(1))} /></div><input aria-label={`${label}不透明度`} type="number" min="0" max="100" value={Math.round(opacity * 100)} onChange={e => onOpacity(clamp(Number(e.target.value), 0, 100) / 100)} /><span className="painter-unit">%</span></div>;
 }
 
 export function PainterNode({ id, data, isConnectable }: NodeProps<Painter>) {
@@ -67,7 +67,7 @@ export function PainterNode({ id, data, isConnectable }: NodeProps<Painter>) {
     if (frame.current) cancelAnimationFrame(frame.current);
     const previousImage = loadedImage.current;
     setReady(false); setError(''); loadedImage.current = undefined;
-    if (inputEdge && !input) { painterLivePreviews.clear(id); setError('连接的 Image 尚无图片。'); surface.current?.getContext('2d')?.clearRect(0, 0, surface.current.width, surface.current.height); return; }
+    if (inputEdge && !input) { painterLivePreviews.clear(id); setError('连接的图像输入尚无图片。'); surface.current?.getContext('2d')?.clearRect(0, 0, surface.current.width, surface.current.height); return; }
     async function render() {
       try {
         let image: HTMLImageElement | undefined;
@@ -124,7 +124,7 @@ export function PainterNode({ id, data, isConnectable }: NodeProps<Painter>) {
   return <>
     <header className="text-node-header"><div className="text-node-title"><Paintbrush size={18} strokeWidth={1.3} />{renaming ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={e => setName(e.target.value)} onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setRenaming(false); }} /> : <span>{data.label || '绘图'}</span>}</div><TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '绘图'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu></header>
     <div data-tool={tool} className={`painter-preview nodrag nopan nowheel${tool === 'canvas' || data.locked ? ' is-passive' : ''}`} style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}` }}>
-      <canvas ref={surface} aria-label="Painter drawing canvas" tabIndex={0}
+      <canvas ref={surface} aria-label="绘图画布" tabIndex={0}
         onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); cancelStroke(); } }}
         onPointerDown={event => {
           if (event.button !== 0 || !ready || tool === 'canvas' || isNodeLocked(getNode(id))) return;
@@ -146,28 +146,28 @@ export function PainterNode({ id, data, isConnectable }: NodeProps<Painter>) {
           const latest = getNode(id); if (isPainterNode(latest)) patch({ strokes: [...latest.data.strokes, stroke] });
         }} onPointerCancel={cancelStroke} onLostPointerCapture={() => { if (draft.current) cancelStroke(); }} onPointerLeave={() => setCursor(null)} />
       {cursor && (tool === 'brush' || tool === 'eraser') && !data.locked && <span className="painter-cursor" style={{ left: `${cursor.x * 100}%`, top: `${cursor.y * 100}%`, width: `${controls.size / dimensions.width * 100}%`, aspectRatio: '1' }} />}
-      <div className="painter-preview-info"><span>{dimensions.width}×{dimensions.height}</span><button type="button" aria-label="Download result" title="Download result" disabled={!data.result || data.outputRevision !== revision} onClick={() => { if (data.result) void downloadAsset(data.result).catch(() => setError('下载失败，请重试。')); }}><Download size={15} /></button></div>
+      <div className="painter-preview-info"><span>{dimensions.width}×{dimensions.height}</span><button type="button" aria-label="下载结果" title="下载结果" disabled={!data.result || data.outputRevision !== revision} onClick={() => { if (data.result) void downloadAsset(data.result).catch(() => setError('下载失败，请重试。')); }}><Download size={15} /></button></div>
     </div>
     <fieldset className="painter-controls nodrag nopan nowheel" disabled={Boolean(data.locked)}>
-      <div className="painter-toolbar"><div role="toolbar" aria-label="Painter tools">
-        <button type="button" title="Canvas" aria-label="Canvas" aria-pressed={tool === 'canvas'} onClick={() => setTool('canvas')}><Frame size={17} /></button>
-        <button type="button" title="Brush" aria-label="Brush" aria-pressed={tool === 'brush'} onClick={() => setTool('brush')}><Brush size={18} /></button>
-        <div className="painter-shapes" ref={menu} onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setShapeMenu(false); } }}><button type="button" title="Shape" aria-label="Shape" aria-pressed={tool === 'shape'} onClick={() => setTool('shape')}><ShapeIcon size={16} /></button><button type="button" className="painter-shapes-trigger" aria-label="形状菜单" aria-haspopup="menu" aria-expanded={shapeMenu} onClick={() => setShapeMenu(value => !value)}><ChevronDown size={12} /></button>
+      <div className="painter-toolbar"><div role="toolbar" aria-label="绘图工具">
+        <button type="button" title="画布" aria-label="画布" aria-pressed={tool === 'canvas'} onClick={() => setTool('canvas')}><Frame size={17} /></button>
+        <button type="button" title="画笔" aria-label="画笔" aria-pressed={tool === 'brush'} onClick={() => setTool('brush')}><Brush size={18} /></button>
+        <div className="painter-shapes" ref={menu} onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setShapeMenu(false); } }}><button type="button" title="形状" aria-label="形状" aria-pressed={tool === 'shape'} onClick={() => setTool('shape')}><ShapeIcon size={16} /></button><button type="button" className="painter-shapes-trigger" aria-label="形状菜单" aria-haspopup="menu" aria-expanded={shapeMenu} onClick={() => setShapeMenu(value => !value)}><ChevronDown size={12} /></button>
           {shapeMenu && <div className="painter-shapes-menu" role="menu">{(Object.keys(shapes) as PainterShape[]).map(value => { const Icon = shapes[value]; return <button type="button" role="menuitemradio" aria-checked={shape === value} key={value} onClick={() => { setShape(value); setTool('shape'); setShapeMenu(false); }}><Icon size={16} /><span>{shapeNames[value]}</span></button>; })}</div>}
-        </div><button type="button" title="Eraser" aria-label="Eraser" aria-pressed={tool === 'eraser'} onClick={() => setTool('eraser')}><Eraser size={17} /></button>
-      </div><button className="painter-reset" type="button" onClick={() => patch({ strokes: [] })} disabled={!data.strokes.length}>Reset</button></div>
+        </div><button type="button" title="橡皮擦" aria-label="橡皮擦" aria-pressed={tool === 'eraser'} onClick={() => setTool('eraser')}><Eraser size={17} /></button>
+      </div><button className="painter-reset" type="button" onClick={() => patch({ strokes: [] })} disabled={!data.strokes.length}>重置</button></div>
       <div className="painter-fields">{tool === 'canvas' ? <>
-        <ColorField label="Background color" color={data.background} opacity={data.backgroundOpacity} onColor={value => patch({ background: value })} onOpacity={value => patch({ backgroundOpacity: value })} />
-        <div className="painter-dimensions"><span>Dimensions</span><label>W<input aria-label="Width" type="number" min="1" max="8192" disabled={Boolean(inputEdge || input)} value={inputEdge || input ? dimensions.width : data.width} onChange={e => setDimension('width', Number(e.target.value))} /></label><label>H<input aria-label="Height" type="number" min="1" max="8192" disabled={Boolean(inputEdge || input)} value={inputEdge || input ? dimensions.height : data.height} onChange={e => setDimension('height', Number(e.target.value))} /></label><button type="button" aria-label="Lock aspect ratio" title="Lock aspect ratio" aria-pressed={aspectLocked} disabled={Boolean(inputEdge || input)} onClick={() => setAspectLocked(value => !value)}>{aspectLocked ? <LockKeyhole size={14} /> : <UnlockKeyhole size={14} />}</button></div>
+        <ColorField label="背景色" color={data.background} opacity={data.backgroundOpacity} onColor={value => patch({ background: value })} onOpacity={value => patch({ backgroundOpacity: value })} />
+        <div className="painter-dimensions"><span>尺寸</span><label>宽<input aria-label="宽度" type="number" min="1" max="8192" disabled={Boolean(inputEdge || input)} value={inputEdge || input ? dimensions.width : data.width} onChange={e => setDimension('width', Number(e.target.value))} /></label><label>高<input aria-label="高度" type="number" min="1" max="8192" disabled={Boolean(inputEdge || input)} value={inputEdge || input ? dimensions.height : data.height} onChange={e => setDimension('height', Number(e.target.value))} /></label><button type="button" aria-label="锁定宽高比" title="锁定宽高比" aria-pressed={aspectLocked} disabled={Boolean(inputEdge || input)} onClick={() => setAspectLocked(value => !value)}>{aspectLocked ? <LockKeyhole size={14} /> : <UnlockKeyhole size={14} />}</button></div>
       </> : <>
-        {tool === 'eraser' ? <Slider label="Opacity" value={Math.round(eraser.opacity * 100)} percent onChange={value => setEraser(current => ({ ...current, opacity: value / 100 }))} /> : <ColorField label="Color" color={color} opacity={opacity} onColor={setColor} onOpacity={setOpacity} />}
-        {tool !== 'shape' && <><Slider label="Size" value={controls.size} max={500} onChange={value => tool === 'eraser' ? setEraser(current => ({ ...current, size: value })) : setSize(value)} /><Slider label="Hardness" value={controls.hardness} percent onChange={value => tool === 'eraser' ? setEraser(current => ({ ...current, hardness: value })) : setHardness(value)} /></>}
+        {tool === 'eraser' ? <Slider label="不透明度" value={Math.round(eraser.opacity * 100)} percent onChange={value => setEraser(current => ({ ...current, opacity: value / 100 }))} /> : <ColorField label="颜色" color={color} opacity={opacity} onColor={setColor} onOpacity={setOpacity} />}
+        {tool !== 'shape' && <><Slider label="大小" min={1} value={controls.size} max={500} onChange={value => tool === 'eraser' ? setEraser(current => ({ ...current, size: value })) : setSize(value)} /><Slider label="硬度" value={controls.hardness} percent onChange={value => tool === 'eraser' ? setEraser(current => ({ ...current, hardness: value })) : setHardness(value)} /></>}
       </>}</div>
     </fieldset>
     {error && <div className="painter-error" role="alert">{error}</div>}
-    {[{ handle: 'image', label: 'Image', output: false, y: 89 }, { handle: 'result', label: 'Result', output: true, y: 89 }, { handle: 'mask', label: 'Mask', output: true, y: 149 }].map(port => {
+    {[{ handle: 'image', label: '图像', output: false, y: 89 }, { handle: 'result', label: '结果', output: true, y: 89 }, { handle: 'mask', label: '遮罩', output: true, y: 149 }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}><span className={`describer-port-label${port.output ? ' output-label' : ''} sunburst-label-${port.handle === 'mask' ? 'mask' : 'image'}`} style={{ top: port.y - 28 }}>{port.label}</span><Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} aria-label={`${port.label} ${port.output ? 'output' : 'input'}`} className={`describer-port sunburst-port-${port.handle === 'mask' ? 'mask' : 'image'}${connected ? ' is-connected' : ''}`} style={{ top: port.y }} isConnectable={isConnectable && !data.locked && (port.output || !connected)} /></div>;
+      return <div className="describer-port-wrapper" key={port.handle}><span className={`describer-port-label${port.output ? ' output-label' : ''} sunburst-label-${port.handle === 'mask' ? 'mask' : 'image'}`} style={{ top: port.y - 28 }}>{port.label}</span><Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} aria-label={`${port.label}${port.output ? '输出' : '输入'}`} className={`describer-port sunburst-port-${port.handle === 'mask' ? 'mask' : 'image'}${connected ? ' is-connected' : ''}`} style={{ top: port.y }} isConnectable={isConnectable && !data.locked && (port.output || !connected)} /></div>;
     })}
   </>;
 }

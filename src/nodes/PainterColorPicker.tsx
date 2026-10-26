@@ -67,12 +67,12 @@ export function PainterColorPicker({ label, color, opacity, onColor, onOpacity }
   const close = () => { setOpen(false); trigger.current?.focus(); };
 
   return <>
-    <button ref={trigger} type="button" className="painter-color-swatch" aria-label={`${label} picker`}
+    <button ref={trigger} type="button" className="painter-color-swatch" aria-label={`${label}选择器`}
       aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? dialogId : undefined}
       onClick={() => setOpen(value => !value)}>
       <span style={{ background: color, opacity }} />
     </button>
-    {open && createPortal(<div ref={panel} id={dialogId} role="dialog" aria-label={`${label} picker`} tabIndex={-1}
+    {open && createPortal(<div ref={panel} id={dialogId} role="dialog" aria-label={`${label}选择器`} tabIndex={-1}
       className="painter-color-popover nodrag nopan nowheel" style={position}
       onPointerDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}
       onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); close(); } }}
@@ -84,26 +84,26 @@ export function PainterColorPicker({ label, color, opacity, onColor, onOpacity }
         <span className="painter-color-thumb" style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, background: color }} />
       </div>
       <div className="painter-color-sliders">
-        <input className="painter-hue" type="range" aria-label="Hue" min="0" max="360" step="1" value={hsv.h} onChange={event => change({ ...hsv, h: Number(event.target.value) })} />
+        <input className="painter-hue" type="range" aria-label="色相" min="0" max="360" step="1" value={hsv.h} onChange={event => change({ ...hsv, h: Number(event.target.value) })} />
         <div className="painter-alpha-track">
-          <input className="painter-alpha" type="range" aria-label="Opacity" min="0" max="100" value={Math.round(opacity * 100)}
+          <input className="painter-alpha" type="range" aria-label="不透明度" min="0" max="100" value={Math.round(opacity * 100)}
             style={{ background: `linear-gradient(to right, transparent, ${color})` }} onChange={event => onOpacity(Number(event.target.value) / 100)} />
         </div>
       </div>
       <div className="painter-color-numbers">
         <span>HEX</span>
-        <input aria-label="Hex color" value={hex.toUpperCase()} maxLength={6} spellCheck={false}
+        <input aria-label="十六进制颜色" value={hex.toUpperCase()} maxLength={6} spellCheck={false}
           onChange={event => {
             const value = event.target.value.replace(/[^0-9a-f]/gi, '');
             setHex(value);
             if (value.length === 6) { const next = fromHex(`#${value}`); change({ ...next, h: next.s ? next.h : hsv.h }); }
           }} onBlur={() => setHex(color.slice(1))} />
-        <label><input aria-label="Picker opacity" type="number" min="0" max="100" value={Math.round(opacity * 100)}
+        <label><input aria-label="颜色选择器不透明度" type="number" min="0" max="100" value={Math.round(opacity * 100)}
           onChange={event => onOpacity(Math.max(0, Math.min(100, Number(event.target.value))) / 100)} /><span>%</span></label>
       </div>
       <div className="painter-color-accessible">
-        <label>Saturation<input type="range" min="0" max="100" value={hsv.s * 100} onChange={event => change({ ...hsv, s: Number(event.target.value) / 100 })} /></label>
-        <label>Brightness<input type="range" min="0" max="100" value={hsv.v * 100} onChange={event => change({ ...hsv, v: Number(event.target.value) / 100 })} /></label>
+        <label>饱和度<input type="range" min="0" max="100" value={hsv.s * 100} onChange={event => change({ ...hsv, s: Number(event.target.value) / 100 })} /></label>
+        <label>明度<input type="range" min="0" max="100" value={hsv.v * 100} onChange={event => change({ ...hsv, v: Number(event.target.value) / 100 })} /></label>
       </div>
     </div>, document.body)}
   </>;

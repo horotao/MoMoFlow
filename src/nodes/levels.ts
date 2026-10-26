@@ -11,11 +11,11 @@ export const defaultLevelsSettings: LevelsSettings = { RGB: { ...defaultChannelL
 export type LevelsHistogram = Record<LevelsChannel, number[]>;
 export type LevelsHistograms = { source: LevelsHistogram; adjusted: LevelsHistogram };
 export const levelsControls = [
-  { key: 'inputMin', label: 'Input min', min: 0, max: 255, step: 1 },
-  { key: 'gamma', label: 'Gamma', min: .1, max: 10, step: .01 },
-  { key: 'inputMax', label: 'Input max', min: 0, max: 255, step: 1 },
-  { key: 'outputMin', label: 'Output min', min: 0, max: 255, step: 1 },
-  { key: 'outputMax', label: 'Output max', min: 0, max: 255, step: 1 },
+  { key: 'inputMin', label: '输入黑点', min: 0, max: 255, step: 1 },
+  { key: 'gamma', label: '伽马', min: .1, max: 10, step: .01 },
+  { key: 'inputMax', label: '输入白点', min: 0, max: 255, step: 1 },
+  { key: 'outputMin', label: '输出黑点', min: 0, max: 255, step: 1 },
+  { key: 'outputMax', label: '输出白点', min: 0, max: 255, step: 1 },
 ] as const;
 export function updateChannelLevels(settings: LevelsSettings, channel: LevelsChannel, key: keyof ChannelLevels, value: number): LevelsSettings {
   if (!Number.isFinite(value)) return settings;

@@ -135,11 +135,11 @@ export function LevelsNode({ id, data, isConnectable }: NodeProps<Levels>) {
     </header>
     <div className="preview-image color-image nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
       {ready && <>
-        <canvas ref={canvas} aria-label="Levels preview" style={{ visibility: original ? 'hidden' : undefined }} />
-        {original && <img src={input!.url} alt="Original image" draggable={false} />}
+        <canvas ref={canvas} aria-label="色阶预览" style={{ visibility: original ? 'hidden' : undefined }} />
+        {original && <img src={input!.url} alt="原图" draggable={false} />}
         <div className="file-media-overlay">
           <div className="file-media-top">
-            <button className="file-icon-button" type="button" aria-label="Show original" title="按住查看原图" aria-pressed={original}
+            <button className="file-icon-button" type="button" aria-label="查看原图" title="按住查看原图" aria-pressed={original}
               onPointerDown={event => { if (event.button === 0) { event.currentTarget.setPointerCapture(event.pointerId); setOriginal(true); } }}
               onPointerUp={() => setOriginal(false)} onPointerCancel={() => setOriginal(false)} onLostPointerCapture={() => setOriginal(false)}
               onBlur={() => setOriginal(false)}
@@ -147,7 +147,7 @@ export function LevelsNode({ id, data, isConnectable }: NodeProps<Levels>) {
               onKeyUp={event => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); setOriginal(false); } }}>
               {original ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
-            <button className="file-icon-button" type="button" aria-label="Download levels image" title="Download image" disabled={!output || Boolean(draft) || displayed?.draft || displayed?.image !== image || displayed?.revision !== revision}
+            <button className="file-icon-button" type="button" aria-label="下载色阶图片" title="下载图片" disabled={!output || Boolean(draft) || displayed?.draft || displayed?.image !== image || displayed?.revision !== revision}
               onClick={() => { if (output) { setError(''); void downloadAsset(output).catch(() => setError('下载失败，请重试。')); } }}><FileIcon name="download" /></button>
           </div>
           {width && height && <span className="file-media-resolution">{width} × {height}</span>}
@@ -164,12 +164,12 @@ export function LevelsNode({ id, data, isConnectable }: NodeProps<Levels>) {
       }}
       onCommit={commitDraft} onCancel={cancelDraft}
       onSettings={next => { cancelDraft(); patch({ settings: next }); }} />
-    {[{ handle: 'image', label: 'Input', output: false }, { handle: 'result', label: 'Output', output: true }].map(port => {
+    {[{ handle: 'image', label: '输入', output: false }, { handle: 'result', label: '输出', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
       return <div className="describer-port-wrapper" key={port.handle}>
         <span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
         <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
-          aria-label={`Levels ${port.label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`}
+          aria-label={`色阶${port.label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`}
           isConnectable={isConnectable && !data.locked && (port.output || !connected)} />
       </div>;
     })}

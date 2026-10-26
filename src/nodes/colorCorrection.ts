@@ -2,13 +2,13 @@ import { isFileAsset } from './fileCollection.ts';
 import type { FileAsset } from './types';
 
 export const colorControls = [
-  { key: 'exposure', label: 'Exposure', min: -5, max: 5, step: .01 },
-  { key: 'contrast', label: 'Contrast', min: -100, max: 100, step: 1 },
-  { key: 'saturation', label: 'Saturation', min: -100, max: 100, step: 1 },
-  { key: 'temperature', label: 'Temperature', min: -100, max: 100, step: 1 },
-  { key: 'tint', label: 'Tint', min: -100, max: 100, step: 1 },
-  { key: 'highlights', label: 'Highlights', min: -100, max: 100, step: 1 },
-  { key: 'shadows', label: 'Shadows', min: -100, max: 100, step: 1 },
+  { key: 'exposure', label: '曝光', min: -5, max: 5, step: .01 },
+  { key: 'contrast', label: '对比度', min: -100, max: 100, step: 1 },
+  { key: 'saturation', label: '饱和度', min: -100, max: 100, step: 1 },
+  { key: 'temperature', label: '色温', min: -100, max: 100, step: 1 },
+  { key: 'tint', label: '色调', min: -100, max: 100, step: 1 },
+  { key: 'highlights', label: '高光', min: -100, max: 100, step: 1 },
+  { key: 'shadows', label: '阴影', min: -100, max: 100, step: 1 },
 ] as const;
 export type ColorSettings = Record<typeof colorControls[number]['key'], number>;
 export type ColorCorrectionData = {

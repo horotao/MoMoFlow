@@ -2,6 +2,8 @@ import { useRef, useState, useEffect, type PointerEvent } from 'react';
 import { DescriberModelSelect } from '../components/DescriberModelSelect';
 import { defaultLevelsSettings, levelsChannels, levelsControls, levelsGammaPosition, levelsGammaAt, updateChannelLevels, type ChannelLevels, type LevelsChannel, type LevelsHistograms, type LevelsSettings } from './levels';
 
+const channelLabels: Record<LevelsChannel, string> = { RGB: 'RGB', R: '红色', G: '绿色', B: '蓝色' };
+
 type Control = typeof levelsControls[number];
 function LevelsNumber({ control, value, disabled, onCommit }: { control: Control; value: number; disabled: boolean; onCommit: (value: number) => void }) {
   const formatted = String(control.key === 'gamma' ? Number(value.toFixed(2)) : value);
@@ -39,7 +41,7 @@ function LevelsHistogramView({ histogram, channel }: { histogram?: LevelsHistogr
       });
     }
   }, [histogram, channel]);
-  return <div className="levels-histogram-plot"><canvas ref={canvas} width={256} height={58} role="img" aria-label={`${channel} histogram`} /></div>;
+  return <div className="levels-histogram-plot"><canvas ref={canvas} width={256} height={58} role="img" aria-label={`${channelLabels[channel]}直方图`} /></div>;
 }
 
 export function LevelsControls({ channel, settings, histogram, disabled, onChannel, onStart, onDraft, onCommit, onCancel, onSettings }: {
@@ -58,12 +60,12 @@ export function LevelsControls({ channel, settings, histogram, disabled, onChann
   };
   const cancel = () => { active.current = undefined; onCancel(); };
   return <div className="levels-settings nodrag nopan nowheel" onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') cancel(); }}>
-    <div className="levels-row levels-channel"><span>Channel</span><div className="levels-channel-actions">
-      <DescriberModelSelect compact label="Channel" menuLabel="Levels channel" choices={levelsChannels} value={channel} disabled={disabled} onChange={value => onChannel(value as LevelsChannel)} />
-      <button className="color-reset" type="button" disabled={disabled} onClick={() => onSettings(structuredClone(defaultLevelsSettings))}>Reset</button>
+    <div className="levels-row levels-channel"><span>通道</span><div className="levels-channel-actions">
+      <DescriberModelSelect compact label="通道" menuLabel="色阶通道" choices={levelsChannels} labels={levelsChannels.map(value => channelLabels[value])} value={channel} disabled={disabled} onChange={value => onChannel(value as LevelsChannel)} />
+      <button className="color-reset" type="button" disabled={disabled} onClick={() => onSettings(structuredClone(defaultLevelsSettings))}>重置</button>
     </div></div>
-    <div className="levels-row levels-histogram"><span>Histogram</span><LevelsHistogramView histogram={histogram} channel={channel} /></div>
-    {(['Inputs', 'Outputs'] as const).map((label, group) => {
+    <div className="levels-row levels-histogram"><span>直方图</span><LevelsHistogramView histogram={histogram} channel={channel} /></div>
+    {(['输入色阶', '输出色阶'] as const).map((label, group) => {
       const controls = group === 0 ? levelsControls.slice(0, 3) : levelsControls.slice(3);
       return <div className="levels-row levels-range-row" key={label}><span>{label}</span><div>
         <div className="levels-track" onPointerDown={event => {
@@ -81,7 +83,7 @@ export function LevelsControls({ channel, settings, histogram, disabled, onChann
         }} onPointerMove={event => { if (active.current) move(event, active.current); }}
           onPointerUp={() => { if (active.current) { active.current = undefined; onCommit(); } }}
           onPointerCancel={cancel} onLostPointerCapture={() => { if (active.current) cancel(); }}>
-          {controls.map(control => <button key={control.key} type="button" role="slider" aria-label={`${control.label} slider`} aria-valuemin={control.key === 'inputMax' ? values.inputMin : control.min}
+          {controls.map(control => <button key={control.key} type="button" role="slider" aria-label={`${control.label}滑块`} aria-valuemin={control.key === 'inputMax' ? values.inputMin : control.min}
             aria-valuemax={control.key === 'inputMin' ? values.inputMax : control.max} aria-valuenow={values[control.key]}
             disabled={disabled} data-level-key={control.key} className={`levels-thumb levels-thumb-${control.key}`} style={{ left: `${position(control.key) / 255 * 100}%` }}
             onKeyDown={event => {

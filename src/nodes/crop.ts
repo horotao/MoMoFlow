@@ -33,9 +33,9 @@ export function cropPixels(rect: CropRect, width: number, height: number): CropR
   return { x, y, width: clamp(Math.round(rect.width * width), 1, width - x), height: clamp(Math.round(rect.height * height), 1, height - y) };
 }
 export function cropRatioLabel(rect: CropRect, width: number, height: number, locked: boolean) {
-  if (!locked) return 'Custom';
+  if (!locked) return '自定义';
   const ratio = rect.width * width / (rect.height * height);
-  return cropRatios.find(value => { const [w, h] = value.split(':').map(Number); return Math.abs(ratio - w / h) < .005; }) ?? 'Custom';
+  return cropRatios.find(value => { const [w, h] = value.split(':').map(Number); return Math.abs(ratio - w / h) < .005; }) ?? '自定义';
 }
 export function fitCropRatio(rect: CropRect, ratio: number, width: number, height: number): CropRect {
   const normalized = ratio * height / width;
