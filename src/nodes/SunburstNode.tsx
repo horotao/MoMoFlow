@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Handle, Position, useEdges, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { Handle, Position, useEdges, useReactFlow, useStore, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { ArrowRight, Ellipsis, Plus } from 'lucide-react';
 import type { AppNode, SunburstNode as Sunburst } from './types';
 import { isNodeLocked } from './types';
-import { sunburstName, sunburstFieldLabels } from './sunburst';
+import { sunburstName, sunburstFieldLabels, validateSunburstSize } from './sunburst';
+import { resolveTextValue } from './textVariables';
 import { OpenAIIcon } from '../components/OpenAIIcon';
 import { ModelRunButton } from '../components/ModelRunButton';
 import { TextNodeMenu } from './TextNodeMenu';
@@ -16,6 +17,10 @@ import { downloadAsset, downloadAssets } from './fileMedia';
 export function SunburstNode({ id, data, isConnectable }: NodeProps<Sunburst>) {
   const { getNode, updateNodeData, setNodes, screenToFlowPosition } = useReactFlow<AppNode>();
   const edges = useEdges(); const internals = useUpdateNodeInternals();
+  const requestedSize = useStore(state => {
+    const edge = state.edges.find(item => item.target === id && item.targetHandle === 'size');
+    return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : data.size;
+  });
   const [renaming, setRenaming] = useState(false); const [draft, setDraft] = useState('');
   const [fullscreen, setFullscreen] = useState(false); const [error, setError] = useState('');
   const [showAll, setShowAll] = useState(false);
@@ -25,7 +30,10 @@ export function SunburstNode({ id, data, isConnectable }: NodeProps<Sunburst>) {
   const [viewId, setViewId] = useState('');
   const [dimensions, setDimensions] = useState<Record<string, { width: number; height: number }>>({});
   const size = active ? dimensions[active.url] ?? active : undefined;
-  const aspectRatio = size?.width && size.height ? `${size.width} / ${size.height}` : undefined;
+  let aspectRatio = size?.width && size.height ? `${size.width} / ${size.height}` : '1';
+  try {
+    if (validateSunburstSize(requestedSize) !== 'auto') aspectRatio = requestedSize.replace('x', ' / ');
+  } catch { /* Incomplete or invalid custom sizes use the result ratio or a square. */ }
   const portSpace = 110 + (data.imageInputs + (data.exposed?.length ?? 0)) * 60;
   const index = Math.max(0, results.findIndex(asset => asset.id === active?.id));
   const patch = (value: Partial<Sunburst['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
@@ -41,7 +49,7 @@ export function SunburstNode({ id, data, isConnectable }: NodeProps<Sunburst>) {
       <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setDraft(data.label || sunburstName); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
     </header>
     <div className="sunburst-preview-area" style={{ minHeight: portSpace }}>
-    <div className={`sunburst-preview${active ? ' has-result' : ''}${grid ? ' is-grid nodrag nopan nowheel' : ''}`} style={active ? { aspectRatio: grid ? undefined : aspectRatio } : { minHeight: Math.max(420, portSpace) }}>
+    <div className={`sunburst-preview${active ? ' has-result' : ''}${grid ? ' is-grid nodrag nopan nowheel' : ''}`} style={{ aspectRatio: grid ? undefined : aspectRatio }}>
       {active && <>{grid ? <div className="file-node-grid" aria-label="Results">
         {[0, 1].map(column => <div className="file-node-grid-column" key={column}>{results.filter((_, i) => i % 2 === column).map(item => <div key={item.id}
           className={`file-node-tile${item.id === active.id ? ' is-active' : ''}`} role="button" tabIndex={0} aria-label={`Select ${item.name}`} aria-pressed={item.id === active.id} aria-disabled={Boolean(data.locked)}

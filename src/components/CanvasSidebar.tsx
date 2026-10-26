@@ -4,8 +4,10 @@ import { useReactFlow, useNodes } from '@xyflow/react';
 import { Search, Images, CircleHelp, Sun, Moon, X, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { isFileNode } from '../nodes/fileAsset';
 import { isSunburstNode, type AppNode } from '../nodes/types';
-import { items, navigation, createLibraryNode, libraryItemLabel as itemLabel, type Category, type Item } from './libraryCatalog';
+import { items as catalogItems, navigation, createLibraryNode, libraryItemLabel as itemLabel, type Category, type Item } from './libraryCatalog';
 import './CanvasSidebar.css';
+
+const items = catalogItems.filter(item => !['position-logger', 'model-input'].includes(item.id));
 
 const categoryLabels: Record<Category, string> = {
   Search: '搜索', Recents: '最近', Saved: '收藏', Tools: '工具',
@@ -43,7 +45,7 @@ export function CanvasSidebar({ colorMode, onThemeChange }: { colorMode: 'light'
   };
   const cards = (list: Item[]) => <div className="library-grid">{list.map(item => <button type="button" key={item.id} className="library-card" disabled={!item.nodeType} title={item.nodeType ? `添加${itemLabel(item)}` : `${itemLabel(item)} · 暂未开放`} draggable={Boolean(item.nodeType)} onDragStart={event => { event.dataTransfer.setData('application/x-momoflow-library', item.id); event.dataTransfer.effectAllowed = 'copy'; }} onDragEnd={event => { if (event.dataTransfer.dropEffect !== 'none') setRecent(current => [item.id, ...current.filter(id => id !== item.id)].slice(0, 8)); }} onClick={() => add(item)}>{item.id === 'sunburst' ? <OpenAIIcon size={20} /> : <item.icon size={20} strokeWidth={1.25} style={{ color: item.color }} />}<span>{itemLabel(item)}</span>{!item.nodeType && <small>未开放</small>}</button>)}</div>;
   const matching = items.filter(item => `${itemLabel(item)} ${item.label}`.toLowerCase().includes(query.trim().toLowerCase()) && (filter === 'All' || item.category === filter));
-  const quick = [...recent.map(id => items.find(item => item.id === id)!), ...items.filter(item => ['text', 'file', 'image-describer', 'model-input'].includes(item.id) && !recent.includes(item.id))];
+  const quick = [...recent.flatMap(id => items.filter(item => item.id === id)), ...items.filter(item => ['text', 'file', 'image-describer'].includes(item.id) && !recent.includes(item.id))];
   return <>
     <div className={`canvas-library nodrag nopan nowheel ${active ? 'is-open' : ''}`} onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { setActive(null); setHelp(false); } }}>
       <aside className="library-drawer" aria-label={active ? `${categoryLabels[active]}面板` : '资源库面板'} id="canvas-library-panel" {...(!active ? { inert: '' } : {})}>
