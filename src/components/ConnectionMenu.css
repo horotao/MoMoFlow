@@ -20,7 +20,7 @@
   overflow: visible;
   background: var(--connection-menu-surface);
   color: var(--connection-menu-text);
-  font: 450 11px/16px 'Text Node Inter', 'Text Node Chinese', system-ui, sans-serif;
+  font: 450 11px/16px var(--font-ui);
 }
 .dark .connection-menu {
   --connection-menu-surface: #1e1e1e;

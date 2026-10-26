@@ -8,26 +8,30 @@
 
 | 显示名称 / 用途 | 类型标识 | 组件文件 | 输入与输出 |
 | --- | --- | --- | --- |
-| Router：整理连线、统一更换上游 | `router` | [RouterNode.tsx](./RouterNode.tsx) | 单输入 `input`（Input）；`output`（Output）原样透传，可连接多个下游 |
-| Prompt：编辑文本、组合上游变量 | `text` | [TextNode.tsx](./TextNode.tsx) | 变量输入 `variable-1` 起；输出解析后的文本 |
-| Import / File：导入、预览和管理文件集合 | `file` | [FileNode.tsx](./FileNode.tsx) | 无输入端口；通过 `file` 端口输出文件，端口类型随集合内容变化 |
-| Image Describer：根据图片生成可继续编辑的文本 | `image-describer` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) | 图片输入 `image-0` 起；可暴露 `model`、`instructions` 文本输入；输出 `data.text` |
-| Model Name / 参数选项：提供一个可选的文本值 | `model-input` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) 中的 `ModelInputNode` | 输出当前 `data.model`；`options` 输入仅展示，不能连接 |
+| 路由（Router）：整理连线、统一更换上游 | `router` | [RouterNode.tsx](./RouterNode.tsx) | 单输入 `input`（Input）；`output`（Output）原样透传，可连接多个下游 |
+| 提示词（Prompt）：编辑文本、组合上游变量 | `text` | [TextNode.tsx](./TextNode.tsx) | 变量输入 `variable-1` 起；输出解析后的文本 |
+| 导入 / 文件（Import / File）：导入、预览和管理文件集合 | `file` | [FileNode.tsx](./FileNode.tsx) | 无输入端口；通过 `file` 端口输出文件，端口类型随集合内容变化 |
+| 图像描述（Image Describer）：根据图片生成可继续编辑的文本 | `image-describer` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) | 图片输入 `image-0` 起；可暴露 `model`、`instructions` 文本输入；输出 `data.text` |
+| 模型名称 / 参数选项（Model Name）：提供一个可选的文本值 | `model-input` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) 中的 `ModelInputNode` | 输出当前 `data.model`；`options` 输入仅展示，不能连接 |
 | GPT Image 2.5 Sunburst：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`、`image-0` 起、`mask` 及暴露的参数输入；`result` 输出当前选中的结果图片 |
-| Color palette：制作最多十色色板 | `color-palette` | [ColorPaletteNode.tsx](./ColorPaletteNode.tsx) | 无输入；`image`（Image）输出纯色条 PNG，`text`（Text）输出按顺序以 `*` 连接的 HEX 色值 |
-| Compositor：图片、文本与矢量图层合成 | `compositor` | [CompositorNode.tsx](./compositor/CompositorNode.tsx) | `background`、`layer-1` 起的动态图片输入；`result`（Output）输出实际合成 PNG；独立图层编辑器见[使用与架构](../../docs/compositor.md) |
-| Color correction：本地图片调色 | `color-correction` | [ColorCorrectionNode.tsx](./ColorCorrectionNode.tsx) | 单图片输入 `file`（File）；`result` 输出调色后的 PNG |
-| Levels：本地图片色阶 | `levels` | [LevelsNode.tsx](./LevelsNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
-| Blend：双图片混合 | `blend` | [BlendNode.tsx](./BlendNode.tsx) | `back`（Back）、`front`（Front）图片输入；`result`（Result）输出合成 PNG |
-| Compare：双图片对比 | `compare` | [CompareNode.tsx](./CompareNode.tsx) | `input-1` / `input-2`（Input 1 / Input 2）；`output-1` / `output-2`（Output 1 / Output 2）分别透传对应输入 |
-| Resize：本地调整图片宽高 | `resize` | [ResizeNode.tsx](./ResizeNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出指定尺寸 PNG |
-| Rotate and flip：本地旋转与镜像 | `rotate-flip` | [RotateFlipNode.tsx](./RotateFlipNode.tsx) | 单图片输入 `image`（Input）；`result`（Result）输出旋转后的原分辨率 PNG |
-| Invert：本地图片 / 遮罩反选 | `invert` | [InvertNode.tsx](./InvertNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸反色 PNG |
-| Blur：本地图片模糊 | `blur` | [BlurNode.tsx](./BlurNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
-| Crop：本地裁剪图片 | `crop` | [CropNode.tsx](./CropNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出裁剪后的 PNG |
-| Painter：在图片或空白画布上绘制 | `painter` | [PainterNode.tsx](./PainterNode.tsx) | 单图片输入 `image`；`result` 输出合成图片，`mask` 输出黑底白色绘制区域 |
-| Preview：查看上游图片与遮罩 | `preview` | [PreviewNode.tsx](./PreviewNode.tsx) | 单图片输入 `file`，无输出；实时显示上游图片 |
-| Position Logger：显示节点坐标的示例节点 | `position-logger` | [PositionLoggerNode.tsx](./PositionLoggerNode.tsx) | 左侧输入、右侧输出；不执行模型任务 |
+| 调色板（Color palette）：制作最多十色色板 | `color-palette` | [ColorPaletteNode.tsx](./ColorPaletteNode.tsx) | 无输入；`image`（Image）输出纯色条 PNG，`text`（Text）输出按顺序以 `*` 连接的 HEX 色值 |
+| 合成器（Compositor）：图片、文本与矢量图层合成 | `compositor` | [CompositorNode.tsx](./compositor/CompositorNode.tsx) | `background`、`layer-1` 起的动态图片输入；`result`（Output）输出实际合成 PNG；独立图层编辑器见[使用与架构](../../docs/compositor.md) |
+| 色彩校正（Color correction）：本地图片调色 | `color-correction` | [ColorCorrectionNode.tsx](./ColorCorrectionNode.tsx) | 单图片输入 `file`（File）；`result` 输出调色后的 PNG |
+| 色阶（Levels）：本地图片色阶 | `levels` | [LevelsNode.tsx](./LevelsNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
+| 混合（Blend）：双图片混合 | `blend` | [BlendNode.tsx](./BlendNode.tsx) | `back`（Back）、`front`（Front）图片输入；`result`（Result）输出合成 PNG |
+| 对比（Compare）：双图片对比 | `compare` | [CompareNode.tsx](./CompareNode.tsx) | `input-1` / `input-2`（Input 1 / Input 2）；`output-1` / `output-2`（Output 1 / Output 2）分别透传对应输入 |
+| 调整尺寸（Resize）：本地调整图片宽高 | `resize` | [ResizeNode.tsx](./ResizeNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出指定尺寸 PNG |
+| 旋转与翻转（Rotate and flip）：本地旋转与镜像 | `rotate-flip` | [RotateFlipNode.tsx](./RotateFlipNode.tsx) | 单图片输入 `image`（Input）；`result`（Result）输出旋转后的原分辨率 PNG |
+| 反相（Invert）：本地图片 / 遮罩反选 | `invert` | [InvertNode.tsx](./InvertNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸反色 PNG |
+| 模糊（Blur）：本地图片模糊 | `blur` | [BlurNode.tsx](./BlurNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
+| 裁剪（Crop）：本地裁剪图片 | `crop` | [CropNode.tsx](./CropNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出裁剪后的 PNG |
+| 绘图（Painter）：在图片或空白画布上绘制 | `painter` | [PainterNode.tsx](./PainterNode.tsx) | 单图片输入 `image`；`result` 输出合成图片，`mask` 输出黑底白色绘制区域 |
+| 预览（Preview）：查看上游图片与遮罩 | `preview` | [PreviewNode.tsx](./PreviewNode.tsx) | 单图片输入 `file`，无输出；实时显示上游图片 |
+| 坐标记录（Position Logger）：显示节点坐标的示例节点 | `position-logger` | [PositionLoggerNode.tsx](./PositionLoggerNode.tsx) | 左侧输入、右侧输出；不执行模型任务 |
+
+画布节点的默认标题使用中文，自定义名称与导入文件名保持原样；模型品牌名（如 GPT Image 2.5 Sunburst）保留英文。标题与重命名框使用相同默认文案，界面字体复用全局 `--font-ui`（英文 Inter、macOS 中文苹方、Windows 中文 Noto Sans SC）。
+
+侧边栏、画布右键创建与拖线推荐菜单共用 `libraryItemLabel` 中文名称；菜单搜索同时匹配中文和原英文，端口说明仅翻译显示，不改变连接标识。
 
 节点库的名称、分类和创建数据在 [libraryCatalog.ts](../components/libraryCatalog.ts) 中维护。只有提供 `nodeType` 的条目才能通过 `createLibraryNode` 创建节点；目录中的展示卡片不等于已实现的节点，不应为占位卡片生成替代节点。
 

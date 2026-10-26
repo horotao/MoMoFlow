@@ -14,7 +14,7 @@ import { PainterColorPicker } from './PainterColorPicker';
 import { painterLivePreviews } from './painterLivePreview';
 
 const shapes = { rectangle: Square, ellipse: Circle, triangle: Triangle, star: Star };
-const shapeNames = { rectangle: 'Rectangle', ellipse: 'Ellipse', triangle: 'Triangle', star: 'Star' };
+const shapeNames = { rectangle: '矩形', ellipse: '椭圆', triangle: '三角形', star: '星形' };
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 function Slider({ label, value, max = 100, onChange, percent = false }: { label: string; value: number; max?: number; onChange: (value: number) => void; percent?: boolean }) {
@@ -122,7 +122,7 @@ export function PainterNode({ id, data, isConnectable }: NodeProps<Painter>) {
     patch({ [key]: next, ...(aspectLocked ? { [other]: clamp(Math.round(data[other] * next / data[key]), 1, 8192) } : {}) });
   };
   return <>
-    <header className="text-node-header"><div className="text-node-title"><Paintbrush size={18} strokeWidth={1.3} />{renaming ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={e => setName(e.target.value)} onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setRenaming(false); }} /> : <span>{data.label || 'Painter'}</span>}</div><TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || 'Painter'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu></header>
+    <header className="text-node-header"><div className="text-node-title"><Paintbrush size={18} strokeWidth={1.3} />{renaming ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={e => setName(e.target.value)} onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setRenaming(false); }} /> : <span>{data.label || '绘图'}</span>}</div><TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '绘图'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu></header>
     <div data-tool={tool} className={`painter-preview nodrag nopan nowheel${tool === 'canvas' || data.locked ? ' is-passive' : ''}`} style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}` }}>
       <canvas ref={surface} aria-label="Painter drawing canvas" tabIndex={0}
         onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); cancelStroke(); } }}
@@ -152,7 +152,7 @@ export function PainterNode({ id, data, isConnectable }: NodeProps<Painter>) {
       <div className="painter-toolbar"><div role="toolbar" aria-label="Painter tools">
         <button type="button" title="Canvas" aria-label="Canvas" aria-pressed={tool === 'canvas'} onClick={() => setTool('canvas')}><Frame size={17} /></button>
         <button type="button" title="Brush" aria-label="Brush" aria-pressed={tool === 'brush'} onClick={() => setTool('brush')}><Brush size={18} /></button>
-        <div className="painter-shapes" ref={menu} onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setShapeMenu(false); } }}><button type="button" title="Shape" aria-label="Shape" aria-pressed={tool === 'shape'} onClick={() => setTool('shape')}><ShapeIcon size={16} /></button><button type="button" className="painter-shapes-trigger" aria-label="Shapes menu" aria-haspopup="menu" aria-expanded={shapeMenu} onClick={() => setShapeMenu(value => !value)}><ChevronDown size={12} /></button>
+        <div className="painter-shapes" ref={menu} onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setShapeMenu(false); } }}><button type="button" title="Shape" aria-label="Shape" aria-pressed={tool === 'shape'} onClick={() => setTool('shape')}><ShapeIcon size={16} /></button><button type="button" className="painter-shapes-trigger" aria-label="形状菜单" aria-haspopup="menu" aria-expanded={shapeMenu} onClick={() => setShapeMenu(value => !value)}><ChevronDown size={12} /></button>
           {shapeMenu && <div className="painter-shapes-menu" role="menu">{(Object.keys(shapes) as PainterShape[]).map(value => { const Icon = shapes[value]; return <button type="button" role="menuitemradio" aria-checked={shape === value} key={value} onClick={() => { setShape(value); setTool('shape'); setShapeMenu(false); }}><Icon size={16} /><span>{shapeNames[value]}</span></button>; })}</div>}
         </div><button type="button" title="Eraser" aria-label="Eraser" aria-pressed={tool === 'eraser'} onClick={() => setTool('eraser')}><Eraser size={17} /></button>
       </div><button className="painter-reset" type="button" onClick={() => patch({ strokes: [] })} disabled={!data.strokes.length}>Reset</button></div>

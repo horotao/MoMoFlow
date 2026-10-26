@@ -15,6 +15,7 @@
     "check": "node --experimental-strip-types scripts/quality.ts"
   },
   "dependencies": {
+    "@fontsource-variable/noto-sans-sc": "^5.3.1",
     "@radix-ui/react-slot": "^1.5.0",
     "@tiptap/core": "^3.32.0",
     "@tiptap/extension-placeholder": "^3.32.0",

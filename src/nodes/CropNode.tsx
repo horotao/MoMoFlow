@@ -115,8 +115,8 @@ export function CropNode({ id, data, isConnectable }: NodeProps<CropNodeType>) {
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || 'Crop'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || 'Crop'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
+        : <span>{data.label || '裁剪'}</span>}</div>
+      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '裁剪'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
     </header>
     <div className={`crop-surface nodrag nopan nowheel${enabled ? '' : ' is-passive'}`} ref={surface} style={{ aspectRatio: input ? `${width} / ${height}` : '1' }}
       tabIndex={0} aria-label="Crop image area" onPointerMove={move} onPointerUp={finish} onPointerCancel={clearGesture} onLostPointerCapture={() => { if (gesture.current) clearGesture(); }}

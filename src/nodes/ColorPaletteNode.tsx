@@ -36,8 +36,8 @@ export function ColorPaletteNode({ id, data, isConnectable }: NodeProps<PaletteN
       ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
         onBlur={() => { const current = getNode(id); if (name.trim() && isColorPaletteNode(current) && !current.data.locked) updateNodeData(id, { label: name.trim() }); setRenaming(false); }}
         onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-      : <span>{data.label || 'Color palette'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || 'Color palette'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
+      : <span>{data.label || '调色板'}</span>}</div>
+      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '调色板'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
     </header>
     <ColorPaletteColors node={{ id, data }} inline />
     {[{ id: 'image', label: 'Image', top: 89 }, { id: 'text', label: 'Text', top: 149 }].map(port => <div className="describer-port-wrapper" key={port.id}>

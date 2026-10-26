@@ -14,7 +14,7 @@ const source: FileNode = { id: 'source', type: 'file', position: { x: 1, y: 2 },
 
 test('legacy files, sorting, titles and output types follow the asset collection', () => {
   assert.deepEqual(fileAssets({ asset: a }), [a]);
-  assert.equal(fileNodeTitle(source.data), '2 images');
+  assert.equal(fileNodeTitle(source.data), '2 张图片');
   assert.equal(fileOutputKind(source.data), 'image');
   assert.equal(fileOutputKind({}), 'file');
   assert.deepEqual(orderedAssets({ ...source.data, orderBy: 'name' }).map((item) => item.id), ['b', 'a']);

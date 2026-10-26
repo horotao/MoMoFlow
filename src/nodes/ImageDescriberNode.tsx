@@ -9,6 +9,8 @@ import { TextNodeMenu } from './TextNodeMenu';
 import { DescriberIcon } from '../components/DescriberIcon';
 import { DescriberPreview } from '../components/DescriberPreview';
 
+const parameterTitles = { quality: '画质', background: '背景', size: '宽高比', outputFormat: '输出格式' };
+
 function NodeHeading({ id, label, fallback, locked, model = false }: { id: string; label?: string; fallback: string; locked?: boolean; model?: boolean }) {
   const { updateNodeData: rawUpdateNodeData, getNode } = useReactFlow<AppNode>();
   const updateNodeData: typeof rawUpdateNodeData = (nodeId, patch, options) => {
@@ -26,7 +28,9 @@ export function ModelInputNode({ id, data, isConnectable }: NodeProps<ModelInput
     if (isNodeLocked(getNode(nodeId))) return;
     rawUpdateNodeData(nodeId, patch, options);
   };
-  return <><NodeHeading id={id} label={data.label} locked={data.locked} fallback="Model Name" model />
+  const defaultTitle = data.parameter ? parameterTitles[data.parameter] : '模型名称';
+  const label = data.parameter && data.label === sunburstFieldLabels[data.parameter] ? defaultTitle : data.label;
+  return <><NodeHeading id={id} label={label} locked={data.locked} fallback={defaultTitle} model />
     <DescriberModelSelect node label={data.parameter ? sunburstFieldLabels[data.parameter] : 'Model'} disabled={data.locked} value={data.model} choices={data.options} onChange={(model) => updateNodeData(id, { model })} />
     <span className="describer-port-label model-options-label">Options</span><Handle id="options" type="target" position={Position.Left} className="describer-port model-options-port" style={{ top: 30 }} aria-label="Options input" title="Options · List input (not available yet)" isConnectable={false} />
     <span className="describer-port-label output-label model-text-label">Text</span><Handle type="source" position={Position.Right} className="describer-port" style={{ top: 30 }} aria-label="Text output" isConnectable={isConnectable} />
@@ -67,7 +71,7 @@ export function ImageDescriberNode({ id, data, isConnectable }: NodeProps<Descri
   useEffect(() => internals(id), [id, count, internals]);
   const run = () => !isNodeLocked(getNode(id)) && window.dispatchEvent(new CustomEvent('describer-run', { detail: id }));
   return <>
-    <NodeHeading id={id} label={data.label} locked={data.locked} fallback="Image Describer" />
+    <NodeHeading id={id} label={data.label} locked={data.locked} fallback="图像描述" />
     <div className="text-node-content describer-output" style={{ height: outputHeight, flex: 'none' }}><textarea ref={outputRef} className="nodrag nowheel" readOnly={data.locked} aria-label="Generated text" placeholder="Generated text will appear here" value={data.text} onChange={(e) => updateNodeData(id, { text: e.target.value })} /><button className="describer-expand nodrag" title="Full screen" aria-label="Full screen" onClick={() => setFullscreen(true)}><Maximize2 size={14} /></button></div>
     <footer className="text-node-footer"><button disabled={data.locked} className="text-node-button nodrag" onClick={() => updateNodeData(id, { imageInputs: data.imageInputs + 1 })}><Plus size={16} />Add another image input</button><button disabled={data.locked} className="describer-run nodrag" onClick={run}><ArrowRight size={13} />Run Model</button></footer>
     {[...Array.from({ length: data.imageInputs }, (_, i) => ({ id: `image-${i}`, label: i ? `Image ${i + 1}` : 'Image *', image: true })), ...exposed.map((field) => ({ id: field, label: field === 'model' ? 'Model' : 'System Instructions', image: false }))].map((port, i) => <div key={port.id} className="describer-port-wrapper"><span className="describer-port-label" style={{ top: 61 + i * 50, color: port.image ? 'var(--media-port-image)' : undefined }}>{port.label}</span><Handle id={port.id} type="target" position={Position.Left} className={`describer-port ${port.image ? 'image-port' : ''}${edges.some((e) => e.target === id && e.targetHandle === port.id) ? ' is-connected' : ''}`} style={{ top: 89 + i * 50 }} aria-label={port.label} isConnectable={isConnectable && !edges.some((e) => e.target === id && e.targetHandle === port.id)} /></div>)}

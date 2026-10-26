@@ -58,10 +58,10 @@ export function FileGallery({ assets, activeId, onSelect, onClose }: Props) {
         <div className="file-gallery-title"><button className="file-icon-button" aria-label="Close" title="Close (Esc)" onClick={onClose}><FileIcon name="close" /></button><span>File</span></div>
         <div className="file-gallery-tools">
           <span className="file-gallery-zoom" title="Scroll to zoom · Double-click to reset">{Math.round(fit * zoom * 100)}%</span><span className="file-gallery-divider" />
-          <FileActionMenu label="Download" items={[
-            { label: 'Download', action: () => run(() => downloadAsset(asset)) },
-            ...(assets.length > 1 ? [{ label: 'Download all', action: () => run(() => downloadAssets(assets)) }] : []),
-            ...(asset.kind === 'image' ? [{ label: 'Copy image', action: () => run(() => copyAssetImage(asset), 'Image copied') }] : []),
+          <FileActionMenu label="下载" items={[
+            { label: '下载', action: () => run(() => downloadAsset(asset)) },
+            ...(assets.length > 1 ? [{ label: '下载全部', action: () => run(() => downloadAssets(assets)) }] : []),
+            ...(asset.kind === 'image' ? [{ label: '复制图片', action: () => run(() => copyAssetImage(asset), '已复制图片') }] : []),
           ]}><FileIcon name="download" /></FileActionMenu>
           <button className="file-icon-button" aria-label="Copy link" title={asset.url.startsWith('blob:') ? 'Copy link (available in this browser session)' : 'Copy link'} onClick={() => run(async () => { await writeAssetClipboard(asset.url, [asset.url]); setCopied(true); })}>{copied ? <Check size={16} /> : <Link size={16} strokeWidth={1.3} />}</button>
         </div>

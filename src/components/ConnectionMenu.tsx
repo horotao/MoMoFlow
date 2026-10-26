@@ -1,8 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Check, CircleX, Search } from 'lucide-react';
-import { items } from './libraryCatalog';
+import { items, libraryItemLabel } from './libraryCatalog';
 import type { ConnectionChoice, PendingConnection } from '../nodes/connectionRecommendations';
 import './ConnectionMenu.css';
+
+const portLabels: Record<string, string> = {
+  Back: '底图', Front: '前景', 'Input 1': '输入 1', Background: '背景', 'Layer 1': '图层 1',
+  File: '文件', Image: '图像', Input: '输入', Mask: '遮罩', Prompt: '提示词',
+  'System Instructions': '系统指令', Result: '结果', 'Output 1': '输出 1', Output: '输出', Text: '文本',
+};
 
 export type NodeMenuChoice = Pick<ConnectionChoice, 'id' | 'itemId' | 'detail'>;
 
@@ -31,7 +37,11 @@ export function ConnectionMenu({ screen, mode, choices, onChoose, onDismiss }: P
   // Built-in catalog nodes remain available for both creator filters, as in Weavy.
   const matches = choices.flatMap(choice => {
     const item = items.find(item => item.id === choice.itemId && item.nodeType);
-    return item && `${item.label} ${choice.detail ?? ''}`.toLowerCase().includes(query.trim().toLowerCase()) ? [{ choice, item }] : [];
+    if (!item) return [];
+    const label = libraryItemLabel(item);
+    const detail = choice.detail ? portLabels[choice.detail] ?? choice.detail : undefined;
+    return `${label} ${item.label} ${detail ?? ''} ${choice.detail ?? ''}`.toLowerCase().includes(query.trim().toLowerCase())
+      ? [{ choice, label, detail }] : [];
   });
   const activeIndex = active < matches.length ? active : -1;
 
@@ -121,7 +131,7 @@ export function ConnectionMenu({ screen, mode, choices, onChoose, onDismiss }: P
     <div className="connection-menu-search">
       <Search size={16} strokeWidth={1.5} aria-hidden="true" />
       <input ref={searchRef} value={query} autoComplete="off" spellCheck={false}
-        aria-label={mode === 'create' ? '搜索节点' : '搜索可连接节点'} placeholder="Search" onFocus={() => setActive(-1)}
+        aria-label={mode === 'create' ? '搜索节点' : '搜索可连接节点'} placeholder="搜索节点" onFocus={() => setActive(-1)}
         onChange={event => { setQuery(event.target.value); setActive(-1); }}
         role="combobox" aria-expanded="true" aria-controls="connection-recommendations" aria-autocomplete="list" />
       {query && <button type="button" className="connection-menu-clear" aria-label="清空搜索" tabIndex={-1}
@@ -130,7 +140,7 @@ export function ConnectionMenu({ screen, mode, choices, onChoose, onDismiss }: P
       </button>}
     </div>
     <button ref={filterButtonRef} type="button" className="connection-menu-filter-trigger"
-      aria-label="Created by" title={`Created by: ${creator === 'all' ? 'All members' : 'Me'}`}
+      aria-label="创建者" title={`创建者：${creator === 'all' ? '所有成员' : '我'}`}
       aria-haspopup="menu" aria-expanded={filterOpen} aria-controls={filterOpen ? 'connection-creator-menu' : undefined}
       data-filter-active={creator === 'me'} onClick={() => { setActive(-1); setFilterOpen(open => !open); }}>
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -154,24 +164,24 @@ export function ConnectionMenu({ screen, mode, choices, onChoose, onDismiss }: P
           event.preventDefault(); setFilterOpen(false); filterButtonRef.current?.focus();
         }
       }}>
-      <div id="connection-creator-heading" className="connection-menu-filter-heading">Created by</div>
+      <div id="connection-creator-heading" className="connection-menu-filter-heading">创建者</div>
       {(['all', 'me'] as const).map((value, index) => <button key={value} ref={element => { filterOptionRefs.current[index] = element; }}
         type="button" role="menuitemradio" aria-checked={creator === value} tabIndex={-1}
         onClick={() => { setCreator(value); setFilterOpen(false); filterButtonRef.current?.focus(); }}>
-        <span>{value === 'all' ? 'All members' : 'Me'}</span>
+        <span>{value === 'all' ? '所有成员' : '我'}</span>
         {creator === value && <Check size={14} strokeWidth={1.25} aria-hidden="true" />}
       </button>)}
     </div>}
     <div id="connection-recommendations" role="listbox" aria-label={mode === 'create' ? '可创建节点' : '可连接节点'} className="connection-menu-results">
-      {matches.map(({ choice, item }, index) => <button type="button" role="option" aria-selected={activeIndex === index}
+      {matches.map(({ choice, label, detail }, index) => <button type="button" role="option" aria-selected={activeIndex === index}
         ref={element => { optionRefs.current[index] = element; }} tabIndex={-1}
         id={`connection-choice-${index}`} key={choice.id} className={activeIndex === index ? 'is-active' : ''}
-        aria-label={`${item.label}${choice.detail ? ` · ${choice.detail}` : ''}`}
-        title={choice.detail ? `${item.label} · ${choice.detail}` : item.label}
+        aria-label={`${label}${detail ? ` · ${detail}` : ''}`}
+        title={detail ? `${label} · ${detail}` : label}
         onMouseEnter={() => setActive(index)}
         onMouseLeave={() => setActive(optionRefs.current.findIndex(option => option === document.activeElement))}
         onFocus={() => setActive(index)} onClick={() => onChoose(choice)}>
-        <span>{item.label}</span>
+        <span>{label}</span>
       </button>)}
     </div>
     {!matches.length && <span className="connection-menu-status" role="status">{choices.length ? '没有匹配的节点' : mode === 'create' ? '暂无可创建的节点' : '暂无可连接的节点'}</span>}

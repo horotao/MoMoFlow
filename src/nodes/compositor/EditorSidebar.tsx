@@ -33,7 +33,7 @@ export function EditorSidebar({ name, tab, document, inputs, selected, assets, l
   return <aside className="comp-sidebar" aria-label={tab === 'layers' ? 'Layers panel' : 'Assets panel'}>
     <header><span>{name}</span>{locked && <Lock className="comp-sidebar-locked" size={13} aria-label="Locked" />}</header>
     <div className="comp-sidebar-caption"><span>{tab === 'layers' ? 'Layers' : 'Assets'}</span><div>
-      {tab === 'layers' && layer && <button aria-label="Layer actions" title="Layer actions" aria-haspopup="menu" aria-expanded={Boolean(menu)} onClick={event => setMenu(menu ? undefined : { anchor: event.currentTarget })}><Ellipsis size={15} /></button>}
+      {tab === 'layers' && layer && <button aria-label="图层操作" title="图层操作" aria-haspopup="menu" aria-expanded={Boolean(menu)} onClick={event => setMenu(menu ? undefined : { anchor: event.currentTarget })}><Ellipsis size={15} /></button>}
       {tab === 'assets' && <button aria-label="Search assets" title="Search assets" aria-pressed={search} onClick={() => { setSearch(!search); setQuery(''); }}><Search size={14} /></button>}
     </div></div>
     {tab === 'layers' ? <>
@@ -103,14 +103,14 @@ export function EditorSidebar({ name, tab, document, inputs, selected, assets, l
       })}</div>
       {!shown.length && <p className="comp-assets-empty">{assets.length ? 'No matching images.' : 'Connect an image or import one into the workflow to see it here.'}</p>}
     </>}
-    {menu && layer && <EditorPopover {...menu} label="Layer actions" onClose={() => setMenu(undefined)}>
-      <button role="menuitem" disabled={readOnly} onClick={() => action(() => startRename(layer.id))}><Pencil /><span>Rename</span><kbd>F2</kbd></button>
-      <button role="menuitem" disabled={readOnly || limit || (!layerAsset(layer, inputs) && !isGraphicSource(layer.source))} onClick={() => action(onDuplicate)}><Copy /><span>Duplicate</span><kbd>⌘D</kbd></button>
+    {menu && layer && <EditorPopover {...menu} label="图层操作" onClose={() => setMenu(undefined)}>
+      <button role="menuitem" disabled={readOnly} onClick={() => action(() => startRename(layer.id))}><Pencil /><span>重命名</span><kbd>F2</kbd></button>
+      <button role="menuitem" disabled={readOnly || limit || (!layerAsset(layer, inputs) && !isGraphicSource(layer.source))} onClick={() => action(onDuplicate)}><Copy /><span>创建副本</span><kbd>⌘D</kbd></button>
       <div role="separator" />
-      <button role="menuitem" disabled={readOnly || rows[0].id === layer.id} onClick={() => action(() => onChange(moveCompositorLayer(document, layer.id, document.layers.findIndex(item => item.id === layer.id) + 1)))}><ArrowUp /><span>Bring forward</span><kbd>⌥↑</kbd></button>
-      <button role="menuitem" disabled={readOnly || rows[rows.length - 1].id === layer.id} onClick={() => action(() => onChange(moveCompositorLayer(document, layer.id, document.layers.findIndex(item => item.id === layer.id) - 1)))}><ArrowDown /><span>Send backward</span><kbd>⌥↓</kbd></button>
+      <button role="menuitem" disabled={readOnly || rows[0].id === layer.id} onClick={() => action(() => onChange(moveCompositorLayer(document, layer.id, document.layers.findIndex(item => item.id === layer.id) + 1)))}><ArrowUp /><span>上移一层</span><kbd>⌥↑</kbd></button>
+      <button role="menuitem" disabled={readOnly || rows[rows.length - 1].id === layer.id} onClick={() => action(() => onChange(moveCompositorLayer(document, layer.id, document.layers.findIndex(item => item.id === layer.id) - 1)))}><ArrowDown /><span>下移一层</span><kbd>⌥↓</kbd></button>
       <div role="separator" />
-      <button role="menuitem" disabled={readOnly || (layer.source.kind === 'input' && layer.source.handle === 'background')} onClick={() => action(onRemove)}><Trash2 /><span>Delete</span><kbd>⌫</kbd></button>
+      <button role="menuitem" disabled={readOnly || (layer.source.kind === 'input' && layer.source.handle === 'background')} onClick={() => action(onRemove)}><Trash2 /><span>删除</span><kbd>⌫</kbd></button>
     </EditorPopover>}
     {tab === 'assets' && preview && <EditorPopover anchor={preview.anchor} label={`Asset ${preview.asset.name}`} side="right" menu={false} width={240} onClose={() => setPreview(undefined)}>
       <div className="comp-asset-preview"><img src={preview.asset.url} alt={preview.asset.name} /><div><span>{preview.asset.name}</span><button aria-label="Close asset preview" onClick={() => { preview.anchor.focus(); setPreview(undefined); }}><X size={14} /></button></div><p>{preview.asset.width && preview.asset.height ? `${preview.asset.width} × ${preview.asset.height}` : 'Image'}</p>

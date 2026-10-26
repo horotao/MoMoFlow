@@ -4,7 +4,7 @@ export const imageQualities = ['auto', 'low', 'medium', 'high'] as const;
 export const imageBackgrounds = ['auto', 'transparent', 'opaque'] as const;
 export const imageFormats = ['png', 'jpeg', 'webp'] as const;
 export const imageSizes = ['auto', '1024x1024', '1536x1024', '1024x1536', '1536x1152', '1152x1536', '1280x1024', '1024x1280', '1536x864', '864x1536', '1792x768', '1536x768', '768x1536', '1536x512', '512x1536'] as const;
-export const imageSizeLabels = ['Auto', 'Square · 1:1', 'Landscape · 3:2', 'Portrait · 2:3', 'Landscape · 4:3', 'Portrait · 3:4', 'Landscape · 5:4', 'Portrait · 4:5', 'Landscape · 16:9', 'Portrait · 9:16', 'Wide · 21:9', 'Landscape · 2:1', 'Portrait · 1:2', 'Panorama · 3:1', 'Portrait · 1:3'];
+export const imageSizeLabels = ['自动', '正方形 · 1:1', '横向 · 3:2', '纵向 · 2:3', '横向 · 4:3', '纵向 · 3:4', '横向 · 5:4', '纵向 · 4:5', '横向 · 16:9', '纵向 · 9:16', '超宽 · 21:9', '横向 · 2:1', '纵向 · 1:2', '全景 · 3:1', '纵向 · 1:3'];
 export type SunburstSettings = {
   quality: typeof imageQualities[number];
   background: typeof imageBackgrounds[number];

@@ -57,11 +57,11 @@ export function TextNode({ id, data, isConnectable }: NodeProps<TextNodeType>) {
               if (event.nativeEvent.isComposing) return;
               if (event.key === 'Enter') event.currentTarget.blur();
               if (event.key === 'Escape') { cancelRename.current = true; event.currentTarget.blur(); }
-            }} /> : <span>{data.label || 'Prompt'}</span>}
+            }} /> : <span>{data.label || '提示词'}</span>}
           {data.locked && <LockKeyhole size={12} aria-label="已锁定" />}
         </div>
         <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => {
-          cancelRename.current = false; setTitle(data.label || 'Prompt'); setRenaming(true);
+          cancelRename.current = false; setTitle(data.label || '提示词'); setRenaming(true);
         }}><TextNodeIcon name="more" /></TextNodeMenu>
       </header>
       <div className="text-node-content">

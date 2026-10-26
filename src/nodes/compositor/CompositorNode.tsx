@@ -104,8 +104,8 @@ export function CompositorNode({ id, data, isConnectable }: NodeProps<Compositor
       ? <input autoFocus className="text-node-rename nodrag nopan" aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
         onBlur={() => { if (name.trim() && !data.locked) updateNodeData(id, { label: name.trim() }); setRenaming(false); }}
         onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-      : <span>{data.label || 'Compositor'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || 'Compositor'); setRenaming(true); }}><Ellipsis size={20} /></TextNodeMenu>
+      : <span>{data.label || '合成器'}</span>}</div>
+      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '合成器'); setRenaming(true); }}><Ellipsis size={20} /></TextNodeMenu>
     </header>
     <div className="compositor-node-body" style={{ minHeight: data.document.inputs.length * 60 }}>
       <div className="compositor-node-preview nodrag nopan" role="group" aria-label="Composition preview controls" style={{ aspectRatio: `${layout.width} / ${layout.height}` }} aria-busy={!output && !error}>
@@ -127,7 +127,7 @@ export function CompositorNode({ id, data, isConnectable }: NodeProps<Compositor
     <span className="describer-port-label sunburst-label-image output-label" style={{ top: 61 }}>Output</span>
     <Handle id="result" type="source" position={Position.Right} aria-label="Compositor Output" style={{ top: 89 }} className="describer-port sunburst-port-image" isConnectable={isConnectable && !data.locked} />
     {(error || pending) && <div className="preview-error" role={error ? 'alert' : 'status'}>{error || '等待上游图片…'}</div>}
-    {open && createPortal(<CompositorEditor id={id} name={data.label || 'Compositor'} document={document} inputs={inputs} view={visibleView}
+    {open && createPortal(<CompositorEditor id={id} name={data.label || '合成器'} document={document} inputs={inputs} view={visibleView}
       locked={Boolean(data.locked)} error={error} pending={pending || view?.revision !== revision || (!output && !draft)} previewing={Boolean(draft)} onDraft={setDraft} onChange={patch}
       onClose={() => { setDraft(undefined); setOpen(false); }} />, window.document.body)}
   </>;

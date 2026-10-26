@@ -51,8 +51,8 @@ export function CompareNode({ id, data, isConnectable }: NodeProps<Compare>) {
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || 'Compare'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || 'Compare'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
+        : <span>{data.label || '对比'}</span>}</div>
+      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '对比'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
     </header>
     <div ref={preview} className="preview-image compare-image nodrag nopan" style={{ aspectRatio: size ? `${size.width} / ${size.height}` : '1' }}>
       <div className="compare-layer" style={{ visibility: data.mode === 'toggle' && reveal && both ? 'hidden' : undefined }}>{image(second ?? first, second ? 2 : 1)}</div>

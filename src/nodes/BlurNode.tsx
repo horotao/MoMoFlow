@@ -154,8 +154,8 @@ export function BlurNode({ id, data, isConnectable }: NodeProps<Blur>) {
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || 'Blur'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || 'Blur'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
+        : <span>{data.label || '模糊'}</span>}</div>
+      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '模糊'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
     </header>
     <div className="preview-image color-image nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
       {ready && <>

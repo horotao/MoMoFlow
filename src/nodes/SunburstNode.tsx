@@ -67,9 +67,9 @@ export function SunburstNode({ id, data, isConnectable }: NodeProps<Sunburst>) {
             <button className="file-icon-button" aria-label={grid ? 'All' : 'Single'} title={grid ? 'All' : 'Single'} onClick={() => setShowAll(value => !value)}><FileIcon name={grid ? 'grid' : 'single'} /></button>
             {grid ? <span>{results.length} images</span> : <><button className="file-icon-button" disabled={data.locked} aria-label="Previous result" title="Previous result" onClick={() => patch({ activeResultId: results[(index + results.length - 1) % results.length].id })}><FileIcon name="previous" /></button><span>{index + 1} / {results.length}</span><button className="file-icon-button" disabled={data.locked} aria-label="Next result" title="Next result" onClick={() => patch({ activeResultId: results[(index + 1) % results.length].id })}><FileIcon name="next" /></button></>}</>}</div>
           <div className="file-media-tools">
-            <FileActionMenu label="Order by" heading="Order by" items={[
-              { label: 'Date added', checked: data.orderBy !== 'name', action: () => patch({ orderBy: 'date' }) },
-              { label: 'Name', checked: data.orderBy === 'name', action: () => patch({ orderBy: 'name' }) },
+            <FileActionMenu label="排序方式" heading="排序方式" items={[
+              { label: '添加时间', checked: data.orderBy !== 'name', action: () => patch({ orderBy: 'date' }) },
+              { label: '名称', checked: data.orderBy === 'name', action: () => patch({ orderBy: 'name' }) },
             ]}><FileIcon name="order" /></FileActionMenu>
             <button className="file-icon-button" aria-label={grid ? 'Download all' : 'Download current'} title={grid ? 'Download all' : 'Download current'} onClick={() => { setError(''); void (grid ? downloadAssets(results) : downloadAsset(active)).catch(() => setError('下载失败，请重试。')); }}><FileIcon name="download" /></button><button className="file-icon-button" aria-label="Full screen result" title="Full screen" onClick={() => { setViewId(active.id); setFullscreen(true); }}><FileIcon name="fullscreen" /></button></div>
         </div>

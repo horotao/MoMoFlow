@@ -146,9 +146,9 @@ export function FileNode({ id, data, isConnectable }: NodeProps<FileNodeType>) {
               </>}
             </>}</div>
             <div className="file-media-tools">
-              <FileActionMenu label="Order by" heading="Order by" items={[
-                { label: 'Date added', checked: data.orderBy !== 'name', action: () => updateNodeData(id, { orderBy: 'date' }) },
-                { label: 'Name', checked: data.orderBy === 'name', action: () => updateNodeData(id, { orderBy: 'name' }) },
+              <FileActionMenu label="排序方式" heading="排序方式" items={[
+                { label: '添加时间', checked: data.orderBy !== 'name', action: () => updateNodeData(id, { orderBy: 'date' }) },
+                { label: '名称', checked: data.orderBy === 'name', action: () => updateNodeData(id, { orderBy: 'name' }) },
               ]}><FileIcon name="order" /></FileActionMenu>
               <button className="file-icon-button" aria-label={grid ? 'Download all' : 'Download current'} title={grid ? 'Download all' : 'Download current'} onClick={runDownload}><FileIcon name="download" /></button>
               <button className="file-icon-button" aria-label="Full screen" title="Full screen" onClick={() => setGallery(true)}><FileIcon name="fullscreen" /></button>

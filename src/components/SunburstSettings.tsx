@@ -4,10 +4,12 @@ import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import type { AppNode, SunburstNode } from '../nodes/types';
 import { isNodeLocked } from '../nodes/types';
 import { effectiveSunburstSettings } from '../nodes/sunburstRun';
-import { imageBackgrounds, imageFormats, imageQualities, imageSizes, imageSizeLabels, sunburstName, sunburstFieldLabels, validateSunburstSettings, type SunburstSettings as Settings } from '../nodes/sunburst';
+import { imageBackgrounds, imageFormats, imageQualities, imageSizes, imageSizeLabels, sunburstName, validateSunburstSettings, type SunburstSettings as Settings } from '../nodes/sunburst';
 import { DescriberModelSelect } from './DescriberModelSelect';
 import { DescriberIcon } from './DescriberIcon';
 import { OpenAIIcon } from './OpenAIIcon';
+
+const fieldLabels: Record<keyof Settings, string> = { quality: '画质', background: '背景', size: '宽高比', outputFormat: '输出格式' };
 
 export function SunburstSettings({ node }: { node: SunburstNode }) {
   const { getNode, getNodes, getEdges, setNodes, setEdges, updateNodeData } = useReactFlow<AppNode>();
@@ -41,17 +43,18 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
     setEdges(all => [...all, { id: crypto.randomUUID(), source: id, target: node.id, targetHandle: field }]);
   };
   const fields: { field: keyof Settings; choices: readonly string[]; labels?: string[] }[] = [
-    { field: 'quality', choices: imageQualities }, { field: 'background', choices: imageBackgrounds },
-    { field: 'size', choices: imageSizes, labels: imageSizeLabels }, { field: 'outputFormat', choices: imageFormats },
+    { field: 'quality', choices: imageQualities, labels: ['自动', '低', '中', '高'] },
+    { field: 'background', choices: imageBackgrounds, labels: ['自动', '透明', '不透明'] },
+    { field: 'size', choices: imageSizes, labels: imageSizeLabels }, { field: 'outputFormat', choices: imageFormats, labels: ['PNG', 'JPEG', 'WebP'] },
   ];
   return <div className="describer-settings sunburst-settings">
     <h2><OpenAIIcon /><span>{sunburstName}</span></h2>
-    <div className="describer-field"><label>Variant</label><div className="sunburst-field-row"><DescriberModelSelect compact label="Variant" value="Sunburst" choices={['Sunburst']} disabled={node.data.locked} onChange={() => {}} /></div></div>
+    <div className="describer-field"><label>模型版本</label><div className="sunburst-field-row"><DescriberModelSelect compact label="模型版本" value="Sunburst" choices={['Sunburst']} disabled={node.data.locked} onChange={() => {}} /></div></div>
     {fields.map(({ field, choices, labels }) => {
-      const label = sunburstFieldLabels[field]; const exposed = Boolean(node.data.exposed?.includes(field));
+      const label = fieldLabels[field]; const exposed = Boolean(node.data.exposed?.includes(field));
       return <div className="describer-field" key={field}><label>{label}</label><div className="describer-field-row">
         {field === 'size' ? <SunburstSizeSelect value={String(effective.size ?? '')} disabled={node.data.locked || exposed} onChange={value => change('size', value)} /> : <DescriberModelSelect compact label={label} value={String(effective[field] ?? '')} choices={[...choices]} labels={labels} disabled={node.data.locked || exposed} onChange={value => change(field, value)} />}
-        <button disabled={node.data.locked} className="describer-expose" data-exposed={exposed} title={exposed ? 'Use local value' : 'Set as input'} aria-label={`Set ${label} as input`} aria-pressed={exposed} onClick={() => expose(field)}><DescriberIcon name="expose" /></button>
+        <button disabled={node.data.locked} className="describer-expose" data-exposed={exposed} title={exposed ? '使用本地值' : '设为输入'} aria-label={exposed ? `${label}使用本地值` : `将${label}设为输入`} aria-pressed={exposed} onClick={() => expose(field)}><DescriberIcon name="expose" /></button>
       </div></div>;
     })}
   </div>;

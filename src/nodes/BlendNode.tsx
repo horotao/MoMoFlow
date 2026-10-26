@@ -95,8 +95,8 @@ export function BlendNode({ id, data, isConnectable }: NodeProps<Blend>) {
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || 'Blend'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || 'Blend'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
+        : <span>{data.label || '混合'}</span>}</div>
+      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '混合'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
     </header>
     <div className="preview-image nodrag nopan" aria-busy={Boolean((back || front) && !output && !error && !data.locked)} style={{ aspectRatio: current ? `${current.width} / ${current.height}` : '1' }}>
       <canvas ref={canvas} aria-label="Blend preview" style={{ visibility: painted === sourceKey && current ? 'visible' : 'hidden' }} />

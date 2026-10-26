@@ -8,7 +8,7 @@ import { LevelsEffectControls } from './LevelsEffectControls';
 import { InspectorPopup, InspectorSelect, NumberField, Section, SliderField } from './InspectorControls';
 import { reorderAtDrop, type DropSide } from './interaction';
 
-const effectNames = { blur: 'Blur', color: 'Color correction', invert: 'Invert', levels: 'Levels' };
+const effectNames = { blur: '模糊', color: '色彩校正', invert: '反相', levels: '色阶' };
 const effectIcons = { blur: CircleDashed, color: SlidersHorizontal, invert: Contrast, levels: Blend };
 const alignment = [
   { label: 'Left', icon: AlignHorizontalJustifyStart }, { label: 'Center horizontally', icon: AlignHorizontalJustifyCenter }, { label: 'Right', icon: AlignHorizontalJustifyEnd },
@@ -92,7 +92,7 @@ export function CompositorProperties({ document, size, layer, disabled, onChange
           {layer.stroke.enabled && <div className="comp-stroke-controls"><ColorField label="Stroke color" value={layer.stroke.color} disabled={unavailable} onDraft={color => onLayerDraft({ stroke: { ...layer.stroke, color } })} onCancel={onCancelDraft} onChange={color => onLayer({ stroke: { ...layer.stroke, color } })} /><NumberField label="Stroke width" prefix={<SlidersHorizontal />} min={0} max={256} value={layer.stroke.width} onChange={width => onLayer({ stroke: { ...layer.stroke, width } })} /></div>}
           {layer.stroke.enabled && layer.source.kind === 'path' && <div className="comp-pair"><InspectorSelect label="Stroke join" value={layer.stroke.join ?? 'miter'} options={['miter', 'bevel', 'round'].map(value => ({ value, label: value[0].toUpperCase() + value.slice(1) }))} onChange={join => onLayer({ stroke: { ...layer.stroke, join: join as 'miter' | 'bevel' | 'round' } })} /><InspectorSelect label="Stroke endpoint" value={layer.stroke.cap ?? 'butt'} options={['butt', 'round', 'square'].map(value => ({ value, label: value === 'butt' ? 'Flat' : value[0].toUpperCase() + value.slice(1) }))} onChange={cap => onLayer({ stroke: { ...layer.stroke, cap: cap as 'butt' | 'round' | 'square' } })} /></div>}
         </Section>
-        <Section title="Effects" action={<button aria-label="Add effect" title="Add effect" aria-haspopup="menu" aria-expanded={Boolean(effectMenu)} disabled={layer.effects.length >= 16} onClick={event => { closeEffect(); setEffectMenu(effectMenu ? undefined : event.currentTarget); }}><Plus /></button>}>
+        <Section title="Effects" action={<button aria-label="添加效果" title="添加效果" aria-haspopup="menu" aria-expanded={Boolean(effectMenu)} disabled={layer.effects.length >= 16} onClick={event => { closeEffect(); setEffectMenu(effectMenu ? undefined : event.currentTarget); }}><Plus /></button>}>
           {layer.effects.length > 0 && <div className="comp-effect-list">{layer.effects.map((effect, index) => {
             const Icon = effectIcons[effect.type];
             return <div className={`comp-effect-row${effect.enabled ? '' : ' is-disabled'}${dragging === effect.id ? ' is-dragging' : ''}${dragOver?.id === effect.id ? ` drop-${dragOver.side}` : ''}`} key={effect.id} draggable={!unavailable}

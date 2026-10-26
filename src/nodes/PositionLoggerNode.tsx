@@ -13,7 +13,7 @@ export function PositionLoggerNode({
   return (
     <>
       <Handle type="target" position={Position.Left} />
-      {data.label && <div>{data.label}</div>}
+      {data.label && <div>{data.label === 'Position Logger' ? '坐标记录' : data.label}</div>}
 
       <div>
         {x} {y}

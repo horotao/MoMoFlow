@@ -31,11 +31,11 @@ export async function compositorKeyboardChecks(record: (message: string) => void
     root.render(<ReactFlowProvider><CompositorEditor id="keyboard-qa" name="Keyboard QA" document={doc} inputs={{}} locked={false} error="" pending={false} previewing={false}
       onChange={() => {}} onDraft={() => {}} onClose={() => {}} /></ReactFlowProvider>);
     await settle();
-    for (const label of ['Close compositor', 'Layers', 'Assets', 'Select tool', 'Pen tool', 'Shapes menu', 'Zoom menu', 'Select Keyboard Text']) {
+    for (const label of ['Close compositor', 'Layers', 'Assets', 'Select tool', 'Pen tool', '形状菜单', '缩放菜单', 'Select Keyboard Text']) {
       assert(!enter(find(`[aria-label="${label}"]`)), `Enter canceled on ${label}`);
     }
     record('Enter preserves native activation on navigation, layer and toolbar buttons');
-    for (const label of ['Shapes menu', 'Zoom menu']) {
+    for (const label of ['形状菜单', '缩放菜单']) {
       find(`button[aria-label="${label}"]`).click(); await settle();
       assert(!enter(find('[role="menuitem"]')), `Enter canceled in ${label}`);
       find('[role="menu"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await settle();

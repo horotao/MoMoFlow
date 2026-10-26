@@ -13,9 +13,9 @@ export const filePortColors = { file: 'var(--media-port-file, #f3ffe3)', image: 
 export function fileNodeTitle(data: FileNode['data']) {
   const assets = fileAssets(data);
   if (data.label) return data.label;
-  if (!assets.length) return 'File';
+  if (!assets.length) return '文件';
   if (assets.length === 1) return assets[0].name;
-  return `${assets.length} ${assets.every((asset) => asset.kind === 'image') ? 'images' : 'files'}`;
+  return `${assets.length} ${assets.every((asset) => asset.kind === 'image') ? '张图片' : '个文件'}`;
 }
 
 // Move, rather than duplicate, an asset. One state update gives undo one atomic edit.

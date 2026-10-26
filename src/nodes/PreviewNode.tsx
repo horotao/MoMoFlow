@@ -77,8 +77,8 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name}
           onChange={event => setName(event.target.value)} onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || 'Preview'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || 'Preview'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
+        : <span>{data.label || '预览'}</span>}</div>
+      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '预览'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
     </header>
     <div className={`preview-image${active || live || cropLive || colorLive || levelsLive || blurLive ? ' has-image' : ''}`} style={{ aspectRatio }}>
       {live || cropLive || colorLive || levelsLive || blurLive || (active && active.url !== failedUrl) ? <>

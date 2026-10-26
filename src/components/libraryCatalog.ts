@@ -21,6 +21,16 @@ import { defaultInstructions } from '../nodes/describer';
 import { defaultTextNodeText } from '../nodes/defaults';
 export type Category = 'Search' | 'Recents' | 'Saved' | 'Tools' | 'Image' | 'Video' | 'Models' | 'Assets';
 export type Item = { id: string; label: string; icon: LucideIcon; category: Category; group: string; color?: string; nodeType?: string };
+const itemLabels: Record<string, string> = {
+  router: '路由', 'color-palette': '调色板', compositor: '合成器', text: '提示词',
+  'image-describer': '图像描述', file: '导入', preview: '预览', compare: '对比', blend: '混合',
+  'model-input': '模型名称', 'position-logger': '坐标记录', resize: '调整尺寸',
+  'rotate-flip': '旋转与翻转', 'color-correction': '色彩校正', levels: '色阶',
+  invert: '反相', blur: '模糊', crop: '裁剪', painter: '绘图',
+  background: '移除背景', upscale: '图像放大',
+};
+export const libraryItemLabel = (item: Item) => itemLabels[item.id] ?? item.label;
+
 export const navigation: { name: Category; icon: LucideIcon; divider?: boolean }[] = [
   { name: 'Search', icon: Search }, { name: 'Recents', icon: History }, { name: 'Saved', icon: Bookmark, divider: true },
   { name: 'Tools', icon: BriefcaseBusiness }, { name: 'Image', icon: Image }, { name: 'Video', icon: SquarePlay },

@@ -130,11 +130,11 @@ export function DescriberPanel() {
     setEdges((all) => [...all, { id: crypto.randomUUID(), source: id, target: selected.id, targetHandle: field }]);
   };
   return <>
-    <aside className={`describer-panel nodrag nopan nowheel ${panelOpen ? 'is-open' : ''}`} aria-label={selectedPalette ? "Color palette settings" : selectedImage ? "GPT Image 2.5 Sunburst settings" : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => { if (!(selectedPalette && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !(e.target as HTMLElement).closest('input'))) e.stopPropagation(); }}>
+    <aside className={`describer-panel nodrag nopan nowheel ${panelOpen ? 'is-open' : ''}`} aria-label={selectedPalette ? "Color palette settings" : selectedImage ? "GPT Image 2.5 Sunburst 设置" : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => { if (!(selectedPalette && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !(e.target as HTMLElement).closest('input'))) e.stopPropagation(); }}>
       {!selectedPalette && selectedImage && <div className="sunburst-provider"><span>ZenMux</span><span>按用量计费</span></div>}
       <div className="describer-panel-top">
         <button ref={tasksTrigger} className={tasksOpen ? 'active' : ''} aria-controls={tasksOpen ? 'task-manager' : undefined} aria-expanded={tasksOpen} onClick={() => setTasksOpen(!tasksOpen)}>
-          Tasks<DescriberIcon name="chevron" />{tasks.filter(isActiveTask).length || ''}
+          任务<DescriberIcon name="chevron" />{tasks.filter(isActiveTask).length || ''}
         </button>
       </div>
       {selectedPalette && isColorPaletteNode(selectedPalette) && <div className="describer-settings palette-settings"><h2>{selectedPalette.data.label || 'Color palette'}</h2><label>Color palette</label><ColorPaletteColors key={selectedPalette.id} node={selectedPalette} /></div>}
@@ -161,14 +161,14 @@ export function DescriberPanel() {
       </>}
       {!selectedPalette && (selected || selectedImage) && <>
         <div className="describer-panel-bottom">
-          <h3>Run selected nodes</h3>
-          <div className="describer-runs"><span>Runs</span><div>
-            <button aria-label="Decrement runs" disabled={!runnable.length || runs === 1} onClick={() => setRuns(runs - 1)}><DescriberIcon name="minus" /></button>
+          <h3>运行选中节点</h3>
+          <div className="describer-runs"><span>运行次数</span><div>
+            <button aria-label="减少运行次数" disabled={!runnable.length || runs === 1} onClick={() => setRuns(runs - 1)}><DescriberIcon name="minus" /></button>
             <span>{runs}</span>
-            <button aria-label="Increment runs" disabled={!runnable.length || runs === 10} onClick={() => setRuns(runs + 1)}><DescriberIcon name="plus" /></button>
+            <button aria-label="增加运行次数" disabled={!runnable.length || runs === 10} onClick={() => setRuns(runs + 1)}><DescriberIcon name="plus" /></button>
           </div></div>
-          {selectedImage && <div className="sunburst-cost"><span>Total cost</span><span>按实际用量计费</span></div>}
-          <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? "通过 ZenMux 运行 Sunburst" : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => (isDescriberNode(node) || isSunburstNode(node)) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />Run selected</button>
+          {selectedImage && <div className="sunburst-cost"><span>总费用</span><span>按实际用量计费</span></div>}
+          <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? "通过 ZenMux 运行 Sunburst" : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => (isDescriberNode(node) || isSunburstNode(node)) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />运行选中节点</button>
         </div>
       </>}
     </aside>
@@ -185,6 +185,6 @@ export function DescriberPanel() {
         setNodes((all) => all.map((n) => ({ ...n, selected: n.id === id })));
         void setCenter(node.position.x + 230, node.position.y + 200, { zoom: 0.8, duration: 300 });
       }} />}
-    {error && <div className="describer-error" role="alert">{error}<button aria-label="Dismiss" onClick={() => setError('')}><X size={14} /></button></div>}
+    {error && <div className="describer-error" role="alert">{error}<button aria-label="关闭提示" onClick={() => setError('')}><X size={14} /></button></div>}
   </>;
 }
