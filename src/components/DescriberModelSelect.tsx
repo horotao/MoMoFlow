@@ -3,8 +3,10 @@ import { createPortal } from 'react-dom';
 import { describerModels } from '../nodes/describer';
 import { DescriberIcon } from './DescriberIcon';
 
-export function DescriberModelSelect({ value, disabled, onChange, choices = describerModels, node = false, compact = false, label = 'Model', labels, includeCurrentValue = true, menuLabel }: {
-  value: string; choices?: readonly string[]; node?: boolean; compact?: boolean; label?: string; labels?: string[]; disabled?: boolean; includeCurrentValue?: boolean; menuLabel?: string; onChange: (model: string) => void;
+const noSeparators: readonly number[] = [];
+
+export function DescriberModelSelect({ value, disabled, onChange, choices = describerModels, node = false, compact = false, label = 'Model', labels, includeCurrentValue = true, menuLabel, separators = noSeparators }: {
+  separators?: readonly number[]; value: string; choices?: readonly string[]; node?: boolean; compact?: boolean; label?: string; labels?: string[]; disabled?: boolean; includeCurrentValue?: boolean; menuLabel?: string; onChange: (model: string) => void;
 }) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
@@ -17,8 +19,8 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
     if (disabled) return;
     const rect = trigger.current!.getBoundingClientRect();
     const index = Math.max(0, options.indexOf(value));
-    const height = Math.min(node || compact ? options.length * 24 + 16 : 410, window.innerHeight - 24, rect.top - 12 + (options.length - index) * 24 + 8);
-    const top = Math.max(12, Math.min(rect.top - index * 24 - 8, window.innerHeight - height - 12));
+    const height = Math.min(node || compact ? options.length * 24 + separators.length * 16 + 16 : 410, window.innerHeight - 24, rect.top - 12 + (options.length - index) * 24 + 8);
+    const top = Math.max(12, Math.min(rect.top - index * 24 - separators.filter(n => n <= index).length * 16 - 8, window.innerHeight - height - 12));
     setActive(index);
     if (compact) {
       // The portal keeps screen-sized text while the canvas scales its trigger.
@@ -31,9 +33,9 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
   };
   useLayoutEffect(() => {
     if (!placement || !list.current || !trigger.current) return;
-    list.current.scrollTop = Math.max(0, options.indexOf(value) * 24 - (trigger.current.getBoundingClientRect().top - placement.top - 8));
+    list.current.scrollTop = Math.max(0, options.indexOf(value) * 24 + separators.filter(n => n <= options.indexOf(value)).length * 16 - (trigger.current.getBoundingClientRect().top - placement.top - 8));
     list.current.focus();
-  }, [placement, value, options]);
+  }, [placement, value, options, separators]);
   useEffect(() => {
     if (!placement) return;
     const dismiss = (event: PointerEvent) => {
@@ -60,6 +62,6 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
       else return;
       e.preventDefault(); setActive(next);
       list.current?.children[next]?.scrollIntoView({ block: 'nearest' });
-    }}>{options.map((model, index) => <div id={`${id}-${index}`} role="option" aria-selected={model === value} key={model} className={index === active ? 'is-active' : ''} onPointerMove={() => setActive(index)} onMouseDown={(e) => e.preventDefault()} onClick={() => { onChange(model); close(); }}><span className="describer-model-check">{model === value && <DescriberIcon name="check" />}</span>{labels?.[choices.indexOf(model)] ?? model}</div>)}</div>, document.body)}
+    }}>{options.map((model, index) => <div id={`${id}-${index}`} role="option" aria-selected={model === value} key={model} className={`${index === active ? 'is-active' : ''}${separators.includes(index) ? ' has-separator' : ''}`} onPointerMove={() => setActive(index)} onMouseDown={(e) => e.preventDefault()} onClick={() => { onChange(model); close(); }}><span className="describer-model-check">{model === value && <DescriberIcon name="check" />}</span>{labels?.[choices.indexOf(model)] ?? model}</div>)}</div>, document.body)}
   </>;
 }

@@ -17,6 +17,7 @@
 | Compositor：图片、文本与矢量图层合成 | `compositor` | [CompositorNode.tsx](./compositor/CompositorNode.tsx) | `background`、`layer-1` 起的动态图片输入；`result`（Output）输出实际合成 PNG；独立图层编辑器见[使用与架构](../../docs/compositor.md) |
 | Color correction：本地图片调色 | `color-correction` | [ColorCorrectionNode.tsx](./ColorCorrectionNode.tsx) | 单图片输入 `file`（File）；`result` 输出调色后的 PNG |
 | Levels：本地图片色阶 | `levels` | [LevelsNode.tsx](./LevelsNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
+| Blend：双图片混合 | `blend` | [BlendNode.tsx](./BlendNode.tsx) | `back`（Back）、`front`（Front）图片输入；`result`（Result）输出合成 PNG |
 | Compare：双图片对比 | `compare` | [CompareNode.tsx](./CompareNode.tsx) | `input-1` / `input-2`（Input 1 / Input 2）；`output-1` / `output-2`（Output 1 / Output 2）分别透传对应输入 |
 | Resize：本地调整图片宽高 | `resize` | [ResizeNode.tsx](./ResizeNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出指定尺寸 PNG |
 | Rotate and flip：本地旋转与镜像 | `rotate-flip` | [RotateFlipNode.tsx](./RotateFlipNode.tsx) | 单图片输入 `image`（Input）；`result`（Result）输出旋转后的原分辨率 PNG |
@@ -211,3 +212,17 @@ Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排�
 模式和分割位置参与撤销重做与工作流保存。副本、剪切粘贴保存两路输入快照；已有连线优先于快照，上游暂不可用时不返回旧快照。支持重命名、锁定和删除，素材生命周期与 IndexedDB 复用现有机制。无模型请求或付费调用。
 
 `compare.test.ts` 使用现有 Node.js 测试运行器，随 `npm test` 验证双输出、断开重连、递归、连接规则、剪贴板校验和素材映射。启动 `npm run dev` 后打开 `/tests/compare.html`，可在隔离画布检查 Slider / Toggle、撤销重做、主题、连线和缩放；该页使用独立测试数据库，不访问用户工作流。
+
+## Blend
+
+从 Tools → Helpers 或搜索 Blend 添加。Back 是底图，Front 是前景；Opacity（0–100%，默认 100%）控制前景透明度，Mode 默认 Normal。模式按照 Weavy 分成六组：Normal；Darken / Multiply / Color Burn；Lighten / Add / Screen / Color Dodge；Overlay / Hard Light / Soft Light；Difference / Exclusion / Divide；Hue / Saturation / Color / Luminosity。节点宽 460px，底部单行模式选择和百分比透明度，菜单支持方向键、Home / End、Enter、Escape 和外部点击关闭。
+
+当前支持静态图片文件，不合成视频、音频或任意文档。输出尺寸以 Back 为准，Front 缩放铺满 Back；仅接 Front 时使用 Front 尺寸。空端口视为透明图层，均为空时没有输出；已连接但无有效图片时等待上游。改变设置、断开或重连会使旧输出立即失效。Result 可连接 Preview（含下载）、后续图片处理和模型图片输入。
+
+`blend.ts` 对齐 Weavy 的线性 RGB 混合与透明合成，包括 Add 的钳制顺序、Soft Light / Divide 边界、四种 HSL 模式和透明底图行为。读取输入时使用非预乘 ImageBitmap 与 float16 Canvas，避免低 alpha 颜色精度损失；浏览器需支持 float16 Canvas。实现和差异边界详见 [Blend 核验记录](../../docs/blend-verification.md)。不引入第三方算法依赖。
+
+Worker 使用有界任务队列；拖动时 512px 草稿，释放时原尺寸 PNG，预览和导出使用同一公式。拖动只提交一次撤销记录，Escape 取消，锁定禁止修改。支持独立副本素材快照、剪切粘贴、IndexedDB 恢复与资源回收。算法修订号会使旧 PNG 缓存失效。
+
+`blend.test.ts`、`blendMath.test.ts` 和 `blendWeavy.test.ts` 随 `npm test` 检查模式、全部通道输入与 alpha 对、边界、连接、失效、剪贴板、素材映射，以及 108 张实际 Weavy PNG 的独立参照。原始参照和元数据保存在 `tests/fixtures/blend-weavy.*`。
+
+启动 `npm run dev` 后访问 `/tests/blend.html`，执行真实 Worker / PNG、4K、历史、持久化和交互验收；使用独立数据库，不读取或改写用户画布。`/tests/blend-modes.html` 将 18 种模式 × 六档透明度的真实 Worker / PNG 与 Weavy 导出逐像素对照，另核对预览。2026-10-26 完整对照已通过，详细指标与允许的量化误差见上述核验记录；历史九模式与原生 Canvas 诊断不再代表当前算法。

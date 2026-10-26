@@ -1,0 +1,4638 @@
+{
+  "status": "passed",
+  "reference": "108 actual Weavy RGBA PNG exports, 2026-10-26",
+  "comparedPixels": 2239488,
+  "tolerance": {
+    "meanPremultiplied": 0.12,
+    "maxPremultiplied": 6.01,
+    "alpha": 1
+  },
+  "rows": [
+    {
+      "mode": "Normal",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.04336180202533658,
+          "maxPremultiplied": 2.4980392156862745,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2310,
+            "actual": [
+              255,
+              255,
+              255,
+              192
+            ],
+            "expected": [
+              253,
+              253,
+              253,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.025115425542644742,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2310,
+              "actual": [
+                254,
+                254,
+                254,
+                192
+              ],
+              "expected": [
+                255,
+                255,
+                255,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.04466558742838787,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16574,
+            "actual": [
+              169,
+              255,
+              192,
+              160
+            ],
+            "expected": [
+              169,
+              254,
+              192,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.01732618716210776,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16575,
+              "actual": [
+                150,
+                254,
+                180,
+                207
+              ],
+              "expected": [
+                150,
+                255,
+                180,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.09433734013152739,
+          "maxPremultiplied": 2.0588235294117645,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 19020,
+            "actual": [
+              219,
+              224,
+              255,
+              136
+            ],
+            "expected": [
+              219,
+              224,
+              253,
+              135
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.015071575183571282,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2292,
+              "actual": [
+                197,
+                205,
+                253,
+                215
+              ],
+              "expected": [
+                197,
+                205,
+                254,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.03705620108125549,
+          "maxPremultiplied": 1.7568627450980392,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 15855,
+            "actual": [
+              65,
+              255,
+              138,
+              194
+            ],
+            "expected": [
+              65,
+              254,
+              138,
+              193
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.015322661986605434,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2418,
+              "actual": [
+                151,
+                254,
+                180,
+                231
+              ],
+              "expected": [
+                151,
+                255,
+                180,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.05803963174776191,
+          "maxPremultiplied": 2,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16684,
+            "actual": [
+              254,
+              13,
+              128,
+              255
+            ],
+            "expected": [
+              254,
+              15,
+              128,
+              255
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.016139655450657486,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2274,
+              "actual": [
+                124,
+                254,
+                164,
+                239
+              ],
+              "expected": [
+                124,
+                255,
+                164,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Darken",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.040549856773985045,
+          "maxPremultiplied": 2.4980392156862745,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2310,
+            "actual": [
+              255,
+              255,
+              255,
+              192
+            ],
+            "expected": [
+              253,
+              253,
+              253,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.025067893669813344,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2310,
+              "actual": [
+                254,
+                254,
+                254,
+                192
+              ],
+              "expected": [
+                255,
+                255,
+                255,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.028446249899136418,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16574,
+            "actual": [
+              1,
+              255,
+              127,
+              160
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.014263848543532564,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16575,
+              "actual": [
+                1,
+                254,
+                127,
+                207
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.051891945049625694,
+          "maxPremultiplied": 1.7490196078431373,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2561,
+            "actual": [
+              156,
+              255,
+              183,
+              192
+            ],
+            "expected": [
+              156,
+              254,
+              183,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.00994645414750257,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2292,
+              "actual": [
+                197,
+                205,
+                253,
+                215
+              ],
+              "expected": [
+                197,
+                205,
+                254,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.02296545933188101,
+          "maxPremultiplied": 1.7568627450980392,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 15855,
+            "actual": [
+              1,
+              255,
+              127,
+              194
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              193
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.009501016198660487,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2418,
+              "actual": [
+                151,
+                254,
+                180,
+                231
+              ],
+              "expected": [
+                151,
+                255,
+                180,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.04159852083837647,
+          "maxPremultiplied": 2,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16684,
+            "actual": [
+              1,
+              13,
+              127,
+              255
+            ],
+            "expected": [
+              1,
+              15,
+              127,
+              255
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.01062980361897838,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2274,
+              "actual": [
+                124,
+                254,
+                164,
+                239
+              ],
+              "expected": [
+                124,
+                255,
+                164,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Multiply",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.04067120804082922,
+          "maxPremultiplied": 2.4980392156862745,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2310,
+            "actual": [
+              255,
+              255,
+              255,
+              192
+            ],
+            "expected": [
+              253,
+              253,
+              253,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.025074449790203884,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2310,
+              "actual": [
+                254,
+                254,
+                254,
+                192
+              ],
+              "expected": [
+                255,
+                255,
+                255,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.028737051662228487,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16574,
+            "actual": [
+              1,
+              255,
+              127,
+              160
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.014244621459694918,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16575,
+              "actual": [
+                1,
+                254,
+                127,
+                207
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.05097597938352319,
+          "maxPremultiplied": 1.7490196078431373,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2561,
+            "actual": [
+              156,
+              255,
+              183,
+              192
+            ],
+            "expected": [
+              156,
+              254,
+              183,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.009898354918098881,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2292,
+              "actual": [
+                197,
+                205,
+                253,
+                215
+              ],
+              "expected": [
+                197,
+                205,
+                254,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.0234748194545309,
+          "maxPremultiplied": 1.7568627450980392,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 15855,
+            "actual": [
+              1,
+              255,
+              127,
+              194
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              193
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.00947498083595574,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2418,
+              "actual": [
+                151,
+                254,
+                180,
+                231
+              ],
+              "expected": [
+                151,
+                255,
+                180,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.04311582143145312,
+          "maxPremultiplied": 2,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16684,
+            "actual": [
+              1,
+              13,
+              61,
+              255
+            ],
+            "expected": [
+              1,
+              15,
+              61,
+              255
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.010511730412329466,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2274,
+              "actual": [
+                124,
+                254,
+                164,
+                239
+              ],
+              "expected": [
+                124,
+                255,
+                164,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Color Burn",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.030291734749455096,
+          "maxPremultiplied": 2.4980392156862745,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2310,
+            "actual": [
+              255,
+              255,
+              255,
+              192
+            ],
+            "expected": [
+              253,
+              253,
+              253,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.014566753913499597,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2310,
+              "actual": [
+                254,
+                254,
+                254,
+                192
+              ],
+              "expected": [
+                255,
+                255,
+                255,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.02416812918583068,
+          "maxPremultiplied": 2.243137254901961,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16655,
+            "actual": [
+              1,
+              254,
+              100,
+              160
+            ],
+            "expected": [
+              1,
+              252,
+              100,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.010076567921407195,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16575,
+              "actual": [
+                1,
+                254,
+                127,
+                207
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.052656678669410414,
+          "maxPremultiplied": 2.4901960784313726,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16799,
+            "actual": [
+              0,
+              253,
+              75,
+              192
+            ],
+            "expected": [
+              0,
+              251,
+              75,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.008152724824497668,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16494,
+              "actual": [
+                1,
+                252,
+                96,
+                215
+              ],
+              "expected": [
+                1,
+                253,
+                96,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.022412664911643877,
+          "maxPremultiplied": 2.3019607843137253,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 18083,
+            "actual": [
+              255,
+              0,
+              21,
+              167
+            ],
+            "expected": [
+              253,
+              0,
+              21,
+              166
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.0075696083474541655,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16575,
+              "actual": [
+                1,
+                254,
+                127,
+                231
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.04235152908900167,
+          "maxPremultiplied": 3,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 19258,
+            "actual": [
+              0,
+              2,
+              106,
+              255
+            ],
+            "expected": [
+              0,
+              2,
+              109,
+              255
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.007444348624223317,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16431,
+              "actual": [
+                1,
+                254,
+                127,
+                239
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Lighten",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.02313390119422251,
+          "maxPremultiplied": 1.7490196078431373,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16566,
+            "actual": [
+              1,
+              255,
+              127,
+              192
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.00844138324053892,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                1,
+                254,
+                127,
+                192
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.03855049221334642,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16565,
+            "actual": [
+              1,
+              255,
+              127,
+              160
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.013465388727507405,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                1,
+                254,
+                127,
+                207
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.10696568879609696,
+          "maxPremultiplied": 2.0588235294117645,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 19020,
+            "actual": [
+              219,
+              224,
+              255,
+              136
+            ],
+            "expected": [
+              219,
+              224,
+              253,
+              135
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.01596894416202678,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 19023,
+              "actual": [
+                179,
+                190,
+                252,
+                215
+              ],
+              "expected": [
+                179,
+                190,
+                253,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.0372378812636165,
+          "maxPremultiplied": 1.7568627450980392,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 15846,
+            "actual": [
+              1,
+              255,
+              127,
+              194
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              193
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.017040680727023375,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 12795,
+              "actual": [
+                242,
+                76,
+                110,
+                231
+              ],
+              "expected": [
+                243,
+                76,
+                110,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.049141022149601074,
+          "maxPremultiplied": 1.772549019607843,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 18979,
+            "actual": [
+              20,
+              198,
+              250,
+              255
+            ],
+            "expected": [
+              20,
+              197,
+              250,
+              254
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.014353553921568478,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 11247,
+              "actual": [
+                232,
+                236,
+                244,
+                239
+              ],
+              "expected": [
+                232,
+                236,
+                245,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Add",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.02057821199467446,
+          "maxPremultiplied": 1.7490196078431373,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16566,
+            "actual": [
+              1,
+              255,
+              127,
+              192
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.006701237593802898,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                1,
+                254,
+                127,
+                192
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.03444459573953034,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16565,
+            "actual": [
+              1,
+              255,
+              127,
+              160
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.008435772714435526,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 12687,
+              "actual": [
+                252,
+                166,
+                154,
+                207
+              ],
+              "expected": [
+                253,
+                166,
+                154,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.10334897976680643,
+          "maxPremultiplied": 2.447058823529412,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 14225,
+            "actual": [
+              128,
+              242,
+              161,
+              192
+            ],
+            "expected": [
+              128,
+              240,
+              161,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.010203340595497405,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 12669,
+              "actual": [
+                253,
+                137,
+                50,
+                215
+              ],
+              "expected": [
+                254,
+                137,
+                50,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.03274019355684662,
+          "maxPremultiplied": 2.3019607843137253,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 19433,
+            "actual": [
+              217,
+              190,
+              255,
+              167
+            ],
+            "expected": [
+              217,
+              190,
+              253,
+              166
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.011076124122488503,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 11490,
+              "actual": [
+                63,
+                242,
+                212,
+                231
+              ],
+              "expected": [
+                63,
+                243,
+                212,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.04441695917049947,
+          "maxPremultiplied": 1.9058823529411764,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 20588,
+            "actual": [
+              255,
+              232,
+              71,
+              255
+            ],
+            "expected": [
+              255,
+              231,
+              71,
+              254
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.00878015815379645,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 12543,
+              "actual": [
+                255,
+                240,
+                233,
+                239
+              ],
+              "expected": [
+                255,
+                241,
+                233,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Screen",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.02326867989994348,
+          "maxPremultiplied": 1.7490196078431373,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16566,
+            "actual": [
+              1,
+              255,
+              127,
+              192
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.008442391874445159,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                1,
+                254,
+                127,
+                192
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.03918063624626823,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16565,
+            "actual": [
+              1,
+              255,
+              127,
+              160
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.01346198458807385,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                1,
+                254,
+                127,
+                207
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.10842095840394128,
+          "maxPremultiplied": 2.2,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 11649,
+            "actual": [
+              66,
+              146,
+              243,
+              160
+            ],
+            "expected": [
+              66,
+              146,
+              241,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.015697873799725495,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 19023,
+              "actual": [
+                179,
+                190,
+                252,
+                215
+              ],
+              "expected": [
+                179,
+                190,
+                253,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.03801730311466138,
+          "maxPremultiplied": 1.7568627450980392,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 15846,
+            "actual": [
+              1,
+              255,
+              127,
+              194
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              193
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.01668009410554349,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                1,
+                254,
+                127,
+                231
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.050209921931736096,
+          "maxPremultiplied": 1.611764705882353,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16360,
+            "actual": [
+              157,
+              254,
+              129,
+              255
+            ],
+            "expected": [
+              156,
+              254,
+              129,
+              254
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.014152709694988967,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 11247,
+              "actual": [
+                232,
+                236,
+                244,
+                239
+              ],
+              "expected": [
+                232,
+                236,
+                245,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Color Dodge",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.022851924977810037,
+          "maxPremultiplied": 1.7490196078431373,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16566,
+            "actual": [
+              1,
+              255,
+              127,
+              192
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.008421084483175903,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                1,
+                254,
+                127,
+                192
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.03486204409747415,
+          "maxPremultiplied": 2.988235294117647,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 19132,
+            "actual": [
+              109,
+              100,
+              251,
+              254
+            ],
+            "expected": [
+              112,
+              100,
+              251,
+              254
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.012095853001694488,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                1,
+                254,
+                127,
+                207
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.0929990720568105,
+          "maxPremultiplied": 3.7490196078431373,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 19418,
+            "actual": [
+              192,
+              100,
+              254,
+              192
+            ],
+            "expected": [
+              188,
+              100,
+              253,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.012420759198741178,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 19023,
+              "actual": [
+                179,
+                190,
+                252,
+                215
+              ],
+              "expected": [
+                179,
+                190,
+                253,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.03386381172839503,
+          "maxPremultiplied": 3.4901960784313726,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 19415,
+            "actual": [
+              226,
+              100,
+              255,
+              167
+            ],
+            "expected": [
+              222,
+              100,
+              255,
+              166
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.012244563463245359,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                1,
+                254,
+                127,
+                231
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.04891704238279689,
+          "maxPremultiplied": 4.372549019607843,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 19129,
+            "actual": [
+              214,
+              100,
+              254,
+              223
+            ],
+            "expected": [
+              219,
+              100,
+              254,
+              223
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.011527550835148791,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 11247,
+              "actual": [
+                232,
+                236,
+                244,
+                239
+              ],
+              "expected": [
+                232,
+                236,
+                245,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Overlay",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.022658582465908125,
+          "maxPremultiplied": 1.7490196078431373,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16566,
+            "actual": [
+              1,
+              255,
+              126,
+              192
+            ],
+            "expected": [
+              1,
+              254,
+              126,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.008431170822238274,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                1,
+                254,
+                126,
+                192
+              ],
+              "expected": [
+                1,
+                255,
+                126,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.02539198035181136,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16565,
+            "actual": [
+              1,
+              255,
+              100,
+              160
+            ],
+            "expected": [
+              1,
+              254,
+              100,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.010448312555474841,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                1,
+                254,
+                107,
+                207
+              ],
+              "expected": [
+                1,
+                255,
+                107,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.06581771211571046,
+          "maxPremultiplied": 2.4980392156862745,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16835,
+            "actual": [
+              0,
+              255,
+              158,
+              192
+            ],
+            "expected": [
+              0,
+              253,
+              158,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.010033637940772973,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 19014,
+              "actual": [
+                13,
+                75,
+                248,
+                215
+              ],
+              "expected": [
+                13,
+                75,
+                249,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.026902409626402092,
+          "maxPremultiplied": 1.7568627450980392,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 15846,
+            "actual": [
+              1,
+              255,
+              124,
+              194
+            ],
+            "expected": [
+              1,
+              254,
+              124,
+              193
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.010658423606067908,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                0,
+                253,
+                72,
+                231
+              ],
+              "expected": [
+                0,
+                254,
+                72,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.03788599158799299,
+          "maxPremultiplied": 1.9058823529411764,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 20462,
+            "actual": [
+              255,
+              232,
+              71,
+              255
+            ],
+            "expected": [
+              255,
+              231,
+              71,
+              254
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.007539979726458448,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 11247,
+              "actual": [
+                84,
+                164,
+                244,
+                239
+              ],
+              "expected": [
+                84,
+                164,
+                245,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Hard Light",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.04179135903332491,
+          "maxPremultiplied": 2.4980392156862745,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2310,
+            "actual": [
+              255,
+              255,
+              255,
+              192
+            ],
+            "expected": [
+              253,
+              253,
+              253,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.023614893488259285,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2310,
+              "actual": [
+                254,
+                254,
+                254,
+                192
+              ],
+              "expected": [
+                255,
+                255,
+                255,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.04083353506011504,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16574,
+            "actual": [
+              169,
+              255,
+              192,
+              160
+            ],
+            "expected": [
+              169,
+              254,
+              192,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.016104416303558508,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2445,
+              "actual": [
+                255,
+                248,
+                220,
+                207
+              ],
+              "expected": [
+                255,
+                249,
+                220,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.08560792887113752,
+          "maxPremultiplied": 2.450980392156863,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 12938,
+            "actual": [
+              243,
+              43,
+              27,
+              192
+            ],
+            "expected": [
+              241,
+              43,
+              27,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.013826164467844668,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2301,
+              "actual": [
+                255,
+                245,
+                201,
+                215
+              ],
+              "expected": [
+                255,
+                246,
+                201,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.0356096309408537,
+          "maxPremultiplied": 1.7568627450980392,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 1725,
+            "actual": [
+              255,
+              255,
+              249,
+              194
+            ],
+            "expected": [
+              255,
+              254,
+              249,
+              193
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.013341641955136044,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 17943,
+              "actual": [
+                254,
+                0,
+                76,
+                231
+              ],
+              "expected": [
+                255,
+                0,
+                76,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.057913804667958584,
+          "maxPremultiplied": 2,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2419,
+            "actual": [
+              14,
+              255,
+              175,
+              255
+            ],
+            "expected": [
+              16,
+              255,
+              175,
+              255
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.01491567820543843,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 11247,
+              "actual": [
+                232,
+                236,
+                244,
+                239
+              ],
+              "expected": [
+                232,
+                236,
+                245,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Soft Light",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.02207111625514398,
+          "maxPremultiplied": 1.7490196078431373,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16566,
+            "actual": [
+              1,
+              255,
+              126,
+              192
+            ],
+            "expected": [
+              1,
+              254,
+              126,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.008415410917453318,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                1,
+                254,
+                126,
+                192
+              ],
+              "expected": [
+                1,
+                255,
+                126,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.026132632837085324,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16565,
+            "actual": [
+              1,
+              255,
+              107,
+              160
+            ],
+            "expected": [
+              1,
+              254,
+              107,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.010616124021625062,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                1,
+                254,
+                112,
+                207
+              ],
+              "expected": [
+                1,
+                255,
+                112,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.06819909676833753,
+          "maxPremultiplied": 2.4980392156862745,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16835,
+            "actual": [
+              0,
+              255,
+              162,
+              192
+            ],
+            "expected": [
+              0,
+              253,
+              162,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.010447051763092026,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 19014,
+              "actual": [
+                13,
+                79,
+                248,
+                215
+              ],
+              "expected": [
+                13,
+                79,
+                249,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.027832748325667796,
+          "maxPremultiplied": 1.7568627450980392,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 15846,
+            "actual": [
+              1,
+              255,
+              125,
+              194
+            ],
+            "expected": [
+              1,
+              254,
+              125,
+              193
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.010771390603566522,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                0,
+                253,
+                88,
+                231
+              ],
+              "expected": [
+                0,
+                254,
+                88,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.038659109477124275,
+          "maxPremultiplied": 1.5529411764705883,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 12686,
+            "actual": [
+              233,
+              142,
+              102,
+              255
+            ],
+            "expected": [
+              233,
+              141,
+              102,
+              254
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.007986993665779027,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16431,
+              "actual": [
+                31,
+                254,
+                172,
+                239
+              ],
+              "expected": [
+                31,
+                255,
+                172,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Difference",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.03514427247236274,
+          "maxPremultiplied": 2.4980392156862745,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2319,
+            "actual": [
+              255,
+              255,
+              255,
+              192
+            ],
+            "expected": [
+              253,
+              253,
+              253,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.018665463870733423,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2319,
+              "actual": [
+                254,
+                254,
+                254,
+                192
+              ],
+              "expected": [
+                255,
+                255,
+                255,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.04948093177600359,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2390,
+            "actual": [
+              223,
+              253,
+              255,
+              160
+            ],
+            "expected": [
+              223,
+              252,
+              254,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.022187172193980444,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2382,
+              "actual": [
+                253,
+                248,
+                237,
+                207
+              ],
+              "expected": [
+                253,
+                249,
+                237,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.10587623809812188,
+          "maxPremultiplied": 2.4745098039215687,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 19436,
+            "actual": [
+              183,
+              131,
+              249,
+              192
+            ],
+            "expected": [
+              183,
+              131,
+              247,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.021899270253368828,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2238,
+              "actual": [
+                253,
+                245,
+                228,
+                215
+              ],
+              "expected": [
+                254,
+                246,
+                228,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.04379564068425747,
+          "maxPremultiplied": 1.7568627450980392,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 1662,
+            "actual": [
+              255,
+              255,
+              253,
+              194
+            ],
+            "expected": [
+              255,
+              254,
+              252,
+              193
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.021378752118131367,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2391,
+              "actual": [
+                194,
+                249,
+                254,
+                231
+              ],
+              "expected": [
+                194,
+                250,
+                255,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.06042984194706778,
+          "maxPremultiplied": 4,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 19286,
+            "actual": [
+              0,
+              2,
+              12,
+              255
+            ],
+            "expected": [
+              0,
+              2,
+              16,
+              255
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.01750616527475179,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2238,
+              "actual": [
+                250,
+                236,
+                202,
+                239
+              ],
+              "expected": [
+                251,
+                236,
+                202,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Exclusion",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.034881712458645305,
+          "maxPremultiplied": 2.4980392156862745,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2319,
+            "actual": [
+              255,
+              255,
+              255,
+              192
+            ],
+            "expected": [
+              253,
+              253,
+              253,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.018658655591866323,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2319,
+              "actual": [
+                254,
+                254,
+                254,
+                192
+              ],
+              "expected": [
+                255,
+                255,
+                255,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.04983830337690721,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2390,
+            "actual": [
+              223,
+              253,
+              255,
+              160
+            ],
+            "expected": [
+              223,
+              252,
+              254,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.022068909868474124,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2382,
+              "actual": [
+                253,
+                248,
+                237,
+                207
+              ],
+              "expected": [
+                253,
+                249,
+                237,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.10806465847656462,
+          "maxPremultiplied": 2.231372549019608,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 18075,
+            "actual": [
+              251,
+              113,
+              178,
+              160
+            ],
+            "expected": [
+              249,
+              113,
+              178,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.02198141087710804,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2238,
+              "actual": [
+                253,
+                245,
+                228,
+                215
+              ],
+              "expected": [
+                254,
+                246,
+                228,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.043552181675139356,
+          "maxPremultiplied": 2.2666666666666666,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 15518,
+            "actual": [
+              64,
+              246,
+              133,
+              167
+            ],
+            "expected": [
+              64,
+              244,
+              133,
+              166
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.021360218470104247,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2391,
+              "actual": [
+                194,
+                249,
+                254,
+                231
+              ],
+              "expected": [
+                194,
+                250,
+                255,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.058948915214234676,
+          "maxPremultiplied": 1.6431372549019607,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 11230,
+            "actual": [
+              165,
+              154,
+              189,
+              255
+            ],
+            "expected": [
+              164,
+              154,
+              189,
+              254
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.017502824174937384,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2238,
+              "actual": [
+                250,
+                236,
+                202,
+                239
+              ],
+              "expected": [
+                251,
+                236,
+                202,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Divide",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.022332415476478577,
+          "maxPremultiplied": 1.7490196078431373,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16566,
+            "actual": [
+              31,
+              255,
+              130,
+              192
+            ],
+            "expected": [
+              31,
+              254,
+              130,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.008429342673283217,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                31,
+                254,
+                130,
+                192
+              ],
+              "expected": [
+                31,
+                255,
+                130,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.031192823065440193,
+          "maxPremultiplied": 1.7568627450980392,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16669,
+            "actual": [
+              255,
+              255,
+              255,
+              64
+            ],
+            "expected": [
+              248,
+              255,
+              254,
+              64
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.012399073569757125,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16566,
+              "actual": [
+                150,
+                254,
+                180,
+                207
+              ],
+              "expected": [
+                150,
+                255,
+                180,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.08540368050512763,
+          "maxPremultiplied": 3.988235294117647,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16669,
+            "actual": [
+              255,
+              255,
+              255,
+              128
+            ],
+            "expected": [
+              249,
+              255,
+              255,
+              127
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.013282573832001857,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 19014,
+              "actual": [
+                179,
+                190,
+                252,
+                215
+              ],
+              "expected": [
+                179,
+                190,
+                253,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.03262432673686776,
+          "maxPremultiplied": 3.788235294117647,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16813,
+            "actual": [
+              255,
+              255,
+              255,
+              161
+            ],
+            "expected": [
+              249,
+              255,
+              255,
+              161
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.014261074800290482,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16575,
+              "actual": [
+                1,
+                254,
+                127,
+                231
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.04840295428871169,
+          "maxPremultiplied": 6,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16813,
+            "actual": [
+              255,
+              255,
+              255,
+              255
+            ],
+            "expected": [
+              249,
+              255,
+              255,
+              255
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.012689749253610784,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 11238,
+              "actual": [
+                232,
+                236,
+                244,
+                239
+              ],
+              "expected": [
+                232,
+                236,
+                245,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Hue",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.03616633381747702,
+          "maxPremultiplied": 2.4980392156862745,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 3633,
+            "actual": [
+              255,
+              30,
+              0,
+              192
+            ],
+            "expected": [
+              253,
+              30,
+              0,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.019623981279754676,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3633,
+              "actual": [
+                254,
+                30,
+                0,
+                192
+              ],
+              "expected": [
+                255,
+                30,
+                0,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.03397167251674323,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16592,
+            "actual": [
+              12,
+              255,
+              101,
+              160
+            ],
+            "expected": [
+              12,
+              254,
+              101,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.012267572924231319,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16593,
+              "actual": [
+                10,
+                254,
+                108,
+                207
+              ],
+              "expected": [
+                10,
+                255,
+                108,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.07942903756152975,
+          "maxPremultiplied": 1.7450980392156863,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16736,
+            "actual": [
+              18,
+              254,
+              78,
+              192
+            ],
+            "expected": [
+              18,
+              253,
+              78,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.010405697772936307,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 19050,
+              "actual": [
+                41,
+                84,
+                248,
+                215
+              ],
+              "expected": [
+                41,
+                84,
+                249,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.038092131142580386,
+          "maxPremultiplied": 1.7568627450980392,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 15873,
+            "actual": [
+              2,
+              255,
+              124,
+              194
+            ],
+            "expected": [
+              2,
+              254,
+              124,
+              193
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.009878308319212437,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 16593,
+              "actual": [
+                18,
+                253,
+                76,
+                231
+              ],
+              "expected": [
+                18,
+                254,
+                76,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.05903862059227069,
+          "maxPremultiplied": 2,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16568,
+            "actual": [
+              253,
+              29,
+              25,
+              255
+            ],
+            "expected": [
+              252,
+              31,
+              25,
+              255
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.011315863794077206,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3486,
+              "actual": [
+                79,
+                246,
+                0,
+                207
+              ],
+              "expected": [
+                79,
+                247,
+                0,
+                207
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Saturation",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.027587398127975164,
+          "maxPremultiplied": 1.7490196078431373,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 3606,
+            "actual": [
+              255,
+              19,
+              19,
+              192
+            ],
+            "expected": [
+              254,
+              19,
+              19,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.014961949285887198,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3606,
+              "actual": [
+                254,
+                19,
+                19,
+                192
+              ],
+              "expected": [
+                255,
+                19,
+                19,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.03928906439118862,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16583,
+            "actual": [
+              1,
+              255,
+              127,
+              160
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.017528292181069924,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3687,
+              "actual": [
+                246,
+                79,
+                79,
+                207
+              ],
+              "expected": [
+                247,
+                79,
+                79,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.08505834947147949,
+          "maxPremultiplied": 2.0431372549019606,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16832,
+            "actual": [
+              56,
+              251,
+              133,
+              136
+            ],
+            "expected": [
+              56,
+              249,
+              133,
+              135
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.015526153877188607,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3588,
+              "actual": [
+                253,
+                37,
+                37,
+                215
+              ],
+              "expected": [
+                254,
+                37,
+                37,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.040049511316872025,
+          "maxPremultiplied": 2.5137254901960784,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2967,
+            "actual": [
+              255,
+              30,
+              30,
+              194
+            ],
+            "expected": [
+              253,
+              30,
+              30,
+              193
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.014286542806422982,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3714,
+              "actual": [
+                254,
+                18,
+                18,
+                231
+              ],
+              "expected": [
+                255,
+                18,
+                18,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.05609511165577374,
+          "maxPremultiplied": 1.6431372549019607,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 20453,
+            "actual": [
+              165,
+              165,
+              164,
+              255
+            ],
+            "expected": [
+              165,
+              164,
+              164,
+              254
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.009952568990559152,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3570,
+              "actual": [
+                254,
+                20,
+                20,
+                239
+              ],
+              "expected": [
+                255,
+                20,
+                20,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Color",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.03796901476639993,
+          "maxPremultiplied": 2.4980392156862745,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 3633,
+            "actual": [
+              255,
+              30,
+              0,
+              192
+            ],
+            "expected": [
+              253,
+              30,
+              0,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.02188716664649385,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3606,
+              "actual": [
+                254,
+                19,
+                19,
+                192
+              ],
+              "expected": [
+                255,
+                19,
+                19,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.03810152404583247,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16592,
+            "actual": [
+              1,
+              255,
+              100,
+              160
+            ],
+            "expected": [
+              1,
+              254,
+              100,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.015521867183087151,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3687,
+              "actual": [
+                246,
+                85,
+                79,
+                207
+              ],
+              "expected": [
+                247,
+                85,
+                79,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.08384010883160156,
+          "maxPremultiplied": 1.7490196078431373,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 3866,
+            "actual": [
+              255,
+              18,
+              107,
+              192
+            ],
+            "expected": [
+              254,
+              18,
+              107,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.012070700193657646,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 6180,
+              "actual": [
+                37,
+                75,
+                253,
+                215
+              ],
+              "expected": [
+                37,
+                75,
+                254,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.03532923071491954,
+          "maxPremultiplied": 2.5137254901960784,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2967,
+            "actual": [
+              255,
+              33,
+              30,
+              194
+            ],
+            "expected": [
+              253,
+              33,
+              30,
+              193
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.010340262648269198,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3723,
+              "actual": [
+                254,
+                18,
+                109,
+                231
+              ],
+              "expected": [
+                255,
+                18,
+                109,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.058319338537884534,
+          "maxPremultiplied": 1.8862745098039215,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16700,
+            "actual": [
+              227,
+              191,
+              130,
+              255
+            ],
+            "expected": [
+              226,
+              191,
+              130,
+              254
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.009560084321794516,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3579,
+              "actual": [
+                254,
+                20,
+                117,
+                239
+              ],
+              "expected": [
+                255,
+                20,
+                117,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    },
+    {
+      "mode": "Luminosity",
+      "cases": [
+        {
+          "opacity": 0,
+          "meanPremultiplied": 0.005691721132897567,
+          "maxPremultiplied": 0.5019607843137255,
+          "maxAlpha": 0,
+          "worst": {
+            "pixel": 15557,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              254,
+              127,
+              128
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.005691721132897567,
+            "maxPremultiplied": 0.5019607843137255,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 15557,
+              "actual": [
+                1,
+                254,
+                127,
+                128
+              ],
+              "expected": [
+                1,
+                255,
+                127,
+                128
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.01,
+          "meanPremultiplied": 0.03556020787944736,
+          "maxPremultiplied": 2.4980392156862745,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 2310,
+            "actual": [
+              255,
+              255,
+              255,
+              192
+            ],
+            "expected": [
+              253,
+              253,
+              253,
+              191
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.019983937505043084,
+            "maxPremultiplied": 0.7529411764705882,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 2310,
+              "actual": [
+                254,
+                254,
+                254,
+                192
+              ],
+              "expected": [
+                255,
+                255,
+                255,
+                192
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.25,
+          "meanPremultiplied": 0.049311418240135955,
+          "maxPremultiplied": 1.6235294117647059,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 16574,
+            "actual": [
+              169,
+              255,
+              192,
+              160
+            ],
+            "expected": [
+              169,
+              254,
+              192,
+              159
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.019043323347857546,
+            "maxPremultiplied": 0.8117647058823529,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3687,
+              "actual": [
+                244,
+                0,
+                0,
+                207
+              ],
+              "expected": [
+                245,
+                0,
+                0,
+                207
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.5,
+          "meanPremultiplied": 0.1049232051359669,
+          "maxPremultiplied": 2.0588235294117645,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 19020,
+            "actual": [
+              219,
+              224,
+              255,
+              136
+            ],
+            "expected": [
+              219,
+              224,
+              253,
+              135
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.016583958686355104,
+            "maxPremultiplied": 0.8431372549019608,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3588,
+              "actual": [
+                253,
+                0,
+                0,
+                215
+              ],
+              "expected": [
+                254,
+                0,
+                0,
+                215
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 0.63,
+          "meanPremultiplied": 0.04151026537158053,
+          "maxPremultiplied": 2.5137254901960784,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 3021,
+            "actual": [
+              255,
+              0,
+              0,
+              194
+            ],
+            "expected": [
+              253,
+              0,
+              0,
+              193
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.015125284939078514,
+            "maxPremultiplied": 0.9058823529411765,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3714,
+              "actual": [
+                254,
+                0,
+                0,
+                231
+              ],
+              "expected": [
+                255,
+                0,
+                0,
+                231
+              ]
+            }
+          },
+          "passed": true
+        },
+        {
+          "opacity": 1,
+          "meanPremultiplied": 0.06418019496893464,
+          "maxPremultiplied": 1.996078431372549,
+          "maxAlpha": 1,
+          "worst": {
+            "pixel": 15790,
+            "actual": [
+              1,
+              255,
+              127,
+              128
+            ],
+            "expected": [
+              1,
+              253,
+              127,
+              127
+            ]
+          },
+          "previewStats": {
+            "meanPremultiplied": 0.012787586742515854,
+            "maxPremultiplied": 0.9372549019607843,
+            "maxAlpha": 0,
+            "worst": {
+              "pixel": 3570,
+              "actual": [
+                254,
+                0,
+                0,
+                239
+              ],
+              "expected": [
+                255,
+                0,
+                0,
+                239
+              ]
+            }
+          },
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,126 @@
+{
+  "reference": "Weavy existing Blend canvas, 768x1376, opaque inputs, opacity 100%",
+  "comparison": "Same captured Back and Front; current sRGB formula vs linear RGB hypothesis",
+  "rows": [
+    {
+      "mode": "Normal",
+      "meanSrgb": 0,
+      "maxSrgb": 0,
+      "meanLinear": 0,
+      "maxLinear": 0,
+      "percentSrgbOver3": 0
+    },
+    {
+      "mode": "Darken",
+      "meanSrgb": 0,
+      "maxSrgb": 0,
+      "meanLinear": 0,
+      "maxLinear": 0,
+      "percentSrgbOver3": 0
+    },
+    {
+      "mode": "Multiply",
+      "meanSrgb": 0.564475835755814,
+      "maxSrgb": 7,
+      "meanLinear": 0.0991229863129845,
+      "maxLinear": 1,
+      "percentSrgbOver3": 1.286785115875323,
+      "worstLinear": {
+        "pixel": 2,
+        "channel": 1,
+        "back": 114,
+        "front": 212,
+        "actual": 93,
+        "linear": 94
+      }
+    },
+    {
+      "mode": "Color Burn",
+      "meanSrgb": 22.922465795078327,
+      "maxSrgb": 120,
+      "meanLinear": 0.17278279937822996,
+      "maxLinear": 14,
+      "percentSrgbOver3": 44.42337390988372,
+      "worstLinear": {
+        "pixel": 358202,
+        "channel": 0,
+        "back": 112,
+        "front": 236,
+        "actual": 17,
+        "linear": 3
+      }
+    },
+    {
+      "mode": "Lighten",
+      "meanSrgb": 0,
+      "maxSrgb": 0,
+      "meanLinear": 0,
+      "maxLinear": 0,
+      "percentSrgbOver3": 0
+    },
+    {
+      "mode": "Add",
+      "meanSrgb": 5.7659590373667635,
+      "maxSrgb": 65,
+      "meanLinear": 0.05644632186692507,
+      "maxLinear": 1,
+      "percentSrgbOver3": 24.2511759124677,
+      "worstLinear": {
+        "pixel": 95,
+        "channel": 0,
+        "back": 1,
+        "front": 146,
+        "actual": 147,
+        "linear": 146
+      }
+    },
+    {
+      "mode": "Screen",
+      "meanSrgb": 3.788297273699935,
+      "maxSrgb": 18,
+      "meanLinear": 0.10013992348998708,
+      "maxLinear": 1,
+      "percentSrgbOver3": 38.29847232315891,
+      "worstLinear": {
+        "pixel": 187,
+        "channel": 1,
+        "back": 105,
+        "front": 204,
+        "actual": 213,
+        "linear": 212
+      }
+    },
+    {
+      "mode": "Color Dodge",
+      "meanSrgb": 17.60069318273579,
+      "maxSrgb": 176,
+      "meanLinear": 0.0912685345001615,
+      "maxLinear": 3,
+      "percentSrgbOver3": 25.31463859617248,
+      "worstLinear": {
+        "pixel": 302913,
+        "channel": 0,
+        "back": 112,
+        "front": 235,
+        "actual": 253,
+        "linear": 250
+      }
+    },
+    {
+      "mode": "Overlay",
+      "meanSrgb": 20.72976471656977,
+      "maxSrgb": 79,
+      "meanLinear": 0.11664654241359819,
+      "maxLinear": 1,
+      "percentSrgbOver3": 51.31536281694122,
+      "worstLinear": {
+        "pixel": 1,
+        "channel": 0,
+        "back": 4,
+        "front": 152,
+        "actual": 2,
+        "linear": 3
+      }
+    }
+  ]
+}

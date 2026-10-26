@@ -1,3 +1,4 @@
+import type { BlendData } from './blend';
 import type { CompareData } from './compare';
 import type { ResizeData } from './resize';
 import type { ColorPaletteData } from './colorPalette';
@@ -43,7 +44,9 @@ export type ColorPaletteNode = Node<ColorPaletteData, 'color-palette'>;
 export const isColorPaletteNode = (node: AppNode | undefined): node is ColorPaletteNode => node?.type === 'color-palette';
 export type CompareNode = Node<CompareData, 'compare'>;
 export const isCompareNode = (node: AppNode | undefined): node is CompareNode => node?.type === 'compare';
-export type AppNode = CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
+export type BlendNode = Node<BlendData, 'blend'>;
+export const isBlendNode = (node: AppNode | undefined): node is BlendNode => node?.type === 'blend';
+export type AppNode = BlendNode | CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
 
 export const isDescriberNode = (node: AppNode): node is ImageDescriberNode => node.type === 'image-describer' && 'imageInputs' in node.data;
 

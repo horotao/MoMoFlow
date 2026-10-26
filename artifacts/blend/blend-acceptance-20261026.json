@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-26",
+  "automatedBrowserChecks": 33,
+  "automatedBrowserStatus": "passed",
+  "qualityGate": "npm run check: passed; 253 tests passed; lint/typecheck/build/docs/diff passed",
+  "manual": {
+    "nodeDragAndCoordinates": "passed; blend (650,40) -> (712.8571428571429,78.57142857142857)",
+    "undoDrag": "passed; returned to (650,40)",
+    "disconnectAndNewFrontConnection": "passed; edges 3 -> 2 -> 3",
+    "zoomControl": "passed; .7 -> .583333",
+    "minimapPan": "passed; translate(187.917,59) -> translate(42.4167,-13.75)",
+    "lightAndDarkThemes": "passed",
+    "modeKeyboardEndEnter": "passed; Luminosity",
+    "opacityInput": "passed; 50% -> settings.opacity .5"
+  },
+  "scope": "Isolated /tests/blend.html workflow and independent test database; no user workflow read or written"
+}

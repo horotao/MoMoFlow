@@ -1,0 +1,745 @@
+{
+  "width": 768,
+  "height": 1376,
+  "reference": "Weavy preview captures. Inputs reconstructed from Normal 0% and 100% RGBA8 previews; upstream high precision is unavailable.",
+  "rows": [
+    {
+      "mode": "Normal",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.08084461300872094,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.09560029574450904,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.13943268531976744,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.16386504259528423,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 1,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        }
+      ]
+    },
+    {
+      "mode": "Darken",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 1,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        }
+      ]
+    },
+    {
+      "mode": "Multiply",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.03665295189357235,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.07509910721495477,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.06409795401324289,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 1,
+          "mean": 0.0991229863129845,
+          "max": 1,
+          "over3": 0
+        }
+      ]
+    },
+    {
+      "mode": "Color Burn",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.034923464752906974,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.06462124767845608,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.07854924953569122,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.08266431231831395,
+          "max": 2,
+          "over3": 0
+        },
+        {
+          "opacity": 1,
+          "mean": 0.17278279937822996,
+          "max": 14,
+          "over3": 18058
+        }
+      ]
+    },
+    {
+      "mode": "Lighten",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.08084461300872094,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.09560029574450904,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.13943268531976744,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.16386504259528423,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 1,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        }
+      ]
+    },
+    {
+      "mode": "Add",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.061243338178294575,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.07015888697109172,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.08992323764534883,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.11237408147609819,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 1,
+          "mean": 0.05644632186692507,
+          "max": 1,
+          "over3": 0
+        }
+      ]
+    },
+    {
+      "mode": "Screen",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.061663487160852716,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.07789379188872739,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.09257345667797158,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.11598887677648578,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 1,
+          "mean": 0.10013992348998708,
+          "max": 1,
+          "over3": 0
+        }
+      ]
+    },
+    {
+      "mode": "Color Dodge",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.06841110505490956,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.062101615491763566,
+          "max": 2,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.07511992540778424,
+          "max": 2,
+          "over3": 0
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.12996766240713825,
+          "max": 2,
+          "over3": 0
+        },
+        {
+          "opacity": 1,
+          "mean": 0.0912685345001615,
+          "max": 3,
+          "over3": 0
+        }
+      ]
+    },
+    {
+      "mode": "Overlay",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.08087520944363695,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.05152944323320414,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.06394781068313954,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.08750359586967055,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 1,
+          "mean": 0.11664654241359819,
+          "max": 1,
+          "over3": 0
+        }
+      ]
+    },
+    {
+      "mode": "Hard Light",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.06285422470526486,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.10295511092942507,
+          "max": 5,
+          "over3": 302
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.1447933699733527,
+          "max": 10,
+          "over3": 1272
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.18913328185562014,
+          "max": 12,
+          "over3": 1682
+        },
+        {
+          "opacity": 1,
+          "mean": 0.25050562974402457,
+          "max": 17,
+          "over3": 3991
+        }
+      ]
+    },
+    {
+      "mode": "Soft Light",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.0013446660004844961,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.06171963319605943,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.06060680616117571,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.11496247678456073,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 1,
+          "mean": 0.10099820080345608,
+          "max": 1,
+          "over3": 0
+        }
+      ]
+    },
+    {
+      "mode": "Difference",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.05423360031088501,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.09131900284641473,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.15697579790455427,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.187786092437823,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 1,
+          "mean": 0.26667852672803616,
+          "max": 4,
+          "over3": 768
+        }
+      ]
+    },
+    {
+      "mode": "Exclusion",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.0433914223998708,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.054950881682009046,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.06915298974483204,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.09871324642684108,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 1,
+          "mean": 0.1285129123263889,
+          "max": 3,
+          "over3": 0
+        }
+      ]
+    },
+    {
+      "mode": "Divide",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.0006292771923449613,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.0430671632751938,
+          "max": 2,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.0707187701873385,
+          "max": 2,
+          "over3": 0
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.09154169442425711,
+          "max": 2,
+          "over3": 0
+        },
+        {
+          "opacity": 1,
+          "mean": 0.10989387768491603,
+          "max": 3,
+          "over3": 0
+        }
+      ]
+    },
+    {
+      "mode": "Hue",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.004296748829134367,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.0733241985626615,
+          "max": 3,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.12423004229247415,
+          "max": 6,
+          "over3": 66
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.1549930227511305,
+          "max": 8,
+          "over3": 548
+        },
+        {
+          "opacity": 1,
+          "mean": 0.22346437439437986,
+          "max": 12,
+          "over3": 15007
+        }
+      ]
+    },
+    {
+      "mode": "Saturation",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.007439980519218346,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.10396037730135659,
+          "max": 2,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.19266228096737725,
+          "max": 4,
+          "over3": 69
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.243808795623385,
+          "max": 6,
+          "over3": 4380
+        },
+        {
+          "opacity": 1,
+          "mean": 0.37799119579699614,
+          "max": 38,
+          "over3": 53600
+        }
+      ]
+    },
+    {
+      "mode": "Color",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.007452913032945737,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.18944082334060078,
+          "max": 5,
+          "over3": 149
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.35327495407380494,
+          "max": 10,
+          "over3": 2405
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.4452658167797158,
+          "max": 13,
+          "over3": 12351
+        },
+        {
+          "opacity": 1,
+          "mean": 0.693603515625,
+          "max": 38,
+          "over3": 109923
+        }
+      ]
+    },
+    {
+      "mode": "Luminosity",
+      "cases": [
+        {
+          "opacity": 0,
+          "mean": 0,
+          "max": 0,
+          "over3": 0
+        },
+        {
+          "opacity": 0.01,
+          "mean": 0.062366574309593026,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.25,
+          "mean": 0.07284979610788114,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.5,
+          "mean": 0.09135559239744832,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 0.63,
+          "mean": 0.10992226612968346,
+          "max": 1,
+          "over3": 0
+        },
+        {
+          "opacity": 1,
+          "mean": 0.1283050458252584,
+          "max": 1,
+          "over3": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "width": 144,
+  "height": 144,
+  "modes": [
+    "Normal",
+    "Darken",
+    "Multiply",
+    "Color Burn",
+    "Lighten",
+    "Add",
+    "Screen",
+    "Color Dodge",
+    "Overlay",
+    "Hard Light",
+    "Soft Light",
+    "Difference",
+    "Exclusion",
+    "Divide",
+    "Hue",
+    "Saturation",
+    "Color",
+    "Luminosity"
+  ],
+  "opacities": [
+    0.0,
+    0.01,
+    0.25,
+    0.5,
+    0.63,
+    1.0
+  ],
+  "layout": "Unpremultiplied RGBA8: Back, Front, then mode-major / opacity-minor output frames",
+  "reference": "Weavy native PNG exports, not checkerboard-composited preview canvases",
+  "captured": "2026-10-26",
+  "workflow": "https://app.weavy.ai/flow/8nU8k0wmQLW5sxuQ6ZoW9D",
+  "renderer": "https://app.weavy.ai/assets/designer_bg-3V9POjwJ.wasm",
+  "rendererSha256": "477849f08bbc7691538d0d6c36c8d8e1a7029e55507ea9fad274774eece70eb0",
+  "rgbaSha256": "4b64249643e9e89240da945e0dca36f15832f2f3ce29a02163e691af0ca7f4a4",
+  "compression": "gzip (stored as .bin to avoid HTTP Content-Encoding auto-decompression)"
+}

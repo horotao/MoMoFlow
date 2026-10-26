@@ -1,3 +1,4 @@
+import { isBlendNode } from './types.ts';
 import { isCompareNode } from './types.ts';
 import { isColorPaletteNode, isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from './types.ts';
 import type { PreviewTask } from './taskQueue';
@@ -73,7 +74,9 @@ export class AssetResources {
 export function nodeAssetUrls(nodes: Iterable<AppNode>): Set<string> {
   const urls = new Set<string>();
   for (const node of nodes) {
-    if (isCompareNode(node)) {
+    if (isBlendNode(node)) {
+      for (const asset of [node.data.back, node.data.front, node.data.result]) if (asset) urls.add(asset.url);
+    } else if (isCompareNode(node)) {
       for (const asset of [node.data.input1, node.data.input2]) if (asset) urls.add(asset.url);
     } else if (isCompositorNode(node)) {
       if (node.data.result) urls.add(node.data.result.url);

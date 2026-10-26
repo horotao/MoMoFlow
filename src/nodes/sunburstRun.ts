@@ -1,3 +1,5 @@
+import { blendRevision } from './blend.ts';
+import { isBlendNode, type BlendNode } from './types.ts';
 import { compareInput } from './compare.ts';
 import { isCompareNode } from './types.ts';
 import { resizeRevision } from './resize.ts';
@@ -66,6 +68,17 @@ function imageResolution(nodes?: AppNode[], edges?: Edge[], visited = new Set<st
     return result;
   };
   const evaluate = (node: AppNode, handle?: string | null): FileAsset[] => {
+    if (isBlendNode(node)) {
+      if (handle !== 'result') return [];
+      if (hasGraph) {
+        const inputs = resolveInputs(node.id);
+        const back = inputs.back?.connected ? inputs.back.asset : node.data.back;
+        const front = inputs.front?.connected ? inputs.front.asset : node.data.front;
+        if ((inputs.back?.connected && !back) || (inputs.front?.connected && !front) || (!back && !front)
+          || node.data.outputRevision !== blendRevision(node.data.settings, back, front)) return [];
+      }
+      return node.data.result ? [node.data.result] : [];
+    }
     if (isCompareNode(node)) {
       const input = compareInput(handle);
       if (!input) return [];
@@ -217,4 +230,11 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
 // Share validated outputs across every layer port, with a separate path guard.
 export function compositorInputs(id: string, nodes: AppNode[], edges: Edge[], visited = new Set([id])): CompositorInputs {
   return imageResolution(nodes, edges, visited).inputs(id);
+}
+
+export function blendInputs(node: Pick<BlendNode, 'id' | 'data'>, nodes: AppNode[], edges: Edge[]) {
+  const inputs = compositorInputs(node.id, nodes, edges);
+  const back = inputs.back?.connected ? inputs.back.asset : node.data.back;
+  const front = inputs.front?.connected ? inputs.front.asset : node.data.front;
+  return { back, front, pending: Boolean((inputs.back?.connected && !back) || (inputs.front?.connected && !front)) };
 }

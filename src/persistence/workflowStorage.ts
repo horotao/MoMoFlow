@@ -1,3 +1,4 @@
+import { isBlendNode } from '../nodes/types.ts';
 import { isCompareNode } from '../nodes/types.ts';
 import { isColorPaletteNode, isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from '../nodes/types.ts';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources.ts';
@@ -26,6 +27,7 @@ export function workflowSnapshot(workflow: Workflow): StoredWorkflow {
 
 export function mapAssets(nodes: AppNode[], map: (asset: FileAsset) => FileAsset): AppNode[] {
   return nodes.map(node => {
+    if (isBlendNode(node)) return { ...node, data: { ...node.data, back: node.data.back ? map(node.data.back) : undefined, front: node.data.front ? map(node.data.front) : undefined, result: node.data.result ? map(node.data.result) : undefined } };
     if (isCompareNode(node)) return { ...node, data: { ...node.data, input1: node.data.input1 ? map(node.data.input1) : undefined, input2: node.data.input2 ? map(node.data.input2) : undefined } };
     if (isCompositorNode(node)) return { ...node, data: { ...node.data,
       result: node.data.result ? map(node.data.result) : undefined,

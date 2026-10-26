@@ -1,0 +1,177 @@
+{
+  "scope": "Observed browser run before transport disconnected; diagnostics, not acceptance",
+  "comparedPixels": 21233664,
+  "opacities": [
+    0,
+    0.01,
+    0.25,
+    0.5,
+    0.63,
+    1
+  ],
+  "rows": [
+    {
+      "mode": "Normal",
+      "pixels": 1179648,
+      "maxPremultipliedError": 2.8705882353,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 0,
+      "pngVsCpuByteDifferences": 0,
+      "previewVsPngByteDifferences": 2380
+    },
+    {
+      "mode": "Darken",
+      "pixels": 1179648,
+      "maxPremultipliedError": 2.9529411765,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 0,
+      "pngVsCpuByteDifferences": 2418,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Multiply",
+      "pixels": 1179648,
+      "maxPremultipliedError": 2.5411764706,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 0,
+      "pngVsCpuByteDifferences": 2351,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Color Burn",
+      "pixels": 1179648,
+      "maxPremultipliedError": 48,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 264,
+      "pngVsCpuByteDifferences": 2355,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Lighten",
+      "pixels": 1179648,
+      "maxPremultipliedError": 2.2588235294,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 0,
+      "pngVsCpuByteDifferences": 2317,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Add",
+      "pixels": 1179648,
+      "maxPremultipliedError": 1,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 0,
+      "pngVsCpuByteDifferences": 2417,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Screen",
+      "pixels": 1179648,
+      "maxPremultipliedError": 2.1882352941,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 0,
+      "pngVsCpuByteDifferences": 2372,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Color Dodge",
+      "pixels": 1179648,
+      "maxPremultipliedError": 48,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 229,
+      "pngVsCpuByteDifferences": 2422,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Overlay",
+      "pixels": 1179648,
+      "maxPremultipliedError": 2.2509803922,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 0,
+      "pngVsCpuByteDifferences": 2336,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Hard Light",
+      "pixels": 1179648,
+      "maxPremultipliedError": 2.9294117647,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 0,
+      "pngVsCpuByteDifferences": 2334,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Soft Light",
+      "pixels": 1179648,
+      "maxPremultipliedError": 1.9921568627,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 0,
+      "pngVsCpuByteDifferences": 2369,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Difference",
+      "pixels": 1179648,
+      "maxPremultipliedError": 2.9764705882,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 0,
+      "pngVsCpuByteDifferences": 2376,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Exclusion",
+      "pixels": 1179648,
+      "maxPremultipliedError": 2.7411764706,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 0,
+      "pngVsCpuByteDifferences": 2407,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Divide",
+      "pixels": 1179648,
+      "maxPremultipliedError": 1,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 0,
+      "pngVsCpuByteDifferences": 2434,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Hue",
+      "pixels": 1179648,
+      "maxPremultipliedError": 7.937254902,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 58,
+      "pngVsCpuByteDifferences": 2353,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Saturation",
+      "pixels": 1179648,
+      "maxPremultipliedError": 10.7411764706,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 36,
+      "pngVsCpuByteDifferences": 2421,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Color",
+      "pixels": 1179648,
+      "maxPremultipliedError": 2,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 0,
+      "pngVsCpuByteDifferences": 2354,
+      "previewVsPngByteDifferences": 0
+    },
+    {
+      "mode": "Luminosity",
+      "pixels": 1179648,
+      "maxPremultipliedError": 2,
+      "maxAlphaError": 1,
+      "overTolerancePixels": 0,
+      "pngVsCpuByteDifferences": 2429,
+      "previewVsPngByteDifferences": 0
+    }
+  ],
+  "interpretation": "RGBA readback and bitmap/PNG paths can round alpha-premultiplied color differently. These comparisons alone do not establish formula errors. Exact output parity has not passed."
+}
