@@ -13,9 +13,9 @@
 | 导入 / 文件（Import / File）：导入、预览和管理文件集合 | `file` | [FileNode.tsx](./FileNode.tsx) | 无输入端口；通过 `file` 端口输出文件，端口类型随集合内容变化 |
 | 图像描述（Image Describer）：根据图片生成可继续编辑的文本 | `image-describer` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) | 图片输入 `image-0` 起；可暴露 `model`、`instructions` 文本输入；输出 `data.text` |
 | 模型名称 / 参数选项（Model Name）：提供一个可选的文本值 | `model-input` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) 中的 `ModelInputNode` | 输出当前 `data.model`；`options` 输入仅展示，不能连接 |
-| GPT Image 2.5 Sunburst：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`、`image-0` 起、`mask` 及暴露的参数输入；`result` 输出当前选中的结果图片 |
+| GPT Image 2.5：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`、`image-0` 起、`mask` 及暴露的参数输入；`result` 输出当前选中的结果图片 |
 | Ideogram 4.5：生成或编辑图片 | `ideogram` | [IdeogramNode.tsx](./IdeogramNode.tsx) | 必需的 `prompt`；`image-0` 原图、`image-1` 起参考图、`mask` 及暴露的生成/编辑参数输入；`result` 输出选中图片 |
-| Nano Banana 2.1：生成或编辑图片 | `nano-banana` | [NanoBananaNode.tsx](./NanoBananaNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起与暴露的 `aspectRatio` / `imageSize` / `outputFormat` 输入；`result` 输出选中图片 |
+| Nano Banana：生成或编辑图片 | `nano-banana` | [NanoBananaNode.tsx](./NanoBananaNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起与暴露的 `aspectRatio` / `imageSize` / `outputFormat` 输入；`result` 输出选中图片 |
 | 调色板（Color palette）：制作最多十色色板 | `color-palette` | [ColorPaletteNode.tsx](./ColorPaletteNode.tsx) | 无输入；`image`（Image）输出纯色条 PNG，`text`（Text）输出按顺序以 `*` 连接的 HEX 色值 |
 | 合成器（Compositor）：图片、文本与矢量图层合成 | `compositor` | [CompositorNode.tsx](./compositor/CompositorNode.tsx) | `background`、`layer-1` 起的动态图片输入；`result`（Output）输出实际合成 PNG；独立图层编辑器见[使用与架构](../../docs/compositor.md) |
 | 色彩校正（Color correction）：本地图片调色 | `color-correction` | [ColorCorrectionNode.tsx](./ColorCorrectionNode.tsx) | 单图片输入 `file`（File）；`result` 输出调色后的 PNG |
@@ -33,15 +33,15 @@
 | 预览（Preview）：查看上游图片与遮罩 | `preview` | [PreviewNode.tsx](./PreviewNode.tsx) | 单图片输入 `file`，无输出；实时显示上游图片 |
 | 坐标记录（Position Logger）：显示节点坐标的示例节点 | `position-logger` | [PositionLoggerNode.tsx](./PositionLoggerNode.tsx) | 左侧输入、右侧输出；不执行模型任务 |
 
-画布节点的默认标题使用中文，自定义名称与导入文件名保持原样；模型品牌名（如 GPT Image 2.5 Sunburst）保留英文。标题与重命名框使用相同默认文案，界面字体复用全局 `--font-ui`（英文 Inter、macOS 中文苹方、Windows 中文 Noto Sans SC）。
+画布节点的默认标题使用中文，自定义名称与导入文件名保持原样；模型品牌名（如 GPT Image 2.5）保留英文。标题与重命名框使用相同默认文案，界面字体复用全局 `--font-ui`（英文 Inter、macOS 中文苹方、Windows 中文 Noto Sans SC）。
 
-侧边栏、画布右键创建与拖线推荐菜单共用 `libraryItemLabel` 中文名称；菜单搜索同时匹配中文和原英文，端口说明仅翻译显示，不改变连接标识。
+侧边栏、画布右键创建与拖线推荐菜单共用 `libraryItemLabel` 显示名称；GPT Image 2.5 与 Nano Banana 的节点标题、设置面板和任务列表复用对应模型的名称常量，保持一致。菜单搜索同时匹配中文和原英文，端口说明仅翻译显示，不改变连接标识。
 
 侧边栏隐藏坐标记录（`position-logger`）和模型名称（`model-input`）入口，包括工具列表、搜索及快速访问；节点注册、已有节点和其他创建入口保持可用。
 
 节点库的名称、分类和创建数据在 [libraryCatalog.ts](../components/libraryCatalog.ts) 中维护。只有提供 `nodeType` 的条目才能通过 `createLibraryNode` 创建节点；目录中的展示卡片不等于已实现的节点，不应为占位卡片生成替代节点。
 
-节点标题与侧栏卡片共用 [nodeIcons.ts](./nodeIcons.ts) 中的 Hugeicons Stroke Rounded 图标映射；标题通过 [NodeIcon.tsx](./NodeIcon.tsx) 渲染并保留各节点原有尺寸。修改节点图标时更新共享映射，避免两处显示不一致。Router 仍根据输入内容切换文本、图片 / 蒙版、视频、音频、3D 或文件图标，未连接时使用路由图标。
+节点标题与侧栏卡片共用 [nodeIcons.ts](./nodeIcons.ts) 中的共享图标映射（通用节点使用 Hugeicons Stroke Rounded）；标题通过 [NodeIcon.tsx](./NodeIcon.tsx) 渲染并保留各节点原有尺寸。修改节点图标时更新共享映射，避免两处显示不一致。Nano Banana 与 Ideogram 4.5 使用 [modelBrandIcons.ts](./modelBrandIcons.ts) 中从 Weavy 对应模型卡片同步的原始 SVG 路径；Nano Banana 保留品牌紫色，Ideogram 随主题文字颜色变化，节点库、标题与设置面板共用同一图标。Router 仍根据输入内容切换文本、图片 / 蒙版、视频、音频、3D 或文件图标，未连接时使用路由图标。
 
 Compositor 文本、形状及钢笔交互与验证入口见 [合成编辑器文档](../../docs/compositor.md)。锚点在不同缩放下保持固定命中区，可越界调整及插入曲线点；交互草稿按帧更新，提交仍复用工作流历史与持久化。
 
@@ -266,7 +266,7 @@ Router 直接从当前图解析来源，不保存文本或素材副本，不运�
 支持重命名、锁定、副本、剪切粘贴、撤销重做和 IndexedDB 保存恢复；单独复制 Router 不复制上游内容和连线。创建并连接、替换输入各算一次撤销。数据解析及快捷创建在 `router.ts`；`router.test.ts` 使用现有 Node.js 测试运行器随 `npm test` 验证透传、集合、分支、替换、环路、类型限制、遮罩和保存恢复。浏览器验收入口为 `/tests/router.html`（`tests/router.test.tsx`），运行 `npm run dev` 后打开，使用独立数据库和真实画布检查菜单、文本 / 图片透传、历史与持久化，也可手动检查拖动、连线、缩放和小地图。
 
 
-## Nano Banana 2.1
+## Nano Banana
 
 模型固定为 `google/gemini-nano-banana-2.1`，从图片分类、搜索、画布右键或拖线推荐创建。必须连接非空提示词（最多 32000 字符）；参考图可选，按端口顺序展开文件集合，应用最多接收 14 张，每张 20 MiB、合计 46 MiB。已连但无结果的图片输入阻止运行，未连接的图片端口可留空。
 

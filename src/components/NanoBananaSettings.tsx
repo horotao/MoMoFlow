@@ -1,5 +1,5 @@
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
-import { Sparkles } from 'lucide-react';
+import { NodeIcon } from '../nodes/NodeIcon';
 import type { AppNode, NanoBananaNode } from '../nodes/types';
 import { isNanoBananaNode, isNodeLocked } from '../nodes/types';
 import { effectiveNanoBananaSettings } from '../nodes/nanoBananaRun';
@@ -32,7 +32,7 @@ export function NanoBananaSettings({ node }: { node: NanoBananaNode }) {
     }
   };
   return <div className="describer-settings sunburst-settings">
-    <h2><Sparkles size={20} strokeWidth={1.25} /><span>{nanoBananaName}</span></h2>
+    <h2><NodeIcon nodeType="nano-banana" size={20} /><span>{nanoBananaName}</span></h2>
     {(Object.keys(nanoBananaChoices) as (keyof Settings)[]).map(field => {
       const exposed = Boolean(node.data.exposed?.includes(field)), label = labels[field];
       const choices = [...nanoBananaChoices[field]];

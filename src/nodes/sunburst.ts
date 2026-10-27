@@ -1,5 +1,5 @@
 export const sunburstModel = 'openai/gpt-image-2.5-sunburst';
-export const sunburstName = 'GPT Image 2.5 Sunburst';
+export const sunburstName = 'GPT Image 2.5';
 export const imageQualities = ['auto', 'low', 'medium', 'high'] as const;
 export const imageBackgrounds = ['auto', 'transparent', 'opaque'] as const;
 export const imageFormats = ['png', 'jpeg', 'webp'] as const;

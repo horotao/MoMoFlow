@@ -12,6 +12,7 @@ import { isColorPaletteNode } from '../nodes/types';
 import { ModelOptionsSettings } from './ModelOptionsSettings';
 import { SunburstSettings } from './SunburstSettings';
 import { prepareSunburstRun } from '../nodes/sunburstRun';
+import { sunburstName } from '../nodes/sunburst';
 import { assetResources, taskAssetUrls } from '../nodes/assetResources';
 import { requestSunburst } from '../nodes/sunburstClient';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -141,7 +142,7 @@ export function DescriberPanel() {
     setEdges((all) => [...all, { id: crypto.randomUUID(), source: id, target: selected.id, targetHandle: field }]);
   };
   return <>
-    <aside className={`describer-panel nodrag nopan nowheel ${panelOpen ? 'is-open' : ''}`} aria-label={selectedPalette ? "Color palette settings" : selectedImage ? `${selectedImage.type === 'ideogram' ? ideogramName : selectedImage.type === 'nano-banana' ? nanoBananaName : 'GPT Image 2.5 Sunburst'} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => { if (!(selectedPalette && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !(e.target as HTMLElement).closest('input'))) e.stopPropagation(); }}>
+    <aside className={`describer-panel nodrag nopan nowheel ${panelOpen ? 'is-open' : ''}`} aria-label={selectedPalette ? "Color palette settings" : selectedImage ? `${selectedImage.type === 'ideogram' ? ideogramName : selectedImage.type === 'nano-banana' ? nanoBananaName : sunburstName} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => { if (!(selectedPalette && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !(e.target as HTMLElement).closest('input'))) e.stopPropagation(); }}>
       {!selectedPalette && selectedImage && <div className="sunburst-provider"><span>{isIdeogramNode(selectedImage) ? 'WaveSpeed' : 'ZenMux'}</span><span>按用量计费</span></div>}
       <div className="describer-panel-top">
         <button ref={tasksTrigger} className={tasksOpen ? 'active' : ''} aria-controls={tasksOpen ? 'task-manager' : undefined} aria-expanded={tasksOpen} onClick={() => setTasksOpen(!tasksOpen)}>

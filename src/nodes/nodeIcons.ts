@@ -1,5 +1,5 @@
 import {
-  AiImageIcon, ArrowExpand01Icon, AudioWave01Icon, BlendIcon, BlurIcon,
+  ArrowExpand01Icon, AudioWave01Icon, BlendIcon, BlurIcon,
   ChartHistogramIcon, ChatGptIcon, ContrastIcon, CropIcon, CubeIcon,
   CursorMagicSelection03Icon, ExpandIcon, File01Icon, FilterHorizontalIcon,
   Image02Icon, ImportIcon, Layers01Icon, Location01Icon, PaintBoardIcon,
@@ -8,9 +8,10 @@ import {
 } from '@hugeicons/core-free-icons';
 import type { IconSvgElement } from '@hugeicons/react';
 import type { OutputKind } from './router';
+import { ideogramBrandIcon, nanoBananaBrandIcon } from './modelBrandIcons';
 
 export const nodeIcons = {
-  ideogram: AiImageIcon,
+  ideogram: ideogramBrandIcon,
   'matte-grow-shrink': ExpandIcon,
   'masks-extractor': CursorMagicSelection03Icon,
   router: Route01Icon,
@@ -33,7 +34,7 @@ export const nodeIcons = {
   blur: BlurIcon,
   crop: CropIcon,
   painter: PaintBrush01Icon,
-  'nano-banana': AiImageIcon,
+  'nano-banana': nanoBananaBrandIcon,
 } satisfies Record<string, IconSvgElement>;
 
 export const routerIcons: Record<OutputKind, IconSvgElement> = {

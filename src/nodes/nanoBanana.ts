@@ -1,5 +1,5 @@
 export const nanoBananaModel = 'google/gemini-nano-banana-2.1';
-export const nanoBananaName = 'Nano Banana 2.1';
+export const nanoBananaName = 'Nano Banana';
 // Application limits; the final capability/availability is determined by ZenMux.
 export const nanoBananaMaxImages = 14;
 export const nanoBananaAspectRatios = ['auto', '1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9', '21:9'] as const;

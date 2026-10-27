@@ -32,7 +32,7 @@ async function run() {
   const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 360;
   const context = canvas.getContext('2d')!;
   context.fillStyle = '#7c62c4'; context.fillRect(0, 0, 640, 360);
-  context.fillStyle = '#fff'; context.font = '32px sans-serif'; context.fillText('Nano Banana 2.1 · Mock result', 60, 180);
+  context.fillStyle = '#fff'; context.font = '32px sans-serif'; context.fillText('Nano Banana · Mock result', 60, 180);
   context.clearRect(0, 0, 16, 16);
   const image = canvas.toDataURL('image/png');
   const originalFetch = window.fetch.bind(window);
@@ -70,8 +70,8 @@ async function run() {
   const storage = new WorkflowStorage(db); await storage.load();
   const root = createRoot(document.getElementById('root')!);
   root.render(<ReactFlowProvider><Flow storage={storage} saved={workflow} /><Probe /></ReactFlowProvider>);
-  await until(() => Boolean(document.querySelector('[aria-label="Nano Banana 2.1 设置"]')), 'Node and settings mount');
-  check(find('[data-id="banana"] .text-node-title').textContent?.includes('Nano Banana 2.1'), 'Dedicated model title and settings');
+  await until(() => Boolean(document.querySelector('[aria-label="Nano Banana 设置"]')), 'Node and settings mount');
+  check(find('[data-id="banana"] .text-node-title').textContent?.includes('Nano Banana'), 'Dedicated model title and settings');
   check(!document.querySelector('[data-id="banana"] [data-handleid="mask"]'), 'Only Gemini input ports, without OpenAI mask');
   find('[aria-label="分辨率"]').click(); await settle();
   const select = (text: string) => {
@@ -91,7 +91,7 @@ async function run() {
   await until(() => read().data.results?.length === 2, 'Mock generation completes');
   check(requests.length === 1 && (requests[0].images as string[]).length === 0, 'Text-only generation submits exactly once');
   check(requests[0].imageSize === '2K' && requests[0].aspectRatio === '16:9', 'Selected parameters reach the API');
-  check(document.querySelector('.task-name')?.textContent?.includes('Nano Banana 2.1'), 'Task manager shows the correct model');
+  check(document.querySelector('.task-name')?.textContent?.includes('Nano Banana'), 'Task manager shows the correct model');
   check(read().data.results?.every(asset => asset.width === 640 && asset.height === 360), 'All returned images are decoded at actual dimensions');
   const originalPng = await (await originalFetch(read().data.results![0].url)).blob();
   const originalBytes = new Uint8Array(await blob.arrayBuffer()), pngBytes = new Uint8Array(await originalPng.arrayBuffer());
