@@ -1,3 +1,4 @@
+import { MasksExtractorIcon } from '../nodes/MasksExtractorIcon';
 import { defaultNanoBananaSettings, nanoBananaName } from '../nodes/nanoBanana';
 import { defaultBlendSettings } from '../nodes/blend';
 import { Droplet, Route } from 'lucide-react';
@@ -23,7 +24,7 @@ import { defaultTextNodeText } from '../nodes/defaults';
 export type Category = 'Search' | 'Recents' | 'Saved' | 'Tools' | 'Image' | 'Video' | 'Models' | 'Assets';
 export type Item = { id: string; label: string; icon: LucideIcon; category: Category; group: string; color?: string; nodeType?: string };
 const itemLabels: Record<string, string> = {
-  router: '路由', 'color-palette': '调色板', compositor: '合成器', text: '提示词',
+  'masks-extractor': '蒙版提取', router: '路由', 'color-palette': '调色板', compositor: '合成器', text: '提示词',
   'image-describer': '图像描述', file: '导入', preview: '预览', compare: '对比', blend: '混合',
   'model-input': '模型名称', 'position-logger': '坐标记录', resize: '调整尺寸',
   'rotate-flip': '旋转与翻转', 'color-correction': '色彩校正', levels: '色阶',
@@ -38,6 +39,7 @@ export const navigation: { name: Category; icon: LucideIcon; divider?: boolean }
   { name: 'Models', icon: Blocks, divider: true }, { name: 'Assets', icon: Images },
 ];
 export const items: Item[] = [
+  { id: 'masks-extractor', label: 'Masks Extractor', icon: MasksExtractorIcon, category: 'Tools', group: 'Matte', nodeType: 'masks-extractor' },
   { id: 'router', label: 'Router', icon: Route, category: 'Tools', group: 'Helpers', nodeType: 'router' },
   { id: 'color-palette', label: 'Color palette', icon: Palette, category: 'Tools', group: 'Editing', nodeType: 'color-palette' },
   { id: 'compositor', label: 'Compositor', icon: Layers, category: 'Tools', group: 'Editing', nodeType: 'compositor' },
@@ -69,6 +71,6 @@ export const items: Item[] = [
 export function createLibraryNode(id: string, position: { x: number; y: number }): AppNode | undefined {
   const item = items.find(candidate => candidate.id === id);
   if (!item?.nodeType) return;
-  const data = id === 'blend' ? { settings: { ...defaultBlendSettings } } : id === 'compare' ? { ...defaultCompareData } : id === 'resize' ? { settings: { ...defaultResizeSettings } } : id === 'color-palette' ? { colors: [] } : id === 'compositor' ? { document: defaultCompositorDocument() } : id === 'rotate-flip' ? { settings: { ...defaultRotateFlipSettings } } : id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'nano-banana' ? { ...defaultNanoBananaSettings, imageInputs: 1 } : id === 'sunburst' ? { ...defaultSunburstSettings, imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'router' || id === 'invert' || id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
+  const data = id === 'blend' ? { settings: { ...defaultBlendSettings } } : id === 'compare' ? { ...defaultCompareData } : id === 'resize' ? { settings: { ...defaultResizeSettings } } : id === 'color-palette' ? { colors: [] } : id === 'compositor' ? { document: defaultCompositorDocument() } : id === 'rotate-flip' ? { settings: { ...defaultRotateFlipSettings } } : id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'nano-banana' ? { ...defaultNanoBananaSettings, imageInputs: 1 } : id === 'sunburst' ? { ...defaultSunburstSettings, imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'masks-extractor' || id === 'router' || id === 'invert' || id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
   return { id: crypto.randomUUID(), type: item.nodeType, position, data, selected: true } as AppNode;
 }

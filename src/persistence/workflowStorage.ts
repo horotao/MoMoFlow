@@ -1,3 +1,4 @@
+import { isMasksExtractorNode } from '../nodes/types.ts';
 import { isImageGeneratorNode } from '../nodes/types.ts';
 import { isBlendNode } from '../nodes/types.ts';
 import { isCompareNode } from '../nodes/types.ts';
@@ -48,6 +49,11 @@ export function mapAssets(nodes: AppNode[], map: (asset: FileAsset) => FileAsset
       baseImage: node.data.baseImage ? map(node.data.baseImage) : undefined,
       result: node.data.result ? map(node.data.result) : undefined,
     } } as AppNode;
+    if (isMasksExtractorNode(node)) return { ...node, data: { ...node.data,
+      baseImage: node.data.baseImage ? map(node.data.baseImage) : undefined,
+      result: node.data.result ? map(node.data.result) : undefined,
+      mask: node.data.mask ? map(node.data.mask) : undefined,
+    } };
     if (isPainterNode(node)) return { ...node, data: { ...node.data,
       baseImage: node.data.baseImage ? map(node.data.baseImage) : undefined,
       result: node.data.result ? map(node.data.result) : undefined,

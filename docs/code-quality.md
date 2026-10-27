@@ -64,6 +64,7 @@ CI 使用完整 Git 历史，PR 以目标分支基点、推送以事件的前一
 | Color palette 编辑器 | `/tests/color-palette-picker.html` |
 | Color palette 原生拖动 | `/tests/color-palette-native-drag.html`，需真实鼠标与不同缩放验证 |
 | Resize 尺寸、透明区域、比例与持久化 | `/tests/resize.html` |
+| Masks Extractor 选区、预览复用、PNG、4K、原图比例、取消、撤销及持久化 | `/tests/masks-extractor.html`；默认受控分割，不下载模型；覆盖重新计算后的焦点、从图片和控制区按 Escape 取消，以及迟到结果隔离；页面按钮可单独验证真实 SlimSAM / WebGPU，并测量悬停后连续添加的调用次数、耗时、蒙版摘要及 4K 导出帧间隔 |
 | Nano Banana 2.1 参数、参考图、结果、取消、失败和持久化 | `/tests/nano-banana.html`；隔离数据库、模拟模型响应，无真实调用 |
 | 模型运行进度、动画、完成、失败与取消隔离 | `/tests/model-run-progress.html`；沿用浏览器测试页，无新增依赖，所有模型响应均为本地模拟 |
 

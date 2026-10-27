@@ -1,3 +1,4 @@
+import type { MasksExtractorData } from './masksExtractor';
 import type { NanoBananaSettings } from './nanoBanana';
 import type { BlendData } from './blend';
 import type { CompareData } from './compare';
@@ -28,6 +29,8 @@ export type NanoBananaNode = Node<NanoBananaSettings & { label?: string; locked?
 export type ImageGeneratorNode = SunburstNode | NanoBananaNode;
 export const isNanoBananaNode = (node: AppNode): node is NanoBananaNode => node.type === 'nano-banana';
 export const isImageGeneratorNode = (node: AppNode): node is ImageGeneratorNode => isSunburstNode(node) || isNanoBananaNode(node);
+export type MasksExtractorNode = Node<MasksExtractorData, 'masks-extractor'>;
+export const isMasksExtractorNode = (node: AppNode | undefined): node is MasksExtractorNode => node?.type === 'masks-extractor';
 export type PainterNode = Node<PainterData, 'painter'>;
 export type PreviewNode = Node<{ label?: string; locked?: boolean; activeAssetId?: string }, 'preview'>;
 export type CropNode = Node<CropData, 'crop'>;
@@ -52,7 +55,7 @@ export const isCompareNode = (node: AppNode | undefined): node is CompareNode =>
 export type BlendNode = Node<BlendData, 'blend'>;
 export const isBlendNode = (node: AppNode | undefined): node is BlendNode => node?.type === 'blend';
 export type RouterNode = Node<{ label?: string; locked?: boolean }, 'router'>;
-export type AppNode = NanoBananaNode | RouterNode | BlendNode | CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
+export type AppNode = MasksExtractorNode | NanoBananaNode | RouterNode | BlendNode | CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
 
 export const isDescriberNode = (node: AppNode): node is ImageDescriberNode => node.type === 'image-describer' && 'imageInputs' in node.data;
 

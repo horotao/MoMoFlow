@@ -1,3 +1,4 @@
+import { isMasksExtractorNode } from './types.ts';
 import { isImageGeneratorNode } from './types.ts';
 import { isBlendNode } from './types.ts';
 import { isCompareNode } from './types.ts';
@@ -93,6 +94,8 @@ export function nodeAssetUrls(nodes: Iterable<AppNode>): Set<string> {
       for (const asset of data.assets ?? []) urls.add(asset.url);
     } else if (isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) {
       for (const asset of [node.data.result, node.data.baseImage]) if (asset) urls.add(asset.url);
+    } else if (isMasksExtractorNode(node)) {
+      for (const asset of [node.data.result, node.data.mask, node.data.baseImage]) if (asset) urls.add(asset.url);
     } else if (isPainterNode(node)) {
       for (const asset of [node.data.result, node.data.mask, node.data.alphaMask, node.data.baseImage]) if (asset) urls.add(asset.url);
     } else if (isImageGeneratorNode(node)) {

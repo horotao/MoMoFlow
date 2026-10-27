@@ -1,3 +1,4 @@
+import { MasksExtractorNode } from './MasksExtractorNode';
 import { NanoBananaNode } from './NanoBananaNode';
 import { RouterNode } from './RouterNode';
 import { BlendNode } from './BlendNode';
@@ -25,6 +26,7 @@ import type { AppNode } from './types';
 export const initialNodes: AppNode[] = [];
 
 export const nodeTypes = {
+  'masks-extractor': MasksExtractorNode,
   router: RouterNode,
   blend: BlendNode,
   compare: CompareNode,

@@ -1,3 +1,5 @@
+import { masksDocument } from '../nodes/masksExtractor';
+import { isMasksExtractorNode } from '../nodes/types';
 import { blendDocument } from '../nodes/blend';
 import { isBlendNode } from '../nodes/types';
 import { resizeDocument } from '../nodes/resize';
@@ -40,7 +42,7 @@ function snapshot(nodes: AppNode[], edges: Edge[]): Snapshot {
 
 function signature({ nodes, edges }: Snapshot) {
   return JSON.stringify({
-    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: isBlendNode(node) ? blendDocument(node.data) : isResizeNode(node) ? resizeDocument(node.data) : isColorPaletteNode(node) ? paletteDocument(node.data) : isCompositorNode(node) ? compositorDocument(node.data) : isRotateFlipNode(node) ? rotateFlipDocument(node.data) : isInvertNode(node) ? invertDocument(node.data) : isLevelsNode(node) ? levelsDocument(node.data) : isBlurNode(node) ? blurDocument(node.data) : isColorCorrectionNode(node) ? colorDocument(node.data) : isCropNode(node) ? cropDocument(node.data) : isPainterNode(node) ? painterDocument(node.data) : node.data })),
+    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: isMasksExtractorNode(node) ? masksDocument(node.data) : isBlendNode(node) ? blendDocument(node.data) : isResizeNode(node) ? resizeDocument(node.data) : isColorPaletteNode(node) ? paletteDocument(node.data) : isCompositorNode(node) ? compositorDocument(node.data) : isRotateFlipNode(node) ? rotateFlipDocument(node.data) : isInvertNode(node) ? invertDocument(node.data) : isLevelsNode(node) ? levelsDocument(node.data) : isBlurNode(node) ? blurDocument(node.data) : isColorCorrectionNode(node) ? colorDocument(node.data) : isCropNode(node) ? cropDocument(node.data) : isPainterNode(node) ? painterDocument(node.data) : node.data })),
     edges: edges.map((edge) => ({ ...edge, selected: undefined })),
   }, (key, value) => key === 'content' && Array.isArray(value) && value.length === 0 ? undefined : value);
 }
@@ -63,6 +65,10 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
       && nodes.every((node, i) => node.id === state.present.nodes[i].id
         && JSON.stringify(node.position) === JSON.stringify(state.present.nodes[i].position))
       && JSON.stringify(edges) === JSON.stringify(state.present.edges);
+    const maskChanged = nodes.some(node => isMasksExtractorNode(node) && (() => {
+      const previous = state.present.nodes.find(item => item.id === node.id);
+      return isMasksExtractorNode(previous) && previous.data.selection?.id !== node.data.selection?.id;
+    })());
     const paintChanged = nodes.some(node => isPainterNode(node) && (() => {
       const previous = state.present.nodes.find(item => item.id === node.id);
       return isPainterNode(previous) && JSON.stringify(previous.data.strokes) !== JSON.stringify(node.data.strokes);
@@ -104,7 +110,7 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
       return isBlendNode(previous) && JSON.stringify(previous.data.settings) !== JSON.stringify(node.data.settings);
     })());
     const compareChanged = nodes.some(node => node.type === 'compare' && JSON.stringify(node.data) !== JSON.stringify(state.present.nodes.find(item => item.id === node.id)?.data));
-    if (blendChanged || compareChanged || resizeChanged || paletteChanged || compositorChanged || rotateFlipChanged || levelsChanged || blurChanged || colorChanged || cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
+    if (maskChanged || blendChanged || compareChanged || resizeChanged || paletteChanged || compositorChanged || rotateFlipChanged || levelsChanged || blurChanged || colorChanged || cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;

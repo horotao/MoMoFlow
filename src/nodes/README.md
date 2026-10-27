@@ -27,6 +27,7 @@
 | 模糊（Blur）：本地图片模糊 | `blur` | [BlurNode.tsx](./BlurNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
 | 裁剪（Crop）：本地裁剪图片 | `crop` | [CropNode.tsx](./CropNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出裁剪后的 PNG |
 | 绘图（Painter）：在图片或空白画布上绘制 | `painter` | [PainterNode.tsx](./PainterNode.tsx) | 单图片输入 `image`；`result` 输出合成图片，`mask` 输出黑底白色绘制区域 |
+| 蒙版提取（Masks Extractor）：点击物体生成蒙版 | `masks-extractor` | [MasksExtractorNode.tsx](./MasksExtractorNode.tsx) | 单图片输入 `image`；`result`（Image With Alpha）输出透明抠图，`mask`（Mask）输出黑白蒙版 |
 | 预览（Preview）：查看上游图片与遮罩 | `preview` | [PreviewNode.tsx](./PreviewNode.tsx) | 单图片输入 `file`，无输出；实时显示上游图片 |
 | 坐标记录（Position Logger）：显示节点坐标的示例节点 | `position-logger` | [PositionLoggerNode.tsx](./PositionLoggerNode.tsx) | 左侧输入、右侧输出；不执行模型任务 |
 
@@ -264,3 +265,15 @@ Router 直接从当前图解析来源，不保存文本或素材副本，不运�
 与 Sunburst 共用结果画廊和任务队列：同一节点多次运行按序，不同节点可以并发；保留响应中的全部最终图片，忽略推理图片；文本回复、内容拦截或损坏图片作为失败处理。结果支持选中输出、下载、全屏、拆分为文件、复制、剪切粘贴、锁定、撤销重做和 IndexedDB 素材恢复。取消或失败不自动重试，不切换模型。
 
 `nanoBanana.test.ts`、`nanoBananaClient.test.ts` 和 `server/nanoBanana.test.ts` 使用既有 Node.js 测试运行器，随 `npm test` / `npm run check` 执行。独立浏览器验收入口 `/tests/nano-banana.html` 使用隔离数据库与模拟响应，验证参数、引用图、结果、多图预览、取消、失败、撤销及保存恢复，不调用真实模型。真实供应商支持情况、输出质量及费用仍需单独生图验证。
+
+## Masks Extractor
+
+蒙版提取位于 Tools → Matte（蒙版），支持右键创建及图片端口拖到空白处的推荐菜单。`image` 输入只接收图片，集合取第一张；可通过 Router 中转。`result`（Image With Alpha）和 `mask`（Mask）输出原图尺寸 PNG，前者保留原图透明度并抠出选区，后者为黑底白色选区。两者可连接 Preview、图片处理和模型图片输入；Mask 连到 Sunburst Mask 时在请求准备阶段按亮度转换为透明编辑区，与现有 Invert 蒙版语义一致，白色可编辑、黑色受保护，不改变节点导出文件。
+
+单击替换选区，Shift + 单击添加独立物体，Alt + Shift + 单击减去区域；也可使用选择 / 添加 / 减去按钮。每次模型返回的区域与当前蒙版执行并集或差集，不把多个物体简单当作同一次点提示。首次点选后支持悬停预览；预览不进入历史或下游输出。Image / Mask 切换、清空、重新计算、下载及节点菜单均支持键盘；Escape 取消推理，画布撤销快捷键可从节点控件透传。每次确认选区或清空产生一个撤销步骤，派生 PNG 不产生额外步骤。
+
+浏览器推理由 [masksInference.worker.ts](./masksInference.worker.ts) 中的 Transformers.js 3.5.0 和 `Xenova/slimsam-77-uniform` FP16（固定模型 revision `d827ef0`）完成，不调用付费模型、不上传输入图像。仅在首次实际点选时加载 Worker / 模型；FP16 权重约 20.75 MB，另有推理运行库。模型默认下载自 Hugging Face，使用 `transformers-cache` Cache Storage；同源缓存可在刷新后复用，但清除网站数据、存储被回收或更换域名后需重下。首次下载显示进度，失败可通过再次点击重试。需支持 WebGPU 和 shader-f16；不支持时给出明确提示，无隐式服务端或更大模型回退。
+
+Worker 串行执行，最多保留一张图片的特征，模型闲置两分钟后释放内存，磁盘缓存继续保留。同一点的点击复用该节点最近一次悬停结果或正在进行的推理，避免重复提交；换图、换点、失败或重新计算会使候选缓存失效。只对最高评分候选执行尺寸恢复和二值化，保留原来的选区判定。交互分割最长边为 1024，输出恢复原图尺寸；恢复尺寸不会增加模型边缘精度。选区采用压缩游程保存于节点数据，刷新、复制、剪切粘贴后无需重新推理即可恢复输出；素材 URL 沿用现有 IndexedDB 与引用回收机制。输入变化或断开时旧输出立即失效，取消、撤销、锁定、删除节点后未完成任务不得覆盖当前选区。恢复原输入可以恢复其既有选区。
+
+[masksExtractor.test.ts](./masksExtractor.test.ts) 随 `npm test` 验证合并/减去、压缩校验、缩放坐标、连线、Router、Sunburst 转换、失效及素材映射。`/tests/masks-extractor.html` 使用隔离画布和独立数据库，以受控分割结果验证真实组件、PNG、4K、撤销、恢复、锁定、取消、换图竞态、重新计算和副本，不下载模型；页面的“使用真实模型”按钮另行运行 SlimSAM / WebGPU，“检查模型缓存”可在刷新后读取权重文件数量和大小。实际下载与模型质量不属于自动测试的通过结论。依赖与模型出处见 [第三方说明](../../docs/masks-extractor-third-party.md)。

@@ -7,6 +7,8 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig(({ mode }) => ({
   plugins: [nanoBananaPlugin(loadEnv(mode, process.cwd(), 'ZENMUX_').ZENMUX_API_KEY ?? ''), react(), tailwindcss(), deepseekPlugin(loadEnv(mode, process.cwd(), 'DEEPSEEK_').DEEPSEEK_API_KEY ?? ''), sunburstPlugin(loadEnv(mode, process.cwd(), 'ZENMUX_').ZENMUX_API_KEY ?? '')],
+  worker: { format: 'es' },
+  optimizeDeps: { include: ['@huggingface/transformers'] },
   resolve: {
     alias: {
       '@': new URL('./src', import.meta.url).pathname,

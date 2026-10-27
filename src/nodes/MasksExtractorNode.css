@@ -1,0 +1,31 @@
+/* Keep the image-driven height even when the shared 405px node styles load later. */
+.react-flow .react-flow__node.react-flow__node-masks-extractor { height: auto; gap: 16px; }
+.react-flow .react-flow__node-masks-extractor.selected,
+.react-flow .react-flow__node-masks-extractor:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
+.react-flow__node-masks-extractor .text-node-title { min-width: 0; gap: 8px; font-size: 16px; line-height: 20px; }
+.react-flow__node-masks-extractor .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.react-flow__node-masks-extractor .text-node-title > svg { flex-shrink: 0; }
+.react-flow__node-masks-extractor:hover .describer-port-label,
+.react-flow__node-masks-extractor.selected .describer-port-label { visibility: visible; }
+.masks-preview { position: relative; width: 100%; flex-shrink: 0; overflow: hidden; border-radius: 8px; background: repeating-conic-gradient(#ddd 0% 25%, #eee 0% 50%) 0 / 20px 20px; }
+.dark .masks-preview { background: repeating-conic-gradient(#333 0% 25%, #2c2c2c 0% 50%) 0 / 20px 20px; }
+.masks-preview canvas { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+.masks-preview canvas:focus-visible { outline: 2px solid var(--text-node-border-selected); outline-offset: -2px; }
+.masks-empty { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; color: var(--text-node-secondary); font-size: 12px; }
+.masks-display { position: absolute; top: 16px; left: 16px; display: flex; gap: 2px; padding: 2px; border-radius: 6px; background: #292929bd; }
+.masks-display button { border: 0; border-radius: 4px; background: transparent; color: #d3d3d3; padding: 3px 8px; font: inherit; font-size: 11px; line-height: 18px; cursor: pointer; }
+.masks-display button[aria-pressed='true'] { background: #595959; color: #fff; }
+.masks-download { position: absolute; right: 16px; top: 16px; display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: 5px; background: #292929bd; color: white; cursor: pointer; opacity: 0; }
+.masks-preview:hover .masks-download, .masks-download:focus-visible { opacity: 1; }
+.masks-download:disabled { visibility: hidden; }
+.masks-progress { position: absolute; bottom: 12px; left: 12px; right: 12px; display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 6px; background: #242424e6; color: #fff; font-size: 12px; pointer-events: none; }
+.masks-progress button { pointer-events: auto; color: inherit; background: none; border: none; cursor: pointer; font: inherit; }
+.masks-controls { display: flex; width: 100%; gap: 8px; align-items: center; min-height: 26px; }
+.masks-controls button { display: flex; align-items: center; justify-content: center; padding: 4px 7px; border: none; border-radius: 4px; font: inherit; font-size: 11px; line-height: 18px; color: var(--text-node-secondary); background: transparent; cursor: pointer; }
+.masks-controls button:hover { background: var(--text-node-input); }
+.masks-controls button:disabled { opacity: .4; cursor: default; }
+.masks-modes { display: flex; gap: 2px; }
+.masks-modes button[aria-pressed='true'] { background: var(--text-node-input); color: var(--text-node-primary); }
+.masks-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.masks-hint { color: var(--text-node-secondary); font-size: 11px; line-height: 16px; margin-top: -8px; }
+.masks-error { position: static; overflow-wrap: anywhere; font-size: 12px; }

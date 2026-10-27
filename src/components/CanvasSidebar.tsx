@@ -17,7 +17,7 @@ const titles: Partial<Record<Category, string>> = {
   Recents: '快速访问', Tools: '工具箱', Image: '图像模型', Video: '视频模型', Models: '社区模型',
 };
 const groupLabels: Record<string, string> = {
-  Helpers: '辅助工具', Editing: '图像编辑', 'Text tools': '文本工具', Datatypes: '数据类型',
+  Matte: '蒙版', Helpers: '辅助工具', Editing: '图像编辑', 'Text tools': '文本工具', Datatypes: '数据类型',
   'Generate from text': '文本生成图像', 'Generate from text or image': '文本或图像生成视频',
   'Community models': '社区模型',
 };
