@@ -154,6 +154,10 @@
     --xy-handle-border-color-default: #aaaaaa;
   }
 
+  .react-flow.dark {
+    --xy-background-color: #1e1e1e;
+  }
+
   .react-flow .react-flow__node {
     display: flex;
     flex-direction: column;
