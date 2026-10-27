@@ -15,7 +15,7 @@ const edge = { id: 'edge', source: painter.id, sourceHandle: 'result', target: p
 
 test('Preview reads Result and black-white Mask independently and follows render invalidation', () => {
   assert.deepEqual(previewImages(preview.id, [painter, preview], [edge]), [painter.data.result]);
-  assert.deepEqual(previewImages(preview.id, [painter, preview], [{ ...edge, sourceHandle: 'mask' }]), [painter.data.mask]);
+  assert.deepEqual(previewImages(preview.id, [painter, preview], [{ ...edge, sourceHandle: 'mask' }]), [{ ...painter.data.mask, maskMode: 'luminance' }]);
   const changed = { ...painter, data: { ...painter.data, background: '#ff0000' } };
   assert.deepEqual(previewImages(preview.id, [changed, preview], [edge]), []);
   assert.deepEqual(previewImages(preview.id, [painter, preview], []), []);

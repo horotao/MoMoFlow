@@ -1,3 +1,4 @@
+import { ideogramName } from '../nodes/ideogram';
 import { nanoBananaName } from '../nodes/nanoBanana';
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { DescriberIcon } from './DescriberIcon';
@@ -38,7 +39,7 @@ export function TaskManager({ tasks, trigger, sidebarOpen, onClose, onFocus, onC
     const detail = `${task.model}${task.error ? ` · ${task.error}` : ''}`;
     return <div className={`task-row state-${task.state.toLowerCase()}`} key={task.id}>
       <button className="task-main" title={detail} onClick={() => onFocus(task.nodeId)}>
-        <span className="task-name"><TaskStatusIcon state={task.state} /><span>{task.nanoBananaRequest ? nanoBananaName : task.imageRequest ? 'GPT Image 2.5 Sunburst' : '图像描述'}</span></span>
+        <span className="task-name"><TaskStatusIcon state={task.state} /><span>{task.ideogramRequest ? `${ideogramName}${task.ideogramRequest.image ? ' Edit' : ''}` : task.nanoBananaRequest ? nanoBananaName : task.imageRequest ? 'GPT Image 2.5 Sunburst' : '图像描述'}</span></span>
         <span className="task-status">{task.state === 'Running' ? <TaskProgress progress={task.progress} label="任务预估进度" /> : taskStateLabels[task.state]}</span>
       </button>
       <div className="task-actions">

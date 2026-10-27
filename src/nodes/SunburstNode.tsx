@@ -19,8 +19,8 @@ export function SunburstNode(props: NodeProps<Sunburst>) {
   return <ImageGenerationNode {...props} name={sunburstName} icon={<NodeIcon nodeType="sunburst" />} fieldLabels={sunburstFieldLabels} maxImages={16} mask />;
 }
 
-type GenerationProps = NodeProps<Generator> & { name: string; icon: ReactNode; fieldLabels: Record<string, string>; maxImages: number; mask?: boolean };
-export function ImageGenerationNode({ id, data, isConnectable, name, icon, fieldLabels, maxImages, mask = false }: GenerationProps) {
+type GenerationProps = NodeProps<Generator> & { name: string; icon: ReactNode; fieldLabels: Record<string, string>; maxImages: number; mask?: boolean; imageLabels?: string[]; addImageLabel?: string; previewAspectRatio?: string | null };
+export function ImageGenerationNode({ id, data, isConnectable, name, icon, fieldLabels, maxImages, mask = false, imageLabels, addImageLabel = '添加图片输入', previewAspectRatio }: GenerationProps) {
   const { getNode, updateNodeData, setNodes, screenToFlowPosition } = useReactFlow<AppNode>();
   const edges = useEdges(); const internals = useUpdateNodeInternals();
   const requestedSize = useStore(state => {
@@ -39,8 +39,9 @@ export function ImageGenerationNode({ id, data, isConnectable, name, icon, field
   const size = active ? dimensions[active.url] ?? active : undefined;
   let aspectRatio = size?.width && size.height ? `${size.width} / ${size.height}` : '1';
   try {
-    if (!mask && requestedSize !== 'auto' && nanoBananaAspectRatios.some(ratio => ratio === requestedSize)) aspectRatio = requestedSize.replace(':', ' / ');
-    else if (mask && validateSunburstSize(requestedSize) !== 'auto') aspectRatio = requestedSize.replace('x', ' / ');
+    if (previewAspectRatio !== undefined) aspectRatio = previewAspectRatio || aspectRatio;
+    else if (!('size' in data) && requestedSize !== 'auto' && nanoBananaAspectRatios.some(ratio => ratio === requestedSize)) aspectRatio = requestedSize.replace(':', ' / ');
+    else if ('size' in data && validateSunburstSize(requestedSize) !== 'auto') aspectRatio = requestedSize.replace('x', ' / ');
   } catch { /* Incomplete or invalid custom sizes use the result ratio or a square. */ }
   const portSpace = (mask ? 110 : 50) + (data.imageInputs + (data.exposed?.length ?? 0)) * 60;
   const index = Math.max(0, results.findIndex(asset => asset.id === active?.id));
@@ -48,7 +49,7 @@ export function ImageGenerationNode({ id, data, isConnectable, name, icon, field
   useEffect(() => internals(id), [id, data.imageInputs, data.exposed, aspectRatio, grid, internals]);
   const ports = [
     { id: 'prompt', label: 'Prompt', kind: 'prompt', top: 89 },
-    ...Array.from({ length: data.imageInputs }, (_, i) => ({ id: `image-${i}`, label: data.imageInputs === 1 ? 'Image' : `Image ${i + 1}`, kind: 'image', top: 149 + i * 60 })),
+    ...Array.from({ length: data.imageInputs }, (_, i) => ({ id: `image-${i}`, label: imageLabels?.[i] ?? (data.imageInputs === 1 ? 'Image' : `Image ${i + 1}`), kind: 'image', top: 149 + i * 60 })),
     ...(mask ? [{ id: 'mask', label: 'Mask', kind: 'mask', top: 149 + data.imageInputs * 60 }] : []),
     ...(data.exposed ?? []).map((field, index) => ({ id: field, label: fieldLabels[field], kind: 'parameter', top: (mask ? 209 : 149) + (data.imageInputs + index) * 60 })),
   ];
@@ -94,7 +95,7 @@ export function ImageGenerationNode({ id, data, isConnectable, name, icon, field
       </div></>}
     </div>
     </div>
-    <div className="sunburst-actions"><button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= maxImages} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />添加图片输入</button><ModelRunButton nodeId={id} className="sunburst-run nodrag nopan" disabled={data.locked} onRun={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('describer-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</ModelRunButton></div>
+    <div className="sunburst-actions">{maxImages > 0 && <button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= maxImages} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />{addImageLabel}</button>}<ModelRunButton nodeId={id} className="sunburst-run nodrag nopan" disabled={data.locked} onRun={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('describer-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</ModelRunButton></div>
     {ports.map(port => <div className="describer-port-wrapper" key={port.id}>
       <span className={`describer-port-label sunburst-label-${port.kind}`} style={{ top: port.top - 28 }}>{port.label}{port.kind === 'prompt' && <sup>*</sup>}</span>
       <Handle id={port.id} type="target" position={Position.Left} className={`describer-port sunburst-port-${port.kind}${edges.some(edge => edge.target === id && edge.targetHandle === port.id) ? ' is-connected' : ''}`} style={{ top: port.top }} aria-label={`${port.label} input`} isConnectable={isConnectable}>

@@ -14,6 +14,7 @@
 | 图像描述（Image Describer）：根据图片生成可继续编辑的文本 | `image-describer` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) | 图片输入 `image-0` 起；可暴露 `model`、`instructions` 文本输入；输出 `data.text` |
 | 模型名称 / 参数选项（Model Name）：提供一个可选的文本值 | `model-input` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) 中的 `ModelInputNode` | 输出当前 `data.model`；`options` 输入仅展示，不能连接 |
 | GPT Image 2.5 Sunburst：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`、`image-0` 起、`mask` 及暴露的参数输入；`result` 输出当前选中的结果图片 |
+| Ideogram 4.5：生成或编辑图片 | `ideogram` | [IdeogramNode.tsx](./IdeogramNode.tsx) | 必需的 `prompt`；`image-0` 原图、`image-1` 起参考图、`mask` 及暴露的生成/编辑参数输入；`result` 输出选中图片 |
 | Nano Banana 2.1：生成或编辑图片 | `nano-banana` | [NanoBananaNode.tsx](./NanoBananaNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起与暴露的 `aspectRatio` / `imageSize` / `outputFormat` 输入；`result` 输出选中图片 |
 | 调色板（Color palette）：制作最多十色色板 | `color-palette` | [ColorPaletteNode.tsx](./ColorPaletteNode.tsx) | 无输入；`image`（Image）输出纯色条 PNG，`text`（Text）输出按顺序以 `*` 连接的 HEX 色值 |
 | 合成器（Compositor）：图片、文本与矢量图层合成 | `compositor` | [CompositorNode.tsx](./compositor/CompositorNode.tsx) | `background`、`layer-1` 起的动态图片输入；`result`（Output）输出实际合成 PNG；独立图层编辑器见[使用与架构](../../docs/compositor.md) |
@@ -233,7 +234,7 @@ Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排�
 
 从 Tools → Helpers 或搜索 Compare 添加。Slider 左侧显示 Input 1，右侧显示 Input 2；拖动分割线实时对比，松开时提交一次历史记录。Reset 恢复 50%，居中时禁用；方向键微调，Shift 加大步长，Home / End 到两端，Escape 取消拖动。Toggle 默认显示 Image 2，按住左上角眼睛（或 Space / Enter）显示 Image 1，松开、失焦或取消时恢复；与 Weavy 的按住预览行为一致。切换模式时分割线回到中间。
 
-预览按第一张可用图片比例布局，两张图等比例居中；仅一路可用时显示该图，无输入时显示棋盘格。左右端口分别位于 89 / 149px，每个输入只允许一条图片连线；支持两路连接同一来源，拒绝环路、锁定节点及非图片输入。两个输出分别透传原始图片，保留原生尺寸、透明度、资源标识和素材上的灰度蒙版标识（包括 Matte Grow / Shrink 输出），不导出对比拼图；模式、拖动与临时预览不改变输出。
+预览按第一张可用图片比例布局，两张图等比例居中；仅一路可用时显示该图，无输入时显示棋盘格。左右端口分别位于 89 / 149px，每个输入只允许一条图片连线；支持两路连接同一来源，拒绝环路、锁定节点及非图片输入。两个输出分别透传原始图片，保留原生尺寸、透明度、资源标识和素材上的灰度蒙版标识（包括 Painter / MasksExtractor 的 Mask、Invert 和 Matte Grow / Shrink 输出），不导出对比拼图；模式、拖动与临时预览不改变输出。
 
 模式和分割位置参与撤销重做与工作流保存。副本、剪切粘贴保存两路输入快照；已有连线优先于快照，上游暂不可用时不返回旧快照。支持重命名、锁定和删除，素材生命周期与 IndexedDB 复用现有机制。无模型请求或付费调用。
 
@@ -288,3 +289,19 @@ Router 直接从当前图解析来源，不保存文本或素材副本，不运�
 Worker 串行执行，最多保留一张图片的特征，模型闲置两分钟后释放内存，磁盘缓存继续保留。同一点的点击复用该节点最近一次悬停结果或正在进行的推理，避免重复提交；换图、换点、失败或重新计算会使候选缓存失效。只对最高评分候选执行尺寸恢复和二值化，保留原来的选区判定。交互分割最长边为 1024，输出恢复原图尺寸；恢复尺寸不会增加模型边缘精度。选区采用压缩游程保存于节点数据，刷新、复制、剪切粘贴后无需重新推理即可恢复输出；素材 URL 沿用现有 IndexedDB 与引用回收机制。输入变化或断开时旧输出立即失效，取消、撤销、锁定、删除节点后未完成任务不得覆盖当前选区。恢复原输入可以恢复其既有选区。
 
 [masksExtractor.test.ts](./masksExtractor.test.ts) 随 `npm test` 验证合并/减去、压缩校验、缩放坐标、连线、Router、Sunburst 转换、失效及素材映射。`/tests/masks-extractor.html` 使用隔离画布和独立数据库，以受控分割结果验证真实组件、PNG、4K、撤销、恢复、锁定、取消、换图竞态、重新计算和副本，不下载模型；页面的“使用真实模型”按钮另行运行 SlimSAM / WebGPU，“检查模型缓存”可在刷新后读取权重文件数量和大小。实际下载与模型质量不属于自动测试的通过结论。依赖与模型出处见 [第三方说明](../../docs/masks-extractor-third-party.md)。
+
+## Ideogram 4.5 约定
+
+同一个节点根据 `image-0` 是否连线切换模式：无原图使用 WaveSpeed `ideogram-ai/ideogram-v4.5` 文生图；有原图使用 `ideogram-ai/ideogram-v4.5/edit` 编辑。必须连接非空提示词（最多 10000 个 Unicode 字符）。`image-0` 必须恰好一张待编辑原图；`image-1`～`image-4` 为参考图，按端口顺序展开集合，最多 4 张，使用 Mask 时最多 3 张。已连接却无结果、仅接参考图/Mask 未接原图均阻止运行。旧节点的 `imageInputs: 0` 显示为一个原图端口。结果可传给 Preview、Router 及现有图像节点。
+
+[ideogram.ts](./ideogram.ts) 校验文生图的 7 种比例、1K/2K、低/中/高质量和提示词扩展开关；默认 1:1、1K、中质量、扩展开启。请求始终显式发送扩展布尔值。编辑使用独立的 `editQuality`（极低/低/中/高）、`editPrecision`（标准/高）和 `editSize`（跟随原图或自定义），默认中/标准/跟随原图。各模式保留自己的设置，并支持暴露为文本参数；非当前模式的已暴露输入保留且标记停用。编辑自定义宽高须为 256–4992 的 32 倍数，总像素不超过 4194304、比例不超过 6:1。使用 Mask 或高精度时请求强制跟随原图，保留已保存尺寸以供之后切回。
+
+Mask 必须恰好一张且与原图尺寸一致。[ideogramEditClient.ts](./ideogramEditClient.ts) 和 [ideogramMask.ts](./ideogramMask.ts) 将输入转换为不透明黑白 PNG：直接导入的黑白图按黑色修改、白色保留；应用的亮度蒙版（含 Invert、Matte、MasksExtractor）按白色修改转换；有透明通道的蒙版按透明区域修改转换。Painter 直接或经 Router 连接时使用 `alphaMask`。`imageOutput` 为 Painter / MasksExtractor 的黑白 Mask、Invert 和 Matte 输出补充 `maskMode: luminance`，旧输出同样兼容；经 Compare 任一路、多级透传或独立快照保存恢复后仍保留白色编辑语义，不改变素材像素。普通导入的黑白图不会自动添加该标记。以 128 为阈值二值化，不支持软蒙版；必须同时有修改与保留区域。转换仅影响提交数据，不改变画布素材。
+
+[ideogramRun.ts](./ideogramRun.ts) 建立参数和图片快照，任务资源引用保留原图、参考图及蒙版 Blob。[ideogramClient.ts](./ideogramClient.ts) 按模式请求 `/api/ideogram` 或 `/api/ideogram/edit`，将结果 URL 立即读入受管理的 Blob，保留原始格式和尺寸，支持下载、下游、撤销和 IndexedDB 保存。结果图库、选中结果、拆分与剪贴板复用生图节点约定；[ideogramClipboard.ts](./ideogramClipboard.ts) 恢复时清除外部参数连接状态。
+
+服务端 [ideogram.ts](../../server/ideogram.ts) 仅从 `WAVESPEED_API_KEY` 读取密钥。编辑支持 PNG/JPEG/WebP 输入，单张最多 32 MiB、合计 46 MiB；所有参数和文件大小先校验，再按 [上传协议](https://wavespeed.ai/docs/upload-files-api) 向固定 `/media/uploads` 获取凭证，使用返回的 URL/headers PUT 原始字节，PUT 不携带 API 密钥。上传地址、签名和上游错误正文不返回客户端。上传失败不提交模型任务；供应商默认保留上传文件 7 天。
+
+按 [文生图](https://wavespeed.ai/docs/docs-api/ideogram-ai/ideogram-ai-ideogram-v4.5) 和 [Edit 文档](https://wavespeed.ai/docs/docs-api/ideogram-ai/ideogram-ai-ideogram-v4.5-edit) 提交一次，通过 Task ID 查询固定结果接口，每次至少间隔 2 秒；仅 GET 的网络错误、429 和 5xx 退避重试并遵守 Retry-After。completed 读取 outputs，failed/cancelled/timeout/deleted 停止查询。上传和生成总等待最多 5 分钟，取消只停止本地等待，不代表撤销供应商任务或退款；提交后失败保留 Task ID（已取得时），提示先查看 WaveSpeed History，绝不自动重新提交。
+
+`ideogram.test.ts`、`ideogramEdit.test.ts`、`ideogramClient.test.ts`、`server/ideogram.test.ts` 使用既有 Node.js 测试运行器，随 `npm test` / `npm run check` 执行。`/tests/ideogram.html` 和 `/tests/ideogram-edit.html` 使用隔离数据库和模拟响应验证生成/编辑切换、参数、Mask 转换、结果、取消、失败、撤销与保存恢复；编辑验收还比较真实 Painter 渲染、Compare 两路以及独立快照恢复后提交的完整 Mask 像素，不调用真实模型。

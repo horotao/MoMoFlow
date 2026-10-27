@@ -25,7 +25,7 @@ test('invert swaps black/white, preserves soft edges and alpha, and is reversibl
 });
 
 test('output invalidates on upstream changes, disconnection, stale versions and through chains', () => {
-  assert.deepEqual(imageOutput(invert, 'result', [file, invert], [input]), [invert.data.result]);
+  assert.deepEqual(imageOutput(invert, 'result', [file, invert], [input]), [{ ...invert.data.result, maskMode: 'luminance' }]);
   assert.deepEqual(imageOutput(invert, 'result', [file, invert], []), []);
   assert.deepEqual(imageOutput(invert, 'invalid', [file, invert], [input]), []);
   assert.deepEqual(imageOutput(invert, 'result', [{ ...file, data: { assets: [asset('replacement')] } }, invert], [input]), []);
@@ -43,7 +43,7 @@ test('Painter black/white mask connects to Invert and downstream image tools', (
   const maskEdge = { ...input, source: 'painter', sourceHandle: 'mask' };
   const maskInvert: InvertNode = { ...invert, data: { ...invert.data, outputRevision: invertRevision('mask') } };
   assert.equal(canConnect(maskEdge, [painter, maskInvert], []), true);
-  assert.deepEqual(imageOutput(maskInvert, 'result', [painter, maskInvert], [maskEdge]), [invert.data.result]);
+  assert.deepEqual(imageOutput(maskInvert, 'result', [painter, maskInvert], [maskEdge]), [{ ...invert.data.result, maskMode: 'luminance' }]);
   for (const type of ['preview', 'crop', 'blur', 'levels', 'color-correction', 'painter', 'invert', 'image-describer', 'sunburst']) {
     const target = { id: 'target', type, position: { x: 0, y: 0 }, data: {} } as AppNode;
     const targetHandle = ['preview', 'color-correction'].includes(type) ? 'file' : ['sunburst', 'image-describer'].includes(type) ? 'image-0' : 'image';
@@ -71,7 +71,7 @@ test('Painter → Invert → Sunburst converts only the mask request and rejects
   assert.equal(run.tasks[0].imageRequest?.mask, 'blob:result');
   assert.equal(run.tasks[0].imageRequest?.maskMode, 'luminance');
   assert.deepEqual(run.tasks[0].imageRequest?.images, ['blob:input']);
-  assert.deepEqual(imageOutput(maskInvert, 'result', nodes, edges), [invert.data.result]);
+  assert.deepEqual(imageOutput(maskInvert, 'result', nodes, edges), [{ ...invert.data.result, maskMode: 'luminance' }]);
 
   const directEdges = edges.map(edge => edge === maskEdge ? { ...edge, source: 'painter', sourceHandle: 'mask' } : edge);
   const direct = prepareSunburstRun(nodes, directEdges, ['generator'], 1).tasks[0].imageRequest;
@@ -109,7 +109,7 @@ test('connection rules reject incompatible inputs, locked nodes, duplicate conne
 
 test('clipboard and history omit generated results; asset persistence retains both images', () => {
   const detached: InvertNode = { ...invert, data: { ...invert.data, baseImage: asset('input'), locked: true } };
-  assert.deepEqual(imageOutput(detached, 'result', [detached], []), [invert.data.result]);
+  assert.deepEqual(imageOutput(detached, 'result', [detached], []), [{ ...invert.data.result, maskMode: 'luminance' }]);
   const restored = restoreInvertData(detached.data)!;
   assert.equal(restored.baseImage?.id, 'input');
   assert.equal(restored.locked, false);

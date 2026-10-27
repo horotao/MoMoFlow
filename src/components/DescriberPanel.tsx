@@ -1,3 +1,8 @@
+import { IdeogramSettings } from './IdeogramSettings';
+import { prepareIdeogramRun } from '../nodes/ideogramRun';
+import { requestIdeogram } from '../nodes/ideogramClient';
+import { ideogramName } from '../nodes/ideogram';
+import { isIdeogramNode } from '../nodes/types';
 import { NanoBananaSettings } from './NanoBananaSettings';
 import { prepareNanoBananaRun } from '../nodes/nanoBananaRun';
 import { requestNanoBanana } from '../nodes/nanoBananaClient';
@@ -64,10 +69,11 @@ export function DescriberPanel() {
       const description = prepareDescriberRun(getNodes(), getEdges(), ids, runs);
       const generation = prepareSunburstRun(getNodes(), getEdges(), ids, runs);
       const banana = prepareNanoBananaRun(getNodes(), getEdges(), ids, runs);
-      const result = { tasks: [...description.tasks, ...generation.tasks, ...banana.tasks], error: description.error || generation.error || banana.error };
+      const ideogram = prepareIdeogramRun(getNodes(), getEdges(), ids, runs);
+      const result = { tasks: [...description.tasks, ...generation.tasks, ...banana.tasks, ...ideogram.tasks], error: description.error || generation.error || banana.error || ideogram.error };
       if (result.error) { setError(result.error); return; }
       if (!result.tasks.length) return;
-      if (result.tasks.some((task) => !task.imageRequest && !task.nanoBananaRequest && task.model !== 'deepseek-flash')) { setError('请选择 deepseek-flash；其他模型尚未接入。'); return; }
+      if (result.tasks.some((task) => !task.imageRequest && !task.nanoBananaRequest && !task.ideogramRequest && task.model !== 'deepseek-flash')) { setError('请选择 deepseek-flash；其他模型尚未接入。'); return; }
       setError(''); setTasksOpen(true);
       taskStore.update(current => [...current, ...result.tasks]);
     };
@@ -90,14 +96,14 @@ export function DescriberPanel() {
         };
         update('Running');
         const releaseAssets = assetResources.retain(taskAssetUrls(task));
-        const timeout = window.setTimeout(() => controller.abort(), (task.imageRequest || task.nanoBananaRequest) ? 310000 : 130000);
+        const timeout = window.setTimeout(() => controller.abort(), (task.imageRequest || task.nanoBananaRequest || task.ideogramRequest) ? 310000 : 130000);
         void (async () => {
           let generated: FileAsset[] = [];
           let attached = false;
           try {
             const node = getNodes().find((item) => item.id === task.nodeId);
             if (!node || isNodeLocked(node)) throw new Error('节点已删除或锁定。');
-            const result = task.nanoBananaRequest ? await requestNanoBanana(task.nanoBananaRequest, controller.signal) : task.imageRequest ? await requestSunburst(task.imageRequest, controller.signal) : await requestDescription(task, controller.signal);
+            const result = task.ideogramRequest ? await requestIdeogram(task.ideogramRequest, controller.signal) : task.nanoBananaRequest ? await requestNanoBanana(task.nanoBananaRequest, controller.signal) : task.imageRequest ? await requestSunburst(task.imageRequest, controller.signal) : await requestDescription(task, controller.signal);
             if (typeof result !== 'string') generated = Array.isArray(result) ? result : [result];
             if (disposed || !taskStore.getSnapshot().some((item) => item.id === task.id && item.state === 'Running')) return;
             const current = getNodes().find((item) => item.id === task.nodeId);
@@ -135,8 +141,8 @@ export function DescriberPanel() {
     setEdges((all) => [...all, { id: crypto.randomUUID(), source: id, target: selected.id, targetHandle: field }]);
   };
   return <>
-    <aside className={`describer-panel nodrag nopan nowheel ${panelOpen ? 'is-open' : ''}`} aria-label={selectedPalette ? "Color palette settings" : selectedImage ? `${selectedImage.type === 'nano-banana' ? nanoBananaName : 'GPT Image 2.5 Sunburst'} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => { if (!(selectedPalette && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !(e.target as HTMLElement).closest('input'))) e.stopPropagation(); }}>
-      {!selectedPalette && selectedImage && <div className="sunburst-provider"><span>ZenMux</span><span>按用量计费</span></div>}
+    <aside className={`describer-panel nodrag nopan nowheel ${panelOpen ? 'is-open' : ''}`} aria-label={selectedPalette ? "Color palette settings" : selectedImage ? `${selectedImage.type === 'ideogram' ? ideogramName : selectedImage.type === 'nano-banana' ? nanoBananaName : 'GPT Image 2.5 Sunburst'} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => { if (!(selectedPalette && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !(e.target as HTMLElement).closest('input'))) e.stopPropagation(); }}>
+      {!selectedPalette && selectedImage && <div className="sunburst-provider"><span>{isIdeogramNode(selectedImage) ? 'WaveSpeed' : 'ZenMux'}</span><span>按用量计费</span></div>}
       <div className="describer-panel-top">
         <button ref={tasksTrigger} className={tasksOpen ? 'active' : ''} aria-controls={tasksOpen ? 'task-manager' : undefined} aria-expanded={tasksOpen} onClick={() => setTasksOpen(!tasksOpen)}>
           任务<DescriberIcon name="chevron" />{tasks.filter(isActiveTask).length || ''}
@@ -145,6 +151,7 @@ export function DescriberPanel() {
       {selectedPalette && isColorPaletteNode(selectedPalette) && <div className="describer-settings palette-settings"><h2>{selectedPalette.data.label || 'Color palette'}</h2><label>Color palette</label><ColorPaletteColors key={selectedPalette.id} node={selectedPalette} /></div>}
       {selectedModel && !selectedPalette && !selectedImage && <ModelOptionsSettings key={selectedModel.id} node={selectedModel} onChange={data => updateNodeData(selectedModel.id, data)} />}
       {!selectedPalette && selectedImage && isSunburstNode(selectedImage) && <SunburstSettings key={selectedImage.id} node={selectedImage} />}
+      {!selectedPalette && selectedImage && isIdeogramNode(selectedImage) && <IdeogramSettings key={selectedImage.id} node={selectedImage} />}
       {!selectedPalette && selectedImage && isNanoBananaNode(selectedImage) && <NanoBananaSettings key={selectedImage.id} node={selectedImage} />}
       {selected && !selectedPalette && !selectedImage && <>
         <div className="describer-settings" key={selected.id}>
@@ -174,7 +181,7 @@ export function DescriberPanel() {
             <button aria-label="增加运行次数" disabled={!runnable.length || runs === 10} onClick={() => setRuns(runs + 1)}><DescriberIcon name="plus" /></button>
           </div></div>
           {selectedImage && <div className="sunburst-cost"><span>总费用</span><span>按实际用量计费</span></div>}
-          <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? "通过 ZenMux 运行图片模型" : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => (isDescriberNode(node) || isImageGeneratorNode(node)) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />运行选中节点</button>
+          <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? `通过 ${isIdeogramNode(selectedImage) ? "WaveSpeed" : "ZenMux"} 运行图片模型` : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => (isDescriberNode(node) || isImageGeneratorNode(node)) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />运行选中节点</button>
         </div>
       </>}
     </aside>

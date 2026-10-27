@@ -10,6 +10,7 @@ import type { IconSvgElement } from '@hugeicons/react';
 import type { OutputKind } from './router';
 
 export const nodeIcons = {
+  ideogram: AiImageIcon,
   'matte-grow-shrink': ExpandIcon,
   'masks-extractor': CursorMagicSelection03Icon,
   router: Route01Icon,

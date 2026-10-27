@@ -1,3 +1,4 @@
+import { IdeogramNode } from './IdeogramNode';
 import { MasksExtractorNode } from './MasksExtractorNode';
 import { NanoBananaNode } from './NanoBananaNode';
 import { RouterNode } from './RouterNode';
@@ -27,6 +28,7 @@ import type { AppNode } from './types';
 export const initialNodes: AppNode[] = [];
 
 export const nodeTypes = {
+  ideogram: IdeogramNode,
   'masks-extractor': MasksExtractorNode,
   router: RouterNode,
   blend: BlendNode,

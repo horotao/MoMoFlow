@@ -1,3 +1,4 @@
+import type { IdeogramEditSettings, IdeogramField, IdeogramSettings } from './ideogram';
 import type { MasksExtractorData } from './masksExtractor';
 import type { NanoBananaSettings } from './nanoBanana';
 import type { BlendData } from './blend';
@@ -27,13 +28,15 @@ export type FileAsset = {
 };
 export type FileNode = Node<{ label?: string; locked?: boolean; asset?: FileAsset; assets?: FileAsset[]; activeAssetId?: string; viewMode?: 'single' | 'all'; orderBy?: 'date' | 'name' }, 'file'>;
 export type ImageDescriberNode = Node<{ label?: string; locked?: boolean; text: string; model: string; instructions: string; imageInputs: number; exposed?: ('model' | 'instructions')[] }, 'image-describer'>;
-export type ModelInputNode = Node<{ label?: string; locked?: boolean; model: string; options?: string[]; parameter?: keyof SunburstSettings | keyof NanoBananaSettings }, 'model-input'>;
+export type ModelInputNode = Node<{ label?: string; locked?: boolean; model: string; options?: string[]; parameter?: keyof SunburstSettings | keyof NanoBananaSettings | IdeogramField }, 'model-input'>;
 export type SunburstNode = Node<SunburstSettings & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof SunburstSettings)[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'sunburst'>;
 export const isSunburstNode = (node: AppNode): node is SunburstNode => node.type === 'sunburst';
 export type NanoBananaNode = Node<NanoBananaSettings & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof NanoBananaSettings)[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'nano-banana'>;
-export type ImageGeneratorNode = SunburstNode | NanoBananaNode;
+export type IdeogramNode = Node<IdeogramSettings & Partial<IdeogramEditSettings> & { label?: string; locked?: boolean; imageInputs: number; exposed?: IdeogramField[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'ideogram'>;
+export const isIdeogramNode = (node: AppNode): node is IdeogramNode => node.type === 'ideogram';
+export type ImageGeneratorNode = SunburstNode | NanoBananaNode | IdeogramNode;
 export const isNanoBananaNode = (node: AppNode): node is NanoBananaNode => node.type === 'nano-banana';
-export const isImageGeneratorNode = (node: AppNode): node is ImageGeneratorNode => isSunburstNode(node) || isNanoBananaNode(node);
+export const isImageGeneratorNode = (node: AppNode): node is ImageGeneratorNode => isSunburstNode(node) || isNanoBananaNode(node) || isIdeogramNode(node);
 export type MasksExtractorNode = Node<MasksExtractorData, 'masks-extractor'>;
 export const isMasksExtractorNode = (node: AppNode | undefined): node is MasksExtractorNode => node?.type === 'masks-extractor';
 export type PainterNode = Node<PainterData, 'painter'>;
@@ -62,7 +65,7 @@ export const isCompareNode = (node: AppNode | undefined): node is CompareNode =>
 export type BlendNode = Node<BlendData, 'blend'>;
 export const isBlendNode = (node: AppNode | undefined): node is BlendNode => node?.type === 'blend';
 export type RouterNode = Node<{ label?: string; locked?: boolean }, 'router'>;
-export type AppNode = MatteGrowShrinkNode | MasksExtractorNode | NanoBananaNode | RouterNode | BlendNode | CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
+export type AppNode = IdeogramNode | MatteGrowShrinkNode | MasksExtractorNode | NanoBananaNode | RouterNode | BlendNode | CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
 
 export const isDescriberNode = (node: AppNode): node is ImageDescriberNode => node.type === 'image-describer' && 'imageInputs' in node.data;
 

@@ -34,6 +34,12 @@ import { sunburstModel, validateSunburstSettings } from './sunburst.ts';
 import type { SunburstRequest } from './sunburst';
 import type { PreviewTask } from './taskQueue';
 
+function luminanceMaskOutput(asset: FileAsset | undefined): FileAsset[] {
+  // Carry white = edit semantics on the asset so Compare, Router and snapshots
+  // preserve them. Enrich old saved outputs without mutating their source data.
+  return asset ? [asset.maskMode === 'luminance' ? asset : { ...asset, maskMode: 'luminance' }] : [];
+}
+
 // The cache belongs to one synchronous graph read. Never reuse it after edits,
 // undo, reconnection or IndexedDB restore; each of those must recheck revisions.
 function imageResolution(nodes?: AppNode[], edges?: Edge[], visited = new Set<string>()) {
@@ -133,7 +139,7 @@ function imageResolution(nodes?: AppNode[], edges?: Edge[], visited = new Set<st
         const source = edge ? resolve(nodeById.get(edge.source), edge.sourceHandle)[0] : node.data.baseImage;
         if (!source || node.data.outputRevision !== invertRevision(source.id)) return [];
       }
-      return node.data.result ? [node.data.result] : [];
+      return luminanceMaskOutput(node.data.result);
     }
     if (isLevelsNode(node)) {
       if (handle !== 'result') return [];
@@ -151,10 +157,7 @@ function imageResolution(nodes?: AppNode[], edges?: Edge[], visited = new Set<st
         const source = edge ? resolve(nodeById.get(edge.source), edge.sourceHandle)[0] : node.data.baseImage;
         if (!source || node.data.outputRevision !== matteGrowShrinkRevision(node.data, source.id)) return [];
       }
-      // Older saved Matte results have no asset metadata yet. Tag them when read
-      // so Compare snapshots retain the same semantics as newly rendered masks.
-      const result = node.data.result;
-      return result ? [result.maskMode === 'luminance' ? result : { ...result, maskMode: 'luminance' }] : [];
+      return luminanceMaskOutput(node.data.result);
     }
     if (isBlurNode(node)) {
       if (handle !== 'result') return [];
@@ -191,7 +194,7 @@ function imageResolution(nodes?: AppNode[], edges?: Edge[], visited = new Set<st
         if (!revision || node.data.outputRevision !== revision) return [];
       }
       const asset = handle === 'mask' ? node.data.mask : node.data.result;
-      return asset ? [asset] : [];
+      return handle === 'mask' ? luminanceMaskOutput(asset) : asset ? [asset] : [];
     }
     if (isPainterNode(node)) {
       if (hasGraph) {
@@ -200,7 +203,7 @@ function imageResolution(nodes?: AppNode[], edges?: Edge[], visited = new Set<st
         if ((edge && !source) || node.data.outputRevision !== painterRevision(node.data, source?.id ?? '')) return [];
       }
       const asset = handle === 'mask' ? node.data.mask : handle === 'alpha-mask' ? node.data.alphaMask : node.data.result;
-      return asset ? [asset] : [];
+      return handle === 'mask' ? luminanceMaskOutput(asset) : asset ? [asset] : [];
     }
     if (node?.type === 'file') return fileAssets(node.data).filter(asset => asset.kind === 'image');
     if (node && isImageGeneratorNode(node)) {

@@ -106,7 +106,7 @@ export function nodeAssetUrls(nodes: Iterable<AppNode>): Set<string> {
 }
 
 export function taskAssetUrls(task: PreviewTask): string[] {
-  return [...(task.nanoBananaRequest?.images ?? []), ...(task.images ?? []), ...(task.imageRequest?.images ?? []),
+  return [...(task.ideogramRequest?.image ? [task.ideogramRequest.image, ...(task.ideogramRequest.referenceImages ?? []), ...(task.ideogramRequest.mask ? [task.ideogramRequest.mask] : [])] : []), ...(task.nanoBananaRequest?.images ?? []), ...(task.images ?? []), ...(task.imageRequest?.images ?? []),
     ...(task.imageRequest?.mask ? [task.imageRequest.mask] : [])];
 }
 

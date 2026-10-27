@@ -69,7 +69,7 @@ test('both outputs connect to image consumers; mask semantics survive a Router',
   const router: AppNode = { id: 'router', type: 'router', position: { x: 0, y: 0 }, data: {} };
   const edge = { id: 'r', source: 'mask', sourceHandle: 'mask', target: 'router', targetHandle: 'input' };
   assert.equal(outputKind(router, 'output', [...graph, router], [edge]), 'mask');
-  assert.deepEqual(imageOutput(router, 'output', [...graph, router], [input, edge]), [mask.data.mask]);
+  assert.deepEqual(imageOutput(router, 'output', [...graph, router], [input, edge]), [{ ...mask.data.mask, maskMode: 'luminance' }]);
   const pending = { nodeId: 'mask', handleId: 'mask', direction: 'source' as const, screen: { x: 0, y: 0 }, position: { x: 0, y: 0 } };
   assert.ok(connectionChoices(pending, graph, [input]).some(choice => choice.itemId === 'sunburst' && choice.handleId === 'mask'));
   assert.ok(connectionChoices({ ...pending, nodeId: 'file', handleId: 'file' }, graph, []).some(choice => choice.itemId === 'masks-extractor'));

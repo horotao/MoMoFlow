@@ -30,7 +30,7 @@ export function TextNodeMenu({ id, locked, onRename, children }: {
 
   const act = async (action: string) => {
     const node = getNode(id);
-    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'nano-banana' && node.type !== 'masks-extractor' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop' && node.type !== 'color-correction' && node.type !== 'matte-grow-shrink' && node.type !== 'blur' && node.type !== 'levels' && node.type !== 'invert' && node.type !== 'rotate-flip' && node.type !== 'blend' && node.type !== 'compare' && node.type !== 'resize' && node.type !== 'compositor' && node.type !== 'color-palette' && node.type !== 'router')) return;
+    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'nano-banana' && node.type !== 'ideogram' && node.type !== 'masks-extractor' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop' && node.type !== 'color-correction' && node.type !== 'matte-grow-shrink' && node.type !== 'blur' && node.type !== 'levels' && node.type !== 'invert' && node.type !== 'rotate-flip' && node.type !== 'blend' && node.type !== 'compare' && node.type !== 'resize' && node.type !== 'compositor' && node.type !== 'color-palette' && node.type !== 'router')) return;
     setError('');
     try {
       const edge = (isMasksExtractorNode(node) || isPainterNode(node) || isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isMatteGrowShrinkNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) ? getEdges().find(item => item.target === id && item.targetHandle === (isColorCorrectionNode(node) ? 'file' : 'image')) : undefined;
@@ -39,7 +39,7 @@ export function TextNodeMenu({ id, locked, onRename, children }: {
         const copy: AppNode = isTextNode(node) ? cloneTextNode(node) : {
           ...snapshot, id: `${node.type}-${crypto.randomUUID()}`, selected: true,
           position: { x: node.position.x + 40, y: node.position.y + 40 },
-          data: { ...snapshot.data, locked: false, ...(node.type === 'image-describer' || node.type === 'sunburst' || node.type === 'nano-banana' ? { exposed: [] } : {}) },
+          data: { ...snapshot.data, locked: false, ...(node.type === 'image-describer' || node.type === 'sunburst' || node.type === 'nano-banana' || node.type === 'ideogram' ? { exposed: [] } : {}) },
         } as AppNode;
         setNodes((nodes) => [...nodes.map((item) => ({ ...item, selected: false })), copy]);
       } else if (action === 'cut' && !locked) {

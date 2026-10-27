@@ -142,3 +142,9 @@ Run Model 和 Run selected 使用共享 Tasks 队列及 Runs 次数。每次运�
 复用 `.env.local` 中的 `ZENMUX_API_KEY`，密钥仅在服务端读取；浏览器请求 `/api/nano-banana`。开发和 `npm run preview` 均注册本地 API，单独发布 `dist/` 不提供后端。固定模型为 `google/gemini-nano-banana-2.1`。依据 [ZenMux Gemini 指南](https://zenmux.ai/docs/zh/guide/advanced/image-generation.html)，Banana 使用 Vertex AI `:generateContent`；参考图通过 `inlineData` 传入，图片从响应的 `candidates[].content.parts[].inlineData` 读取。参数说明见 [Generate Content](https://zenmux.ai/docs/zh/api/vertexai/generate-content.html#imageconfig-imageconfig-可选)。
 
 运行次数沿用现有任务队列，取消或失败不会自动重新提交。`npm run check` 使用模拟响应；`/tests/nano-banana.html` 是隔离的浏览器验收页，不消耗模型额度。真实生成、模型参数接受情况和输出质量需单独验证。
+
+## Ideogram 4.5（WaveSpeed）
+
+在 `.env.local` 设置 `WAVESPEED_API_KEY` 后启动或重启 `npm run dev`。从图片分类或搜索添加 **Ideogram 4.5**，将提示词连接到 Prompt，选择比例、1K/2K、质量和提示词扩展后运行。连接 Image 原图后自动切换为图片编辑，使用独立的编辑质量、精度和尺寸设置。通过“添加参考图输入”可连接最多 4 张参考图；连接 Mask 时最多 3 张。Image 原图必须是单张图片。导入的黑白 Mask 以黑色标记修改区域、白色标记保留区域；Painter 等节点的蒙版会自动转换，Mask 尺寸必须与原图一致。使用 Mask 或高精度时，输出尺寸跟随原图。
+
+依据 [WaveSpeed 模型文档](https://wavespeed.ai/docs/docs-api/ideogram-ai/ideogram-ai-ideogram-v4.5)，服务端通过 `/api/ideogram`（文生图）和 `/api/ideogram/edit`（[图片编辑](https://wavespeed.ai/docs/docs-api/ideogram-ai/ideogram-ai-ideogram-v4.5-edit)）提交并查询任务，密钥不进入浏览器。开发服务和 `npm run preview` 均支持；仅发布 `dist/` 不提供后端。提交只执行一次，查询临时错误会退避重试；取消或超时不保证供应商停止生成，重新调用前请检查 WaveSpeed History。图片下载到本地 Blob 并随工作流保存。编辑输入会按 [WaveSpeed 上传协议](https://wavespeed.ai/docs/upload-files-api) 在服务端换取上传凭证并上传文件，再向模型提交下载地址；文件会按供应商策略保存 7 天。单张输入最多 32 MiB、合计 46 MiB。`/tests/ideogram.html` 和 `/tests/ideogram-edit.html` 为不消耗模型额度的隔离浏览器验收页。

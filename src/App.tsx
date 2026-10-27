@@ -1,3 +1,4 @@
+import { restoreIdeogramData } from './nodes/ideogramClipboard';
 import { restoreMasksData } from './nodes/masksExtractor';
 import { restoreNanoBananaData } from './nodes/nanoBananaClipboard';
 import { outputColor, outputKind, routerFromOutput } from './nodes/router';
@@ -225,6 +226,14 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
           if (!data) return;
           event.preventDefault();
           setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'painter', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
+          return;
+        }
+        if (saved.format === 'momoflow-ideogram-node' && saved.node?.type === 'ideogram'
+          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
+          const data = restoreIdeogramData(saved.node.data);
+          if (!data) return;
+          event.preventDefault();
+          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'ideogram', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
           return;
         }
         if (saved.format === 'momoflow-nano-banana-node' && saved.node?.type === 'nano-banana'
