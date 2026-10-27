@@ -133,3 +133,12 @@ Run Model 和 Run selected 使用共享 Tasks 队列及 Runs 次数。每次运�
 `src/nodes/assetResources.test.ts` 使用同一 Node.js 测试命令，覆盖共享资源、异步导入、历史引用、任务/保存引用、StrictMode 清理重建及剪贴板失败保护。浏览器验收还包括删除图片后撤销/重做、超过 100 步后释放旧图片、废弃重做分支、保存过程中退出画布，以及释放临时 URL 后从 IndexedDB 恢复图片。
 
 `src/persistence/workflowSignature.test.ts` 验证恢复初始化与临时 UI 状态不触发保存，以及文本、连线、位置、参数、素材和视图变化仍可触发保存，随 `npm test` 运行。多标签页浏览器验收包括无修改打开/选中不改写版本、原页面继续自动保存、真实编辑冲突保护、保存中撤销及失败重试。
+
+
+## Nano Banana 2.1（ZenMux 本地接入）
+
+在左侧 **图片** 分类或搜索中添加 **Nano Banana 2.1**，将提示词节点接入 `Prompt`，可选将导入图片或生成结果接入 `Image`。右侧设置宽高比、1K/2K/4K 分辨率与 PNG/JPEG 格式，点击运行模型。输出格式在收到图片后由浏览器转换，不传上游 `outputMimeType`；相同格式保留原始字节，转换保持尺寸，JPEG 使用白底和 0.95 编码质量。参考图应用上限为 14 张，单张 20 MiB，总计 46 MiB。默认自动比例、1K、PNG；结果支持预览、下载及保存恢复。
+
+复用 `.env.local` 中的 `ZENMUX_API_KEY`，密钥仅在服务端读取；浏览器请求 `/api/nano-banana`。开发和 `npm run preview` 均注册本地 API，单独发布 `dist/` 不提供后端。固定模型为 `google/gemini-nano-banana-2.1`。依据 [ZenMux Gemini 指南](https://zenmux.ai/docs/zh/guide/advanced/image-generation.html)，Banana 使用 Vertex AI `:generateContent`；参考图通过 `inlineData` 传入，图片从响应的 `candidates[].content.parts[].inlineData` 读取。参数说明见 [Generate Content](https://zenmux.ai/docs/zh/api/vertexai/generate-content.html#imageconfig-imageconfig-可选)。
+
+运行次数沿用现有任务队列，取消或失败不会自动重新提交。`npm run check` 使用模拟响应；`/tests/nano-banana.html` 是隔离的浏览器验收页，不消耗模型额度。真实生成、模型参数接受情况和输出质量需单独验证。

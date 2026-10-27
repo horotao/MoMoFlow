@@ -1,3 +1,7 @@
+import { NanoBananaSettings } from './NanoBananaSettings';
+import { prepareNanoBananaRun } from '../nodes/nanoBananaRun';
+import { requestNanoBanana } from '../nodes/nanoBananaClient';
+import { nanoBananaName } from '../nodes/nanoBanana';
 import { ColorPaletteColors } from '../nodes/ColorPaletteColors';
 import { isColorPaletteNode } from '../nodes/types';
 import { ModelOptionsSettings } from './ModelOptionsSettings';
@@ -11,7 +15,7 @@ import { X } from 'lucide-react';
 import { TaskManager } from './TaskManager';
 import { advanceEstimatedProgress, readyDescriberTasks, isActiveTask, type PreviewTask } from '../nodes/taskQueue';
 import { useModelTasks, useModelTaskStore } from './useModelTasks';
-import { isDescriberNode, isNodeLocked, isSunburstNode } from '../nodes/types';
+import { isDescriberNode, isNodeLocked, isImageGeneratorNode, isSunburstNode, isNanoBananaNode } from '../nodes/types';
 import type { AppNode, FileAsset, ImageDescriberNode, ModelInputNode } from '../nodes/types';
 import { DescriberIcon } from './DescriberIcon';
 import { DescriberModelSelect } from './DescriberModelSelect';
@@ -28,8 +32,8 @@ export function DescriberPanel() {
     if (!node || isNodeLocked(node)) return;
     rawUpdateNodeData(id, data, options);
   };
-  const runnable = nodes.filter((node) => (isDescriberNode(node) || isSunburstNode(node)) && node.selected && !node.data.locked);
-  const selectedImage = nodes.find((node) => isSunburstNode(node) && node.selected);
+  const runnable = nodes.filter((node) => (isDescriberNode(node) || isImageGeneratorNode(node)) && node.selected && !node.data.locked);
+  const selectedImage = nodes.find((node) => isImageGeneratorNode(node) && node.selected);
   const selected = nodes.find((n): n is ImageDescriberNode => n.type === 'image-describer' && Boolean(n.selected));
   const selectedModel = nodes.find((n): n is ModelInputNode => n.type === 'model-input' && Boolean(n.selected));
   const selectedPalette = nodes.find(node => isColorPaletteNode(node) && node.selected);
@@ -59,10 +63,11 @@ export function DescriberPanel() {
       if (taskStore.getSnapshot().some(task => ids.includes(task.nodeId) && isActiveTask(task))) { setError('选中节点已有运行中的任务，请等待完成后再运行。'); return; }
       const description = prepareDescriberRun(getNodes(), getEdges(), ids, runs);
       const generation = prepareSunburstRun(getNodes(), getEdges(), ids, runs);
-      const result = { tasks: [...description.tasks, ...generation.tasks], error: description.error || generation.error };
+      const banana = prepareNanoBananaRun(getNodes(), getEdges(), ids, runs);
+      const result = { tasks: [...description.tasks, ...generation.tasks, ...banana.tasks], error: description.error || generation.error || banana.error };
       if (result.error) { setError(result.error); return; }
       if (!result.tasks.length) return;
-      if (result.tasks.some((task) => !task.imageRequest && task.model !== 'deepseek-flash')) { setError('请选择 deepseek-flash；其他模型尚未接入。'); return; }
+      if (result.tasks.some((task) => !task.imageRequest && !task.nanoBananaRequest && task.model !== 'deepseek-flash')) { setError('请选择 deepseek-flash；其他模型尚未接入。'); return; }
       setError(''); setTasksOpen(true);
       taskStore.update(current => [...current, ...result.tasks]);
     };
@@ -85,28 +90,28 @@ export function DescriberPanel() {
         };
         update('Running');
         const releaseAssets = assetResources.retain(taskAssetUrls(task));
-        const timeout = window.setTimeout(() => controller.abort(), task.imageRequest ? 310000 : 130000);
+        const timeout = window.setTimeout(() => controller.abort(), (task.imageRequest || task.nanoBananaRequest) ? 310000 : 130000);
         void (async () => {
-          let generated: FileAsset | undefined;
+          let generated: FileAsset[] = [];
           let attached = false;
           try {
             const node = getNodes().find((item) => item.id === task.nodeId);
             if (!node || isNodeLocked(node)) throw new Error('节点已删除或锁定。');
-            const result = task.imageRequest ? await requestSunburst(task.imageRequest, controller.signal) : await requestDescription(task, controller.signal);
-            if (typeof result !== 'string') generated = result;
+            const result = task.nanoBananaRequest ? await requestNanoBanana(task.nanoBananaRequest, controller.signal) : task.imageRequest ? await requestSunburst(task.imageRequest, controller.signal) : await requestDescription(task, controller.signal);
+            if (typeof result !== 'string') generated = Array.isArray(result) ? result : [result];
             if (disposed || !taskStore.getSnapshot().some((item) => item.id === task.id && item.state === 'Running')) return;
             const current = getNodes().find((item) => item.id === task.nodeId);
             if (!current || isNodeLocked(current)) throw new Error('节点已删除或锁定，未写入结果。');
             if (typeof result === 'string') rawUpdateNodeData(task.nodeId, { text: result });
-            else if (isSunburstNode(current)) {
-              rawUpdateNodeData(task.nodeId, { results: [...(current.data.results ?? []), result], activeResultId: result.id });
+            else if (isImageGeneratorNode(current)) {
+              rawUpdateNodeData(task.nodeId, { results: [...(current.data.results ?? []), ...generated], activeResultId: generated[generated.length - 1].id });
               attached = true;
             }
             update('Done');
           } catch (error) {
             update('Failed', controller.signal.aborted ? '请求已取消或超时；已提交请求仍可能计费，不会自动重试。' : error instanceof Error ? error.message : '请求失败。');
           } finally {
-            if (generated && !attached) assetResources.discard([generated.url]);
+            if (!attached) assetResources.discard(generated.map(asset => asset.url));
             releaseAssets(); window.clearTimeout(timeout); activeWorkers.delete(task.id);
           }
         })();
@@ -130,7 +135,7 @@ export function DescriberPanel() {
     setEdges((all) => [...all, { id: crypto.randomUUID(), source: id, target: selected.id, targetHandle: field }]);
   };
   return <>
-    <aside className={`describer-panel nodrag nopan nowheel ${panelOpen ? 'is-open' : ''}`} aria-label={selectedPalette ? "Color palette settings" : selectedImage ? "GPT Image 2.5 Sunburst 设置" : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => { if (!(selectedPalette && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !(e.target as HTMLElement).closest('input'))) e.stopPropagation(); }}>
+    <aside className={`describer-panel nodrag nopan nowheel ${panelOpen ? 'is-open' : ''}`} aria-label={selectedPalette ? "Color palette settings" : selectedImage ? `${selectedImage.type === 'nano-banana' ? nanoBananaName : 'GPT Image 2.5 Sunburst'} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => { if (!(selectedPalette && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !(e.target as HTMLElement).closest('input'))) e.stopPropagation(); }}>
       {!selectedPalette && selectedImage && <div className="sunburst-provider"><span>ZenMux</span><span>按用量计费</span></div>}
       <div className="describer-panel-top">
         <button ref={tasksTrigger} className={tasksOpen ? 'active' : ''} aria-controls={tasksOpen ? 'task-manager' : undefined} aria-expanded={tasksOpen} onClick={() => setTasksOpen(!tasksOpen)}>
@@ -140,6 +145,7 @@ export function DescriberPanel() {
       {selectedPalette && isColorPaletteNode(selectedPalette) && <div className="describer-settings palette-settings"><h2>{selectedPalette.data.label || 'Color palette'}</h2><label>Color palette</label><ColorPaletteColors key={selectedPalette.id} node={selectedPalette} /></div>}
       {selectedModel && !selectedPalette && !selectedImage && <ModelOptionsSettings key={selectedModel.id} node={selectedModel} onChange={data => updateNodeData(selectedModel.id, data)} />}
       {!selectedPalette && selectedImage && isSunburstNode(selectedImage) && <SunburstSettings key={selectedImage.id} node={selectedImage} />}
+      {!selectedPalette && selectedImage && isNanoBananaNode(selectedImage) && <NanoBananaSettings key={selectedImage.id} node={selectedImage} />}
       {selected && !selectedPalette && !selectedImage && <>
         <div className="describer-settings" key={selected.id}>
           <h2>Image Describer</h2>
@@ -168,7 +174,7 @@ export function DescriberPanel() {
             <button aria-label="增加运行次数" disabled={!runnable.length || runs === 10} onClick={() => setRuns(runs + 1)}><DescriberIcon name="plus" /></button>
           </div></div>
           {selectedImage && <div className="sunburst-cost"><span>总费用</span><span>按实际用量计费</span></div>}
-          <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? "通过 ZenMux 运行 Sunburst" : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => (isDescriberNode(node) || isSunburstNode(node)) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />运行选中节点</button>
+          <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? "通过 ZenMux 运行图片模型" : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => (isDescriberNode(node) || isImageGeneratorNode(node)) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />运行选中节点</button>
         </div>
       </>}
     </aside>
@@ -176,7 +182,7 @@ export function DescriberPanel() {
       onClose={() => setTasksOpen(false)} onChange={changeTasks}
       onRetry={(task) => {
         const node = getNodes().find((item) => item.id === task.nodeId);
-        if (!node || (!isDescriberNode(node) && !isSunburstNode(node)) || node.data.locked) return;
+        if (!node || (!isDescriberNode(node) && !isImageGeneratorNode(node)) || node.data.locked) return;
         window.dispatchEvent(new CustomEvent('describer-run', { detail: [task.nodeId] }));
       }}
       onFocus={(id) => {

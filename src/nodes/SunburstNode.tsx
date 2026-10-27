@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Handle, Position, useEdges, useReactFlow, useStore, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { ArrowRight, Ellipsis, Plus } from 'lucide-react';
-import type { AppNode, SunburstNode as Sunburst } from './types';
+import type { AppNode, ImageGeneratorNode as Generator, SunburstNode as Sunburst } from './types';
 import { isNodeLocked } from './types';
 import { sunburstName, sunburstFieldLabels, validateSunburstSize } from './sunburst';
+import { nanoBananaAspectRatios } from './nanoBanana';
 import { resolveTextValue } from './textVariables';
 import { OpenAIIcon } from '../components/OpenAIIcon';
 import { ModelRunButton } from '../components/ModelRunButton';
@@ -14,12 +15,18 @@ import { FileActionMenu } from './FileActionMenu';
 import { extractFileAsset, orderedAssets } from './fileCollection';
 import { downloadAsset, downloadAssets } from './fileMedia';
 
-export function SunburstNode({ id, data, isConnectable }: NodeProps<Sunburst>) {
+export function SunburstNode(props: NodeProps<Sunburst>) {
+  return <ImageGenerationNode {...props} name={sunburstName} icon={<OpenAIIcon />} fieldLabels={sunburstFieldLabels} maxImages={16} mask />;
+}
+
+type GenerationProps = NodeProps<Generator> & { name: string; icon: ReactNode; fieldLabels: Record<string, string>; maxImages: number; mask?: boolean };
+export function ImageGenerationNode({ id, data, isConnectable, name, icon, fieldLabels, maxImages, mask = false }: GenerationProps) {
   const { getNode, updateNodeData, setNodes, screenToFlowPosition } = useReactFlow<AppNode>();
   const edges = useEdges(); const internals = useUpdateNodeInternals();
   const requestedSize = useStore(state => {
-    const edge = state.edges.find(item => item.target === id && item.targetHandle === 'size');
-    return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : data.size;
+    const field = 'size' in data ? 'size' : 'aspectRatio';
+    const edge = state.edges.find(item => item.target === id && item.targetHandle === field);
+    return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : 'size' in data ? data.size : data.aspectRatio;
   });
   const [renaming, setRenaming] = useState(false); const [draft, setDraft] = useState('');
   const [fullscreen, setFullscreen] = useState(false); const [error, setError] = useState('');
@@ -32,21 +39,22 @@ export function SunburstNode({ id, data, isConnectable }: NodeProps<Sunburst>) {
   const size = active ? dimensions[active.url] ?? active : undefined;
   let aspectRatio = size?.width && size.height ? `${size.width} / ${size.height}` : '1';
   try {
-    if (validateSunburstSize(requestedSize) !== 'auto') aspectRatio = requestedSize.replace('x', ' / ');
+    if (!mask && requestedSize !== 'auto' && nanoBananaAspectRatios.some(ratio => ratio === requestedSize)) aspectRatio = requestedSize.replace(':', ' / ');
+    else if (mask && validateSunburstSize(requestedSize) !== 'auto') aspectRatio = requestedSize.replace('x', ' / ');
   } catch { /* Incomplete or invalid custom sizes use the result ratio or a square. */ }
-  const portSpace = 110 + (data.imageInputs + (data.exposed?.length ?? 0)) * 60;
+  const portSpace = (mask ? 110 : 50) + (data.imageInputs + (data.exposed?.length ?? 0)) * 60;
   const index = Math.max(0, results.findIndex(asset => asset.id === active?.id));
-  const patch = (value: Partial<Sunburst['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
+  const patch = (value: Partial<Generator['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
   useEffect(() => internals(id), [id, data.imageInputs, data.exposed, aspectRatio, grid, internals]);
   const ports = [
     { id: 'prompt', label: 'Prompt', kind: 'prompt', top: 89 },
     ...Array.from({ length: data.imageInputs }, (_, i) => ({ id: `image-${i}`, label: data.imageInputs === 1 ? 'Image' : `Image ${i + 1}`, kind: 'image', top: 149 + i * 60 })),
-    { id: 'mask', label: 'Mask', kind: 'mask', top: 149 + data.imageInputs * 60 },
-    ...(data.exposed ?? []).map((field, index) => ({ id: field, label: sunburstFieldLabels[field], kind: 'parameter', top: 209 + (data.imageInputs + index) * 60 })),
+    ...(mask ? [{ id: 'mask', label: 'Mask', kind: 'mask', top: 149 + data.imageInputs * 60 }] : []),
+    ...(data.exposed ?? []).map((field, index) => ({ id: field, label: fieldLabels[field], kind: 'parameter', top: (mask ? 209 : 149) + (data.imageInputs + index) * 60 })),
   ];
   return <>
-    <header className="text-node-header"><div className="text-node-title"><OpenAIIcon />{renaming ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => { if (draft.trim()) patch({ label: draft.trim() }); setRenaming(false); }} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setRenaming(false); }} /> : <span>{data.label || sunburstName}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setDraft(data.label || sunburstName); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
+    <header className="text-node-header"><div className="text-node-title">{icon}{renaming ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => { if (draft.trim()) patch({ label: draft.trim() }); setRenaming(false); }} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setRenaming(false); }} /> : <span>{data.label || name}</span>}</div>
+      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setDraft(data.label || name); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
     </header>
     <div className="sunburst-preview-area" style={{ minHeight: portSpace }}>
     <div className={`sunburst-preview${active ? ' has-result' : ''}${grid ? ' is-grid nodrag nopan nowheel' : ''}`} style={{ aspectRatio: grid ? undefined : aspectRatio }}>
@@ -86,7 +94,7 @@ export function SunburstNode({ id, data, isConnectable }: NodeProps<Sunburst>) {
       </div></>}
     </div>
     </div>
-    <div className="sunburst-actions"><button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= 16} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />添加图片输入</button><ModelRunButton nodeId={id} className="sunburst-run nodrag nopan" disabled={data.locked} onRun={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('sunburst-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</ModelRunButton></div>
+    <div className="sunburst-actions"><button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= maxImages} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />添加图片输入</button><ModelRunButton nodeId={id} className="sunburst-run nodrag nopan" disabled={data.locked} onRun={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('describer-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</ModelRunButton></div>
     {ports.map(port => <div className="describer-port-wrapper" key={port.id}>
       <span className={`describer-port-label sunburst-label-${port.kind}`} style={{ top: port.top - 28 }}>{port.label}{port.kind === 'prompt' && <sup>*</sup>}</span>
       <Handle id={port.id} type="target" position={Position.Left} className={`describer-port sunburst-port-${port.kind}${edges.some(edge => edge.target === id && edge.targetHandle === port.id) ? ' is-connected' : ''}`} style={{ top: port.top }} aria-label={`${port.label} input`} isConnectable={isConnectable && !edges.some(edge => edge.target === id && edge.targetHandle === port.id)}>

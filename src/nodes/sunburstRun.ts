@@ -23,7 +23,7 @@ import { isColorCorrectionNode, isCropNode, isPainterNode } from './types.ts';
 import { painterRevision } from './painter.ts';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, FileAsset, SunburstNode } from './types';
-import { isNodeLocked, isSunburstNode } from './types.ts';
+import { isNodeLocked, isSunburstNode, isImageGeneratorNode } from './types.ts';
 import { fileAssets } from './fileCollection.ts';
 import { resolveTextValue } from './textVariables.ts';
 import { sunburstModel, validateSunburstSettings } from './sunburst.ts';
@@ -176,7 +176,7 @@ function imageResolution(nodes?: AppNode[], edges?: Edge[], visited = new Set<st
       return asset ? [asset] : [];
     }
     if (node?.type === 'file') return fileAssets(node.data).filter(asset => asset.kind === 'image');
-    if (node && isSunburstNode(node)) {
+    if (node && isImageGeneratorNode(node)) {
       const results = node.data.results ?? [];
       const active = results.find(asset => asset.id === node.data.activeResultId) ?? results[results.length - 1];
       return active ? [active] : [];

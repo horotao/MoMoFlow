@@ -27,7 +27,7 @@ export function outputKind(node: AppNode | undefined, handle?: string | null, no
   if (node.type === 'color-palette') return handle === 'text' || handle === 'image' ? handle : undefined;
   if (node.type === 'painter') return handle === 'mask' ? 'mask' : handle === 'result' ? 'image' : undefined;
   if (node.type === 'compare') return ['output-1', 'output-2'].includes(handle ?? '') ? 'image' : undefined;
-  if (['sunburst', 'blend', 'compositor', 'resize', 'rotate-flip', 'invert', 'levels', 'blur', 'crop', 'color-correction'].includes(node.type ?? '')) return handle === 'result' ? 'image' : undefined;
+  if (['nano-banana', 'sunburst', 'blend', 'compositor', 'resize', 'rotate-flip', 'invert', 'levels', 'blur', 'crop', 'color-correction'].includes(node.type ?? '')) return handle === 'result' ? 'image' : undefined;
   if (['text', 'image-describer', 'model-input', 'position-logger'].includes(node.type ?? '')) return !handle ? 'text' : undefined;
   return undefined;
 }

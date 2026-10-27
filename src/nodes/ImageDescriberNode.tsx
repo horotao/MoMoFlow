@@ -1,3 +1,4 @@
+import { nanoBananaFieldLabels } from './nanoBanana';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Handle, Position, useEdges, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Plus, ArrowRight, Maximize2, Ellipsis } from 'lucide-react';
@@ -10,7 +11,7 @@ import { DescriberIcon } from '../components/DescriberIcon';
 import { DescriberPreview } from '../components/DescriberPreview';
 import { ModelRunButton } from '../components/ModelRunButton';
 
-const parameterTitles = { quality: '画质', background: '背景', size: '宽高比', outputFormat: '输出格式' };
+const parameterTitles = { aspectRatio: '宽高比', imageSize: '分辨率', quality: '画质', background: '背景', size: '宽高比', outputFormat: '输出格式' };
 
 function NodeHeading({ id, label, fallback, locked, model = false }: { id: string; label?: string; fallback: string; locked?: boolean; model?: boolean }) {
   const { updateNodeData: rawUpdateNodeData, getNode } = useReactFlow<AppNode>();
@@ -30,9 +31,9 @@ export function ModelInputNode({ id, data, isConnectable }: NodeProps<ModelInput
     rawUpdateNodeData(nodeId, patch, options);
   };
   const defaultTitle = data.parameter ? parameterTitles[data.parameter] : '模型名称';
-  const label = data.parameter && data.label === sunburstFieldLabels[data.parameter] ? defaultTitle : data.label;
+  const label = data.parameter && data.label === ({ ...sunburstFieldLabels, ...nanoBananaFieldLabels })[data.parameter] ? defaultTitle : data.label;
   return <><NodeHeading id={id} label={label} locked={data.locked} fallback={defaultTitle} model />
-    <DescriberModelSelect node label={data.parameter ? sunburstFieldLabels[data.parameter] : 'Model'} disabled={data.locked} value={data.model} choices={data.options} onChange={(model) => updateNodeData(id, { model })} />
+    <DescriberModelSelect node label={data.parameter ? ({ ...sunburstFieldLabels, ...nanoBananaFieldLabels })[data.parameter] : 'Model'} disabled={data.locked} value={data.model} choices={data.options} onChange={(model) => updateNodeData(id, { model })} />
     <span className="describer-port-label model-options-label">Options</span><Handle id="options" type="target" position={Position.Left} className="describer-port model-options-port" style={{ top: 30 }} aria-label="Options input" title="Options · List input (not available yet)" isConnectable={false} />
     <span className="describer-port-label output-label model-text-label">Text</span><Handle type="source" position={Position.Right} className="describer-port" style={{ top: 30 }} aria-label="Text output" isConnectable={isConnectable} />
   </>;

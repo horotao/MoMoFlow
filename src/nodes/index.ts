@@ -1,3 +1,4 @@
+import { NanoBananaNode } from './NanoBananaNode';
 import { RouterNode } from './RouterNode';
 import { BlendNode } from './BlendNode';
 import { CompareNode } from './CompareNode';
@@ -39,6 +40,7 @@ export const nodeTypes = {
   preview: PreviewNode,
   painter: PainterNode,
   sunburst: SunburstNode,
+  'nano-banana': NanoBananaNode,
   text: TextNode,
   'image-describer': ImageDescriberNode,
   'model-input': ModelInputNode,

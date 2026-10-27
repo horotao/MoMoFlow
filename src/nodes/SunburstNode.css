@@ -1,10 +1,9 @@
-.react-flow .react-flow__node-sunburst { height: auto; gap: 16px; }
-.react-flow .react-flow__node-sunburst.selected,
-.react-flow .react-flow__node-sunburst:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-.react-flow .react-flow__node-sunburst:hover:not(.selected) { border-color: #888; }
-.react-flow__node-sunburst .text-node-title { color: var(--text-node-primary); min-width: 0; }
-.react-flow__node-sunburst .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.react-flow__node-sunburst .text-node-title > svg { flex-shrink: 0; }
+.react-flow :is(.react-flow__node-sunburst, .react-flow__node-nano-banana) { height: auto; gap: 16px; }
+.react-flow :is(.react-flow__node-sunburst, .react-flow__node-nano-banana).selected,
+.react-flow :is(.react-flow__node-sunburst, .react-flow__node-nano-banana):focus { border-color: var(--text-node-border-selected); box-shadow: none; }
+:is(.react-flow__node-sunburst, .react-flow__node-nano-banana) .text-node-title { color: var(--text-node-primary); min-width: 0; }
+:is(.react-flow__node-sunburst, .react-flow__node-nano-banana) .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:is(.react-flow__node-sunburst, .react-flow__node-nano-banana) .text-node-title > svg { flex-shrink: 0; }
 .sunburst-preview-area { width: 100%; flex-shrink: 0; }
 .sunburst-preview.has-result { min-height: 0; border: 0; }
 .sunburst-preview { position: relative; width: 100%; aspect-ratio: 1; border: 1px solid var(--text-node-surface); overflow: hidden; border-radius: 3px; background-color: #eee; background-image: conic-gradient(#ddd 25%, transparent 0 50%, #ddd 0 75%, transparent 0); background-size: 30px 30px; }
@@ -18,12 +17,12 @@
 .sunburst-actions > .text-node-button:active { background: var(--text-node-border); }
 .sunburst-run { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; height: 32px; border: 0; border-radius: 5px; padding: 0 10px; background: var(--text-node-primary); color: var(--text-node-surface); cursor: pointer; font: inherit; }
 .sunburst-run:hover { opacity: .85; }.sunburst-run:active { opacity: .7; }
-.react-flow__node-sunburst button:disabled { opacity: .35; cursor: default; }
-.react-flow__node-sunburst button:focus-visible { outline: 1px solid var(--text-node-secondary); outline-offset: 2px; }
-.react-flow__node-sunburst:hover .describer-port-label, .react-flow__node-sunburst.selected .describer-port-label { visibility: visible; }
+:is(.react-flow__node-sunburst, .react-flow__node-nano-banana) button:disabled { opacity: .35; cursor: default; }
+:is(.react-flow__node-sunburst, .react-flow__node-nano-banana) button:focus-visible { outline: 1px solid var(--text-node-secondary); outline-offset: 2px; }
+:is(.react-flow__node-sunburst, .react-flow__node-nano-banana):hover .describer-port-label, :is(.react-flow__node-sunburst, .react-flow__node-nano-banana).selected .describer-port-label { visibility: visible; }
 .react-flow .sunburst-port-prompt { background: #e28cf8; border-color: #e28cf8; }
 .sunburst-prompt-asterisk { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--text-node-surface); pointer-events: none; }
-.react-flow .react-flow__node-sunburst .sunburst-port-prompt.is-connected { background: var(--text-node-surface); }
+.react-flow :is(.react-flow__node-sunburst, .react-flow__node-nano-banana) .sunburst-port-prompt.is-connected { background: var(--text-node-surface); }
 .sunburst-port-prompt.is-connected .sunburst-prompt-asterisk { display: none; }
 .react-flow { --sunburst-image-port: #31885b; --sunburst-mask-port: #7c965a; }
 .react-flow.dark { --sunburst-image-port: #97ffcd; --sunburst-mask-port: #e4ff97; }

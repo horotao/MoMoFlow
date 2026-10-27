@@ -1,3 +1,4 @@
+import { defaultNanoBananaSettings, nanoBananaName } from '../nodes/nanoBanana';
 import { defaultBlendSettings } from '../nodes/blend';
 import { Droplet, Route } from 'lucide-react';
 import { CompareIcon } from '../nodes/CompareIcon';
@@ -58,7 +59,7 @@ export const items: Item[] = [
   { id: 'crop', label: 'Crop', icon: Crop, category: 'Tools', group: 'Editing', nodeType: 'crop' },
   { id: 'painter', label: 'Painter', icon: Paintbrush, category: 'Tools', group: 'Editing', nodeType: 'painter' },
   { id: 'gpt-image', label: 'GPT Image', icon: Sparkles, category: 'Image', group: 'Generate from text' },
-  { id: 'nano-banana', label: 'Nano Banana', icon: Sparkles, color: '#a48cdd', category: 'Image', group: 'Generate from text' },
+  { id: 'nano-banana', nodeType: 'nano-banana', label: nanoBananaName, icon: Sparkles, color: '#a48cdd', category: 'Image', group: 'Generate from text' },
   { id: 'seedance', label: 'Seedance', icon: AudioLines, color: '#6bc9ca', category: 'Video', group: 'Generate from text or image' },
   { id: 'kling', label: 'Kling Video', icon: SquarePlay, color: '#b1e65b', category: 'Video', group: 'Generate from text or image' },
   { id: 'background', label: 'Background Removal', icon: WandSparkles, color: '#9b7cde', category: 'Models', group: 'Community models' },
@@ -68,6 +69,6 @@ export const items: Item[] = [
 export function createLibraryNode(id: string, position: { x: number; y: number }): AppNode | undefined {
   const item = items.find(candidate => candidate.id === id);
   if (!item?.nodeType) return;
-  const data = id === 'blend' ? { settings: { ...defaultBlendSettings } } : id === 'compare' ? { ...defaultCompareData } : id === 'resize' ? { settings: { ...defaultResizeSettings } } : id === 'color-palette' ? { colors: [] } : id === 'compositor' ? { document: defaultCompositorDocument() } : id === 'rotate-flip' ? { settings: { ...defaultRotateFlipSettings } } : id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'sunburst' ? { ...defaultSunburstSettings, imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'router' || id === 'invert' || id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
+  const data = id === 'blend' ? { settings: { ...defaultBlendSettings } } : id === 'compare' ? { ...defaultCompareData } : id === 'resize' ? { settings: { ...defaultResizeSettings } } : id === 'color-palette' ? { colors: [] } : id === 'compositor' ? { document: defaultCompositorDocument() } : id === 'rotate-flip' ? { settings: { ...defaultRotateFlipSettings } } : id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'nano-banana' ? { ...defaultNanoBananaSettings, imageInputs: 1 } : id === 'sunburst' ? { ...defaultSunburstSettings, imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'router' || id === 'invert' || id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
   return { id: crypto.randomUUID(), type: item.nodeType, position, data, selected: true } as AppNode;
 }

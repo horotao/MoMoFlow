@@ -1,8 +1,9 @@
+import { isImageGeneratorNode } from './types.ts';
 import { isBlendNode } from './types.ts';
 import { isCompareNode } from './types.ts';
 import { isColorPaletteNode, isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from './types.ts';
 import type { PreviewTask } from './taskQueue';
-import type { AppNode, FileNode, SunburstNode } from './types';
+import type { AppNode, FileNode, ImageGeneratorNode } from './types';
 
 // Only URLs created by this registry may be revoked. External links and URLs
 // received from another tab are never owned by this page's collector.
@@ -94,15 +95,15 @@ export function nodeAssetUrls(nodes: Iterable<AppNode>): Set<string> {
       for (const asset of [node.data.result, node.data.baseImage]) if (asset) urls.add(asset.url);
     } else if (isPainterNode(node)) {
       for (const asset of [node.data.result, node.data.mask, node.data.alphaMask, node.data.baseImage]) if (asset) urls.add(asset.url);
-    } else if (node.type === 'sunburst') {
-      for (const asset of (node.data as SunburstNode['data']).results ?? []) urls.add(asset.url);
+    } else if (isImageGeneratorNode(node)) {
+      for (const asset of (node.data as ImageGeneratorNode['data']).results ?? []) urls.add(asset.url);
     }
   }
   return urls;
 }
 
 export function taskAssetUrls(task: PreviewTask): string[] {
-  return [...(task.images ?? []), ...(task.imageRequest?.images ?? []),
+  return [...(task.nanoBananaRequest?.images ?? []), ...(task.images ?? []), ...(task.imageRequest?.images ?? []),
     ...(task.imageRequest?.mask ? [task.imageRequest.mask] : [])];
 }
 

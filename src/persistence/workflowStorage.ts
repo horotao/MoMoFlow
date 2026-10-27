@@ -1,9 +1,10 @@
+import { isImageGeneratorNode } from '../nodes/types.ts';
 import { isBlendNode } from '../nodes/types.ts';
 import { isCompareNode } from '../nodes/types.ts';
 import { isColorPaletteNode, isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from '../nodes/types.ts';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources.ts';
 import type { Edge, Viewport } from '@xyflow/react';
-import type { AppNode, FileAsset, FileNode, SunburstNode } from '../nodes/types';
+import type { AppNode, FileAsset, FileNode, ImageGeneratorNode } from '../nodes/types';
 
 export type Workflow = {
   nodes: AppNode[];
@@ -53,8 +54,8 @@ export function mapAssets(nodes: AppNode[], map: (asset: FileAsset) => FileAsset
       mask: node.data.mask ? map(node.data.mask) : undefined,
       alphaMask: node.data.alphaMask ? map(node.data.alphaMask) : undefined,
     } };
-    if (node.type === 'sunburst') return { ...node, data: {
-      ...node.data, results: (node.data as SunburstNode['data']).results?.map(map),
+    if (isImageGeneratorNode(node)) return { ...node, data: {
+      ...node.data, results: (node.data as ImageGeneratorNode['data']).results?.map(map),
     } } as AppNode;
     return node;
   });

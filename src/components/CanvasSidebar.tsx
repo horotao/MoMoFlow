@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useReactFlow, useNodes } from '@xyflow/react';
 import { Search, Images, CircleHelp, Sun, Moon, X, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { isFileNode } from '../nodes/fileAsset';
-import { isSunburstNode, type AppNode } from '../nodes/types';
+import { isImageGeneratorNode, type AppNode } from '../nodes/types';
 import { items as catalogItems, navigation, createLibraryNode, libraryItemLabel as itemLabel, type Category, type Item } from './libraryCatalog';
 import './CanvasSidebar.css';
 
@@ -31,7 +31,7 @@ export function CanvasSidebar({ colorMode, onThemeChange }: { colorMode: 'light'
   const contentRef = useRef<HTMLDivElement>(null);
   const { setNodes, screenToFlowPosition } = useReactFlow<AppNode>();
   const nodes = useNodes<AppNode>();
-  const assets = nodes.flatMap(n => isSunburstNode(n) ? n.data.results ?? [] : isFileNode(n) ? (n.data.assets ?? (n.data.asset ? [n.data.asset] : [])) : []).filter((asset, index, all) => all.findIndex(a => a.id === asset.id) === index).filter(asset => asset.name.toLowerCase().includes(query.trim().toLowerCase()));
+  const assets = nodes.flatMap(n => isImageGeneratorNode(n) ? n.data.results ?? [] : isFileNode(n) ? (n.data.assets ?? (n.data.asset ? [n.data.asset] : [])) : []).filter((asset, index, all) => all.findIndex(a => a.id === asset.id) === index).filter(asset => asset.name.toLowerCase().includes(query.trim().toLowerCase()));
   useEffect(() => {
     contentRef.current?.scrollTo(0, 0);
     if (active === 'Search') searchRef.current?.focus();

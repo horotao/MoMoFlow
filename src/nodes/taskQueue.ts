@@ -1,8 +1,9 @@
+import type { NanoBananaRequest } from './nanoBanana';
 import type { SunburstRequest } from './sunburst';
 export type TaskState = 'Queued' | 'Running' | 'Done' | 'Cancelled' | 'Failed';
 export type PreviewTask = {
   id: string; batchId: string; nodeId: string; model: string; createdAt: number;
-  instructions?: string; images?: string[]; imageRequest?: SunburstRequest;
+  instructions?: string; images?: string[]; imageRequest?: SunburstRequest; nanoBananaRequest?: NanoBananaRequest;
   progress: number; state: TaskState; started: number; error?: string;
 };
 export const isActiveTask = (task: PreviewTask) => task.state === 'Queued' || task.state === 'Running';
@@ -13,7 +14,7 @@ export function advanceEstimatedProgress(tasks: PreviewTask[], now: number): Pre
   let changed = false;
   const next = tasks.map(task => {
     if (task.state !== 'Running') return task;
-    const duration = task.imageRequest ? 90000 : 30000;
+    const duration = (task.imageRequest || task.nanoBananaRequest) ? 90000 : 30000;
     const elapsed = Math.max(0, now - task.started);
     const estimate = Math.min(95, Math.floor(96 * (1 - Math.exp(-elapsed / (duration / 2)))));
     const progress = Math.max(task.progress, estimate);

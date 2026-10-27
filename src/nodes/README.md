@@ -14,6 +14,7 @@
 | 图像描述（Image Describer）：根据图片生成可继续编辑的文本 | `image-describer` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) | 图片输入 `image-0` 起；可暴露 `model`、`instructions` 文本输入；输出 `data.text` |
 | 模型名称 / 参数选项（Model Name）：提供一个可选的文本值 | `model-input` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) 中的 `ModelInputNode` | 输出当前 `data.model`；`options` 输入仅展示，不能连接 |
 | GPT Image 2.5 Sunburst：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`、`image-0` 起、`mask` 及暴露的参数输入；`result` 输出当前选中的结果图片 |
+| Nano Banana 2.1：生成或编辑图片 | `nano-banana` | [NanoBananaNode.tsx](./NanoBananaNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起与暴露的 `aspectRatio` / `imageSize` / `outputFormat` 输入；`result` 输出选中图片 |
 | 调色板（Color palette）：制作最多十色色板 | `color-palette` | [ColorPaletteNode.tsx](./ColorPaletteNode.tsx) | 无输入；`image`（Image）输出纯色条 PNG，`text`（Text）输出按顺序以 `*` 连接的 HEX 色值 |
 | 合成器（Compositor）：图片、文本与矢量图层合成 | `compositor` | [CompositorNode.tsx](./compositor/CompositorNode.tsx) | `background`、`layer-1` 起的动态图片输入；`result`（Output）输出实际合成 PNG；独立图层编辑器见[使用与架构](../../docs/compositor.md) |
 | 色彩校正（Color correction）：本地图片调色 | `color-correction` | [ColorCorrectionNode.tsx](./ColorCorrectionNode.tsx) | 单图片输入 `file`（File）；`result` 输出调色后的 PNG |
@@ -250,3 +251,16 @@ Router 直接从当前图解析来源，不保存文本或素材副本，不运�
 文本、图片集合、各节点的具体输出端口保持原语义：File 传递整个图片集合，Sunburst 传递选中结果，色板区分 Image / Text，Painter 区分 Result / Mask。Router 后的 Sunburst Mask 仍使用 Painter 的透明遮罩或 Invert 的亮度转换。断开或上游失效后没有旧值残留，Preview 的绘制和调色实时预览也能穿过 Router 链。视频、音频和 3D File 可以接入 Router 并继续中转，能否连接其他节点仍由已有消费者支持范围决定。
 
 支持重命名、锁定、副本、剪切粘贴、撤销重做和 IndexedDB 保存恢复；单独复制 Router 不复制上游内容和连线。创建并连接、替换输入各算一次撤销。数据解析及快捷创建在 `router.ts`；`router.test.ts` 使用现有 Node.js 测试运行器随 `npm test` 验证透传、集合、分支、替换、环路、类型限制、遮罩和保存恢复。浏览器验收入口为 `/tests/router.html`（`tests/router.test.tsx`），运行 `npm run dev` 后打开，使用独立数据库和真实画布检查菜单、文本 / 图片透传、历史与持久化，也可手动检查拖动、连线、缩放和小地图。
+
+
+## Nano Banana 2.1
+
+模型固定为 `google/gemini-nano-banana-2.1`，从图片分类、搜索、画布右键或拖线推荐创建。必须连接非空提示词（最多 32000 字符）；参考图可选，按端口顺序展开文件集合，应用最多接收 14 张，每张 20 MiB、合计 46 MiB。已连但无结果的图片输入阻止运行，未连接的图片端口可留空。
+
+参数由 [nanoBanana.ts](./nanoBanana.ts) 校验，默认自动比例、1K、PNG。支持常用 8 种比例、1K/2K/4K、PNG/JPEG，自动比例省略上游 `aspectRatio`。当前模型接口拒绝 `outputMimeType`，所以 `imageConfig` 仅传宽高比和分辨率；输出格式在客户端收到图片后转换，相同格式保留原始字节，转换保持尺寸，JPEG 使用白底和 0.95 编码质量。右侧可将三个参数暴露为文本输入；不提供 OpenAI 的画质、透明背景、自定义像素尺寸或 Mask 控件。
+
+[nanoBananaRun.ts](./nanoBananaRun.ts) 建立运行快照，[nanoBananaClient.ts](./nanoBananaClient.ts) 将本地参考图转换为 base64，请求 `/api/nano-banana`。服务端使用 ZenMux Vertex AI `:generateContent`、`contents[].parts[].inlineData` 与 `generationConfig.imageConfig`；Google Banana 的具体协议见 [Gemini 指南](https://zenmux.ai/docs/zh/guide/advanced/image-generation.html) 和 [Generate Content 参数](https://zenmux.ai/docs/zh/api/vertexai/generate-content.html)。用户提供的 [Generate Images 页面](https://zenmux.ai/docs/zh/api/vertexai/generate-images.html) 中 `:predict` 示例是另一种图片接口。
+
+与 Sunburst 共用结果画廊和任务队列：同一节点多次运行按序，不同节点可以并发；保留响应中的全部最终图片，忽略推理图片；文本回复、内容拦截或损坏图片作为失败处理。结果支持选中输出、下载、全屏、拆分为文件、复制、剪切粘贴、锁定、撤销重做和 IndexedDB 素材恢复。取消或失败不自动重试，不切换模型。
+
+`nanoBanana.test.ts`、`nanoBananaClient.test.ts` 和 `server/nanoBanana.test.ts` 使用既有 Node.js 测试运行器，随 `npm test` / `npm run check` 执行。独立浏览器验收入口 `/tests/nano-banana.html` 使用隔离数据库与模拟响应，验证参数、引用图、结果、多图预览、取消、失败、撤销及保存恢复，不调用真实模型。真实供应商支持情况、输出质量及费用仍需单独生图验证。
