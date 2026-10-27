@@ -2,7 +2,7 @@ import { isMasksExtractorNode } from './types.ts';
 import { isImageGeneratorNode } from './types.ts';
 import { isBlendNode } from './types.ts';
 import { isCompareNode } from './types.ts';
-import { isColorPaletteNode, isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from './types.ts';
+import { isColorPaletteNode, isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isMatteGrowShrinkNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from './types.ts';
 import type { PreviewTask } from './taskQueue';
 import type { AppNode, FileNode, ImageGeneratorNode } from './types';
 
@@ -92,7 +92,7 @@ export function nodeAssetUrls(nodes: Iterable<AppNode>): Set<string> {
       const data = node.data as FileNode['data'];
       if (data.asset) urls.add(data.asset.url);
       for (const asset of data.assets ?? []) urls.add(asset.url);
-    } else if (isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) {
+    } else if (isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isMatteGrowShrinkNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) {
       for (const asset of [node.data.result, node.data.baseImage]) if (asset) urls.add(asset.url);
     } else if (isMasksExtractorNode(node)) {
       for (const asset of [node.data.result, node.data.mask, node.data.baseImage]) if (asset) urls.add(asset.url);

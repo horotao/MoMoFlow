@@ -23,7 +23,7 @@ export function ConnectionLine({
   // The starting handle determines the preview color, including reverse drags from inputs.
   const handleId = fromHandle.id ?? '';
   const portColor = source.type === 'router' ? outputColor(outputKind(source, 'output', nodes, edges)) : isFileNode(source) ? filePortColors[fileOutputKind(source.data)]
-    : source.type === 'preview' ? 'var(--sunburst-mask-port)'
+    : source.type === 'preview' || source.type === 'matte-grow-shrink' ? 'var(--sunburst-mask-port)'
     : ['sunburst', 'painter'].includes(source.type ?? '') && handleId === 'mask' ? 'var(--sunburst-mask-port)'
     : ['sunburst', 'painter'].includes(source.type ?? '') && (handleId === 'image' || handleId === 'result' || /^image-\d+$/.test(handleId)) ? 'var(--sunburst-image-port)'
     : source.type === 'image-describer' && /^image-\d+$/.test(handleId) ? filePortColors.image

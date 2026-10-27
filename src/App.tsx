@@ -9,6 +9,7 @@ import { restoreCompositorData } from './nodes/compositor';
 import { restoreRotateFlipData } from './nodes/rotateFlip';
 import { restoreInvertData } from './nodes/invert';
 import { restoreLevelsData } from './nodes/levels';
+import { restoreMatteGrowShrinkData } from './nodes/matteGrowShrink';
 import { restoreBlurData } from './nodes/blur';
 import { restoreColorData } from './nodes/colorCorrection';
 import { restoreCropData } from './nodes/crop';
@@ -184,6 +185,14 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
           if (!data) return;
           event.preventDefault();
           setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'levels', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
+          return;
+        }
+        if (saved.format === 'momoflow-matte-grow-shrink-node' && saved.node?.type === 'matte-grow-shrink'
+          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
+          const data = restoreMatteGrowShrinkData(saved.node.data);
+          if (!data) return;
+          event.preventDefault();
+          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'matte-grow-shrink', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
           return;
         }
         if (saved.format === 'momoflow-blur-node' && saved.node?.type === 'blur'
@@ -366,7 +375,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         deletable: !node.data.locked,
         connectable: !node.data.locked && tool === 'select',
         style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
-      } : (isImageGeneratorNode(node) || isPainterNode(node) || node.type === 'masks-extractor' || node.type === 'crop' || node.type === 'color-correction' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'blend' || node.type === 'compare' || node.type === 'resize' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview' || node.type === 'router') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
+      } : (isImageGeneratorNode(node) || isPainterNode(node) || node.type === 'masks-extractor' || node.type === 'crop' || node.type === 'color-correction' || node.type === 'matte-grow-shrink' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'blend' || node.type === 'compare' || node.type === 'resize' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview' || node.type === 'router') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
       edges={edges.map((edge) => {
@@ -378,9 +387,9 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         };
         const fileSource = source && isFileNode(source) ? source : undefined;
         const textConnection = (source?.type === 'color-palette' && edge.sourceHandle === 'text') || nodes.some((node) => (isTextNode(node) || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
-        const generatedSource = source && (isImageGeneratorNode(source) || source.type === 'masks-extractor' || source.type === 'painter' || source.type === 'crop' || source.type === 'color-correction' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'rotate-flip' || source.type === 'blend' || source.type === 'compare' || source.type === 'resize' || source.type === 'compositor' || (source.type === 'color-palette' && edge.sourceHandle === 'image'));
+        const generatedSource = source && (isImageGeneratorNode(source) || source.type === 'masks-extractor' || source.type === 'painter' || source.type === 'crop' || source.type === 'color-correction' || source.type === 'matte-grow-shrink' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'rotate-flip' || source.type === 'blend' || source.type === 'compare' || source.type === 'resize' || source.type === 'compositor' || (source.type === 'color-palette' && edge.sourceHandle === 'image'));
         const sunburstTarget = target && isImageGeneratorNode(target);
-        const portColor = ((source?.type === 'painter' || source?.type === 'masks-extractor') && edge.sourceHandle === 'mask') || (sunburstTarget && edge.targetHandle === 'mask') ? 'var(--sunburst-mask-port)'
+        const portColor = source?.type === 'matte-grow-shrink' || target?.type === 'matte-grow-shrink' || ((source?.type === 'painter' || source?.type === 'masks-extractor') && edge.sourceHandle === 'mask') || (sunburstTarget && edge.targetHandle === 'mask') ? 'var(--sunburst-mask-port)'
           : target?.type === 'image-describer' && /^image-\d+$/.test(edge.targetHandle ?? '') ? filePortColors.image
           : (sunburstTarget && /^image-\d+$/.test(edge.targetHandle ?? '')) || generatedSource ? 'var(--sunburst-image-port)'
           : fileSource ? filePortColors[fileOutputKind(fileSource.data)] : undefined;

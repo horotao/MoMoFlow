@@ -19,9 +19,9 @@ test('text and image outputs recommend compatible implemented inputs with stable
     ['text', 'variable-1'], ['sunburst', 'prompt'], ['nano-banana', 'prompt'], ['image-describer', 'instructions'], ['router', 'input'],
   ]);
   assert.deepEqual(connectionChoices(pending('image', 'source', 'file'), [image], []).map(c => [c.itemId, c.handleId]), [
-    ['blend', 'back'], ['blend', 'front'], ['compare', 'input-1'], ['compositor', 'background'], ['compositor', 'layer-1'], ['preview', 'file'], ['image-describer', 'image-0'], ['sunburst', 'image-0'], ['nano-banana', 'image-0'], ['masks-extractor', 'image'], ['painter', 'image'], ['resize', 'image'], ['rotate-flip', 'image'], ['invert', 'image'], ['levels', 'image'], ['blur', 'image'], ['crop', 'image'], ['color-correction', 'file'], ['router', 'input'],
+    ['blend', 'back'], ['blend', 'front'], ['compare', 'input-1'], ['compositor', 'background'], ['compositor', 'layer-1'], ['preview', 'file'], ['image-describer', 'image-0'], ['sunburst', 'image-0'], ['nano-banana', 'image-0'], ['masks-extractor', 'image'], ['painter', 'image'], ['resize', 'image'], ['rotate-flip', 'image'], ['invert', 'image'], ['levels', 'image'], ['matte-grow-shrink', 'image'], ['blur', 'image'], ['crop', 'image'], ['color-correction', 'file'], ['router', 'input'],
   ]);
-  assert.deepEqual(connectionChoices(pending('generator', 'source', 'result'), [generator], []).map(c => c.itemId), ['blend', 'blend', 'compare', 'compositor', 'compositor', 'preview', 'image-describer', 'sunburst', 'nano-banana', 'masks-extractor', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'blur', 'crop', 'color-correction', 'router']);
+  assert.deepEqual(connectionChoices(pending('generator', 'source', 'result'), [generator], []).map(c => c.itemId), ['blend', 'blend', 'compare', 'compositor', 'compositor', 'preview', 'image-describer', 'sunburst', 'nano-banana', 'masks-extractor', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'matte-grow-shrink', 'blur', 'crop', 'color-correction', 'router']);
 });
 
 test('non-image and empty files never suggest incompatible text or image consumers', () => {
@@ -34,7 +34,7 @@ test('reverse image and mask connections retain the exact target handle and offe
   for (const handle of ['image-0', 'mask']) {
     const start = pending('generator', 'target', handle);
     const choices = connectionChoices(start, [generator], []);
-    assert.deepEqual(choices.map(c => c.itemId), ['file', 'masks-extractor', 'masks-extractor', 'blend', 'compare', 'color-palette', 'compositor', 'sunburst', 'nano-banana', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'blur', 'crop', 'color-correction', 'router']);
+    assert.deepEqual(choices.map(c => c.itemId), ['file', 'masks-extractor', 'masks-extractor', 'blend', 'compare', 'color-palette', 'compositor', 'sunburst', 'nano-banana', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'matte-grow-shrink', 'blur', 'crop', 'color-correction', 'router']);
     assert.deepEqual(choiceConnection(start, choices[0], 'new'), { source: 'new', sourceHandle: 'file', target: 'generator', targetHandle: handle });
     const empty: AppNode = { id: 'new', type: 'file', position: { x: 0, y: 0 }, data: {} };
     const connection = choiceConnection(start, choices[0], 'new');

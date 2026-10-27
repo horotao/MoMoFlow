@@ -8,6 +8,7 @@ import type { CompositorData } from './compositor';
 import type { RotateFlipData } from './rotateFlip';
 import type { InvertData } from './invert';
 import type { LevelsData } from './levels';
+import type { MatteGrowShrinkData } from './matteGrowShrink';
 import type { BlurData } from './blur';
 import type { ColorCorrectionData } from './colorCorrection';
 import type { CropData } from './crop';
@@ -19,7 +20,11 @@ import type { JSONContent } from '@tiptap/core';
 export type PositionLoggerNode = Node<{ label: string }, 'position-logger'>;
 export type TextDisplayMode = 'source-value' | 'value' | 'source';
 export type TextNode = Node<{ text: string; label?: string; locked?: boolean; content?: JSONContent; variableCount?: number; displayMode?: TextDisplayMode }, 'text'>;
-export type FileAsset = { id: string; name: string; url: string; kind: 'image' | 'video' | 'audio' | '3d'; size?: number; width?: number; height?: number };
+export type FileAsset = {
+  id: string; name: string; url: string; kind: 'image' | 'video' | 'audio' | '3d'; size?: number; width?: number; height?: number;
+  // Preserve gray-mask semantics through pass-through nodes and saved snapshots.
+  maskMode?: 'luminance';
+};
 export type FileNode = Node<{ label?: string; locked?: boolean; asset?: FileAsset; assets?: FileAsset[]; activeAssetId?: string; viewMode?: 'single' | 'all'; orderBy?: 'date' | 'name' }, 'file'>;
 export type ImageDescriberNode = Node<{ label?: string; locked?: boolean; text: string; model: string; instructions: string; imageInputs: number; exposed?: ('model' | 'instructions')[] }, 'image-describer'>;
 export type ModelInputNode = Node<{ label?: string; locked?: boolean; model: string; options?: string[]; parameter?: keyof SunburstSettings | keyof NanoBananaSettings }, 'model-input'>;
@@ -35,6 +40,8 @@ export type PainterNode = Node<PainterData, 'painter'>;
 export type PreviewNode = Node<{ label?: string; locked?: boolean; activeAssetId?: string }, 'preview'>;
 export type CropNode = Node<CropData, 'crop'>;
 export type ColorCorrectionNode = Node<ColorCorrectionData, 'color-correction'>;
+export type MatteGrowShrinkNode = Node<MatteGrowShrinkData, 'matte-grow-shrink'>;
+export const isMatteGrowShrinkNode = (node: AppNode | undefined): node is MatteGrowShrinkNode => node?.type === 'matte-grow-shrink' && 'settings' in node.data;
 export type BlurNode = Node<BlurData, 'blur'>;
 export const isBlurNode = (node: AppNode | undefined): node is BlurNode => node?.type === 'blur' && 'settings' in node.data;
 export type LevelsNode = Node<LevelsData, 'levels'>;
@@ -55,7 +62,7 @@ export const isCompareNode = (node: AppNode | undefined): node is CompareNode =>
 export type BlendNode = Node<BlendData, 'blend'>;
 export const isBlendNode = (node: AppNode | undefined): node is BlendNode => node?.type === 'blend';
 export type RouterNode = Node<{ label?: string; locked?: boolean }, 'router'>;
-export type AppNode = MasksExtractorNode | NanoBananaNode | RouterNode | BlendNode | CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
+export type AppNode = MatteGrowShrinkNode | MasksExtractorNode | NanoBananaNode | RouterNode | BlendNode | CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
 
 export const isDescriberNode = (node: AppNode): node is ImageDescriberNode => node.type === 'image-describer' && 'imageInputs' in node.data;
 

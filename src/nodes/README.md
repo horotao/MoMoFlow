@@ -27,6 +27,7 @@
 | 模糊（Blur）：本地图片模糊 | `blur` | [BlurNode.tsx](./BlurNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
 | 裁剪（Crop）：本地裁剪图片 | `crop` | [CropNode.tsx](./CropNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出裁剪后的 PNG |
 | 绘图（Painter）：在图片或空白画布上绘制 | `painter` | [PainterNode.tsx](./PainterNode.tsx) | 单图片输入 `image`；`result` 输出合成图片，`mask` 输出黑底白色绘制区域 |
+| 蒙版扩张 / 收缩（Matte Grow / Shrink）：调整蒙版边缘 | `matte-grow-shrink` | [MatteGrowShrinkNode.tsx](./MatteGrowShrinkNode.tsx) | `image`（Input）接收图片或黑白蒙版；`result`（Output）输出原尺寸灰度蒙版 PNG |
 | 蒙版提取（Masks Extractor）：点击物体生成蒙版 | `masks-extractor` | [MasksExtractorNode.tsx](./MasksExtractorNode.tsx) | 单图片输入 `image`；`result`（Image With Alpha）输出透明抠图，`mask`（Mask）输出黑白蒙版 |
 | 预览（Preview）：查看上游图片与遮罩 | `preview` | [PreviewNode.tsx](./PreviewNode.tsx) | 单图片输入 `file`，无输出；实时显示上游图片 |
 | 坐标记录（Position Logger）：显示节点坐标的示例节点 | `position-logger` | [PositionLoggerNode.tsx](./PositionLoggerNode.tsx) | 左侧输入、右侧输出；不执行模型任务 |
@@ -136,6 +137,14 @@ Invert Output 接入 Sunburst Mask 时，仅在请求准备阶段将完全不透
 
 支持重命名、锁定、副本、剪切粘贴、撤销重做及 IndexedDB 保存恢复；独立副本保留输入底图，派生结果不增加撤销步骤。核心像素算法和数据在 `invert.ts`，界面与导出在 `InvertNode.tsx`。`invert.test.ts` 随 `npm test` 验证黑白/灰度/透明像素、Painter Mask 输入、连线限制、链式失效和素材恢复。
 
+## Matte Grow / Shrink 蒙版扩张与收缩约定
+
+位于 Tools → Matte，中文名称“蒙版扩张 / 收缩”，支持中文及英文搜索、右键创建和拖线推荐。只有一个“尺寸”（Size）参数，范围 −100～100，整数步进，默认 0；正值扩张白色选区，负值收缩，绝对值为原图像素半径。0 保持原有灰度蒙版。Input（`image`）接受图片与 Painter / Masks Extractor 的 Mask，集合取第一张；Output（`result`）为原尺寸不透明灰度 PNG，端口及连线使用 Mask 颜色。经 Router 连接 Preview 或 Sunburst Mask 时保留蒙版语义；结果素材携带 `maskMode: luminance` 标识，经过 Compare 任一路透传、独立副本或保存恢复后仍可用于 Sunburst Mask。旧的 Matte 输出读取时补充该标识，普通图片不受影响。Sunburst 将白色区域转换为可编辑区域，蒙版处理本身不调用模型。
+
+像素处理采用方形邻域的灰度最大值 / 最小值滤波，保留软蒙版灰度；透明输入先合成到黑底并转换为亮度，边界延用最近像素。后台线程使用滑动极值队列，处理量随像素数量增长，不随尺寸参数增大。交互和范围参考 Weavy，未承诺内部算法逐像素一致。拖动时使用独立线程的最长边 1024 像素预览，并同步连接的 Preview；松开后从原图生成最终预览与 PNG。原图对比、下载与分辨率沿用图像工具的悬停布局。
+
+数字输入失焦或 Enter 提交，Escape 取消；切换滑块时先完成数字提交，再开始拖动。滑块一次拖动只记录一次撤销，聚焦时支持 Cmd/Ctrl+Z 撤销及 Cmd/Ctrl+Shift+Z 重做；数字框保留原生文本撤销。Escape、失焦、锁定或换图取消未提交操作。旧结果在参数或输入变化后立即失效；异步回写复核当前图，下载等待最终输出。支持重命名、锁定、复制 / 剪切粘贴、独立副本、撤销重做和 IndexedDB 保存恢复，派生 PNG 不增加历史步骤。算法与数据在 [matteGrowShrink.ts](./matteGrowShrink.ts)，线程和排队分别在 `matteGrowShrink.worker.ts`、`matteGrowShrinkRender.ts`。`matteGrowShrink.test.ts`、`matteGrowShrinkRender.test.ts` 使用现有 Node.js 测试运行器，随 `npm test` 验证像素、边界、透明与灰度、连接与失效、素材恢复和排队。独立浏览器入口 `tests/matte-grow-shrink.html` 检查双向变化、4K、数字框切换滑块、快捷历史、拖动取消、锁定、断连及持久化，并验证 Compare 两路输出转换后的实际透明蒙版面积；拦截模型 API，不读取用户工作流，也不调用模型。
+
 ## Blur 模糊约定
 
 Blur 位于 Tools → Editing 和图片连接推荐菜单。Input（`image`）接收一张上游图片，集合取第一张；Output（`result`）输出原尺寸 PNG，可连接 Preview、Painter、Crop、Color correction、Blur、Sunburst 和 Image Describer。类型为 Box / Gaussian，Size 为 1–100 的整数，初始 Gaussian / 50；Size 1 保持原图。图片悬停显示按住查看原图、下载和尺寸。
@@ -222,7 +231,7 @@ Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排�
 
 从 Tools → Helpers 或搜索 Compare 添加。Slider 左侧显示 Input 1，右侧显示 Input 2；拖动分割线实时对比，松开时提交一次历史记录。Reset 恢复 50%，居中时禁用；方向键微调，Shift 加大步长，Home / End 到两端，Escape 取消拖动。Toggle 默认显示 Image 2，按住左上角眼睛（或 Space / Enter）显示 Image 1，松开、失焦或取消时恢复；与 Weavy 的按住预览行为一致。切换模式时分割线回到中间。
 
-预览按第一张可用图片比例布局，两张图等比例居中；仅一路可用时显示该图，无输入时显示棋盘格。左右端口分别位于 89 / 149px，每个输入只允许一条图片连线；支持两路连接同一来源，拒绝环路、锁定节点及非图片输入。两个输出分别透传原始图片，保留原生尺寸、透明度和资源标识，不导出对比拼图；模式、拖动与临时预览不改变输出。
+预览按第一张可用图片比例布局，两张图等比例居中；仅一路可用时显示该图，无输入时显示棋盘格。左右端口分别位于 89 / 149px，每个输入只允许一条图片连线；支持两路连接同一来源，拒绝环路、锁定节点及非图片输入。两个输出分别透传原始图片，保留原生尺寸、透明度、资源标识和素材上的灰度蒙版标识（包括 Matte Grow / Shrink 输出），不导出对比拼图；模式、拖动与临时预览不改变输出。
 
 模式和分割位置参与撤销重做与工作流保存。副本、剪切粘贴保存两路输入快照；已有连线优先于快照，上游暂不可用时不返回旧快照。支持重命名、锁定和删除，素材生命周期与 IndexedDB 复用现有机制。无模型请求或付费调用。
 

@@ -10,6 +10,7 @@ import './nodes/PreviewNode.css';
 import './nodes/CropNode.css';
 import './nodes/ColorCorrectionNode.css';
 import './nodes/BlurNode.css';
+import './nodes/MatteGrowShrinkNode.css';
 import './nodes/LevelsNode.css';
 import './nodes/InvertNode.css';
 import './nodes/RotateFlipNode.css';

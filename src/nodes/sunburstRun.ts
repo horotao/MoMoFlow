@@ -17,6 +17,8 @@ import { invertRevision } from './invert.ts';
 import { isInvertNode } from './types.ts';
 import { levelsRevision } from './levels.ts';
 import { isLevelsNode } from './types.ts';
+import { matteGrowShrinkRevision } from './matteGrowShrink.ts';
+import { isMatteGrowShrinkNode } from './types.ts';
 import { blurRevision } from './blur.ts';
 import { isBlurNode } from './types.ts';
 import { colorRevision } from './colorCorrection.ts';
@@ -142,6 +144,18 @@ function imageResolution(nodes?: AppNode[], edges?: Edge[], visited = new Set<st
       }
       return node.data.result ? [node.data.result] : [];
     }
+    if (isMatteGrowShrinkNode(node)) {
+      if (handle !== 'result') return [];
+      if (hasGraph) {
+        const edge = (incoming.get(node.id) ?? []).find(item => item.targetHandle === 'image');
+        const source = edge ? resolve(nodeById.get(edge.source), edge.sourceHandle)[0] : node.data.baseImage;
+        if (!source || node.data.outputRevision !== matteGrowShrinkRevision(node.data, source.id)) return [];
+      }
+      // Older saved Matte results have no asset metadata yet. Tag them when read
+      // so Compare snapshots retain the same semantics as newly rendered masks.
+      const result = node.data.result;
+      return result ? [result.maskMode === 'luminance' ? result : { ...result, maskMode: 'luminance' }] : [];
+    }
     if (isBlurNode(node)) {
       if (handle !== 'result') return [];
       if (hasGraph) {
@@ -239,7 +253,7 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
         if (assets.length !== 1) throw new Error('Mask 必须连接一张 PNG 图片。');
         if (!images.length) throw new Error('使用 Mask 时必须连接 Image。');
         mask = assets[0].url;
-        if (isInvertNode(source) || (isMasksExtractorNode(source) && origin?.handle === 'mask')) maskMode = 'luminance';
+        if (assets[0].maskMode === 'luminance' || isMatteGrowShrinkNode(source) || isInvertNode(source) || (isMasksExtractorNode(source) && origin?.handle === 'mask')) maskMode = 'luminance';
       }
       for (let index = 0; index < runs; index++) tasks.push({ id: crypto.randomUUID(), batchId, createdAt, nodeId: id, model: sunburstModel, imageRequest: { ...settings, prompt, images, mask, ...(maskMode ? { maskMode } : {}) }, progress: 0, state: 'Queued', started: 0 });
     }

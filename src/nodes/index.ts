@@ -9,6 +9,7 @@ import { CompositorNode } from './compositor/CompositorNode';
 import { RotateFlipNode } from './RotateFlipNode';
 import { InvertNode } from './InvertNode';
 import { LevelsNode } from './LevelsNode';
+import { MatteGrowShrinkNode } from './MatteGrowShrinkNode';
 import { BlurNode } from './BlurNode';
 import { ColorCorrectionNode } from './ColorCorrectionNode';
 import { CropNode } from './CropNode';
@@ -37,6 +38,7 @@ export const nodeTypes = {
   invert: InvertNode,
   levels: LevelsNode,
   blur: BlurNode,
+  'matte-grow-shrink': MatteGrowShrinkNode,
   'color-correction': ColorCorrectionNode,
   crop: CropNode,
   preview: PreviewNode,
