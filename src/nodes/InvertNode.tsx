@@ -1,3 +1,4 @@
+import { NodeIcon } from './NodeIcon';
 import { useEffect, useState } from 'react';
 import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Ellipsis, Eye, EyeOff } from 'lucide-react';
@@ -7,7 +8,6 @@ import { invertPixels, invertRevision } from './invert';
 import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
-import { InvertIcon } from './InvertIcon';
 import { TextNodeMenu } from './TextNodeMenu';
 
 export function InvertNode({ id, data, isConnectable }: NodeProps<Invert>) {
@@ -67,7 +67,7 @@ export function InvertNode({ id, data, isConnectable }: NodeProps<Invert>) {
 
   return <>
     <header className="text-node-header">
-      <div className="text-node-title"><InvertIcon size={24} />{renaming
+      <div className="text-node-title"><NodeIcon nodeType="invert" />{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />

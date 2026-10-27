@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Handle, Position, useEdges, useNodes, useReactFlow, type NodeProps } from '@xyflow/react';
-import { AudioLines, Box, Ellipsis, File, Image, LockKeyhole, Route, Type, Video } from 'lucide-react';
+import { Ellipsis, LockKeyhole } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { nodeIcons, routerIcons } from './nodeIcons';
 import type { AppNode, RouterNode as Router } from './types';
 import { isNodeLocked } from './types';
 import { outputColor, outputKind } from './router';
@@ -13,12 +15,11 @@ export function RouterNode({ id, data, isConnectable }: NodeProps<Router>) {
   const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
   const input = useRef<HTMLInputElement>(null), cancelled = useRef(false);
   const kind = outputKind(nodes.find(node => node.id === id), 'output', nodes, edges);
-  const Icon = kind === 'text' ? Type : kind === 'image' || kind === 'mask' ? Image : kind === 'video' ? Video : kind === 'audio' ? AudioLines : kind === '3d' ? Box : kind === 'file' ? File : Route;
   const color = { '--router-port': outputColor(kind) } as CSSProperties;
   useEffect(() => { if (renaming) { input.current?.focus(); input.current?.select(); } }, [renaming]);
   return <>
     <header className="text-node-header">
-      <div className="text-node-title"><Icon size={24} strokeWidth={1.2} aria-hidden="true" />
+      <div className="text-node-title"><HugeiconsIcon icon={kind ? routerIcons[kind] : nodeIcons.router} aria-hidden="true" />
         {renaming ? <input ref={input} className="text-node-rename nodrag nopan" aria-label="节点名称" value={name} maxLength={100}
           onChange={event => setName(event.target.value)}
           onBlur={() => { if (!cancelled.current && name.trim() && !isNodeLocked(getNode(id))) updateNodeData(id, { label: name.trim() }); setRenaming(false); }}

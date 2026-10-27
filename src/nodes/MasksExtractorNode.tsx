@@ -1,3 +1,4 @@
+import { NodeIcon } from './NodeIcon';
 import { useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Ellipsis, Download, RotateCcw } from 'lucide-react';
@@ -9,7 +10,6 @@ import { cacheMaskCandidate } from './masksCandidate';
 import { maskCanvas, renderMasks } from './masksRender';
 import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
-import { MasksExtractorIcon } from './MasksExtractorIcon';
 import { TextNodeMenu } from './TextNodeMenu';
 import './MasksExtractorNode.css';
 
@@ -133,7 +133,7 @@ export function MasksExtractorNode({ id, data, isConnectable }: NodeProps<MasksN
 
   return <>
     <header className="text-node-header">
-      <div className="text-node-title"><MasksExtractorIcon size={24} />{renaming
+      <div className="text-node-title"><NodeIcon nodeType="masks-extractor" />{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />

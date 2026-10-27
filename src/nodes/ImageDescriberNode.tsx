@@ -7,7 +7,7 @@ import { sunburstFieldLabels } from './sunburst';
 import { DescriberModelSelect } from '../components/DescriberModelSelect';
 import { isNodeLocked } from './types';
 import { TextNodeMenu } from './TextNodeMenu';
-import { DescriberIcon } from '../components/DescriberIcon';
+import { NodeIcon } from './NodeIcon';
 import { DescriberPreview } from '../components/DescriberPreview';
 import { ModelRunButton } from '../components/ModelRunButton';
 
@@ -21,7 +21,7 @@ function NodeHeading({ id, label, fallback, locked, model = false }: { id: strin
   };
   const [renaming, setRenaming] = useState(false);
   const [draft, setDraft] = useState('');
-  return <header className="text-node-header"><div className="text-node-title">{model ? <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" aria-hidden="true"><circle cx="5" cy="5" r="1" /><circle cx="5" cy="12" r="1" /><circle cx="5" cy="19" r="1" /><path d="M10 5h11M10 12h11M10 19h11" /></svg> : <DescriberIcon name="image" />}{renaming ? <input autoFocus className="text-node-rename nodrag nopan" aria-label="节点名称" value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={() => { if (draft.trim()) updateNodeData(id, { label: draft.trim() }); setRenaming(false); }} onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setRenaming(false); }} /> : <span>{label || fallback}</span>}</div><TextNodeMenu id={id} locked={Boolean(locked)} onRename={() => { setDraft(label || fallback); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu></header>;
+  return <header className="text-node-header"><div className="text-node-title"><NodeIcon nodeType={model ? 'model-input' : 'image-describer'} />{renaming ? <input autoFocus className="text-node-rename nodrag nopan" aria-label="节点名称" value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={() => { if (draft.trim()) updateNodeData(id, { label: draft.trim() }); setRenaming(false); }} onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setRenaming(false); }} /> : <span>{label || fallback}</span>}</div><TextNodeMenu id={id} locked={Boolean(locked)} onRename={() => { setDraft(label || fallback); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu></header>;
 }
 
 export function ModelInputNode({ id, data, isConnectable }: NodeProps<ModelInput>) {

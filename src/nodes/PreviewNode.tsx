@@ -1,3 +1,4 @@
+import { NodeIcon } from './NodeIcon';
 import { matteGrowShrinkLivePreviews } from './matteGrowShrinkLivePreview';
 import { resolveOutputSource } from './router';
 import { levelsLivePreviews } from './levelsLivePreview';
@@ -6,7 +7,7 @@ import { colorLivePreviews } from './colorCorrectionLivePreview';
 import { cropLivePreviews } from './cropLivePreview';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Eye } from 'lucide-react';
+import { Ellipsis } from 'lucide-react';
 import type { AppNode, PreviewNode as Preview } from './types';
 import { isNodeLocked } from './types';
 import { previewImages } from './preview';
@@ -79,7 +80,7 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
 
   return <>
     <header className="text-node-header">
-      <div className="text-node-title"><Eye size={18} strokeWidth={1.3} />{renaming
+      <div className="text-node-title"><NodeIcon nodeType="preview" size={18} />{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name}
           onChange={event => setName(event.target.value)} onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />

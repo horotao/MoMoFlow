@@ -1,6 +1,7 @@
+import { NodeIcon } from './NodeIcon';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Crop, Ellipsis, LockKeyhole, UnlockKeyhole } from 'lucide-react';
+import { Ellipsis, LockKeyhole, UnlockKeyhole } from 'lucide-react';
 import { DescriberModelSelect } from '../components/DescriberModelSelect';
 import type { AppNode, CropNode as CropNodeType, FileAsset } from './types';
 import { isCropNode, isNodeLocked } from './types';
@@ -111,7 +112,7 @@ export function CropNode({ id, data, isConnectable }: NodeProps<CropNodeType>) {
   const label = cropRatioLabel(rect, width, height, data.aspectLocked);
   return <>
     <header className="text-node-header">
-      <div className="text-node-title"><Crop size={18} strokeWidth={1.3} />{renaming
+      <div className="text-node-title"><NodeIcon nodeType="crop" size={18} />{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />

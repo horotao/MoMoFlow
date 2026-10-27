@@ -1,30 +1,27 @@
-import { MatteGrowShrinkIcon } from '../nodes/MatteGrowShrinkIcon';
 import { defaultMatteGrowShrinkSettings } from '../nodes/matteGrowShrink';
-import { MasksExtractorIcon } from '../nodes/MasksExtractorIcon';
 import { defaultNanoBananaSettings, nanoBananaName } from '../nodes/nanoBanana';
 import { defaultBlendSettings } from '../nodes/blend';
-import { Droplet, Route } from 'lucide-react';
-import { CompareIcon } from '../nodes/CompareIcon';
 import { defaultCompareData } from '../nodes/compare';
-import { ResizeIcon } from '../nodes/ResizeIcon';
 import { defaultResizeSettings } from '../nodes/resize';
 import { defaultCompositorDocument } from '../nodes/compositor';
-import { Layers, Palette } from 'lucide-react';
-import { RotateFlipIcon } from '../nodes/RotateFlipIcon';
 import { defaultRotateFlipSettings } from '../nodes/rotateFlip';
-import { InvertIcon } from '../nodes/InvertIcon';
 import { defaultLevelsSettings } from '../nodes/levels';
 import { defaultBlurSettings } from '../nodes/blur';
 import { defaultColorSettings } from '../nodes/colorCorrection';
 import { defaultCropData } from '../nodes/crop';
 import { defaultPainterData } from '../nodes/painter';
 import { defaultSunburstSettings, sunburstName } from '../nodes/sunburst';
-import { ChartNoAxesCombined, Blend, SlidersVertical, Crop, Eye, Paintbrush, Search, History, Bookmark, BriefcaseBusiness, Image, SquarePlay, AudioLines, Blocks, Images, Type, Import, ScanEye, ListFilter, MapPin, Sparkles, WandSparkles, type LucideIcon } from 'lucide-react';
+import {
+  AiBackgroundEraserIcon, AiChipIcon, AiVideoIcon, Album01Icon, Bookmark02Icon,
+  HistoryIcon, Image02Icon, ImageUpscaleIcon, PlaySquareIcon, Search01Icon, ToolCaseIcon,
+} from '@hugeicons/core-free-icons';
+import { nodeIcons } from '../nodes/nodeIcons';
+import type { IconSvgElement } from '@hugeicons/react';
 import type { AppNode } from '../nodes/types';
 import { defaultInstructions } from '../nodes/describer';
 import { defaultTextNodeText } from '../nodes/defaults';
 export type Category = 'Search' | 'Recents' | 'Saved' | 'Tools' | 'Image' | 'Video' | 'Models' | 'Assets';
-export type Item = { id: string; label: string; icon: LucideIcon; category: Category; group: string; color?: string; nodeType?: string };
+export type Item = { id: string; label: string; icon: IconSvgElement; category: Category; group: string; color?: string; nodeType?: string };
 const itemLabels: Record<string, string> = {
   'matte-grow-shrink': '蒙版扩张 / 收缩', 'masks-extractor': '蒙版提取', router: '路由', 'color-palette': '调色板', compositor: '合成器', text: '提示词',
   'image-describer': '图像描述', file: '导入', preview: '预览', compare: '对比', blend: '混合',
@@ -35,40 +32,40 @@ const itemLabels: Record<string, string> = {
 };
 export const libraryItemLabel = (item: Item) => itemLabels[item.id] ?? item.label;
 
-export const navigation: { name: Category; icon: LucideIcon; divider?: boolean }[] = [
-  { name: 'Search', icon: Search }, { name: 'Recents', icon: History }, { name: 'Saved', icon: Bookmark, divider: true },
-  { name: 'Tools', icon: BriefcaseBusiness }, { name: 'Image', icon: Image }, { name: 'Video', icon: SquarePlay },
-  { name: 'Models', icon: Blocks, divider: true }, { name: 'Assets', icon: Images },
+export const navigation: { name: Category; icon: IconSvgElement; divider?: boolean }[] = [
+  { name: 'Search', icon: Search01Icon }, { name: 'Recents', icon: HistoryIcon }, { name: 'Saved', icon: Bookmark02Icon, divider: true },
+  { name: 'Tools', icon: ToolCaseIcon }, { name: 'Image', icon: Image02Icon }, { name: 'Video', icon: PlaySquareIcon },
+  { name: 'Models', icon: AiChipIcon, divider: true }, { name: 'Assets', icon: Album01Icon },
 ];
 export const items: Item[] = [
-  { id: 'matte-grow-shrink', label: 'Matte Grow / Shrink', icon: MatteGrowShrinkIcon, category: 'Tools', group: 'Matte', nodeType: 'matte-grow-shrink' },
-  { id: 'masks-extractor', label: 'Masks Extractor', icon: MasksExtractorIcon, category: 'Tools', group: 'Matte', nodeType: 'masks-extractor' },
-  { id: 'router', label: 'Router', icon: Route, category: 'Tools', group: 'Helpers', nodeType: 'router' },
-  { id: 'color-palette', label: 'Color palette', icon: Palette, category: 'Tools', group: 'Editing', nodeType: 'color-palette' },
-  { id: 'compositor', label: 'Compositor', icon: Layers, category: 'Tools', group: 'Editing', nodeType: 'compositor' },
-  { id: 'text', label: 'Prompt', icon: Type, category: 'Tools', group: 'Text tools', nodeType: 'text' },
-  { id: 'image-describer', label: 'Image Describer', icon: ScanEye, category: 'Tools', group: 'Text tools', nodeType: 'image-describer' },
-  { id: 'file', label: 'Import', icon: Import, category: 'Tools', group: 'Helpers', nodeType: 'file' },
-  { id: 'preview', label: 'Preview', icon: Eye, category: 'Tools', group: 'Helpers', nodeType: 'preview' },
-  { id: 'compare', label: 'Compare', icon: CompareIcon, category: 'Tools', group: 'Helpers', nodeType: 'compare' },
-  { id: 'blend', label: 'Blend', icon: Droplet, category: 'Tools', group: 'Helpers', nodeType: 'blend' },
-  { id: 'model-input', label: 'Model Name', icon: ListFilter, category: 'Tools', group: 'Datatypes', nodeType: 'model-input' },
-  { id: 'position-logger', label: 'Position Logger', icon: MapPin, category: 'Tools', group: 'Helpers', nodeType: 'position-logger' },
-  { id: 'sunburst', label: sunburstName, icon: Sparkles, category: 'Image', group: 'Generate from text', nodeType: 'sunburst' },
-  { id: 'resize', label: 'Resize', icon: ResizeIcon, category: 'Tools', group: 'Editing', nodeType: 'resize' },
-  { id: 'rotate-flip', label: 'Rotate and flip', icon: RotateFlipIcon, category: 'Tools', group: 'Editing', nodeType: 'rotate-flip' },
-  { id: 'color-correction', label: 'Color correction', icon: SlidersVertical, category: 'Tools', group: 'Editing', nodeType: 'color-correction' },
-  { id: 'levels', label: 'Levels', icon: ChartNoAxesCombined, category: 'Tools', group: 'Editing', nodeType: 'levels' },
-  { id: 'invert', label: 'Invert', icon: InvertIcon, category: 'Tools', group: 'Editing', nodeType: 'invert' },
-  { id: 'blur', label: 'Blur', icon: Blend, category: 'Tools', group: 'Editing', nodeType: 'blur' },
-  { id: 'crop', label: 'Crop', icon: Crop, category: 'Tools', group: 'Editing', nodeType: 'crop' },
-  { id: 'painter', label: 'Painter', icon: Paintbrush, category: 'Tools', group: 'Editing', nodeType: 'painter' },
-  { id: 'gpt-image', label: 'GPT Image', icon: Sparkles, category: 'Image', group: 'Generate from text' },
-  { id: 'nano-banana', nodeType: 'nano-banana', label: nanoBananaName, icon: Sparkles, color: '#a48cdd', category: 'Image', group: 'Generate from text' },
-  { id: 'seedance', label: 'Seedance', icon: AudioLines, color: '#6bc9ca', category: 'Video', group: 'Generate from text or image' },
-  { id: 'kling', label: 'Kling Video', icon: SquarePlay, color: '#b1e65b', category: 'Video', group: 'Generate from text or image' },
-  { id: 'background', label: 'Background Removal', icon: WandSparkles, color: '#9b7cde', category: 'Models', group: 'Community models' },
-  { id: 'upscale', label: 'Image Upscale', icon: Image, category: 'Models', group: 'Community models' },
+  { id: 'matte-grow-shrink', label: 'Matte Grow / Shrink', icon: nodeIcons['matte-grow-shrink'], category: 'Tools', group: 'Matte', nodeType: 'matte-grow-shrink' },
+  { id: 'masks-extractor', label: 'Masks Extractor', icon: nodeIcons['masks-extractor'], category: 'Tools', group: 'Matte', nodeType: 'masks-extractor' },
+  { id: 'router', label: 'Router', icon: nodeIcons['router'], category: 'Tools', group: 'Helpers', nodeType: 'router' },
+  { id: 'color-palette', label: 'Color palette', icon: nodeIcons['color-palette'], category: 'Tools', group: 'Editing', nodeType: 'color-palette' },
+  { id: 'compositor', label: 'Compositor', icon: nodeIcons['compositor'], category: 'Tools', group: 'Editing', nodeType: 'compositor' },
+  { id: 'text', label: 'Prompt', icon: nodeIcons['text'], category: 'Tools', group: 'Text tools', nodeType: 'text' },
+  { id: 'image-describer', label: 'Image Describer', icon: nodeIcons['image-describer'], category: 'Tools', group: 'Text tools', nodeType: 'image-describer' },
+  { id: 'file', label: 'Import', icon: nodeIcons['file'], category: 'Tools', group: 'Helpers', nodeType: 'file' },
+  { id: 'preview', label: 'Preview', icon: nodeIcons['preview'], category: 'Tools', group: 'Helpers', nodeType: 'preview' },
+  { id: 'compare', label: 'Compare', icon: nodeIcons['compare'], category: 'Tools', group: 'Helpers', nodeType: 'compare' },
+  { id: 'blend', label: 'Blend', icon: nodeIcons['blend'], category: 'Tools', group: 'Helpers', nodeType: 'blend' },
+  { id: 'model-input', label: 'Model Name', icon: nodeIcons['model-input'], category: 'Tools', group: 'Datatypes', nodeType: 'model-input' },
+  { id: 'position-logger', label: 'Position Logger', icon: nodeIcons['position-logger'], category: 'Tools', group: 'Helpers', nodeType: 'position-logger' },
+  { id: 'sunburst', label: sunburstName, icon: nodeIcons['sunburst'], category: 'Image', group: 'Generate from text', nodeType: 'sunburst' },
+  { id: 'resize', label: 'Resize', icon: nodeIcons['resize'], category: 'Tools', group: 'Editing', nodeType: 'resize' },
+  { id: 'rotate-flip', label: 'Rotate and flip', icon: nodeIcons['rotate-flip'], category: 'Tools', group: 'Editing', nodeType: 'rotate-flip' },
+  { id: 'color-correction', label: 'Color correction', icon: nodeIcons['color-correction'], category: 'Tools', group: 'Editing', nodeType: 'color-correction' },
+  { id: 'levels', label: 'Levels', icon: nodeIcons['levels'], category: 'Tools', group: 'Editing', nodeType: 'levels' },
+  { id: 'invert', label: 'Invert', icon: nodeIcons['invert'], category: 'Tools', group: 'Editing', nodeType: 'invert' },
+  { id: 'blur', label: 'Blur', icon: nodeIcons['blur'], category: 'Tools', group: 'Editing', nodeType: 'blur' },
+  { id: 'crop', label: 'Crop', icon: nodeIcons['crop'], category: 'Tools', group: 'Editing', nodeType: 'crop' },
+  { id: 'painter', label: 'Painter', icon: nodeIcons['painter'], category: 'Tools', group: 'Editing', nodeType: 'painter' },
+  { id: 'gpt-image', label: 'GPT Image', icon: nodeIcons.sunburst, category: 'Image', group: 'Generate from text' },
+  { id: 'nano-banana', nodeType: 'nano-banana', label: nanoBananaName, icon: nodeIcons['nano-banana'], color: '#a48cdd', category: 'Image', group: 'Generate from text' },
+  { id: 'seedance', label: 'Seedance', icon: AiVideoIcon, color: '#6bc9ca', category: 'Video', group: 'Generate from text or image' },
+  { id: 'kling', label: 'Kling Video', icon: PlaySquareIcon, color: '#b1e65b', category: 'Video', group: 'Generate from text or image' },
+  { id: 'background', label: 'Background Removal', icon: AiBackgroundEraserIcon, color: '#9b7cde', category: 'Models', group: 'Community models' },
+  { id: 'upscale', label: 'Image Upscale', icon: ImageUpscaleIcon, category: 'Models', group: 'Community models' },
 ];
 
 export function createLibraryNode(id: string, position: { x: number; y: number }): AppNode | undefined {

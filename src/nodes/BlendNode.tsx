@@ -1,6 +1,7 @@
+import { NodeIcon } from './NodeIcon';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Droplet, Ellipsis } from 'lucide-react';
+import { Ellipsis } from 'lucide-react';
 import { isBlendNode, isNodeLocked, type AppNode, type BlendNode as Blend } from './types';
 import { blendRevision, type BlendSettings } from './blend';
 import { BlendRenderer } from './blendRender';
@@ -91,7 +92,7 @@ export function BlendNode({ id, data, isConnectable }: NodeProps<Blend>) {
 
   return <>
     <header className="text-node-header">
-      <div className="text-node-title"><Droplet size={24} strokeWidth={1} />{renaming
+      <div className="text-node-title"><NodeIcon nodeType="blend" />{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />

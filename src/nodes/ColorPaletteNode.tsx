@@ -1,6 +1,7 @@
+import { NodeIcon } from './NodeIcon';
 import { useEffect, useState } from 'react';
 import { Handle, Position, useEdges, useReactFlow, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Palette } from 'lucide-react';
+import { Ellipsis } from 'lucide-react';
 import { isColorPaletteNode, type AppNode, type ColorPaletteNode as PaletteNode } from './types';
 import { paletteBands, paletteRevision, paletteSize } from './colorPalette';
 import { assetResources } from './assetResources';
@@ -32,7 +33,7 @@ export function ColorPaletteNode({ id, data, isConnectable }: NodeProps<PaletteN
     return () => { cancelled = true; };
   }, [id, data.colors, data.locked, revision, getNode, updateNodeData]);
   return <>
-    <header className="text-node-header"><div className="text-node-title"><Palette size={24} />{renaming
+    <header className="text-node-header"><div className="text-node-title"><NodeIcon nodeType="color-palette" />{renaming
       ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
         onBlur={() => { const current = getNode(id); if (name.trim() && isColorPaletteNode(current) && !current.data.locked) updateNodeData(id, { label: name.trim() }); setRenaming(false); }}
         onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />

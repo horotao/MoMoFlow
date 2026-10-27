@@ -1,3 +1,4 @@
+import { NodeIcon } from './NodeIcon';
 import { useEffect, useRef, useState } from 'react';
 import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Ellipsis } from 'lucide-react';
@@ -7,7 +8,7 @@ import { imageOutput } from './sunburstRun';
 import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
-import { ResizeIcon, AspectRatioIcon } from './ResizeIcon';
+import { AspectRatioIcon } from './ResizeIcon';
 import { ResizeDimension } from './ResizeDimension';
 import { TextNodeMenu } from './TextNodeMenu';
 
@@ -88,7 +89,7 @@ export function ResizeNode({ id, data, isConnectable }: NodeProps<Resize>) {
 
   return <>
     <header className="text-node-header">
-      <div className="text-node-title"><ResizeIcon />{renaming
+      <div className="text-node-title"><NodeIcon nodeType="resize" />{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />

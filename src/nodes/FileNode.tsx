@@ -1,3 +1,4 @@
+import { NodeIcon } from './NodeIcon';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { assetResources } from './assetResources';
 import { Upload, Box, Music2 } from 'lucide-react';
@@ -96,7 +97,7 @@ export function FileNode({ id, data, isConnectable }: NodeProps<FileNodeType>) {
   </>;
   return <>
     <header className="file-node-header">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.5 4.5H6A1.5 1.5 0 0 0 4.5 6v12A1.5 1.5 0 0 0 6 19.5h12a1.5 1.5 0 0 0 1.5-1.5V8.5M19.5 4.5H19a7 7 0 0 0-7 7V15m-3.5-3.5L12 15l3.5-3.5" /></svg>
+      <NodeIcon nodeType="file" />
       {renaming ? <input autoFocus className="file-node-rename nodrag nopan" aria-label="File node name"
         value={title} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setTitle(event.target.value)}
         onBlur={() => { if (title.trim()) updateNodeData(id, { label: title.trim() }); setRenaming(false); }}

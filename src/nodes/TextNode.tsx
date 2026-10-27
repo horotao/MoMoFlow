@@ -1,3 +1,4 @@
+import { NodeIcon } from './NodeIcon';
 import { LockKeyhole } from 'lucide-react';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Handle, Position, useReactFlow, useNodes, useEdges, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
@@ -11,7 +12,7 @@ import { TextNodeMenu } from './TextNodeMenu';
 import { TextDisplaySelect } from './TextDisplaySelect';
 import type { AppNode, TextNode as TextNodeType } from './types';
 
-function TextNodeIcon({ name }: { name: 'text' | 'more' | 'add' | 'chevron' | 'port' | 'port-connected' }) {
+function TextNodeIcon({ name }: { name: 'more' | 'add' | 'chevron' | 'port' | 'port-connected' }) {
   return (
     <span className={`text-node-icon text-node-icon-${name}`} aria-hidden="true">
       <img className="text-node-icon-light" src={`/text-node/${name}-light.svg`} alt="" draggable={false} />
@@ -46,7 +47,7 @@ export function TextNode({ id, data, isConnectable }: NodeProps<TextNodeType>) {
   return (
     <>
       <header className="text-node-header">
-        <div className="text-node-title"><TextNodeIcon name="text" />
+        <div className="text-node-title"><NodeIcon nodeType="text" className="text-node-icon" />
           {renaming ? <input ref={renameRef} className="text-node-rename nodrag nopan" aria-label="节点名称"
             value={title} maxLength={100} onChange={(event) => setTitle(event.target.value)}
             onBlur={() => {

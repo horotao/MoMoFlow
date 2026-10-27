@@ -1,7 +1,8 @@
+import { NodeIcon } from '../NodeIcon';
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Layers, Pencil, Plus } from 'lucide-react';
+import { Ellipsis, Pencil, Plus } from 'lucide-react';
 import { isCompositorNode, type AppNode, type CompositorNode as Compositor } from '../types';
 import { addCompositorInput, compositorLayout, compositorPending, compositorRenderDocument, compositorRevision, MAX_COMPOSITOR_LAYERS, type CompositorDocument, type CompositorInputs, type CompositorLayout } from '../compositor';
 import { compositorInputs, imageOutput } from '../sunburstRun';
@@ -100,7 +101,7 @@ export function CompositorNode({ id, data, isConnectable }: NodeProps<Compositor
   useEffect(() => internals(id), [id, data.document.inputs.length, layout.width, layout.height, internals]);
   const visibleView = pending || error ? undefined : view;
   return <>
-    <header className="text-node-header"><div className="text-node-title"><Layers size={18} />{renaming
+    <header className="text-node-header"><div className="text-node-title"><NodeIcon nodeType="compositor" size={18} />{renaming
       ? <input autoFocus className="text-node-rename nodrag nopan" aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
         onBlur={() => { if (name.trim() && !data.locked) updateNodeData(id, { label: name.trim() }); setRenaming(false); }}
         onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />

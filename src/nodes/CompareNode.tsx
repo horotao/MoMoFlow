@@ -1,9 +1,9 @@
+import { NodeIcon } from './NodeIcon';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Ellipsis, Eye, EyeOff } from 'lucide-react';
 import { isNodeLocked, type AppNode, type CompareNode as Compare } from './types';
 import { imageOutput } from './sunburstRun';
-import { CompareIcon } from './CompareIcon';
 import { TextNodeMenu } from './TextNodeMenu';
 import { DescriberModelSelect } from '../components/DescriberModelSelect';
 
@@ -47,7 +47,7 @@ export function CompareNode({ id, data, isConnectable }: NodeProps<Compare>) {
     onError={() => setFailed(current => current.includes(asset.url) ? current : [...current, asset.url])} />;
   return <>
     <header className="text-node-header">
-      <div className="text-node-title"><CompareIcon />{renaming
+      <div className="text-node-title"><NodeIcon nodeType="compare" />{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />

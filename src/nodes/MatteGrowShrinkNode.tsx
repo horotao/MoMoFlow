@@ -1,3 +1,4 @@
+import { NodeIcon } from './NodeIcon';
 import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { flushSync } from 'react-dom';
 import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
@@ -11,7 +12,6 @@ import { imageOutput } from './sunburstRun';
 import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
-import { MatteGrowShrinkIcon } from './MatteGrowShrinkIcon';
 import { TextNodeMenu } from './TextNodeMenu';
 import { CanvasHistoryContext } from '../components/useCanvasHistory';
 
@@ -157,7 +157,7 @@ export function MatteGrowShrinkNode({ id, data, isConnectable }: NodeProps<Matte
 
   return <>
     <header className="text-node-header">
-      <div className="text-node-title"><MatteGrowShrinkIcon size={18} />{renaming
+      <div className="text-node-title"><NodeIcon nodeType="matte-grow-shrink" size={18} />{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />

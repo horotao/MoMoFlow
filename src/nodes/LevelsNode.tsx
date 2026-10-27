@@ -1,6 +1,7 @@
+import { NodeIcon } from './NodeIcon';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Eye, EyeOff, ChartNoAxesCombined } from 'lucide-react';
+import { Ellipsis, Eye, EyeOff } from 'lucide-react';
 import type { AppNode, LevelsNode as Levels } from './types';
 import { isLevelsNode, isNodeLocked } from './types';
 import { levelsRevision, type LevelsSettings, type LevelsHistograms } from './levels';
@@ -126,7 +127,7 @@ export function LevelsNode({ id, data, isConnectable }: NodeProps<Levels>) {
 
   return <>
     <header className="text-node-header">
-      <div className="text-node-title"><ChartNoAxesCombined size={18} strokeWidth={1.3} />{renaming
+      <div className="text-node-title"><NodeIcon nodeType="levels" size={18} />{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />

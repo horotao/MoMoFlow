@@ -1,3 +1,4 @@
+import { NodeIcon } from './NodeIcon';
 import { useEffect, useRef, useState } from 'react';
 import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Ellipsis } from 'lucide-react';
@@ -83,7 +84,7 @@ export function RotateFlipNode({ id, data, isConnectable }: NodeProps<RotateFlip
 
   return <>
     <header className="text-node-header">
-      <div className="text-node-title"><RotateFlipIcon />{renaming
+      <div className="text-node-title"><NodeIcon nodeType="rotate-flip" />{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />

@@ -1,7 +1,8 @@
+import { NodeIcon } from './NodeIcon';
 import { isPainterNode } from './types';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Brush, ChevronDown, Circle, Download, Ellipsis, Eraser, Frame, LockKeyhole, Paintbrush, Square, Star, Triangle, UnlockKeyhole } from 'lucide-react';
+import { Brush, ChevronDown, Circle, Download, Ellipsis, Eraser, Frame, LockKeyhole, Square, Star, Triangle, UnlockKeyhole } from 'lucide-react';
 import type { AppNode, PainterNode as Painter, FileAsset } from './types';
 import { isNodeLocked } from './types';
 import { type PainterTool, type PainterShape, type PaintStroke, type PaintPoint, painterRevision } from './painter';
@@ -122,7 +123,7 @@ export function PainterNode({ id, data, isConnectable }: NodeProps<Painter>) {
     patch({ [key]: next, ...(aspectLocked ? { [other]: clamp(Math.round(data[other] * next / data[key]), 1, 8192) } : {}) });
   };
   return <>
-    <header className="text-node-header"><div className="text-node-title"><Paintbrush size={18} strokeWidth={1.3} />{renaming ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={e => setName(e.target.value)} onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setRenaming(false); }} /> : <span>{data.label || '绘图'}</span>}</div><TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '绘图'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu></header>
+    <header className="text-node-header"><div className="text-node-title"><NodeIcon nodeType="painter" size={18} />{renaming ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={e => setName(e.target.value)} onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setRenaming(false); }} /> : <span>{data.label || '绘图'}</span>}</div><TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '绘图'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu></header>
     <div data-tool={tool} className={`painter-preview nodrag nopan nowheel${tool === 'canvas' || data.locked ? ' is-passive' : ''}`} style={{ aspectRatio: `${dimensions.width} / ${dimensions.height}` }}>
       <canvas ref={surface} aria-label="绘图画布" tabIndex={0}
         onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); cancelStroke(); } }}

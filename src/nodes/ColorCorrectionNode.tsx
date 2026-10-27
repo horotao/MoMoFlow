@@ -1,6 +1,7 @@
+import { NodeIcon } from './NodeIcon';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Eye, EyeOff, SlidersVertical } from 'lucide-react';
+import { Ellipsis, Eye, EyeOff } from 'lucide-react';
 import type { AppNode, ColorCorrectionNode as ColorNode } from './types';
 import { isColorCorrectionNode, isNodeLocked } from './types';
 import { colorControls, colorRevision, defaultColorSettings, type ColorSettings } from './colorCorrection';
@@ -132,7 +133,7 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
 
   return <>
     <header className="text-node-header">
-      <div className="text-node-title"><SlidersVertical size={18} strokeWidth={1.3} />{renaming
+      <div className="text-node-title"><NodeIcon nodeType="color-correction" size={18} />{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />

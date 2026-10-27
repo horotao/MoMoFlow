@@ -1,3 +1,4 @@
+import { NodeIcon } from './NodeIcon';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Handle, Position, useEdges, useReactFlow, useStore, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { ArrowRight, Ellipsis, Plus } from 'lucide-react';
@@ -6,7 +7,6 @@ import { isNodeLocked } from './types';
 import { sunburstName, sunburstFieldLabels, validateSunburstSize } from './sunburst';
 import { nanoBananaAspectRatios } from './nanoBanana';
 import { resolveTextValue } from './textVariables';
-import { OpenAIIcon } from '../components/OpenAIIcon';
 import { ModelRunButton } from '../components/ModelRunButton';
 import { TextNodeMenu } from './TextNodeMenu';
 import { FileGallery } from './FileGallery';
@@ -16,7 +16,7 @@ import { extractFileAsset, orderedAssets } from './fileCollection';
 import { downloadAsset, downloadAssets } from './fileMedia';
 
 export function SunburstNode(props: NodeProps<Sunburst>) {
-  return <ImageGenerationNode {...props} name={sunburstName} icon={<OpenAIIcon />} fieldLabels={sunburstFieldLabels} maxImages={16} mask />;
+  return <ImageGenerationNode {...props} name={sunburstName} icon={<NodeIcon nodeType="sunburst" />} fieldLabels={sunburstFieldLabels} maxImages={16} mask />;
 }
 
 type GenerationProps = NodeProps<Generator> & { name: string; icon: ReactNode; fieldLabels: Record<string, string>; maxImages: number; mask?: boolean };
