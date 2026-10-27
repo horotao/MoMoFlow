@@ -1,6 +1,6 @@
 import { restoreMasksData } from './nodes/masksExtractor';
 import { restoreNanoBananaData } from './nodes/nanoBananaClipboard';
-import { outputColor, outputKind, replaceRouterInput, routerFromOutput } from './nodes/router';
+import { outputColor, outputKind, routerFromOutput } from './nodes/router';
 import { restoreBlendData } from './nodes/blend';
 import { restoreCompareData } from './nodes/compare';
 import { restoreResizeData } from './nodes/resize';
@@ -17,7 +17,7 @@ import { restorePainterData } from './nodes/painter';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasSidebar } from './components/CanvasSidebar';
 import { ConnectionMenu, type NodeMenuChoice } from './components/ConnectionMenu';
-import { canConnect } from './nodes/connectionRules';
+import { canConnect, withoutReplacedInput } from './nodes/connectionRules';
 import { connectionChoices, choiceConnection, initializeConnectionParameter, type PendingConnection } from './nodes/connectionRecommendations';
 import { createLibraryNode, items } from './components/libraryCatalog';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -276,7 +276,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
   const onConnect: OnConnect = useCallback(
     (connection) => {
       if (!canConnect(connection, getNodes(), getEdges())) return;
-      setEdges((edges) => addEdge(connection, replaceRouterInput(connection, getNodes(), edges)));
+      setEdges((edges) => addEdge(connection, withoutReplacedInput(connection, getNodes(), edges)));
       setNodes((currentNodes) => currentNodes.map((node) =>
         node.id === connection.target && isTextNode(node)
           ? { ...node, data: { ...node.data, variableCount: Math.max(node.data.variableCount ?? 0, variableIndex(connection.targetHandle) + 2) } }
@@ -342,7 +342,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         ? { ...item, selected: false, data: { ...item.data, variableCount: Math.max(item.data.variableCount ?? 0, variableIndex(connection.targetHandle) + 2) } }
         : deselected;
     }), node]);
-    setEdges(current => addEdge({ ...connection, id: `edge-${crypto.randomUUID()}` }, replaceRouterInput(connection, currentNodes, current)));
+    setEdges(current => addEdge({ ...connection, id: `edge-${crypto.randomUUID()}` }, withoutReplacedInput(connection, currentNodes, current)));
     setPendingNodeMenu(null);
   }, [pendingNodeMenu, getNodes, getEdges, setNodes, setEdges]);
 

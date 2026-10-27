@@ -34,7 +34,7 @@ test('downstream output invalidates on changes, disconnection and upstream repla
   assert.equal(run.error, undefined);
   assert.deepEqual(run.tasks[0].imageRequest?.images, ['blob:result']);
 });
-test('connections and recommendations support image tools and reject wrong types, handles, occupied inputs and cycles', () => {
+test('connections and recommendations support image tools and reject wrong types, handles, duplicate connections and cycles', () => {
   assert.equal(canConnect(input, [file, color], []), true);
   assert.equal(canConnect(input, [file, color], [input]), false);
   assert.equal(canConnect({ ...input, targetHandle: 'bad' }, [file, color], []), false);

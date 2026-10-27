@@ -185,7 +185,7 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
         <span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
         <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
           aria-label={`色彩校正${port.label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked && (port.output || !connected)} />
+          isConnectable={isConnectable && !data.locked} />
       </div>;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}

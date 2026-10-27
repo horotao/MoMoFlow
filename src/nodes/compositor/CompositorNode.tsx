@@ -122,7 +122,7 @@ export function CompositorNode({ id, data, isConnectable }: NodeProps<Compositor
     </footer>
     {data.document.inputs.map((input, index) => <div className="describer-port-wrapper" key={input.id}>
       <span className="describer-port-label sunburst-label-image" style={{ top: 61 + index * 60 }}>{input.name}</span>
-      <Handle id={input.id} type="target" position={Position.Left} aria-label={`Compositor ${input.name}`} style={{ top: 89 + index * 60 }} className={`describer-port sunburst-port-image${inputs[input.id]?.connected ? ' is-connected' : ''}`} isConnectable={isConnectable && !data.locked && !inputs[input.id]?.connected} />
+      <Handle id={input.id} type="target" position={Position.Left} aria-label={`Compositor ${input.name}`} style={{ top: 89 + index * 60 }} className={`describer-port sunburst-port-image${inputs[input.id]?.connected ? ' is-connected' : ''}`} isConnectable={isConnectable && !data.locked} />
     </div>)}
     <span className="describer-port-label sunburst-label-image output-label" style={{ top: 61 }}>Output</span>
     <Handle id="result" type="source" position={Position.Right} aria-label="Compositor Output" style={{ top: 89 }} className="describer-port sunburst-port-image" isConnectable={isConnectable && !data.locked} />

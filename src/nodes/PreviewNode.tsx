@@ -101,7 +101,7 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
     </div>
     <span className="describer-port-label preview-port-label" style={{ top: 61 }}>File</span>
     <Handle id="file" type="target" position={Position.Left} className={`describer-port preview-port${connected ? ' is-connected' : ''}`}
-      style={{ top: 89 }} aria-label="Preview image input" isConnectable={isConnectable && !connected} />
+      style={{ top: 89 }} aria-label="Preview image input" isConnectable={isConnectable} />
     {fullscreen && active && <FileGallery assets={assets.map(asset => measured?.url === asset.url ? { ...asset, width: measured.width, height: measured.height } : asset)} activeId={viewId} onSelect={setViewId} onClose={() => setFullscreen(false)} />}
     {error && <div role="alert" className="preview-error">{error}</div>}
   </>;

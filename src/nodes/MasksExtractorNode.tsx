@@ -189,7 +189,7 @@ export function MasksExtractorNode({ id, data, isConnectable }: NodeProps<MasksN
         <span className={`describer-port-label sunburst-label-${port.handle === 'mask' ? 'mask' : 'image'}${port.output ? ' output-label' : ''}`} style={{ top: port.top - 28 }}>{port.label}</span>
         <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: port.top }}
           aria-label={`Masks Extractor ${port.label}`} className={`describer-port sunburst-port-${port.handle === 'mask' ? 'mask' : 'image'}${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked && (port.output || !connected)} />
+          isConnectable={isConnectable && !data.locked} />
       </div>;
     })}
   </>;

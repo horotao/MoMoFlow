@@ -53,7 +53,7 @@ test('Blend output invalidates on either source, settings, disconnect or pending
   assert.deepEqual(imageOutput(blend, 'result', [blend], [edge]), []);
   assert.deepEqual(imageOutput(blend, 'result', [blend], [{ ...edge, source: 'blend', sourceHandle: 'result' }]), []);
 });
-test('Blend connections accept image ports and reject occupied ports, text, locks and cycles', () => {
+test('Blend connections accept image ports and reject duplicate connections, text, locks and cycles', () => {
   const file: AppNode = { id: 'file', type: 'file', position: { x: 0, y: 0 }, data: { assets: [back] } };
   const nodes = [file, blend];
   for (const handle of ['back', 'front']) {

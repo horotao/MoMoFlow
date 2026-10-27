@@ -1,0 +1,7 @@
+<!doctype html>
+<html class="dark">
+  <head><meta charset="utf-8"><title>Port replacement regression checks</title>
+    <style>#qa-panel{position:fixed;top:8px;left:80px;z-index:10000;padding:10px 14px;border-radius:8px;background:#222;color:#eee;font:12px/1.5 monospace;max-width:650px}#results{white-space:pre-line;max-height:150px;overflow:auto}#results[data-result="passed"]{color:#72d99f}#results[data-result="failed"]{color:#f77}#qa-state{position:fixed;bottom:0;left:80px;z-index:10000;background:#222;color:#bbb;font:10px monospace;max-width:1000px;white-space:nowrap;overflow:hidden}</style>
+  </head>
+  <body><div id="qa-panel"><button id="run">Run replacement checks</button><button id="restore">Reload saved test workflow</button><div id="results" role="status">Preparing isolated canvas…</div></div><div id="root"></div><script type="module" src="./connection-replacement.test.tsx"></script></body>
+</html>

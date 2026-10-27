@@ -4,7 +4,7 @@ import { Flow } from '../src/App';
 import type { AppNode, FileAsset } from '../src/nodes/types';
 import { resolveTextValue } from '../src/nodes/textVariables';
 import { imageOutput } from '../src/nodes/sunburstRun';
-import { replaceRouterInput } from '../src/nodes/router';
+import { withoutReplacedInput } from '../src/nodes/connectionRules';
 import { assetResources } from '../src/nodes/assetResources';
 import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
 import { painterLivePreviews } from '../src/nodes/painterLivePreview';
@@ -69,7 +69,7 @@ async function run() {
   check(Math.abs(handle.left + handle.width / 2 - bounds.left) <= 1, 'Input port is centered on the node border');
   check(imageOutput(api.getNode('image-router'), 'output', api.getNodes(), api.getEdges())[0]?.id === source.id, 'Original image identity and dimensions are retained');
   const replace: Edge = { ...edges[0], source: 'alternate' };
-  api.setEdges(current => [...replaceRouterInput(replace, api.getNodes(), current), replace]); await settle();
+  api.setEdges(current => [...withoutReplacedInput(replace, api.getNodes(), current), replace]); await settle();
   check(read('consumer').includes('blue balloon') && read('consumer-2').includes('blue balloon'), 'Replacing one input updates every branch');
   find<HTMLButtonElement>('[aria-label="撤销"]').click(); await settle(); check(read('consumer').includes('red balloon'), 'One undo restores prior source');
   find<HTMLButtonElement>('[aria-label="重做"]').click(); await settle(); check(read('consumer').includes('blue balloon'), 'One redo restores replacement');

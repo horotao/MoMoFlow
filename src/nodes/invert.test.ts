@@ -89,7 +89,7 @@ test('Painter → Invert → Sunburst converts only the mask request and rejects
   assert.equal(prepareSunburstRun(editedNodes, edges, ['generator'], 1).tasks.length, 0);
 });
 
-test('connection rules reject incompatible inputs, locked nodes, occupied inputs, wrong handles and cycles', () => {
+test('connection rules reject incompatible inputs, locked nodes, duplicate connections, wrong handles and cycles', () => {
   assert.equal(canConnect(input, [file, invert], []), true);
   assert.equal(canConnect(input, [file, invert], [input]), false);
   assert.equal(canConnect({ ...input, targetHandle: 'bad' }, [file, invert], []), false);

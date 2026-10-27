@@ -66,7 +66,7 @@ test('Crop output reaches Preview and Sunburst and invalidates recursively on up
   assert.equal(run.error, undefined);
   assert.deepEqual(run.tasks[0].imageRequest?.images, ['blob:result']);
 });
-test('Crop connections reject invalid types, occupied inputs, cycles, invalid handles and locked nodes', () => {
+test('Crop connections reject invalid types, duplicate connections, cycles, invalid handles and locked nodes', () => {
   const second: CropNode = { ...crop, id: 'second' };
   const connection = { ...input, source: 'second', sourceHandle: 'result' };
   assert.equal(canConnect(input, [file, crop], []), true);

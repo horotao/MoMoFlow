@@ -98,7 +98,7 @@ export function CompareNode({ id, data, isConnectable }: NodeProps<Compare>) {
       return <div className="describer-port-wrapper" key={handle}>
         <span className={`describer-port-label sunburst-label-image${output ? ' output-label' : ''}`} style={{ top: 61 + (index - 1) * 60 }}>{label}</span>
         <Handle id={handle} type={output ? 'source' : 'target'} position={output ? Position.Right : Position.Left} style={{ top: 89 + (index - 1) * 60 }}
-          aria-label={`Compare ${label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`} isConnectable={isConnectable && !data.locked && (output || !connected)} />
+          aria-label={`Compare ${label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`} isConnectable={isConnectable && !data.locked} />
       </div>;
     }))}
     {[first, second].some(asset => asset && failed.includes(asset.url)) && <div role="alert" className="preview-error">无法读取对比图片，请检查图片来源。</div>}

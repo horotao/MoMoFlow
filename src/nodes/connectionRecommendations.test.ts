@@ -49,11 +49,12 @@ test('reverse text ports offer text producers, unavailable inputs and stale star
   assert.deepEqual(connectionChoices(pending('gone'), [text], []), []);
   assert.deepEqual(connectionChoices(pending('text'), [{ ...text, data: { text: '', locked: true } }], []), []);
   const occupied = { id: 'edge', source: 'other', target: 'text', targetHandle: 'variable-3' };
-  assert.deepEqual(connectionChoices(pending('text', 'target', 'variable-3'), [text], [occupied]), []);
+  assert.deepEqual(connectionChoices(pending('text', 'target', 'variable-3'), [text], [occupied]),
+    connectionChoices(pending('text', 'target', 'variable-3'), [text], []));
   assert.ok(connectionChoices(pending('text', 'target', 'variable-4'), [text], [occupied]).length);
 });
 
-test('shared validator preserves occupied inputs, cycles, locked nodes and image/text restrictions', () => {
+test('shared validator rejects duplicate connections, cycles, locked nodes and incompatible types', () => {
   const edge = { id: 'edge', source: 'text', sourceHandle: null, target: 'generator', targetHandle: 'prompt' };
   assert.equal(canConnect(edge, [text, generator], []), true);
   assert.equal(canConnect(edge, [text, generator], [edge]), false);

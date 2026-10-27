@@ -92,7 +92,7 @@ export function TextNode({ id, data, isConnectable }: NodeProps<TextNodeType>) {
           <Fragment key={variableHandleId(index)}>
             <span className="text-node-port-label text-node-port-label-input" style={{ top: 66 + index * 60 }}>Variable {index + 1}</span>
             <Handle className={`text-node-port${invalid ? ' is-type-error' : ''}`} title={invalid ? 'Incompatible types: this input accepts text, not media.' : undefined} id={variableHandleId(index)} type="target" position={Position.Left}
-              style={{ top: 89 + index * 60 }} isConnectable={isConnectable && !connected} aria-label={`Variable ${index + 1}`}>
+              style={{ top: 89 + index * 60 }} isConnectable={isConnectable} aria-label={`Variable ${index + 1}`}>
               <TextNodeIcon name={connected ? 'port-connected' : 'port'} />
             </Handle>
           </Fragment>

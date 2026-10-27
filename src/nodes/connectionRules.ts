@@ -5,16 +5,35 @@ import type { AppNode } from './types';
 import { isCompositorNode, isNodeLocked, isImageGeneratorNode } from './types.ts';
 import { fileAssets, fileOutputKind } from './fileCollection.ts';
 import { variableIndex } from './textVariables.ts';
-import { outputKind, replaceRouterInput, resolveOutputSource } from './router.ts';
+import { outputKind, resolveOutputSource } from './router.ts';
+
+const singleInputTypes = new Set([
+  'text', 'image-describer', 'sunburst', 'nano-banana', 'router', 'blend', 'compare',
+  'compositor', 'painter', 'masks-extractor', 'crop', 'color-correction', 'blur',
+  'levels', 'invert', 'rotate-flip', 'resize', 'preview',
+]);
+const inputKey = (node: AppNode, handle: string | null | undefined) => node.type === 'text'
+  ? variableIndex(handle) : handle ?? null;
+
+// Validate first, then replace only this input in the same update that adds the new edge.
+export function withoutReplacedInput(connection: Pick<Edge, 'target' | 'targetHandle'>, nodes: AppNode[], edges: Edge[]) {
+  const target = nodes.find(node => node.id === connection.target);
+  if (!target || !singleInputTypes.has(target.type ?? '')) return edges;
+  return edges.filter(edge => edge.target !== target.id
+    || inputKey(target, edge.targetHandle) !== inputKey(target, connection.targetHandle));
+}
 
 // Validate Router edits against their actual consumers before replacing the input.
 export function canConnect(connection: Connection | Edge, nodes: AppNode[], currentEdges: Edge[], pendingImportId?: string): boolean {
   const source = nodes.find(node => node.id === connection.source), target = nodes.find(node => node.id === connection.target);
   if (!source || !target || isNodeLocked(source) || isNodeLocked(target) || source.id === target.id) return false;
-  if (source.type !== 'router' && target.type !== 'router') return canConnectDirect(connection, nodes, currentEdges, pendingImportId);
+  if (currentEdges.some(edge => edge.source === source.id && edge.target === target.id
+    && (edge.sourceHandle ?? null) === (connection.sourceHandle ?? null)
+    && inputKey(target, edge.targetHandle) === inputKey(target, connection.targetHandle))) return false;
+  const remaining = withoutReplacedInput(connection, nodes, currentEdges);
+  if (source.type !== 'router' && target.type !== 'router') return canConnectDirect(connection, nodes, remaining, pendingImportId);
   if ((source.type === 'router' && connection.sourceHandle !== 'output') || (target.type === 'router' && connection.targetHandle !== 'input')) return false;
   if (source.type !== 'router' && !outputKind(source, connection.sourceHandle)) return false;
-  const remaining = replaceRouterInput(connection, nodes, currentEdges);
   const graph = [...remaining, { ...connection, id: 'router-candidate' }];
   const visited = new Set<string>(), queue = [target.id];
   while (queue.length) {

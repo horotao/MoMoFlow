@@ -5,7 +5,6 @@ import type { Connection, Edge, XYPosition } from '@xyflow/react';
 import type { AppNode } from './types';
 import { isCompositorNode, isNodeLocked, isImageGeneratorNode, isDescriberNode } from './types.ts';
 import { fileOutputKind } from './fileCollection.ts';
-import { variableIndex } from './textVariables.ts';
 import { sunburstParameterData } from './sunburst.ts';
 
 export type PendingConnection = {
@@ -42,7 +41,7 @@ export function initializeConnectionParameter(node: AppNode, pending: PendingCon
   return field ? { ...node, data: sunburstParameterData(field, target.data[field]) } : node;
 }
 
-function directConnectionChoices(pending: PendingConnection, nodes: AppNode[], edges: Edge[]): ConnectionChoice[] {
+function directConnectionChoices(pending: PendingConnection, nodes: AppNode[]): ConnectionChoice[] {
   const node = nodes.find(item => item.id === pending.nodeId);
   if (!node || isNodeLocked(node)) return [];
   const choice = (itemId: string, handleId: string | null, portY = 91, detail?: string): ConnectionChoice => ({
@@ -60,9 +59,6 @@ function directConnectionChoices(pending: PendingConnection, nodes: AppNode[], e
     );
     return choices;
   }
-  if (edges.some(edge => edge.target === node.id && (node.type === 'text'
-    ? variableIndex(edge.targetHandle) === variableIndex(pending.handleId)
-    : edge.targetHandle === pending.handleId))) return [];
   const imageInput = (node.type === 'blend' && ['back', 'front'].includes(pending.handleId ?? '')) || (node.type === 'compare' && ['input-1', 'input-2'].includes(pending.handleId ?? '')) || (isCompositorNode(node) && node.data.document.inputs.some(input => input.id === pending.handleId)) || (['preview', 'color-correction'].includes(node.type ?? '') && pending.handleId === 'file') || (['masks-extractor', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'blur', 'crop'].includes(node.type ?? '') && pending.handleId === 'image') || ['sunburst', 'nano-banana', 'image-describer'].includes(node.type ?? '')
     && (pending.handleId?.startsWith('image-') || pending.handleId === 'mask');
   if (imageInput) return [choice('file', 'file'), choice('masks-extractor', 'result', 89, 'Image With Alpha'), choice('masks-extractor', 'mask', 149, 'Mask'), choice('blend', 'result', 89, 'Result'), choice('compare', 'output-1', 89, 'Output 1'), choice('color-palette', 'image', 89, 'Image'), choice('compositor', 'result', 89, 'Output'), choice('sunburst', 'result'), choice('nano-banana', 'result', 89, 'Result'), choice('painter', pending.handleId === 'mask' ? 'mask' : 'result', pending.handleId === 'mask' ? 149 : 89), choice('resize', 'result', 89, 'Output'), choice('rotate-flip', 'result', 89, 'Result'), choice('invert', 'result', 89, 'Output'), choice('levels', 'result', 89, 'Output'), choice('blur', 'result', 89, 'Output'), choice('crop', 'result', 89, 'Output'), choice('color-correction', 'result', 89, 'Result'), ...(['preview', 'invert'].includes(node.type ?? '') ? [choice('painter', 'mask', 149, 'Mask')] : [])];
@@ -77,14 +73,14 @@ export function connectionChoices(pending: PendingConnection, nodes: AppNode[], 
   if (!node || isNodeLocked(node)) return [];
   const router: ConnectionChoice = { id: `router:${pending.direction === 'source' ? 'input' : 'output'}`, itemId: 'router', handleId: pending.direction === 'source' ? 'input' : 'output', portY: 31 };
   if (node.type !== 'router') {
-    const choices = directConnectionChoices(pending, nodes, edges);
+    const choices = directConnectionChoices(pending, nodes);
     return pending.direction === 'source' ? (outputKind(node, pending.handleId) ? [...choices, router] : choices) : choices.length ? [...choices, router] : [];
   }
   if (pending.handleId !== (pending.direction === 'source' ? 'output' : 'input')) return [];
   const origin = pending.direction === 'source' ? resolveOutputSource(node, 'output', nodes, edges) : undefined;
   if (origin) {
     const virtualNodes = nodes.map(item => item.id === node.id ? { ...origin.node, id: node.id, data: { ...origin.node.data, locked: false } } as AppNode : item);
-    return [...directConnectionChoices({ ...pending, handleId: origin.handle ?? null }, virtualNodes, edges), router];
+    return [...directConnectionChoices({ ...pending, handleId: origin.handle ?? null }, virtualNodes), router];
   }
   const placeholders: AppNode[] = [
     { id: node.id, type: 'text', position: node.position, data: { text: '' } },
@@ -93,7 +89,6 @@ export function connectionChoices(pending: PendingConnection, nodes: AppNode[], 
   const choices = placeholders.flatMap(placeholder => directConnectionChoices(
     { ...pending, handleId: pending.direction === 'target' ? placeholder.type === 'text' ? 'variable-1' : 'file' : placeholder.type === 'text' ? null : 'image' },
     nodes.map(item => item.id === node.id ? pending.direction === 'source' && placeholder.type === 'preview' ? { ...placeholder, type: 'color-palette', data: { colors: [] } } as AppNode : placeholder : item),
-    edges.filter(edge => edge.target !== node.id),
   ));
   const unique = [...new Map([...choices, router].map(choice => [choice.id, choice])).values()];
   if (pending.direction === 'source') return unique;

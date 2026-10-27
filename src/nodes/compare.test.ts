@@ -36,7 +36,7 @@ test('Compare permits shared upstream images, resolves chains, and terminates co
   assert.deepEqual(imageOutput(compare, 'output-2', nodes, [edges[0], { ...edges[1], source: 'a' }]), [a]);
   assert.deepEqual(imageOutput(next, 'output-1', graph, [connections[2], { id: 'cycle', source: 'next', sourceHandle: 'output-1', target: 'compare', targetHandle: 'input-2' }]), []);
 });
-test('Compare validates both ports, occupied inputs, image consumers, locks and cycles', () => {
+test('Compare validates both ports, duplicate connections, image consumers, locks and cycles', () => {
   for (const edge of edges) { assert.ok(canConnect(edge, nodes, [])); assert.equal(canConnect(edge, nodes, [edge]), false); }
   assert.equal(canConnect({ ...edges[0], targetHandle: 'image' }, nodes, []), false);
   assert.equal(canConnect(edges[0], [...files, { ...compare, data: { ...compare.data, locked: true } }], []), false);
@@ -50,7 +50,7 @@ test('Compare validates both ports, occupied inputs, image consumers, locks and 
   assert.equal(canConnect({ source: 'compare', sourceHandle: 'result', target: 'preview', targetHandle: 'file' }, [...nodes, preview], []), false);
   const pending = { nodeId: 'compare', direction: 'target' as const, handleId: 'input-2', screen: { x: 0, y: 0 }, position: { x: 0, y: 0 } };
   assert.ok(connectionChoices(pending, nodes, []).some(choice => choice.itemId === 'file'));
-  assert.deepEqual(connectionChoices(pending, nodes, edges), []);
+  assert.deepEqual(connectionChoices(pending, nodes, edges), connectionChoices(pending, nodes, []));
 });
 test('Compare snapshots validate clipboard data and preserve both asset lifetimes during storage', () => {
   const copied = { ...compare, data: { ...compare.data, input1: a, input2: b, locked: true } };

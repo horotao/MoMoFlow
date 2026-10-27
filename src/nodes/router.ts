@@ -37,12 +37,6 @@ export function outputColor(kind?: OutputKind) {
     : kind ? filePortColors[kind] : 'var(--router-empty-port)';
 }
 
-// One replacement preserves every downstream branch and records a single graph edit.
-export function replaceRouterInput(connection: Pick<Edge, 'target' | 'targetHandle'>, nodes: AppNode[], edges: Edge[]) {
-  return nodes.some(node => node.id === connection.target && node.type === 'router')
-    ? edges.filter(edge => edge.target !== connection.target || edge.targetHandle !== 'input') : edges;
-}
-
 export function routerFromOutput(sourceId: string, sourceHandle: string | null, position: XYPosition, nodes: AppNode[], edges: Edge[], id: string) {
   const source = nodes.find(node => node.id === sourceId);
   if (!source || isNodeLocked(source) || (!outputKind(source, sourceHandle, nodes, edges) && !(source.type === 'router' && sourceHandle === 'output'))) return undefined;

@@ -108,7 +108,7 @@ export function BlendNode({ id, data, isConnectable }: NodeProps<Blend>) {
       return <div className="describer-port-wrapper" key={port.handle}>
         <span className={`describer-port-label sunburst-label-image${output ? ' output-label' : ''}`} style={{ top: port.top - 28 }}>{port.label}</span>
         <Handle id={port.handle} type={output ? 'source' : 'target'} position={output ? Position.Right : Position.Left} style={{ top: port.top }} aria-label={`Blend ${port.label}`}
-          className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`} isConnectable={isConnectable && !data.locked && (output || !connected)} />
+          className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`} isConnectable={isConnectable && !data.locked} />
       </div>;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}

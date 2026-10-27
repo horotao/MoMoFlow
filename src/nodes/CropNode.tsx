@@ -146,7 +146,7 @@ export function CropNode({ id, data, isConnectable }: NodeProps<CropNodeType>) {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
       return <div className="describer-port-wrapper" key={port.handle}><span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && <span className="crop-required">*</span>}</span>
         <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }} aria-label={`裁剪${port.label}`}
-          className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`} isConnectable={isConnectable && !data.locked && (port.output || !connected)} /></div>;
+          className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`} isConnectable={isConnectable && !data.locked} /></div>;
     })}
     {error && <div role="alert" className="crop-error">{error}</div>}
   </>;
