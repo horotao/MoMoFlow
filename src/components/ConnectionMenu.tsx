@@ -1,12 +1,15 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject } from 'react';
 import { Check, CircleX, Search } from 'lucide-react';
+import { pickNearest, useFluidHover, useRegisterFluidHoverItem, type UseFluidHoverReturn } from '../hooks/use-fluid-hover';
+import { FluidHoverHighlight } from './fluid-hover-highlight';
+import { ScrollArea } from './ui/scroll-area';
 import { items, libraryItemLabel } from './libraryCatalog';
 import type { ConnectionChoice, PendingConnection } from '../nodes/connectionRecommendations';
 import './ConnectionMenu.css';
 
 const portLabels: Record<string, string> = {
   Back: '底图', Front: '前景', 'Input 1': '输入 1', Background: '背景', 'Layer 1': '图层 1',
-  File: '文件', Image: '图像', Input: '输入', Mask: '遮罩', Prompt: '提示词',
+  File: '文件', Image: '图像', 'Image With Alpha': '透明抠图', Input: '输入', Mask: '遮罩', Prompt: '提示词',
   'System Instructions': '系统指令', Result: '结果', 'Output 1': '输出 1', Output: '输出', Text: '文本',
 };
 
@@ -20,6 +23,35 @@ type Props = {
   onDismiss: () => void;
 };
 
+type OptionProps = {
+  choice: NodeMenuChoice;
+  label: string;
+  detail?: string;
+  showDetail: boolean;
+  index: number;
+  active: boolean;
+  optionRefs: MutableRefObject<(HTMLButtonElement | null)[]>;
+  registerItem: UseFluidHoverReturn['registerItem'];
+  onActivate: (index: number) => void;
+  onChoose: Props['onChoose'];
+};
+
+function ConnectionMenuOption({ choice, label, detail, showDetail, index, active, optionRefs, registerItem, onActivate, onChoose }: OptionProps) {
+  const ref = useRef<HTMLButtonElement | null>(null);
+  useRegisterFluidHoverItem(registerItem, index, ref);
+  const attach = useCallback((element: HTMLButtonElement | null) => {
+    ref.current = element;
+    optionRefs.current[index] = element;
+  }, [index, optionRefs]);
+
+  return <button type="button" role="option" aria-selected={active}
+    ref={attach} tabIndex={-1} id={`connection-choice-${index}`} className={active ? 'is-active' : ''}
+    aria-label={`${label}${detail ? ` · ${detail}` : ''}`} title={detail ? `${label} · ${detail}` : label}
+    onFocus={() => onActivate(index)} onClick={() => onChoose(choice)}>
+    <span>{label}{showDetail && detail ? ` · ${detail}` : ''}</span>
+  </button>;
+}
+
 export function ConnectionMenu({ screen, mode, choices, onChoose, onDismiss }: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -30,10 +62,23 @@ export function ConnectionMenu({ screen, mode, choices, onChoose, onDismiss }: P
   const [creator, setCreator] = useState<'all' | 'me'>('all');
   const [filterPosition, setFilterPosition] = useState({ x: 0, y: 0 });
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const pointerRef = useRef<{ x: number; y: number } | null>(null);
+  const hover = useFluidHover(resultsRef, { axis: 'y', gapClick: false });
   const [query, setQuery] = useState('');
   // Opening and typing keep focus in search without highlighting a result.
-  const [active, setActive] = useState(-1);
+  const active = hover.activeIndex ?? -1;
+  const setActive = (index: number) => {
+    // Keyboard focus and search take over from any pending pointer update.
+    pointerRef.current = null;
+    hover.handlers.onMouseLeave();
+    hover.setActiveIndex(index < 0 ? null : index);
+  };
+  const restoreFocusedOption = () => setActive(optionRefs.current.findIndex(option => option === document.activeElement));
   const [position, setPosition] = useState(screen);
+  // Keep port labels visible even when a search leaves only one matching port.
+  const choiceCounts = new Map<string, number>();
+  choices.forEach(choice => choiceCounts.set(choice.itemId, (choiceCounts.get(choice.itemId) ?? 0) + 1));
   // Built-in catalog nodes remain available for both creator filters, as in Weavy.
   const matches = choices.flatMap(choice => {
     const item = items.find(item => item.id === choice.itemId && item.nodeType);
@@ -118,8 +163,13 @@ export function ConnectionMenu({ screen, mode, choices, onChoose, onDismiss }: P
           : current <= -1 ? matches.length - 1 : current - 1;
         focusOption(next);
       }
-      if (event.key === 'Enter' && event.target === searchRef.current && matches.length) {
-        event.preventDefault(); onChoose(matches[Math.max(0, activeIndex)].choice);
+      const fromSearch = event.target === searchRef.current;
+      const fromOption = optionRefs.current.some(option => option === event.target);
+      if (event.key === 'Enter' && (fromSearch || fromOption) || event.key === ' ' && fromOption) {
+        // Pointer hover can move the highlight away from the DOM-focused row.
+        event.preventDefault();
+        const match = matches[activeIndex] ?? (fromSearch ? matches[0] : undefined);
+        if (match) onChoose(match.choice);
       }
       if (event.key === 'Tab') {
         event.preventDefault();
@@ -172,18 +222,37 @@ export function ConnectionMenu({ screen, mode, choices, onChoose, onDismiss }: P
         {creator === value && <Check size={14} strokeWidth={1.25} aria-hidden="true" />}
       </button>)}
     </div>}
-    <div id="connection-recommendations" role="listbox" aria-label={mode === 'create' ? '可创建节点' : '可连接节点'} className="connection-menu-results">
-      {matches.map(({ choice, label, detail }, index) => <button type="button" role="option" aria-selected={activeIndex === index}
-        ref={element => { optionRefs.current[index] = element; }} tabIndex={-1}
-        id={`connection-choice-${index}`} key={choice.id} className={activeIndex === index ? 'is-active' : ''}
-        aria-label={`${label}${detail ? ` · ${detail}` : ''}`}
-        title={detail ? `${label} · ${detail}` : label}
-        onMouseEnter={() => setActive(index)}
-        onMouseLeave={() => setActive(optionRefs.current.findIndex(option => option === document.activeElement))}
-        onFocus={() => setActive(index)} onClick={() => onChoose(choice)}>
-        <span>{label}</span>
-      </button>)}
+    <ScrollArea type="auto" className="connection-menu-scroll" viewportClassName="connection-menu-viewport fluid-scroll-fade"
+      onScrollCapture={() => {
+        // Wheel scrolling moves rows under a stationary pointer. Keyboard
+        // scrolling clears this pointer so the focused row keeps its highlight.
+        const point = pointerRef.current;
+        const container = resultsRef.current;
+        if (!point || !container || !hover.isMeasured) return;
+        hover.setActiveIndex(pickNearest({
+          axis: 'y', point, rects: hover.itemRects,
+          containerRect: container.getBoundingClientRect(),
+          scroll: { x: container.scrollLeft, y: container.scrollTop },
+          border: { x: container.clientLeft, y: container.clientTop },
+          layoutSize: { width: container.offsetWidth, height: container.offsetHeight },
+        }));
+      }}>
+    <div ref={resultsRef} id="connection-recommendations" role="listbox" aria-label={mode === 'create' ? '可创建节点' : '可连接节点'}
+      className="connection-menu-results connection-menu-results-fluid"
+      {...hover.handlers}
+      onMouseMove={event => {
+        pointerRef.current = { x: event.clientX, y: event.clientY };
+        hover.handlers.onMouseMove(event);
+      }}
+      onMouseLeave={restoreFocusedOption}>
+      <FluidHoverHighlight hover={hover} className="connection-menu-hover" />
+      {matches.map(({ choice, label, detail }, index) => <ConnectionMenuOption key={choice.id}
+        choice={choice} label={label} detail={detail} index={index} active={activeIndex === index}
+        showDetail={(choiceCounts.get(choice.itemId) ?? 0) > 1}
+        optionRefs={optionRefs} registerItem={hover.registerItem}
+        onActivate={setActive} onChoose={onChoose} />)}
     </div>
+    </ScrollArea>
     {!matches.length && <span className="connection-menu-status" role="status">{choices.length ? '没有匹配的节点' : mode === 'create' ? '暂无可创建的节点' : '暂无可连接的节点'}</span>}
   </div>;
 }

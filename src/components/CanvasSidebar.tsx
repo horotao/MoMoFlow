@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { useReactFlow, useNodes } from '@xyflow/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Album01Icon, ArrowDown01Icon, Cancel01Icon, HelpCircleIcon, Moon02Icon, Search01Icon, SlidersHorizontalIcon, Sun01Icon } from '@hugeicons/core-free-icons';
 import { isFileNode } from '../nodes/fileAsset';
 import { isImageGeneratorNode, type AppNode } from '../nodes/types';
+import { spring } from '../lib/springs';
 import { items as catalogItems, navigation, createLibraryNode, libraryItemLabel as itemLabel, type Category, type Item } from './libraryCatalog';
 import './CanvasSidebar.css';
 
@@ -23,6 +25,7 @@ const groupLabels: Record<string, string> = {
 };
 export function CanvasSidebar({ colorMode, onThemeChange }: { colorMode: 'light' | 'dark'; onThemeChange: () => void }) {
   const [active, setActive] = useState<Category | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [recent, setRecent] = useState<string[]>([]);
   const [filter, setFilter] = useState('All');
@@ -33,10 +36,20 @@ export function CanvasSidebar({ colorMode, onThemeChange }: { colorMode: 'light'
   const nodes = useNodes<AppNode>();
   const assets = nodes.flatMap(n => isImageGeneratorNode(n) ? n.data.results ?? [] : isFileNode(n) ? (n.data.assets ?? (n.data.asset ? [n.data.asset] : [])) : []).filter((asset, index, all) => all.findIndex(a => a.id === asset.id) === index).filter(asset => asset.name.toLowerCase().includes(query.trim().toLowerCase()));
   useEffect(() => {
+    if (!isOpen) return;
     contentRef.current?.scrollTo(0, 0);
     if (active === 'Search') searchRef.current?.focus();
-  }, [active]);
-  const choose = (category: Category) => { setActive(current => current === category ? null : category); setQuery(''); setFilter('All'); setHelp(false); };
+  }, [active, isOpen]);
+  const choose = (category: Category) => {
+    setIsOpen(current => active !== category || !current);
+    // Keep the current category and search results in place while the drawer closes.
+    if (active !== category || !isOpen) {
+      setActive(category);
+      setQuery('');
+      setFilter('All');
+    }
+    setHelp(false);
+  };
   const add = (item: Item) => {
     const position = screenToFlowPosition({ x: 310 + (window.innerWidth - 310) / 2 - 140, y: Math.max(100, window.innerHeight / 2 - 160) });
     const node = createLibraryNode(item.id, position);
@@ -47,9 +60,17 @@ export function CanvasSidebar({ colorMode, onThemeChange }: { colorMode: 'light'
   const matching = items.filter(item => `${itemLabel(item)} ${item.label}`.toLowerCase().includes(query.trim().toLowerCase()) && (filter === 'All' || item.category === filter));
   const quick = [...recent.flatMap(id => items.filter(item => item.id === id)), ...items.filter(item => ['text', 'file', 'image-describer'].includes(item.id) && !recent.includes(item.id))];
   return <>
-    <div className={`canvas-library nodrag nopan nowheel ${active ? 'is-open' : ''}`} onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { setActive(null); setHelp(false); } }}>
-      <aside className="library-drawer" aria-label={active ? `${categoryLabels[active]}面板` : '资源库面板'} id="canvas-library-panel" {...(!active ? { inert: '' } : {})}>
-        <div className="library-title"><span>未命名</span><button type="button" aria-label="关闭侧边栏" onClick={() => setActive(null)}><HugeiconsIcon icon={Cancel01Icon} size={15} aria-hidden="true" /></button></div>
+    <div className="canvas-library nodrag nopan nowheel" onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { setIsOpen(false); setHelp(false); } }}>
+      <motion.aside
+        className="library-drawer"
+        aria-label={active ? `${categoryLabels[active]}面板` : '资源库面板'}
+        id="canvas-library-panel"
+        initial={false}
+        animate={{ x: isOpen ? '0%' : '-100%' }}
+        transition={isOpen ? spring.slow : spring.slow.exit}
+        {...(!isOpen ? { inert: '' } : {})}
+      >
+        <div className="library-title"><span>未命名</span><button type="button" aria-label="关闭侧边栏" onClick={() => setIsOpen(false)}><HugeiconsIcon icon={Cancel01Icon} size={15} aria-hidden="true" /></button></div>
         <div className="library-search"><HugeiconsIcon icon={Search01Icon} size={15} aria-hidden="true" /><input ref={searchRef} aria-label="搜索资源库" placeholder="搜索" value={query} onChange={event => setQuery(event.target.value)} />{query && <button type="button" aria-label="清空搜索" onClick={() => setQuery('')}><HugeiconsIcon icon={Cancel01Icon} size={12} aria-hidden="true" /></button>}</div>
         {active === 'Search' && <div className="library-filters"><HugeiconsIcon icon={SlidersHorizontalIcon} size={13} aria-hidden="true" /><span>类型</span><select aria-label="筛选分类" value={filter} onChange={event => setFilter(event.target.value)}>{['All', 'Tools', 'Image', 'Video', 'Models'].map(value => <option key={value} value={value}>{value === 'All' ? '全部' : categoryLabels[value as Category]}</option>)}</select></div>}
         <div className={`library-content ${active && !['Assets', 'Recents', 'Search'].includes(active) ? 'library-content-category' : ''}`} ref={contentRef}>
@@ -58,11 +79,11 @@ export function CanvasSidebar({ colorMode, onThemeChange }: { colorMode: 'light'
             {(active === 'Search' || active === 'Recents' ? ['Tools', 'Image', 'Video', 'Models'] : [active]).map(category => category && <section key={category}><h2>{titles[category as Category]}</h2>{Array.from(new Set(items.filter(item => item.category === category).map(item => item.group))).map(group => <section key={group}><h3>{groupLabels[group] ?? group}</h3>{cards(items.filter(item => item.category === category && item.group === group))}</section>)}</section>)}
           </>}
         </div>
-      </aside>
+      </motion.aside>
       <nav className="library-rail" aria-label="画布工具栏">
         <div className="library-nav">
           {navigation.map(({ name, icon, divider }) => <div key={name} className={divider ? 'library-nav-divider' : undefined}>
-            <button type="button" aria-label={categoryLabels[name]} aria-expanded={active === name} aria-controls="canvas-library-panel" onClick={() => choose(name)}>
+            <button type="button" aria-label={categoryLabels[name]} aria-expanded={isOpen && active === name} aria-controls="canvas-library-panel" onClick={() => choose(name)}>
               <span className="library-icon"><HugeiconsIcon icon={icon} aria-hidden="true" /></span>
               <span>{categoryLabels[name]}</span>
             </button>
@@ -79,6 +100,6 @@ export function CanvasSidebar({ colorMode, onThemeChange }: { colorMode: 'light'
       </nav>
       {help && <div className="library-help"><strong>画布快捷键</strong><p>V <span>选择</span></p><p>H <span>平移</span></p><p>⌘ / Ctrl Z <span>撤销</span></p><p>Esc <span>关闭侧边栏</span></p><small>点击卡片，或将其拖入画布。</small></div>}
     </div>
-    {!active && <div className="library-workflow-title nodrag nopan">未命名</div>}
+    {!isOpen && <div className="library-workflow-title nodrag nopan">未命名</div>}
   </>;
 }

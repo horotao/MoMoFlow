@@ -665,6 +665,7 @@
 .dark .describer-panel, .dark .describer-tasks { --panel-bg: #2c2c2c; --panel-input: #383838; --panel-border: #444; --panel-text: #eee; --panel-muted: #b3b3b3; }
 .describer-panel { right: 16px; top: 16px; width: 240px; border: 1px solid var(--panel-border); border-radius: 12px; }
 .describer-panel.is-open { right: 0; top: 0; bottom: 0; border-radius: 0; display: flex; flex-direction: column; }
+.describer-panel[inert] { pointer-events: none; }
 .describer-panel button, .describer-tasks button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; color: inherit; background: transparent; border: 0; padding: 5px; cursor: pointer; font: inherit; border-radius: 4px; }
 .describer-panel button:hover, .describer-tasks button:hover { background: var(--panel-input); }
 .describer-panel button:disabled { opacity: .35; cursor: default; }
@@ -790,8 +791,6 @@
 
 /* Keep the collapsed Tasks shell free of the sidebar's internal divider. */
 .describer-panel:not(.is-open) .describer-panel-top { border-bottom: 0; }
-.describer-panel.is-open { animation: describer-panel-enter 220ms cubic-bezier(.2,.8,.2,1); }
-@keyframes describer-panel-enter { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 .react-flow__node-image-describer .text-node-footer { height: 32px; }
 .react-flow__node-image-describer .text-node-footer button { height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 0 8px; border-radius: 5px; cursor: pointer; transition: background-color 120ms; }
 .react-flow__node-image-describer .text-node-footer .text-node-button { margin-left: -4px; padding: 0 4px; }

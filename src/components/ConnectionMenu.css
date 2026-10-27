@@ -6,6 +6,7 @@
   --connection-menu-focus: #808080;
   --connection-menu-active: #2c2c2c;
   --connection-menu-active-text: #fff;
+  --overlay: 0 0 0;
   position: fixed;
   z-index: 1100;
   box-sizing: border-box;
@@ -23,12 +24,13 @@
   font: 450 11px/16px var(--font-ui);
 }
 .dark .connection-menu {
-  --connection-menu-surface: #1e1e1e;
+  --connection-menu-surface: #2c2c2c;
   --connection-menu-text: #fff;
   --connection-menu-input: #383838;
   --connection-menu-focus: #b3b3b3;
-  --connection-menu-active: #fff;
-  --connection-menu-active-text: #2c2c2c;
+  --connection-menu-active: #424242;
+  --connection-menu-active-text: #fff;
+  --overlay: 255 255 255;
 }
 .connection-menu-search-row { display: flex; gap: 4px; margin-bottom: 4px; flex-shrink: 0; }
 .connection-menu-search {
@@ -43,7 +45,6 @@
   border-radius: 5px;
   background: var(--connection-menu-input);
 }
-.connection-menu-search:focus-within { outline: 1px solid var(--connection-menu-focus); }
 .connection-menu-search > svg { flex-shrink: 0; color: #b3b3b3; }
 .connection-menu-search input {
   min-width: 0;
@@ -70,7 +71,18 @@
   cursor: pointer;
 }
 .connection-menu-clear:hover { color: var(--connection-menu-text); }
-.connection-menu-results { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.connection-menu-scroll { min-height: 0; }
+.connection-menu-viewport {
+  height: auto;
+  /* Menu padding (16px) and search row (28px) stay outside the scroller. */
+  max-height: min(536px, calc(100vh - 60px));
+  overscroll-behavior: contain;
+}
+.connection-menu-results { min-height: 0; }
+/* Reserve the 10px scrollbar track plus a 2px gap whenever it is mounted. */
+.connection-menu-scroll:has(> [data-slot='scroll-area-scrollbar'][data-orientation='vertical']) .connection-menu-results {
+  margin-inline-end: 12px;
+}
 .connection-menu-results button {
   display: flex;
   align-items: center;
@@ -92,7 +104,18 @@
   outline: none;
 }
 .connection-menu-results button > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.connection-menu-status { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* An exiting highlight must not create overflow after search shortens the list. */
+.connection-menu-results-fluid { position: relative; isolation: isolate; overflow: clip; }
+.connection-menu-results-fluid .connection-menu-hover {
+  z-index: -1;
+  border-radius: 5px;
+  background: var(--connection-menu-active);
+}
+.connection-menu-results-fluid button { position: relative; }
+.connection-menu-results-fluid button:hover,
+.connection-menu-results-fluid button.is-active { background: transparent; }
+.connection-menu-results-fluid button:hover:not(.is-active) { color: inherit; }
+.connection-menu-status { display: block; padding: 8px; color: var(--connection-menu-focus); }
 .connection-menu-filter-trigger {
   display: grid;
   place-items: center;

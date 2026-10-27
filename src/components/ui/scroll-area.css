@@ -1,0 +1,57 @@
+/* Fluid Functionalism scroll-fade, scoped to opt-in ScrollArea viewports.
+ * Source (MIT): https://www.fluidfunctionalism.com/r/scroll-area.json */
+/* Radix sets both thumb dimensions inline. Supply its cross-axis variable
+ * so the 4px / 6px thumb widths also work with Radix 1.4. */
+[data-slot='scroll-area-scrollbar'][data-orientation='vertical'] {
+  --radix-scroll-area-thumb-width: 4px;
+  padding-block: 4px;
+}
+[data-slot='scroll-area-scrollbar'][data-orientation='vertical']:hover {
+  --radix-scroll-area-thumb-width: 6px;
+}
+[data-slot='scroll-area-scrollbar'][data-orientation='horizontal'] {
+  --radix-scroll-area-thumb-height: 4px;
+  padding-inline: 4px;
+}
+[data-slot='scroll-area-scrollbar'][data-orientation='horizontal']:hover {
+  --radix-scroll-area-thumb-height: 6px;
+}
+/* Radix includes track padding in its measurements, but not thumb margins. */
+[data-slot='scroll-area-scrollbar'][data-orientation='vertical'] > [data-slot='scroll-area-thumb'] {
+  margin-block: 0;
+}
+[data-slot='scroll-area-scrollbar'][data-orientation='horizontal'] > [data-slot='scroll-area-thumb'] {
+  margin-inline: 0;
+}
+@property --fluid-scroll-start {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
+@property --fluid-scroll-end {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
+@keyframes fluid-scroll-reveal-start {
+  from { --fluid-scroll-start: 1; }
+  to { --fluid-scroll-start: 0; }
+}
+@keyframes fluid-scroll-reveal-end {
+  from { --fluid-scroll-end: 0; }
+  to { --fluid-scroll-end: 1; }
+}
+.fluid-scroll-fade { --scroll-fade-size: 48px; }
+@supports (animation-timeline: scroll()) {
+  .fluid-scroll-fade {
+    mask-image: linear-gradient(to bottom,
+      rgb(0 0 0 / var(--fluid-scroll-start)) 0,
+      #000 var(--scroll-fade-size),
+      #000 calc(100% - var(--scroll-fade-size)),
+      rgb(0 0 0 / var(--fluid-scroll-end)) 100%);
+    animation: fluid-scroll-reveal-start both linear, fluid-scroll-reveal-end both linear;
+    animation-timeline: scroll(self), scroll(self);
+    animation-range-start: 0, calc(100% - var(--scroll-fade-size));
+    animation-range-end: var(--scroll-fade-size), 100%;
+  }
+}

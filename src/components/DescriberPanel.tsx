@@ -15,7 +15,8 @@ import { prepareSunburstRun } from '../nodes/sunburstRun';
 import { sunburstName } from '../nodes/sunburst';
 import { assetResources, taskAssetUrls } from '../nodes/assetResources';
 import { requestSunburst } from '../nodes/sunburstClient';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEventHandler, type ReactNode, type RefObject } from 'react';
+import { AnimatePresence, motion, useIsPresent } from 'motion/react';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import { X } from 'lucide-react';
 import { TaskManager } from './TaskManager';
@@ -28,6 +29,23 @@ import { DescriberModelSelect } from './DescriberModelSelect';
 import { resolveTextValue } from '../nodes/textVariables';
 import { prepareDescriberRun } from '../nodes/describerRun';
 import { requestDescription } from '../nodes/describerClient';
+import { spring } from '../lib/springs';
+
+function NodeSettingsSidebar({ children, label, onKeyDown }: {
+  children: ReactNode; label: string; onKeyDown: KeyboardEventHandler<HTMLElement>;
+}) {
+  const isPresent = useIsPresent();
+  return <motion.aside
+    className="describer-panel is-open nodrag nopan nowheel"
+    aria-label={label}
+    initial={{ x: '100%', opacity: 0 }}
+    animate={{ x: '0%', opacity: 1 }}
+    exit={{ x: '100%', opacity: 0, transition: spring.slow.exit }}
+    transition={spring.slow}
+    {...(!isPresent ? { inert: '' } : {})}
+    onKeyDown={onKeyDown}
+  >{children}</motion.aside>;
+}
 
 export function DescriberPanel() {
   const nodes = useNodes<AppNode>();
@@ -52,6 +70,7 @@ export function DescriberPanel() {
   const [error, setError] = useState('');
   const workers = useRef(new Map<string, { nodeId: string; controller: AbortController }>());
   const tasksTrigger = useRef<HTMLButtonElement>(null);
+  const collapsedTasksTrigger = useRef<HTMLButtonElement>(null);
   const changeTasks = taskStore.update;
   useEffect(() => taskStore.subscribe(() => {
     for (const [id, worker] of workers.current) {
@@ -141,52 +160,59 @@ export function DescriberPanel() {
     setNodes((all) => [...all.map((n) => n.id === selected.id && isDescriberNode(n) ? { ...n, data: { ...n.data, exposed: [...exposed, field] } } : n), input]);
     setEdges((all) => [...all, { id: crypto.randomUUID(), source: id, target: selected.id, targetHandle: field }]);
   };
+  const taskButton = (ref: RefObject<HTMLButtonElement>) => <div className="describer-panel-top">
+    <button ref={ref} className={tasksOpen ? 'active' : ''} aria-controls={tasksOpen ? 'task-manager' : undefined} aria-expanded={tasksOpen} onClick={() => setTasksOpen(!tasksOpen)}>
+      任务<DescriberIcon name="chevron" />{tasks.filter(isActiveTask).length || ''}
+    </button>
+  </div>;
   return <>
-    <aside className={`describer-panel nodrag nopan nowheel ${panelOpen ? 'is-open' : ''}`} aria-label={selectedPalette ? "Color palette settings" : selectedImage ? `${selectedImage.type === 'ideogram' ? ideogramName : selectedImage.type === 'nano-banana' ? nanoBananaName : sunburstName} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => { if (!(selectedPalette && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !(e.target as HTMLElement).closest('input'))) e.stopPropagation(); }}>
-      {!selectedPalette && selectedImage && <div className="sunburst-provider"><span>{isIdeogramNode(selectedImage) ? 'WaveSpeed' : 'ZenMux'}</span><span>按用量计费</span></div>}
-      <div className="describer-panel-top">
-        <button ref={tasksTrigger} className={tasksOpen ? 'active' : ''} aria-controls={tasksOpen ? 'task-manager' : undefined} aria-expanded={tasksOpen} onClick={() => setTasksOpen(!tasksOpen)}>
-          任务<DescriberIcon name="chevron" />{tasks.filter(isActiveTask).length || ''}
-        </button>
-      </div>
-      {selectedPalette && isColorPaletteNode(selectedPalette) && <div className="describer-settings palette-settings"><h2>{selectedPalette.data.label || 'Color palette'}</h2><label>Color palette</label><ColorPaletteColors key={selectedPalette.id} node={selectedPalette} /></div>}
-      {selectedModel && !selectedPalette && !selectedImage && <ModelOptionsSettings key={selectedModel.id} node={selectedModel} onChange={data => updateNodeData(selectedModel.id, data)} />}
-      {!selectedPalette && selectedImage && isSunburstNode(selectedImage) && <SunburstSettings key={selectedImage.id} node={selectedImage} />}
-      {!selectedPalette && selectedImage && isIdeogramNode(selectedImage) && <IdeogramSettings key={selectedImage.id} node={selectedImage} />}
-      {!selectedPalette && selectedImage && isNanoBananaNode(selectedImage) && <NanoBananaSettings key={selectedImage.id} node={selectedImage} />}
-      {selected && !selectedPalette && !selectedImage && <>
-        <div className="describer-settings" key={selected.id}>
-          <h2>Image Describer</h2>
-          <div className="describer-field">
-            <label htmlFor="describer-model">Model</label>
-            <div className="describer-field-row">
-              <DescriberModelSelect value={effective(selected, 'model')} disabled={selected.data.locked || selected.data.exposed?.includes('model')} onChange={(model) => updateNodeData(selected.id, { model })} />
-              <button disabled={selected.data.locked} className="describer-expose" data-exposed={Boolean(selected.data.exposed?.includes('model'))} title={selected.data.exposed?.includes('model') ? 'Use local value' : 'Set as input'} aria-label="Set model as input" aria-pressed={Boolean(selected.data.exposed?.includes('model'))} onClick={() => expose('model')}><DescriberIcon name="expose" /></button>
+    {!panelOpen && <aside className="describer-panel nodrag nopan nowheel" aria-label="任务" onKeyDown={event => event.stopPropagation()}>
+      {taskButton(collapsedTasksTrigger)}
+    </aside>}
+    {/* Presence retains the last settings and full-height shell until the exit finishes. */}
+    <AnimatePresence initial={false}>
+      {panelOpen && <NodeSettingsSidebar key="node-settings" label={selectedPalette ? "Color palette settings" : selectedImage ? `${selectedImage.type === 'ideogram' ? ideogramName : selectedImage.type === 'nano-banana' ? nanoBananaName : sunburstName} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => { if (!(selectedPalette && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !(e.target as HTMLElement).closest('input'))) e.stopPropagation(); }}>
+        {!selectedPalette && selectedImage && <div className="sunburst-provider"><span>{isIdeogramNode(selectedImage) ? 'WaveSpeed' : 'ZenMux'}</span><span>按用量计费</span></div>}
+        {taskButton(tasksTrigger)}
+        {selectedPalette && isColorPaletteNode(selectedPalette) && <div className="describer-settings palette-settings"><h2>{selectedPalette.data.label || 'Color palette'}</h2><label>Color palette</label><ColorPaletteColors key={selectedPalette.id} node={selectedPalette} /></div>}
+        {selectedModel && !selectedPalette && !selectedImage && <ModelOptionsSettings key={selectedModel.id} node={selectedModel} onChange={data => updateNodeData(selectedModel.id, data)} />}
+        {!selectedPalette && selectedImage && isSunburstNode(selectedImage) && <SunburstSettings key={selectedImage.id} node={selectedImage} />}
+        {!selectedPalette && selectedImage && isIdeogramNode(selectedImage) && <IdeogramSettings key={selectedImage.id} node={selectedImage} />}
+        {!selectedPalette && selectedImage && isNanoBananaNode(selectedImage) && <NanoBananaSettings key={selectedImage.id} node={selectedImage} />}
+        {selected && !selectedPalette && !selectedImage && <>
+          <div className="describer-settings" key={selected.id}>
+            <h2>Image Describer</h2>
+            <div className="describer-field">
+              <label htmlFor="describer-model">Model</label>
+              <div className="describer-field-row">
+                <DescriberModelSelect value={effective(selected, 'model')} disabled={selected.data.locked || selected.data.exposed?.includes('model')} onChange={(model) => updateNodeData(selected.id, { model })} />
+                <button disabled={selected.data.locked} className="describer-expose" data-exposed={Boolean(selected.data.exposed?.includes('model'))} title={selected.data.exposed?.includes('model') ? 'Use local value' : 'Set as input'} aria-label="Set model as input" aria-pressed={Boolean(selected.data.exposed?.includes('model'))} onClick={() => expose('model')}><DescriberIcon name="expose" /></button>
+              </div>
+            </div>
+            <div className="describer-field">
+              <label htmlFor="describer-instructions">System Instructions</label>
+              <div className="describer-field-row">
+                <textarea id="describer-instructions" value={effective(selected, 'instructions')} readOnly={selected.data.locked || selected.data.exposed?.includes('instructions')} onChange={(e) => updateNodeData(selected.id, { instructions: e.target.value })} />
+                <button disabled={selected.data.locked} className="describer-expose" data-exposed={Boolean(selected.data.exposed?.includes('instructions'))} title={selected.data.exposed?.includes('instructions') ? 'Use local value' : 'Set as input'} aria-label="Set system instructions as input" aria-pressed={Boolean(selected.data.exposed?.includes('instructions'))} onClick={() => expose('instructions')}><DescriberIcon name="expose" /></button>
+              </div>
             </div>
           </div>
-          <div className="describer-field">
-            <label htmlFor="describer-instructions">System Instructions</label>
-            <div className="describer-field-row">
-              <textarea id="describer-instructions" value={effective(selected, 'instructions')} readOnly={selected.data.locked || selected.data.exposed?.includes('instructions')} onChange={(e) => updateNodeData(selected.id, { instructions: e.target.value })} />
-              <button disabled={selected.data.locked} className="describer-expose" data-exposed={Boolean(selected.data.exposed?.includes('instructions'))} title={selected.data.exposed?.includes('instructions') ? 'Use local value' : 'Set as input'} aria-label="Set system instructions as input" aria-pressed={Boolean(selected.data.exposed?.includes('instructions'))} onClick={() => expose('instructions')}><DescriberIcon name="expose" /></button>
-            </div>
+        </>}
+        {!selectedPalette && (selected || selectedImage) && <>
+          <div className="describer-panel-bottom">
+            <h3>运行选中节点</h3>
+            <div className="describer-runs"><span>运行次数</span><div>
+              <button aria-label="减少运行次数" disabled={!runnable.length || runs === 1} onClick={() => setRuns(runs - 1)}><DescriberIcon name="minus" /></button>
+              <span>{runs}</span>
+              <button aria-label="增加运行次数" disabled={!runnable.length || runs === 10} onClick={() => setRuns(runs + 1)}><DescriberIcon name="plus" /></button>
+            </div></div>
+            {selectedImage && <div className="sunburst-cost"><span>总费用</span><span>按实际用量计费</span></div>}
+            <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? `通过 ${isIdeogramNode(selectedImage) ? "WaveSpeed" : "ZenMux"} 运行图片模型` : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => (isDescriberNode(node) || isImageGeneratorNode(node)) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />运行选中节点</button>
           </div>
-        </div>
-      </>}
-      {!selectedPalette && (selected || selectedImage) && <>
-        <div className="describer-panel-bottom">
-          <h3>运行选中节点</h3>
-          <div className="describer-runs"><span>运行次数</span><div>
-            <button aria-label="减少运行次数" disabled={!runnable.length || runs === 1} onClick={() => setRuns(runs - 1)}><DescriberIcon name="minus" /></button>
-            <span>{runs}</span>
-            <button aria-label="增加运行次数" disabled={!runnable.length || runs === 10} onClick={() => setRuns(runs + 1)}><DescriberIcon name="plus" /></button>
-          </div></div>
-          {selectedImage && <div className="sunburst-cost"><span>总费用</span><span>按实际用量计费</span></div>}
-          <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? `通过 ${isIdeogramNode(selectedImage) ? "WaveSpeed" : "ZenMux"} 运行图片模型` : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => (isDescriberNode(node) || isImageGeneratorNode(node)) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />运行选中节点</button>
-        </div>
-      </>}
-    </aside>
-    {tasksOpen && <TaskManager tasks={tasks} trigger={tasksTrigger} sidebarOpen={panelOpen}
+        </>}
+      </NodeSettingsSidebar>}
+    </AnimatePresence>
+    {tasksOpen && <TaskManager tasks={tasks} trigger={panelOpen ? tasksTrigger : collapsedTasksTrigger} sidebarOpen={panelOpen}
       onClose={() => setTasksOpen(false)} onChange={changeTasks}
       onRetry={(task) => {
         const node = getNodes().find((item) => item.id === task.nodeId);
