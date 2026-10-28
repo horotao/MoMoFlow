@@ -1,3 +1,4 @@
+import { sourceSignature } from './executionGraph';
 import { ideogramFieldLabels } from './ideogram';
 import { nanoBananaFieldLabels } from './nanoBanana';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -41,7 +42,7 @@ export function ModelInputNode({ id, data, isConnectable }: NodeProps<ModelInput
 }
 
 export function ImageDescriberNode({ id, data, isConnectable }: NodeProps<Describer>) {
-  const { updateNodeData: rawUpdateNodeData, getNode } = useReactFlow<AppNode>();
+  const { updateNodeData: rawUpdateNodeData, getNode, getNodes, getEdges } = useReactFlow<AppNode>();
   const updateNodeData: typeof rawUpdateNodeData = (nodeId, patch, options) => {
     if (isNodeLocked(getNode(nodeId))) return;
     rawUpdateNodeData(nodeId, patch, options);
@@ -75,7 +76,7 @@ export function ImageDescriberNode({ id, data, isConnectable }: NodeProps<Descri
   const run = () => !isNodeLocked(getNode(id)) && window.dispatchEvent(new CustomEvent('describer-run', { detail: id }));
   return <>
     <NodeHeading id={id} label={data.label} locked={data.locked} fallback="图像描述" />
-    <div className="text-node-content describer-output" style={{ height: outputHeight, flex: 'none' }}><textarea ref={outputRef} className="nodrag nowheel" readOnly={data.locked} aria-label="Generated text" placeholder="Generated text will appear here" value={data.text} onChange={(e) => updateNodeData(id, { text: e.target.value })} /><button className="describer-expand nodrag" title="Full screen" aria-label="Full screen" onClick={() => setFullscreen(true)}><Maximize2 size={14} /></button></div>
+    <div className="text-node-content describer-output" style={{ height: outputHeight, flex: 'none' }}><textarea ref={outputRef} className="nodrag nowheel" readOnly={data.locked} aria-label="Generated text" placeholder="Generated text will appear here" value={data.text} onChange={(e) => { const node = getNode(id); if (node) { let marker: string | undefined; try { marker = sourceSignature({ nodes: getNodes(), edges: getEdges() }, node); } catch { /* Missing sources remain visibly unverified. */ } updateNodeData(id, { text: e.target.value, outputMode: 'manual', sourceSignature: marker }); } }} /><button className="describer-expand nodrag" title="Full screen" aria-label="Full screen" onClick={() => setFullscreen(true)}><Maximize2 size={14} /></button></div>
     <footer className="text-node-footer"><button disabled={data.locked} className="text-node-button nodrag" onClick={() => updateNodeData(id, { imageInputs: data.imageInputs + 1 })}><Plus size={16} />Add another image input</button><ModelRunButton nodeId={id} disabled={data.locked} className="describer-run nodrag nopan" onRun={run}><ArrowRight size={13} />Run Model</ModelRunButton></footer>
     {[...Array.from({ length: data.imageInputs }, (_, i) => ({ id: `image-${i}`, label: i ? `Image ${i + 1}` : 'Image *', image: true })), ...exposed.map((field) => ({ id: field, label: field === 'model' ? 'Model' : 'System Instructions', image: false }))].map((port, i) => <div key={port.id} className="describer-port-wrapper"><span className="describer-port-label" style={{ top: 61 + i * 50, color: port.image ? 'var(--media-port-image)' : undefined }}>{port.label}</span><Handle id={port.id} type="target" position={Position.Left} className={`describer-port ${port.image ? 'image-port' : ''}${edges.some((e) => e.target === id && e.targetHandle === port.id) ? ' is-connected' : ''}`} style={{ top: 89 + i * 50 }} aria-label={port.label} isConnectable={isConnectable} /></div>)}
     <span className="describer-port-label output-label">Text</span><Handle type="source" position={Position.Right} className={`describer-port${edges.some((e) => e.source === id) ? ' is-connected' : ''}`} style={{ top: 89 }} isConnectable={isConnectable} aria-label="Text output" />

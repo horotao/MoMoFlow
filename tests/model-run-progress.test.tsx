@@ -27,11 +27,12 @@ const nodeTypes = { text: TextNode, sunburst: SunburstNode, 'image-describer': I
 const initialNodes: AppNode[] = [
   { id: 'prompt', type: 'text', position: { x: 0, y: 40 }, data: { text: 'A quiet mountain landscape in soft morning light.' } },
   { id: 'image', type: 'sunburst', position: { x: 540, y: 40 }, data: { ...defaultSunburstSettings, imageInputs: 1, results: [asset], activeResultId: asset.id } },
+  { id: 'source', type: 'file', position: { x: 540, y: 600 }, data: { assets: [asset] } },
   { id: 'description', type: 'image-describer', position: { x: 1080, y: 40 }, data: { text: '', imageInputs: 1, model: 'deepseek-flash', instructions: '' } },
 ];
 const initialEdges: Edge[] = [
   { id: 'prompt-image', source: 'prompt', target: 'image', targetHandle: 'prompt' },
-  { id: 'image-description', source: 'image', sourceHandle: 'result', target: 'description', targetHandle: 'image-0' },
+  { id: 'image-description', source: 'source', sourceHandle: 'file', target: 'description', targetHandle: 'image-0' },
 ];
 
 type Request = { path: string; signal?: AbortSignal | null; resolve: (response: Response) => void; settled: boolean };
@@ -89,13 +90,13 @@ const nodeTask = (id: string) => [...store.getSnapshot()].reverse().find(task =>
 const nodeSelector = (id: string) => `.react-flow__node[data-id="${id}"]`;
 async function run() {
   createRoot(document.getElementById('root')!).render(<ReactFlowProvider><ModelTasksProvider><Harness /></ModelTasksProvider></ReactFlowProvider>);
-  await until(() => Boolean(document.querySelector('.sunburst-run')) && nodesNow.length === 3, 'Nodes did not mount');
+  await until(() => Boolean(document.querySelector('.sunburst-run')) && nodesNow.length === 4, 'Nodes did not mount');
   await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
   const checks: string[] = [];
   const check = (value: unknown, message: string) => { assert(value, message); checks.push(message); };
   find('.sunburst-run').click();
   await until(() => Boolean(document.querySelector(`${nodeSelector('image')} [aria-busy="true"]`)), 'Starting state missing');
-  check(find(`${nodeSelector('image')} .model-run-progress`).textContent?.includes('Starting'), 'Starting replaces Run Model');
+  check(Boolean(find(`${nodeSelector('image')} .model-run-progress`).textContent?.match(/Starting|等待上游/)), 'Starting replaces Run Model');
   await until(() => requests.length === 1, 'Image request not scheduled');
   find('.describer-run').click();
   await until(() => requests.length === 2, 'Description did not start concurrently');

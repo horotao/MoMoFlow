@@ -1,3 +1,4 @@
+import type { GenerationRecord, OutputPolicy } from './executionGraph';
 import type { IdeogramEditSettings, IdeogramField, IdeogramSettings } from './ideogram';
 import type { MasksExtractorData } from './masksExtractor';
 import type { NanoBananaSettings } from './nanoBanana';
@@ -25,14 +26,15 @@ export type FileAsset = {
   id: string; name: string; url: string; kind: 'image' | 'video' | 'audio' | '3d'; size?: number; width?: number; height?: number;
   // Preserve gray-mask semantics through pass-through nodes and saved snapshots.
   maskMode?: 'luminance';
+  contentHash?: string; generation?: GenerationRecord;
 };
 export type FileNode = Node<{ label?: string; locked?: boolean; asset?: FileAsset; assets?: FileAsset[]; activeAssetId?: string; viewMode?: 'single' | 'all'; orderBy?: 'date' | 'name' }, 'file'>;
-export type ImageDescriberNode = Node<{ label?: string; locked?: boolean; text: string; model: string; instructions: string; imageInputs: number; exposed?: ('model' | 'instructions')[] }, 'image-describer'>;
+export type ImageDescriberNode = Node<OutputPolicy & { generation?: GenerationRecord; label?: string; locked?: boolean; text: string; model: string; instructions: string; imageInputs: number; exposed?: ('model' | 'instructions')[] }, 'image-describer'>;
 export type ModelInputNode = Node<{ label?: string; locked?: boolean; model: string; options?: string[]; parameter?: keyof SunburstSettings | keyof NanoBananaSettings | IdeogramField }, 'model-input'>;
-export type SunburstNode = Node<SunburstSettings & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof SunburstSettings)[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'sunburst'>;
+export type SunburstNode = Node<SunburstSettings & OutputPolicy & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof SunburstSettings)[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'sunburst'>;
 export const isSunburstNode = (node: AppNode): node is SunburstNode => node.type === 'sunburst';
-export type NanoBananaNode = Node<NanoBananaSettings & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof NanoBananaSettings)[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'nano-banana'>;
-export type IdeogramNode = Node<IdeogramSettings & Partial<IdeogramEditSettings> & { label?: string; locked?: boolean; imageInputs: number; exposed?: IdeogramField[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'ideogram'>;
+export type NanoBananaNode = Node<NanoBananaSettings & OutputPolicy & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof NanoBananaSettings)[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'nano-banana'>;
+export type IdeogramNode = Node<IdeogramSettings & Partial<IdeogramEditSettings> & OutputPolicy & { label?: string; locked?: boolean; imageInputs: number; exposed?: IdeogramField[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'ideogram'>;
 export const isIdeogramNode = (node: AppNode): node is IdeogramNode => node.type === 'ideogram';
 export type ImageGeneratorNode = SunburstNode | NanoBananaNode | IdeogramNode;
 export const isNanoBananaNode = (node: AppNode): node is NanoBananaNode => node.type === 'nano-banana';

@@ -40,7 +40,7 @@ export function prepareIdeogramRun(nodes: AppNode[], edges: Edge[], ids: string[
         const referenceImages = references.flatMap(edge => {
           if (Number(edge.targetHandle?.slice(6)) >= ideogramImageInputCount(node.data.imageInputs)) throw new Error('参考图端口不存在。');
           const assets = imageOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges);
-          if (!assets.length) throw new Error('连接的参考图尚无图片，请先运行上游节点。');
+          if (!assets.length) throw new Error('连接的参考图尚无图片，上游未提供可用输出。');
           return assets.map(asset => asset.url);
         });
         if (referenceImages.length > (maskEdge ? 3 : 4)) throw new Error(maskEdge ? '使用 Mask 时最多支持 3 张参考图。' : '最多支持 4 张参考图。');

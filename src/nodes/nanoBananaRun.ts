@@ -30,7 +30,7 @@ export function prepareNanoBananaRun(nodes: AppNode[], edges: Edge[], ids: strin
         .flatMap(edge => {
           if (Number(edge.targetHandle?.slice(6)) >= node.data.imageInputs) throw new Error('参考图端口不存在。');
           const assets = imageOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges);
-          if (!assets.length) throw new Error('连接的 Image 尚无图片，请先上传图片或运行上游节点。');
+          if (!assets.length) throw new Error('连接的 Image 尚无图片，上游未提供可用输出。');
           return assets.map(asset => asset.url);
         });
       if (images.length > nanoBananaMaxImages) throw new Error(`最多支持 ${nanoBananaMaxImages} 张参考图片。`);

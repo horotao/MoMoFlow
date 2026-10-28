@@ -40,8 +40,8 @@ export function TaskManager({ tasks, trigger, sidebarOpen, onClose, onFocus, onC
     const detail = `${task.model}${task.error ? ` · ${task.error}` : ''}`;
     return <div className={`task-row state-${task.state.toLowerCase()}`} key={task.id}>
       <button className="task-main" title={detail} onClick={() => onFocus(task.nodeId)}>
-        <span className="task-name"><TaskStatusIcon state={task.state} /><span>{task.ideogramRequest ? `${ideogramName}${task.ideogramRequest.image ? ' Edit' : ''}` : task.nanoBananaRequest ? nanoBananaName : task.imageRequest ? sunburstName : '图像描述'}</span></span>
-        <span className="task-status">{task.state === 'Running' ? <TaskProgress progress={task.progress} label="任务预估进度" /> : taskStateLabels[task.state]}</span>
+        <span className="task-name"><TaskStatusIcon state={task.state} /><span>{task.label || (task.ideogramRequest ? `${ideogramName}${task.ideogramRequest.image ? ' Edit' : ''}` : task.nanoBananaRequest ? nanoBananaName : task.imageRequest ? sunburstName : '图像描述')}</span></span>
+        <span className="task-status">{task.state === 'Running' ? <TaskProgress progress={task.progress} label="任务预估进度" /> : task.notice || taskStateLabels[task.state]}</span>
       </button>
       <div className="task-actions">
         {(task.state === 'Failed' || task.state === 'Cancelled') && <button title="重新调用（可能再次计费）" aria-label="重试任务" onClick={() => onRetry(task)}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 10a6 6 0 1 1 0 4M6 6v4h4" /></svg></button>}

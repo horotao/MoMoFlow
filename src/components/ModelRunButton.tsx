@@ -16,9 +16,9 @@ export function ModelRunButton({ nodeId, disabled, className, onRun, children }:
     ?? tasks.find(task => task.nodeId === nodeId && task.state === 'Queued');
   if (!active) return <button type="button" disabled={disabled} className={className} onClick={onRun}>{children}</button>;
   const starting = active.state === 'Queued' || active.progress === 0;
-  const label = starting ? 'Starting' : `${active.progress}%`;
+  const label = active.notice || (starting ? 'Starting' : `${active.progress}%`);
   return <div className="model-run-progress nodrag nopan" aria-busy="true">
-    <span className="model-run-progress-value" role="progressbar" aria-label="模型运行预估进度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={starting ? undefined : active.progress} aria-valuetext={starting ? '正在启动' : `预估 ${active.progress}%`} title="预估进度，实际完成以模型返回结果为准">
+    <span className="model-run-progress-value" role="progressbar" aria-label="模型运行预估进度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={starting ? undefined : active.progress} aria-valuetext={active.notice || (starting ? '正在启动' : `预估 ${active.progress}%`)} title="预估进度，实际完成以模型返回结果为准">
       <ModelRunSpinner /><span>{label}</span>
     </span>
     <button type="button" className="model-run-cancel" aria-label="取消运行" title="取消此节点的运行和排队任务" onClick={() => store.update(all => all.map(task => task.nodeId === nodeId && isActiveTask(task) ? { ...task, state: 'Cancelled' } : task))}><DescriberIcon name="close" /></button>

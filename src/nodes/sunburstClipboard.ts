@@ -16,6 +16,7 @@ export function restoreSunburstData(value: unknown): SunburstNode['data'] | unde
   return {
     ...settings, size: data.size, imageInputs: count, results,
     ...(data.orderBy === 'date' || data.orderBy === 'name' ? { orderBy: data.orderBy } : {}),
+    ...(data.outputMode === 'fixed' ? { outputMode: 'fixed' as const } : {}),
     label: typeof data.label === 'string' ? data.label : undefined,
     activeResultId: typeof data.activeResultId === 'string' && results.some(result => result.id === data.activeResultId)
       ? data.activeResultId : undefined,

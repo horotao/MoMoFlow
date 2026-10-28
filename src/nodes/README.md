@@ -305,3 +305,23 @@ Mask 必须恰好一张且与原图尺寸一致。[ideogramEditClient.ts](./ideo
 按 [文生图](https://wavespeed.ai/docs/docs-api/ideogram-ai/ideogram-ai-ideogram-v4.5) 和 [Edit 文档](https://wavespeed.ai/docs/docs-api/ideogram-ai/ideogram-ai-ideogram-v4.5-edit) 提交一次，通过 Task ID 查询固定结果接口，每次至少间隔 2 秒；仅 GET 的网络错误、429 和 5xx 退避重试并遵守 Retry-After。completed 读取 outputs，failed/cancelled/timeout/deleted 停止查询。上传和生成总等待最多 5 分钟，取消只停止本地等待，不代表撤销供应商任务或退款；提交后失败保留 Task ID（已取得时），提示先查看 WaveSpeed History，绝不自动重新提交。
 
 `ideogram.test.ts`、`ideogramEdit.test.ts`、`ideogramClient.test.ts`、`server/ideogram.test.ts` 使用既有 Node.js 测试运行器，随 `npm test` / `npm run check` 执行。`/tests/ideogram.html` 和 `/tests/ideogram-edit.html` 使用隔离数据库和模拟响应验证生成/编辑切换、参数、Mask 转换、结果、取消、失败、撤销与保存恢复；编辑验收还比较真实 Painter 渲染、Compare 两路以及独立快照恢复后提交的完整 Mask 像素，不调用真实模型。
+
+## 按依赖自动执行与结果复用
+
+点击模型节点或“运行选中节点”时，目标模型强制运行，上游按实际使用的端口准备。`executionGraph.ts` 定义依赖、生成条件指纹、输出有效性和执行前检查；`workflowExecution.ts` 管理运行身份、共享任务、取消和写回；`useWorkflowExecution.ts` 提供请求与素材适配。`DescriberPanel` 只触发运行和展示设置、任务。描述器、GPT Image 2.5、Nano Banana、Ideogram 共用此机制。
+
+互不依赖的分支可并发；汇合节点在必需上游成功后才组装请求。Text 只追踪实际引用的富文本变量（旧文本仍按原规则拼接全部输入）；Router 保留原端口语义，Compare 只追踪所用一路，Ideogram 只追踪当前模式的参数。执行前检查整条必要依赖链，缺图、无连接、无选区、已知不匹配的选区和环路都先定位到问题节点，不提交模型请求。依赖运行后才能确定的错误在下一节点提交前检查。
+
+成功记录与结果同时写入：描述保存 `generation`，生图每张 `FileAsset` 保存自己的 `generation`，包含版本、实际请求输入指纹和输出标识。记录随 IndexedDB 与撤销历史恢复；进度、等待、取消和运行身份仅保留在临时 store。输入指纹排除临时 Blob URL，使用本地不可变素材 ID（有内容哈希时优先使用）；生成图片的派生缓存指纹包含所选结果 ID 与内容身份；远程内容哈希变化时重算下游本地输出，内容相同而临时 Blob URL 改变时仍可复用。远程 URL 仅对本次实际使用的端口、原始素材及确认复用的当前结果读取独立快照并计算 SHA-256，实际请求使用该快照；跳过未选中的历史结果、Compare 未使用的一路及被连接覆盖的备用素材。可重建的旧结果读取失败时自动更新，必需原始素材读取失败则停止提交。重复上传同一文件仍可保守地重新计算。未改变的上游复用，目标 Runs 为 N 时上游准备一次、目标独立执行 N 次；某次目标请求失败不跳过其余排队次数，取消或依赖失效则停止剩余运行；互有依赖的多选暂不允许 Runs > 1。
+
+输入变化与结果复用由系统内部记录和判断，节点卡片及右侧设置面板不展示来源记录、手动复用或固定结果的提示与按钮。手动编辑描述后自动保留文字，换图时内部追踪来源变化，运行下游继续使用手动文字；主动运行描述节点会替换手动结果并恢复自动更新。历史数据中已固定的结果仍作为素材用于下游；切换历史图片会改变下游输入。旧的自动结果没有生成记录时视为不可确认复用，点击下游运行后自动重跑所需上游，成功后使用新结果继续下游，并记录生成条件供后续复用。更新失败保留旧结果供查看，但不把旧结果当作成功继续下游；不会在打开画布时自动调用模型。锁定不等于固定：有效结果可读取，需要更新的锁定节点会阻止流程。单节点复制不复制上游连接，已有结果仍保留；自动结果是否可复用按新连接重新核验。
+
+每轮拥有独立取消身份。输入、连接、输出选择或相关手动内容变化时终止受影响运行；A → B → 撤销回 A 也不会恢复已取消请求。迟到响应不得写回或继续下游。失败不自动重试；取消只释放本轮消费者，共享上游仍有其他消费者时继续。已提交请求的计费取决于供应商。刷新不会自动恢复未完成的模型任务。
+
+`executionLocal.ts` 在节点预览之外生成正式本地输出，复用现有 Worker、Canvas 算法及 revision 规则；正式 Worker 与可替换的预览队列隔离，空返回作为失败，取消和超时有明确终态。支持 Resize、Crop、Rotate/Flip、Invert、Blur、Levels、Color correction、Matte、Blend、Compositor、Color palette、Painter 及已有选区的 Masks Extractor；不会替用户选择区域或触发分割模型。已有效且可读取的本地输出直接复用；本地缓存失效时从现有输入自动重算一次，失败则停止下游，不循环重试。原始文件缺失、用户取消或节点锁定时不进行自动重建。
+
+`workflowExecution.test.ts` 随 `npm test` 验证分支汇合、复用、端口依赖、取消、共享任务、Runs、保存恢复和失败。浏览器入口 `/tests/workflow-execution.html` 使用真实 React Flow、运行入口、Worker、撤销历史和独立 IndexedDB，拦截所有模型 API 并阻止外部请求。额外验收包含：本地失效缓存自动重算、无关远程图片不读取、远程旧结果失效自动更新、必需原图失效阻止模型请求；旧描述和旧图片自动更新、后续复用；手动描述后换图；A → B → 撤销回 A 的迟到响应；目标 Runs = 3；缺少必要选区时零模型提交；预览任务被替换后正式输出不误报成功、不无限等待。`/tests/model-run-progress.html` 继续检查独立分支并发、进度和取消。检查均不消耗真实模型额度。
+
+自动执行的补充边界：各运行保存自己接受的上游模型输出，其他并发运行更新同一节点时不替换本次输入。开始执行前检查已知提示词、静态参数和必要连接；来自待运行节点的动态文本在准备好后再校验。Painter Mask 直连或经过 Router 接入 GPT Image / Ideogram 时，按实际请求的 alpha PNG 校验缓存，缺失或无法读取则自动重新导出；Compare 保持原来的可见图片输出语义。模型请求超时从取得并发名额后开始计时，排队期间仍可取消。每张资源读取设 30 秒期限，包含响应体和远程内容指纹计算，超时中止读取并结束等待；原图读取失败不会提交模型请求。
+
+这些边界由 `workflowExecution.test.ts`、`executionAssets.test.ts` 随 `npm test` 验证（包括虚拟时钟下的排队、取消和迟到返回）。`tests/workflow-boundaries.test.ts` 由 `/tests/workflow-execution.html` 调用，使用隔离的执行器、模拟模型返回、原生 Painter 导出与资源读取检查并发、提前校验、蒙版恢复和超时；另以真实 Resize 像素验证远程生成内容更新、相同内容复用，以及 Runs 中单次失败后的剩余次数执行；不读取或改动用户保存的画布，不调用真实模型。

@@ -242,7 +242,7 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
       const imageEdges = inputs.filter(edge => edge.targetHandle?.startsWith('image-')).sort((a, b) => Number(a.targetHandle?.slice(6)) - Number(b.targetHandle?.slice(6)));
       const images = imageEdges.flatMap(edge => {
         const assets = imageOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges);
-        if (!assets.length) throw new Error('连接的 Image 尚无图片，请先上传图片或运行上游节点。');
+        if (!assets.length) throw new Error('连接的 Image 尚无图片，上游未提供可用输出。');
         return assets.map(asset => asset.url);
       });
       if (images.length > 16) throw new Error('最多支持 16 张参考图片。');

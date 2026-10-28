@@ -258,7 +258,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
           const { type, data, position } = saved.node;
           if (type === 'image-describer' && (typeof data.text !== 'string' || typeof data.instructions !== 'string' || !Number.isInteger(data.imageInputs) || data.imageInputs < 1)) return;
           const copy: AppNode = { id: crypto.randomUUID(), type, selected: true, position: { x: position.x + 40, y: position.y + 40 },
-            data: type === 'model-input' ? { model: data.model, label: typeof data.label === 'string' ? data.label : undefined, parameter: ['quality', 'background', 'size', 'outputFormat', 'aspectRatio', 'imageSize'].includes(data.parameter) ? data.parameter : undefined, options: Array.isArray(data.options) ? data.options.filter((v: unknown) => typeof v === 'string') : undefined } : { model: data.model, text: data.text, instructions: data.instructions, imageInputs: data.imageInputs, exposed: [] } } as AppNode;
+            data: type === 'model-input' ? { model: data.model, label: typeof data.label === 'string' ? data.label : undefined, parameter: ['quality', 'background', 'size', 'outputFormat', 'aspectRatio', 'imageSize'].includes(data.parameter) ? data.parameter : undefined, options: Array.isArray(data.options) ? data.options.filter((v: unknown) => typeof v === 'string') : undefined } : { model: data.model, text: data.text, instructions: data.instructions, imageInputs: data.imageInputs, exposed: [], ...(data.outputMode === 'manual' ? { outputMode: 'manual' as const } : {}) } } as AppNode;
           event.preventDefault();
           setNodes((current) => [...current.map((node) => ({ ...node, selected: false })), copy]);
           return;
