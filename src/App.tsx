@@ -18,6 +18,7 @@ import { isPainterNode, isNodeLocked } from './nodes/types';
 import { restorePainterData } from './nodes/painter';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasSidebar } from './components/CanvasSidebar';
+import { NodePortLabelMotion } from './components/NodePortLabelMotion';
 import { ConnectionMenu, type NodeMenuChoice } from './components/ConnectionMenu';
 import { canConnect, withoutReplacedInput } from './nodes/connectionRules';
 import { connectionChoices, choiceConnection, initializeConnectionParameter, type PendingConnection } from './nodes/connectionRecommendations';
@@ -541,6 +542,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
           </svg>
         </ControlButton>
       </Controls>
+      <NodePortLabelMotion />
     </ReactFlow></CanvasHistoryContext.Provider>
   );
 }
