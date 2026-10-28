@@ -1,5 +1,6 @@
 import { NodeIcon } from './NodeIcon';
 import { useEffect, useState, type ReactNode } from 'react';
+import { motion } from 'motion/react';
 import { Handle, Position, useEdges, useReactFlow, useStore, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { ArrowRight, Ellipsis, Plus } from 'lucide-react';
 import type { AppNode, ImageGeneratorNode as Generator, SunburstNode as Sunburst } from './types';
@@ -14,6 +15,7 @@ import { FileIcon } from './FileIcon';
 import { FileActionMenu } from './FileActionMenu';
 import { extractFileAsset, orderedAssets } from './fileCollection';
 import { downloadAsset, downloadAssets } from './fileMedia';
+import { useImagePreviewHeight } from './useImagePreviewHeight';
 
 export function SunburstNode(props: NodeProps<Sunburst>) {
   return <ImageGenerationNode {...props} name={sunburstName} icon={<NodeIcon nodeType="sunburst" />} fieldLabels={sunburstFieldLabels} maxImages={16} mask />;
@@ -43,6 +45,7 @@ export function ImageGenerationNode({ id, data, isConnectable, name, icon, field
     else if (!('size' in data) && requestedSize !== 'auto' && nanoBananaAspectRatios.some(ratio => ratio === requestedSize)) aspectRatio = requestedSize.replace(':', ' / ');
     else if ('size' in data && validateSunburstSize(requestedSize) !== 'auto') aspectRatio = requestedSize.replace('x', ' / ');
   } catch { /* Incomplete or invalid custom sizes use the result ratio or a square. */ }
+  const preview = useImagePreviewHeight(aspectRatio, grid);
   const portSpace = (mask ? 110 : 50) + (data.imageInputs + (data.exposed?.length ?? 0)) * 60;
   const index = Math.max(0, results.findIndex(asset => asset.id === active?.id));
   const patch = (value: Partial<Generator['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
@@ -58,7 +61,7 @@ export function ImageGenerationNode({ id, data, isConnectable, name, icon, field
       <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setDraft(data.label || name); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
     </header>
     <div className="sunburst-preview-area" style={{ minHeight: portSpace }}>
-    <div className={`sunburst-preview${active ? ' has-result' : ''}${grid ? ' is-grid nodrag nopan nowheel' : ''}`} style={{ aspectRatio: grid ? undefined : aspectRatio }}>
+    <motion.div ref={preview.ref} className={`sunburst-preview${active ? ' has-result' : ''}${grid ? ' is-grid nodrag nopan nowheel' : ''}`} style={{ aspectRatio: grid ? undefined : aspectRatio, height: preview.height }}>
       {active && <>{grid ? <div className="file-node-grid" aria-label="Results">
         {[0, 1].map(column => <div className="file-node-grid-column" key={column}>{results.filter((_, i) => i % 2 === column).map(item => <div key={item.id}
           className={`file-node-tile${item.id === active.id ? ' is-active' : ''}`} role="button" tabIndex={0} aria-label={`Select ${item.name}`} aria-pressed={item.id === active.id} aria-disabled={Boolean(data.locked)}
@@ -93,7 +96,7 @@ export function ImageGenerationNode({ id, data, isConnectable, name, icon, field
         </div>
         {!grid && <span className="file-media-resolution">{size?.width} × {size?.height}</span>}
       </div></>}
-    </div>
+    </motion.div>
     </div>
     <div className="sunburst-actions">{maxImages > 0 && <button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= maxImages} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />{addImageLabel}</button>}<ModelRunButton nodeId={id} className="sunburst-run nodrag nopan" disabled={data.locked} onRun={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('describer-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</ModelRunButton></div>
     {ports.map(port => <div className="describer-port-wrapper" key={port.id}>
