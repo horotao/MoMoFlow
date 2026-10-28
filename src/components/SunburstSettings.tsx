@@ -49,11 +49,11 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
   ];
   return <div className="describer-settings sunburst-settings">
     <h2><OpenAIIcon /><span>{sunburstName}</span></h2>
-    <div className="describer-field"><label>模型版本</label><div className="sunburst-field-row"><DescriberModelSelect compact label="模型版本" value="Sunburst" choices={['Sunburst']} disabled={node.data.locked} onChange={() => {}} /></div></div>
+    <div className="describer-field"><label>模型版本</label><div className="sunburst-field-row"><DescriberModelSelect fluidHover compact label="模型版本" value="Sunburst" choices={['Sunburst']} disabled={node.data.locked} onChange={() => {}} /></div></div>
     {fields.map(({ field, choices, labels }) => {
       const label = fieldLabels[field]; const exposed = Boolean(node.data.exposed?.includes(field));
       return <div className="describer-field" key={field}><label>{label}</label><div className="describer-field-row">
-        {field === 'size' ? <SunburstSizeSelect value={String(effective.size ?? '')} disabled={node.data.locked || exposed} onChange={value => change('size', value)} /> : <DescriberModelSelect compact label={label} value={String(effective[field] ?? '')} choices={[...choices]} labels={labels} disabled={node.data.locked || exposed} onChange={value => change(field, value)} />}
+        {field === 'size' ? <SunburstSizeSelect value={String(effective.size ?? '')} disabled={node.data.locked || exposed} onChange={value => change('size', value)} /> : <DescriberModelSelect fluidHover compact label={label} value={String(effective[field] ?? '')} choices={[...choices]} labels={labels} disabled={node.data.locked || exposed} onChange={value => change(field, value)} />}
         <button disabled={node.data.locked} className="describer-expose" data-exposed={exposed} title={exposed ? '使用本地值' : '设为输入'} aria-label={exposed ? `${label}使用本地值` : `将${label}设为输入`} aria-pressed={exposed} onClick={() => expose(field)}><DescriberIcon name="expose" /></button>
       </div></div>;
     })}

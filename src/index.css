@@ -22,6 +22,7 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
+  --color-hover: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
@@ -745,6 +746,9 @@
 .describer-model-menu [role="option"] { height: 24px; display: flex; align-items: center; gap: 4px; padding-right: 8px; border-radius: 5px; white-space: nowrap; cursor: default; }
 .describer-model-menu [role="option"].is-active { background: #2c2c2c; color: #fff; }
 .dark .describer-model-menu [role="option"].is-active { background: #fff; color: #2c2c2c; }
+.describer-model-menu-fluid [role="option"] { position: relative; z-index: 1; }
+.describer-model-menu-fluid [role="option"].is-active, .dark .describer-model-menu-fluid [role="option"].is-active { background: transparent; color: inherit; }
+.describer-model-hover { border-radius: 5px; z-index: 0; }
 .describer-model-check { width: 20px; display: inline-flex; justify-content: center; flex-shrink: 0; }
 @media (hover: none) { .describer-panel .describer-expose { visibility: visible; } }
 

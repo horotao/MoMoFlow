@@ -37,7 +37,7 @@ export function NanoBananaSettings({ node }: { node: NanoBananaNode }) {
       const exposed = Boolean(node.data.exposed?.includes(field)), label = labels[field];
       const choices = [...nanoBananaChoices[field]];
       return <div className="describer-field" key={field}><label>{label}</label><div className="describer-field-row">
-        <DescriberModelSelect compact label={label} value={String(effective[field] ?? '')} choices={choices} labels={choices.map(value => value === 'auto' ? '自动' : value.toUpperCase())} disabled={node.data.locked || exposed} onChange={value => { if (!isNodeLocked(getNode(node.id))) updateNodeData(node.id, { [field]: value }); }} />
+        <DescriberModelSelect fluidHover compact label={label} value={String(effective[field] ?? '')} choices={choices} labels={choices.map(value => value === 'auto' ? '自动' : value.toUpperCase())} disabled={node.data.locked || exposed} onChange={value => { if (!isNodeLocked(getNode(node.id))) updateNodeData(node.id, { [field]: value }); }} />
         <button disabled={node.data.locked} className="describer-expose" data-exposed={exposed} title={exposed ? '使用本地值' : '设为输入'} aria-label={exposed ? `${label}使用本地值` : `将${label}设为输入`} aria-pressed={exposed} onClick={() => expose(field)}><DescriberIcon name="expose" /></button>
       </div></div>;
     })}

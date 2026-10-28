@@ -11,7 +11,7 @@ export function SunburstSizeSelect({ value, disabled, onChange, node = false }: 
   let error = '';
   try { validateSunburstSize(value); } catch (cause) { error = (cause as Error).message; }
   return <div className="sunburst-size-control nodrag nopan nowheel">
-    <DescriberModelSelect compact={!node} node={node} label="宽高比" value={isCustom ? 'custom' : value} choices={[...imageSizes, 'custom']} labels={[...imageSizeLabels, '自定义']} disabled={disabled} onChange={next => {
+    <DescriberModelSelect fluidHover={!node} compact={!node} node={node} label="宽高比" value={isCustom ? 'custom' : value} choices={[...imageSizes, 'custom']} labels={[...imageSizeLabels, '自定义']} disabled={disabled} onChange={next => {
       setCustom(next === 'custom');
       onChange(next === 'custom' ? (value === 'auto' ? '1024x1024' : value) : next);
     }} />

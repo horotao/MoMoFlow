@@ -51,7 +51,7 @@ export function IdeogramSettings({ node }: { node: IdeogramNode }) {
       const disabled = Boolean(node.data.locked || exposed || inactive || (field === 'editSize' && sourceSize));
       const change = (value: string) => { if (!isNodeLocked(getNode(node.id))) updateNodeData(node.id, { [field]: field === 'enablePromptExpansion' ? value === 'true' : value }); };
       return <div className="describer-field" key={field}><label>{label}</label><div className="describer-field-row">
-        {field === 'editSize' ? <IdeogramEditSizeSelect value={sourceSize ? 'auto' : String(effective[field] ?? 'auto')} disabled={disabled} onChange={change} /> : <DescriberModelSelect compact label={label} value={String(effective[field] ?? '')} choices={choices} labels={choices.map(value => choiceLabels[value] ?? value.toUpperCase())} disabled={disabled} onChange={change} />}
+        {field === 'editSize' ? <IdeogramEditSizeSelect value={sourceSize ? 'auto' : String(effective[field] ?? 'auto')} disabled={disabled} onChange={change} /> : <DescriberModelSelect fluidHover compact label={label} value={String(effective[field] ?? '')} choices={choices} labels={choices.map(value => choiceLabels[value] ?? value.toUpperCase())} disabled={disabled} onChange={change} />}
         <button disabled={node.data.locked || (!exposed && field === 'editSize' && sourceSize)} className="describer-expose" data-exposed={exposed} title={exposed ? '使用本地值' : '设为输入'} aria-label={exposed ? `${label}使用本地值` : `将${label}设为输入`} aria-pressed={exposed} onClick={() => expose(field)}><DescriberIcon name="expose" /></button>
       </div>{inactive && <p className="describer-hint">当前模式不使用此参数。</p>}</div>;
     })}
