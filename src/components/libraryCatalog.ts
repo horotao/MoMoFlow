@@ -1,3 +1,5 @@
+import { defaultImageIteratorData } from '../nodes/imageIterator';
+import { defaultTextIteratorData } from '../nodes/textIterator';
 import { defaultIdeogramEditSettings, defaultIdeogramSettings, ideogramName } from '../nodes/ideogram';
 import { defaultMatteGrowShrinkSettings } from '../nodes/matteGrowShrink';
 import { defaultNanoBananaSettings, nanoBananaName } from '../nodes/nanoBanana';
@@ -24,7 +26,7 @@ import { defaultTextNodeText } from '../nodes/defaults';
 export type Category = 'Search' | 'Recents' | 'Saved' | 'Tools' | 'Image' | 'Video' | 'Models' | 'Assets';
 export type Item = { id: string; label: string; icon: IconSvgElement; category: Category; group: string; color?: string; nodeType?: string };
 const itemLabels: Record<string, string> = {
-  'matte-grow-shrink': '蒙版扩张 / 收缩', 'masks-extractor': '蒙版提取', router: '路由', 'color-palette': '调色板', compositor: '合成器', text: '提示词',
+  'image-iterator': '图片迭代', 'text-iterator': '文本迭代', 'matte-grow-shrink': '蒙版扩张 / 收缩', 'masks-extractor': '蒙版提取', router: '路由', 'color-palette': '调色板', compositor: '合成器', text: '提示词',
   'image-describer': '图像描述', file: '导入', preview: '预览', compare: '对比', blend: '混合',
   'model-input': '模型名称', 'position-logger': '坐标记录', resize: '调整尺寸',
   'rotate-flip': '旋转与翻转', 'color-correction': '色彩校正', levels: '色阶',
@@ -39,6 +41,8 @@ export const navigation: { name: Category; icon: IconSvgElement; divider?: boole
   { name: 'Models', icon: AiChipIcon, divider: true }, { name: 'Assets', icon: Album01Icon },
 ];
 export const items: Item[] = [
+  { id: 'image-iterator', nodeType: 'image-iterator', label: 'Image Iterator', icon: nodeIcons['image-iterator'], category: 'Tools', group: 'Iterators' },
+  { id: 'text-iterator', nodeType: 'text-iterator', label: 'Text Iterator', icon: nodeIcons['text-iterator'], category: 'Tools', group: 'Iterators' },
   { id: 'ideogram', nodeType: 'ideogram', label: ideogramName, icon: nodeIcons.ideogram, category: 'Image', group: 'Generate from text' },
   { id: 'matte-grow-shrink', label: 'Matte Grow / Shrink', icon: nodeIcons['matte-grow-shrink'], category: 'Tools', group: 'Matte', nodeType: 'matte-grow-shrink' },
   { id: 'masks-extractor', label: 'Masks Extractor', icon: nodeIcons['masks-extractor'], category: 'Tools', group: 'Matte', nodeType: 'masks-extractor' },
@@ -72,6 +76,6 @@ export const items: Item[] = [
 export function createLibraryNode(id: string, position: { x: number; y: number }): AppNode | undefined {
   const item = items.find(candidate => candidate.id === id);
   if (!item?.nodeType) return;
-  const data = id === 'ideogram' ? { ...defaultIdeogramSettings, ...defaultIdeogramEditSettings, imageInputs: 1 } : id === 'matte-grow-shrink' ? { settings: { ...defaultMatteGrowShrinkSettings } } : id === 'blend' ? { settings: { ...defaultBlendSettings } } : id === 'compare' ? { ...defaultCompareData } : id === 'resize' ? { settings: { ...defaultResizeSettings } } : id === 'color-palette' ? { colors: [] } : id === 'compositor' ? { document: defaultCompositorDocument() } : id === 'rotate-flip' ? { settings: { ...defaultRotateFlipSettings } } : id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'nano-banana' ? { ...defaultNanoBananaSettings, imageInputs: 1 } : id === 'sunburst' ? { ...defaultSunburstSettings, imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'masks-extractor' || id === 'router' || id === 'invert' || id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
+  const data = id === 'image-iterator' ? defaultImageIteratorData() : id === 'text-iterator' ? defaultTextIteratorData() : id === 'ideogram' ? { ...defaultIdeogramSettings, ...defaultIdeogramEditSettings, imageInputs: 1 } : id === 'matte-grow-shrink' ? { settings: { ...defaultMatteGrowShrinkSettings } } : id === 'blend' ? { settings: { ...defaultBlendSettings } } : id === 'compare' ? { ...defaultCompareData } : id === 'resize' ? { settings: { ...defaultResizeSettings } } : id === 'color-palette' ? { colors: [] } : id === 'compositor' ? { document: defaultCompositorDocument() } : id === 'rotate-flip' ? { settings: { ...defaultRotateFlipSettings } } : id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'nano-banana' ? { ...defaultNanoBananaSettings, imageInputs: 1 } : id === 'sunburst' ? { ...defaultSunburstSettings, imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'masks-extractor' || id === 'router' || id === 'invert' || id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
   return { id: crypto.randomUUID(), type: item.nodeType, position, data, selected: true } as AppNode;
 }

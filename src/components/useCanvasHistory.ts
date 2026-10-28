@@ -1,5 +1,5 @@
 import { masksDocument } from '../nodes/masksExtractor';
-import { isMasksExtractorNode } from '../nodes/types';
+import { isImageIteratorNode, isTextIteratorNode, isMasksExtractorNode } from '../nodes/types';
 import { blendDocument } from '../nodes/blend';
 import { isBlendNode } from '../nodes/types';
 import { resizeDocument } from '../nodes/resize';
@@ -115,8 +115,16 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
       const previous = state.present.nodes.find(item => item.id === node.id);
       return isBlendNode(previous) && JSON.stringify(previous.data.settings) !== JSON.stringify(node.data.settings);
     })());
+    const iteratorChanged = nodes.some(node => isTextIteratorNode(node) && (() => {
+      const previous = state.present.nodes.find(item => item.id === node.id);
+      return isTextIteratorNode(previous) && JSON.stringify(node.data.items.map(item => item.id)) !== JSON.stringify(previous.data.items.map(item => item.id));
+    })());
+    const imageIteratorChanged = nodes.some(node => isImageIteratorNode(node) && (() => {
+      const previous = state.present.nodes.find(item => item.id === node.id);
+      return isImageIteratorNode(previous) && (node.data.orderBy !== previous.data.orderBy || JSON.stringify(node.data.assets?.map(asset => asset.id)) !== JSON.stringify(previous.data.assets?.map(asset => asset.id)));
+    })());
     const compareChanged = nodes.some(node => node.type === 'compare' && JSON.stringify(node.data) !== JSON.stringify(state.present.nodes.find(item => item.id === node.id)?.data));
-    if (matteChanged || maskChanged || blendChanged || compareChanged || resizeChanged || paletteChanged || compositorChanged || rotateFlipChanged || levelsChanged || blurChanged || colorChanged || cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
+    if (imageIteratorChanged || iteratorChanged || matteChanged || maskChanged || blendChanged || compareChanged || resizeChanged || paletteChanged || compositorChanged || rotateFlipChanged || levelsChanged || blurChanged || colorChanged || cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;

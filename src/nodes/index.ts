@@ -1,3 +1,5 @@
+import { ImageIteratorNode } from './ImageIteratorNode';
+import { TextIteratorNode } from './TextIteratorNode';
 import { IdeogramNode } from './IdeogramNode';
 import { MasksExtractorNode } from './MasksExtractorNode';
 import { NanoBananaNode } from './NanoBananaNode';
@@ -28,6 +30,8 @@ import type { AppNode } from './types';
 export const initialNodes: AppNode[] = [];
 
 export const nodeTypes = {
+  'text-iterator': TextIteratorNode,
+  'image-iterator': ImageIteratorNode,
   ideogram: IdeogramNode,
   'masks-extractor': MasksExtractorNode,
   router: RouterNode,

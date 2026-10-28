@@ -37,7 +37,7 @@ export function mapAssets(nodes: AppNode[], map: (asset: FileAsset) => FileAsset
         ? { ...layer, source: { kind: 'asset' as const, asset: map(layer.source.asset) } } : layer.source.kind === 'input' ? { ...layer, source: { ...layer.source, fallback: layer.source.fallback ? map(layer.source.fallback) : undefined } } : layer) },
     } };
     if (isColorPaletteNode(node)) return { ...node, data: { ...node.data, result: node.data.result ? map(node.data.result) : undefined } };
-    if (node.type === 'file') {
+    if ((node.type === 'file' || node.type === 'image-iterator')) {
       const data = node.data as FileNode['data'];
       return { ...node, data: {
         ...data,

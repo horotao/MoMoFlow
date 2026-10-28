@@ -466,3 +466,459 @@ test('changed remote generated content invalidates local derivatives; equal cont
   assert.ok(h.store.getSnapshot().every(task => task.state === 'Done'));
   h.engine.dispose();
 });
+
+function iteratorGraph(values = ['水彩猫', '像素猫', '写实猫']): ExecutionGraph {
+  return { nodes: [{ id: 'iterator', type: 'text-iterator', position: { x: 0, y: 0 }, data: { items: values.map((text, index) => ({ id: `item-${index}`, text })) } }, generator('g')], edges: [edge('iterator', 'g', 'prompt', 'text')] };
+}
+
+test('Text Iterator creates separate requests for every item across all image model adapters', async () => {
+  for (const type of ['sunburst', 'nano-banana', 'ideogram'] as const) {
+    const graph = iteratorGraph();
+    graph.nodes[1] = type === 'sunburst' ? generator('g') : type === 'nano-banana'
+      ? { id: 'g', type, position: { x: 0, y: 0 }, data: { ...defaultNanoBananaSettings, imageInputs: 1 } }
+      : { id: 'g', type, position: { x: 0, y: 0 }, data: { ...defaultIdeogramSettings, imageInputs: 1 } };
+    const h = harness(graph); await h.engine.run(['g'], 1);
+    assert.deepEqual(h.requests.map(task => (task.imageRequest ?? task.nanoBananaRequest ?? task.ideogramRequest)?.prompt), ['水彩猫', '像素猫', '写实猫']);
+    assert.deepEqual(h.requests.map(task => task.iteration?.index), [0, 1, 2]);
+    assert.ok(h.store.getSnapshot().every(task => task.state === 'Done' && task.label?.includes('/3')));
+    const result = h.node('g'); assert.ok(isImageGeneratorNode(result)); assert.equal(result.data.results?.length, 3);
+    assert.deepEqual(result.data.results?.map(asset => asset.generation?.iteration?.text), ['水彩猫', '像素猫', '写实猫']);
+    h.engine.dispose();
+  }
+});
+
+test('iterator follows Router and Prompt variables, preserves duplicates and multiplies explicit repeats', async () => {
+  const graph = iteratorGraph(['重复', '重复']);
+  graph.nodes.push({ id: 'router', type: 'router', position: { x: 0, y: 0 }, data: {} }, textNode('template', '以水彩画表现'));
+  graph.edges = [edge('iterator', 'router', 'input', 'text'), edge('router', 'template', 'variable-1', 'output'), edge('template', 'g', 'prompt')];
+  const h = harness(graph); await h.engine.run(['g'], 2);
+  assert.equal(h.requests.length, 4);
+  assert.ok(h.requests.every(task => task.imageRequest?.prompt === '重复 以水彩画表现'));
+  assert.equal(new Set(h.requests.map(task => task.id)).size, 4);
+  assert.deepEqual(h.requests.map(task => task.iteration?.itemId).sort(), ['item-0', 'item-0', 'item-1', 'item-1']);
+  assert.equal(h.graph.nodes.find(node => node.id === 'iterator')?.type, 'text-iterator');
+  h.engine.dispose();
+});
+
+test('iterator downstream dependencies keep each iteration image paired with its own prompt', async () => {
+  const graph = iteratorGraph(['first', 'second']);
+  graph.nodes.push(generator('final'));
+  graph.edges.push(edge('iterator', 'final', 'prompt', 'text'), edge('g', 'final', 'image-0', 'result'));
+  const pending: { task: PreviewTask; resolve: (asset: FileAsset) => void }[] = [];
+  const h = harness(graph, task => task.nodeId === 'g' ? new Promise(resolve => pending.push({ task, resolve })) : Promise.resolve(generatedAsset(`final-${task.iteration?.index}`)));
+  const done = h.engine.run(['final'], 1);
+  await until(() => pending.length === 2);
+  pending[1].resolve(generatedAsset('second-image'));
+  await until(() => h.requests.some(task => task.nodeId === 'final'));
+  pending[0].resolve(generatedAsset('first-image')); await done;
+  const finals = h.requests.filter(task => task.nodeId === 'final');
+  assert.deepEqual(finals.map(task => task.imageRequest?.prompt), ['second', 'first']);
+  assert.deepEqual(finals.map(task => task.imageRequest?.images), [['blob:second-image'], ['blob:first-image']]);
+  h.engine.dispose();
+});
+
+test('overlapping iterator runs wait for the matching upstream item, including duplicate prompts and reversed completion', async () => {
+  for (const values of [['first', 'second'], ['same', 'same']]) for (const first of [0, 1]) {
+    const graph = iteratorGraph(values);
+    graph.nodes.push(generator('final'));
+    graph.edges.push(edge('iterator', 'final', 'prompt', 'text'), edge('g', 'final', 'image-0', 'result'));
+    const pending: { task: PreviewTask; resolve: (asset: FileAsset) => void }[] = [];
+    const h = harness(graph, task => task.nodeId === 'g' ? new Promise(resolve => pending.push({ task, resolve })) : Promise.resolve(generatedAsset(`final-${task.iteration?.index}`)));
+    try {
+      const upstream = h.engine.run(['g'], 1);
+      await until(() => pending.length === 2);
+      const downstream = h.engine.run(['final'], 1);
+      await new Promise(resolve => setTimeout(resolve, 5));
+      assert.equal(h.requests.filter(task => task.nodeId === 'final').length, 0);
+      pending[first].resolve(generatedAsset(`image-${first}`));
+      await until(() => h.requests.some(task => task.nodeId === 'final'));
+      await new Promise(resolve => setTimeout(resolve, 5));
+      const completed = h.requests.filter(task => task.nodeId === 'final');
+      assert.equal(completed.length, 1, 'the other item must keep waiting');
+      assert.equal(completed[0].iteration?.index, first);
+      assert.deepEqual(completed[0].imageRequest?.images, [`blob:image-${first}`]);
+      pending[1 - first].resolve(generatedAsset(`image-${1 - first}`));
+      await Promise.all([upstream, downstream]);
+      assert.equal(pending.length, 2, 'reuse the running upstream without extra provider requests');
+      for (const task of h.requests.filter(task => task.nodeId === 'final')) {
+        assert.equal(task.imageRequest?.prompt, values[task.iteration!.index]);
+        assert.deepEqual(task.imageRequest?.images, [`blob:image-${task.iteration!.index}`]);
+      }
+      assert.ok(h.store.getSnapshot().every(task => task.state === 'Done'));
+    } finally { h.engine.dispose(); }
+  }
+});
+
+test('completed iterator images are restored by item identity while siblings run and after reload', async () => {
+  for (const kind of ['text', 'image']) {
+    const graph = kind === 'text' ? iteratorGraph(['same', 'same', 'same']) : imageIteratorGraph();
+    if (kind === 'image') graph.nodes = mapAssets(graph.nodes, asset => ({ ...asset, contentHash: 'identical-content' }));
+    graph.nodes.push(generator('final'));
+    graph.edges.push(edge(kind === 'text' ? 'iterator' : 'prompt', 'final', 'prompt', kind === 'text' ? 'text' : undefined), edge('g', 'final', 'image-0', 'result'));
+    const pending: { task: PreviewTask; resolve: (asset: FileAsset) => void }[] = [];
+    const h = harness(graph, task => task.nodeId === 'g' ? new Promise(resolve => pending.push({ task, resolve })) : Promise.resolve(generatedAsset(`final-${task.iteration?.itemId}`)));
+    try {
+      const upstream = h.engine.run(['g'], 1);
+      await until(() => pending.length === 3);
+      for (const index of [0, 1]) {
+        pending[index].resolve(generatedAsset(`upstream-${pending[index].task.iteration!.itemId}`));
+        await until(() => h.store.getSnapshot().filter(task => task.nodeId === 'g' && task.state === 'Done').length === index + 1);
+      }
+      const downstream = h.engine.run(['final'], 1);
+      await until(() => h.requests.filter(task => task.nodeId === 'final').length === 2);
+      for (const task of h.requests.filter(task => task.nodeId === 'final')) assert.deepEqual(task.imageRequest?.images, [`blob:upstream-${task.iteration!.itemId}`]);
+      pending[2].resolve(generatedAsset(`upstream-${pending[2].task.iteration!.itemId}`));
+      await Promise.all([upstream, downstream]);
+      assert.equal(pending.length, 3, 'completed entries do not generate again');
+      const restored = harness(h.graph);
+      try {
+        await restored.engine.run(['final'], 1);
+        assert.equal(restored.requests.filter(task => task.nodeId === 'g').length, 0, 'persisted generation metadata restores each item');
+        for (const task of restored.requests) assert.deepEqual(task.imageRequest?.images, [`blob:upstream-${task.iteration!.itemId}`]);
+        restored.edit(current => ({ ...current, nodes: current.nodes.map(node => node.id === 'g' ? { ...node, data: { ...node.data, quality: 'high' } } as AppNode : node) }));
+        await restored.engine.run(['final'], 1);
+        assert.equal(restored.requests.filter(task => task.nodeId === 'g').length, 3, 'changed model settings invalidate every historical item');
+      } finally { restored.engine.dispose(); }
+    } finally { h.engine.dispose(); }
+  }
+});
+
+test('identical iterator inputs do not share model outputs between different items', async () => {
+  const graph = iteratorGraph(['same', 'same']);
+  graph.nodes.push(generator('final'));
+  graph.edges.push(edge('iterator', 'final', 'prompt', 'text'), edge('g', 'final', 'image-0', 'result'));
+  const h = harness(graph, async task => generatedAsset(`${task.nodeId}-${task.iteration!.itemId}`));
+  try {
+    await h.engine.run(['final'], 1);
+    assert.equal(h.requests.filter(task => task.nodeId === 'g').length, 2);
+    for (const task of h.requests.filter(task => task.nodeId === 'final')) assert.deepEqual(task.imageRequest?.images, [`blob:g-${task.iteration!.itemId}`]);
+  } finally { h.engine.dispose(); }
+});
+
+test('dependent batch selections reject fixed upstream outputs before creating any tasks', () => {
+  for (const order of [['g', 'final'], ['final', 'g']]) for (const kind of ['image', 'description']) {
+    const graph = imageIteratorGraph();
+    graph.nodes = graph.nodes.map(node => node.id !== 'g' ? node : kind === 'image'
+      ? { ...generator('g'), data: { ...defaultSunburstSettings, imageInputs: 1, outputMode: 'fixed', results: [generatedAsset('old')] } } as AppNode
+      : { ...describer('g'), data: { text: 'old description', model: 'deepseek-flash', instructions: 'describe', imageInputs: 1, outputMode: 'manual' } } as AppNode);
+    if (kind === 'description') graph.edges = graph.edges.filter(item => item.targetHandle !== 'prompt');
+    graph.nodes.push(generator('final'));
+    if (kind === 'image') graph.edges.push(edge('prompt', 'final', 'prompt'), edge('g', 'final', 'image-0', 'result'));
+    else graph.edges.push(edge('g', 'final', 'prompt'));
+    const h = harness(graph);
+    try {
+      assert.throws(() => h.engine.run(order, 1), /只选择最终目标/);
+      assert.equal(h.store.getSnapshot().length, 0);
+      assert.equal(h.requests.length, 0);
+    } finally { h.engine.dispose(); }
+  }
+});
+
+test('overlapping iterator upstream failure only blocks the corresponding downstream item', async () => {
+  const graph = iteratorGraph(['first', 'second']);
+  graph.nodes.push(generator('final'));
+  graph.edges.push(edge('iterator', 'final', 'prompt', 'text'), edge('g', 'final', 'image-0', 'result'));
+  const pending: { resolve: (asset: FileAsset) => void; reject: (error: Error) => void }[] = [];
+  const h = harness(graph, task => task.nodeId === 'g' ? new Promise((resolve, reject) => pending.push({ resolve, reject })) : Promise.resolve(generatedAsset('final')));
+  try {
+    const upstream = h.engine.run(['g'], 1);
+    await until(() => pending.length === 2);
+    const downstream = h.engine.run(['final'], 1);
+    await new Promise(resolve => setTimeout(resolve, 5));
+    pending[0].reject(new Error('first failed'));
+    pending[1].resolve(generatedAsset('second'));
+    await Promise.all([upstream, downstream]);
+    const finals = h.requests.filter(task => task.nodeId === 'final');
+    assert.equal(finals.length, 1);
+    assert.equal(finals[0].iteration?.itemId, 'item-1');
+    assert.deepEqual(finals[0].imageRequest?.images, ['blob:second']);
+  } finally { h.engine.dispose(); }
+});
+
+test('shared upstream unrelated to the iterator can retry without inherited item metadata', async () => {
+  const graph = iteratorGraph(['first', 'second']);
+  graph.nodes.push(file('file'), describer('description'), textNode('prompt', 'combine'));
+  graph.edges = [edge('file', 'description', 'image-0', 'file'), edge('description', 'prompt', 'variable-1'), edge('iterator', 'prompt', 'variable-2', 'text'), edge('prompt', 'g', 'prompt')];
+  let fail = true;
+  const h = harness(graph, async task => {
+    if (task.nodeId === 'description') {
+      if (fail) throw new Error('temporary failure');
+      return 'shared description';
+    }
+    return generatedAsset(`generated-${task.iteration?.index}`);
+  });
+  try {
+    await h.engine.run(['g'], 1);
+    const shared = h.store.getSnapshot().filter(task => task.nodeId === 'description');
+    assert.equal(shared.length, 1);
+    assert.equal(shared[0].state, 'Failed');
+    assert.equal(shared[0].iteration, undefined);
+    fail = false;
+    await h.engine.run([shared[0].nodeId], 1, shared[0].iteration);
+    assert.equal(h.store.getSnapshot().slice(-1)[0]?.state, 'Done');
+    await h.engine.run(['g'], 1);
+    assert.equal(h.requests.filter(task => task.nodeId === 'description').length, 2, 'retried shared output is reused');
+    assert.deepEqual(h.requests.filter(task => task.nodeId === 'g').map(task => task.iteration?.itemId), ['item-0', 'item-1']);
+  } finally { h.engine.dispose(); }
+});
+
+test('shared upstream that depends on the iterator retains its own failed-item retry', async () => {
+  const graph = iteratorGraph(['first', 'second']);
+  graph.nodes.push(generator('final'));
+  graph.edges.push(edge('iterator', 'final', 'prompt', 'text'), edge('g', 'final', 'image-0', 'result'));
+  let fail = true;
+  const h = harness(graph, async task => {
+    if (task.nodeId === 'g' && task.iteration?.itemId === 'item-1' && fail) throw new Error('second failed');
+    return generatedAsset(`${task.nodeId}-${task.iteration?.itemId}`);
+  });
+  try {
+    await h.engine.run(['final'], 1);
+    const failed = h.store.getSnapshot().find(task => task.nodeId === 'g' && task.state === 'Failed')!;
+    assert.equal(failed.iteration?.itemId, 'item-1');
+    fail = false;
+    const count = h.requests.length;
+    await h.engine.run([failed.nodeId], 1, failed.iteration);
+    assert.equal(h.requests.length, count + 1);
+    assert.equal(h.requests[count].imageRequest?.prompt, 'second');
+    assert.equal(h.requests[count].iteration?.itemId, 'item-1');
+    assert.equal(h.store.getSnapshot().slice(-1)[0]?.state, 'Done');
+  } finally { h.engine.dispose(); }
+});
+
+test('all iterator items validate before requests, including empty lists, blank entries and oversized later prompts', () => {
+  for (const values of [[], ['ok', ' '], ['ok', 'x'.repeat(32001)], Array(51).fill('ok')]) {
+    const h = harness(iteratorGraph(values));
+    assert.throws(() => h.engine.run(['g'], 1));
+    assert.equal(h.requests.length, 0); assert.equal(h.store.getSnapshot().length, 0); h.engine.dispose();
+  }
+  const graph = iteratorGraph();
+  graph.nodes.push(textNode('source', '["正常", 3]'));
+  graph.edges.push(edge('source', 'iterator', 'input'));
+  const h = harness(graph); assert.throws(() => h.engine.run(['g'], 1), /每一项/); assert.equal(h.requests.length, 0); h.engine.dispose();
+});
+
+test('JSON array input expands, multiline input stays one item, and original local list survives', async () => {
+  const graph = iteratorGraph(); graph.nodes.push(textNode('source', '["红", "蓝"]')); graph.edges.push(edge('source', 'iterator', 'input'));
+  const h = harness(graph); await h.engine.run(['g'], 1);
+  assert.deepEqual(h.requests.map(task => task.imageRequest?.prompt), ['红', '蓝']);
+  h.edit(current => ({ ...current, nodes: current.nodes.map(node => node.id === 'source' ? textNode('source', '第一行\n第二行') : node) }));
+  await h.engine.run(['g'], 1);
+  assert.equal(h.requests[2].imageRequest?.prompt, '第一行\n第二行');
+  h.edit(current => ({ ...current, edges: current.edges.filter(edge => edge.target !== 'iterator') }));
+  await h.engine.run(['g'], 1); assert.equal(h.requests.length, 6); h.engine.dispose();
+});
+
+test('one cancelled iterator task does not cancel siblings; failed item retries alone and edits invalidate its retry', async () => {
+  const pending: { task: PreviewTask; signal: AbortSignal; resolve: (asset: FileAsset) => void; reject: (error: Error) => void }[] = [];
+  const h = harness(iteratorGraph(), (task, signal) => new Promise((resolve, reject) => pending.push({ task, signal, resolve, reject })));
+  const done = h.engine.run(['g'], 1); await until(() => pending.length === 3);
+  h.store.update(tasks => tasks.map(task => task.iteration?.index === 0 ? { ...task, state: 'Cancelled' } : task));
+  assert.ok(pending[0].signal.aborted); assert.ok(!pending[1].signal.aborted && !pending[2].signal.aborted);
+  pending[0].resolve(generatedAsset('late')); pending[1].reject(new Error('one item failed')); pending[2].resolve(generatedAsset('success')); await done;
+  const failed = h.store.getSnapshot().find(task => task.state === 'Failed')!;
+  const retry = h.engine.run(['g'], 1, failed.iteration); await until(() => pending.length === 4);
+  assert.equal(pending[3].task.imageRequest?.prompt, '像素猫'); pending[3].resolve(generatedAsset('retried')); await retry;
+  const result = h.node('g'); assert.ok(isImageGeneratorNode(result)); assert.equal(result.data.results?.length, 2);
+  h.edit(current => ({ ...current, nodes: current.nodes.map(node => node.id === 'iterator' ? iteratorGraph(['水彩猫', 'changed', '写实猫']).nodes[0] : node) }));
+  assert.throws(() => h.engine.run(['g'], 1, failed.iteration), /修改或删除/);
+  assert.equal(h.requests.length, 4); h.engine.dispose();
+});
+
+test('editing iterator cancels queued and active items; late responses cannot overwrite results', async () => {
+  const pending: { signal: AbortSignal; resolve: (asset: FileAsset) => void }[] = [];
+  const h = harness(iteratorGraph(Array.from({ length: 6 }, (_, index) => `item ${index}`)), (_task, signal) => new Promise(resolve => pending.push({ signal, resolve })));
+  const done = h.engine.run(['g'], 1); await until(() => pending.length === 4);
+  h.edit(current => ({ ...current, nodes: current.nodes.map(node => node.id === 'iterator' ? iteratorGraph(['changed']).nodes[0] : node) }));
+  await done;
+  assert.ok(pending.every(item => item.signal.aborted));
+  pending.forEach(item => item.resolve(generatedAsset('late')));
+  await new Promise(resolve => setTimeout(resolve, 5));
+  assert.equal(h.requests.length, 4); assert.ok(h.store.getSnapshot().every(task => task.state === 'Cancelled'));
+  const result = h.node('g'); assert.ok(isImageGeneratorNode(result)); assert.equal(result.data.results?.length ?? 0, 0); h.engine.dispose();
+});
+
+function imageIteratorGraph(count = 3): ExecutionGraph {
+  return {
+    nodes: [
+      { id: 'images', type: 'image-iterator', position: { x: 0, y: 0 }, data: { assets: Array.from({ length: count }, (_, index) => generatedAsset(`image-${index}`)), activeAssetId: 'image-1' } },
+      textNode('prompt', 'edit this image'), generator('g'),
+    ],
+    edges: [edge('images', 'g', 'image-0', 'file'), edge('prompt', 'g', 'prompt')],
+  };
+}
+
+test('Image Iterator submits one image per item to each model adapter and respects runs', async () => {
+  for (const type of ['sunburst', 'nano-banana', 'ideogram', 'image-describer'] as const) {
+    const graph = imageIteratorGraph();
+    if (type === 'nano-banana') graph.nodes[2] = { id: 'g', type, position: { x: 0, y: 0 }, data: { ...defaultNanoBananaSettings, imageInputs: 1 } };
+    if (type === 'ideogram') graph.nodes[2] = { id: 'g', type, position: { x: 0, y: 0 }, data: { ...defaultIdeogramSettings, imageInputs: 1 } };
+    if (type === 'image-describer') { graph.nodes[2] = describer('g'); graph.edges.pop(); }
+    const h = harness(graph);
+    try {
+      await h.engine.run(['g'], 2);
+      assert.equal(h.requests.length, 6);
+      for (const task of h.requests) {
+        assert.equal(task.iteration?.kind, 'image');
+        const images = task.ideogramRequest ? [task.ideogramRequest.image] : task.imageRequest?.images ?? task.nanoBananaRequest?.images ?? task.images;
+        assert.deepEqual(images, [`blob:image-${task.iteration?.index}`]);
+      }
+      assert.ok(h.store.getSnapshot().every(task => task.state === 'Done'));
+      assert.equal(h.node('images').type, 'image-iterator');
+    } finally { h.engine.dispose(); }
+  }
+});
+
+test('Image Iterator passes through Router and local image processing with per-image outputs', async () => {
+  const graph = imageIteratorGraph(2);
+  graph.nodes.push({ id: 'router', type: 'router', position: { x: 0, y: 0 }, data: {} }, { id: 'invert', type: 'invert', position: { x: 0, y: 0 }, data: {} });
+  graph.edges = [edge('images', 'router', 'input', 'file'), edge('router', 'invert', 'image', 'output'), edge('invert', 'g', 'image-0', 'result'), edge('prompt', 'g', 'prompt')];
+  const h = harness(graph, undefined, async (_node, snapshot) => {
+    const source = snapshot.nodes.find(node => node.id === 'images')!;
+    assert.equal(source.type, 'file');
+    const asset = (source.data as { assets: FileAsset[] }).assets[0];
+    const { invertRevision } = await import('./invert.ts');
+    return { result: generatedAsset(`inverted-${asset.id}`), outputRevision: invertRevision(asset.id) };
+  });
+  try {
+    await h.engine.run(['g'], 1);
+    assert.deepEqual(h.requests.map(task => task.imageRequest?.images).sort(), [['blob:inverted-image-0'], ['blob:inverted-image-1']]);
+    assert.ok(h.store.getSnapshot().every(task => task.state === 'Done'));
+  } finally { h.engine.dispose(); }
+});
+
+test('equal-content image iterator items retain separate local revisions while same-item consumers share work', async () => {
+  const { invertRevision } = await import('./invert.ts');
+  for (const sameUrl of [false, true]) {
+    const graph = imageIteratorGraph(2);
+    graph.nodes = mapAssets(graph.nodes, asset => ({ ...asset, url: `https://images.example/${sameUrl ? 'shared' : asset.id}.png` }));
+    graph.nodes.push({ id: 'router', type: 'router', position: { x: 0, y: 0 }, data: {} }, { id: 'invert', type: 'invert', position: { x: 0, y: 0 }, data: {} }, generator('g2'));
+    graph.edges = [edge('images', 'router', 'input', 'file'), edge('router', 'invert', 'image', 'output'), ...['g', 'g2'].flatMap(id => [edge('invert', id, 'image-0', 'result'), edge('prompt', id, 'prompt')])];
+    const renders: string[] = [];
+    const h = harness(graph, undefined, async (_node, snapshot) => {
+      const asset = (snapshot.nodes.find(node => node.id === 'images')!.data as { assets: FileAsset[] }).assets[0];
+      renders.push(asset.id);
+      // Keep work in flight until all roots have traversed the shared branch.
+      await new Promise(resolve => setTimeout(resolve, asset.id === 'image-0' ? 10 : 5));
+      return { result: generatedAsset(`inverted-${asset.id}`), outputRevision: invertRevision(asset.id) };
+    }, { snapshot: async assets => ({
+      assets: new Map(assets.map(asset => [asset.url, { ...asset, url: `blob:snapshot-${asset.id}`, contentHash: 'same-content' }])), release: () => {},
+    }) });
+    try {
+      await h.engine.run(['g', 'g2'], 2);
+      assert.deepEqual(h.store.getSnapshot().map(task => task.state), Array(8).fill('Done'));
+      assert.deepEqual(renders.sort(), ['image-0', 'image-1'], 'one render per input identity, shared by both target nodes');
+      assert.equal(h.requests.length, 8);
+      for (const task of h.requests) assert.deepEqual(task.imageRequest?.images, [`blob:inverted-${task.iteration!.itemId}`]);
+    } finally { h.engine.dispose(); }
+  }
+});
+
+test('local work unrelated to the iterator still shares across different text items', async () => {
+  const { invertRevision } = await import('./invert.ts');
+  const graph = iteratorGraph(['one', 'two', 'three']);
+  graph.nodes.push(file('source'), { id: 'invert', type: 'invert', position: { x: 0, y: 0 }, data: {} });
+  graph.edges.push(edge('source', 'invert', 'image', 'file'), edge('invert', 'g', 'image-0', 'result'));
+  let renders = 0;
+  const h = harness(graph, undefined, async () => {
+    renders++;
+    await new Promise(resolve => setTimeout(resolve, 5));
+    return { result: generatedAsset('shared-inverted'), outputRevision: invertRevision('source') };
+  });
+  try {
+    await h.engine.run(['g'], 1);
+    assert.equal(renders, 1);
+    assert.equal(h.requests.length, 3);
+    assert.ok(h.store.getSnapshot().every(task => task.state === 'Done'));
+    for (const task of h.requests) assert.deepEqual(task.imageRequest?.images, ['blob:shared-inverted']);
+  } finally { h.engine.dispose(); }
+});
+
+test('overlapping image iterator runs reuse only the matching image even when completion is reversed', async () => {
+  const graph = imageIteratorGraph(2);
+  graph.nodes.push(generator('final'));
+  graph.edges.push(edge('g', 'final', 'image-0', 'result'), edge('prompt', 'final', 'prompt'));
+  const pending: { task: PreviewTask; resolve: (asset: FileAsset) => void }[] = [];
+  const h = harness(graph, task => task.nodeId === 'g' ? new Promise(resolve => pending.push({ task, resolve })) : Promise.resolve(generatedAsset('final')));
+  try {
+    const first = h.engine.run(['g'], 1); await until(() => pending.length === 2);
+    const second = h.engine.run(['final'], 1); await new Promise(resolve => setTimeout(resolve, 5));
+    pending[1].resolve(generatedAsset('second-result'));
+    await until(() => h.requests.some(task => task.nodeId === 'final'));
+    const completed = h.requests.filter(task => task.nodeId === 'final');
+    assert.equal(completed.length, 1);
+    assert.equal(completed[0].iteration?.itemId, 'image-1');
+    assert.deepEqual(completed[0].imageRequest?.images, ['blob:second-result']);
+    pending[0].resolve(generatedAsset('first-result')); await Promise.all([first, second]);
+    assert.equal(pending.length, 2);
+    assert.deepEqual(h.requests.filter(task => task.nodeId === 'final').map(task => task.imageRequest?.images), [['blob:second-result'], ['blob:first-result']]);
+  } finally { h.engine.dispose(); }
+});
+
+test('image failures retry only their own asset and reject replaced images', async () => {
+  let fail = true;
+  const h = harness(imageIteratorGraph(), async task => {
+    if (fail && task.iteration?.itemId === 'image-1') throw new Error('one image failed');
+    return generatedAsset(`result-${task.iteration?.itemId}`);
+  });
+  try {
+    await h.engine.run(['g'], 1);
+    const failed = h.store.getSnapshot().find(task => task.state === 'Failed')!;
+    assert.equal(failed.iteration?.kind, 'image');
+    fail = false; await h.engine.run(['g'], 1, failed.iteration);
+    assert.equal(h.requests.length, 4);
+    assert.deepEqual(h.requests[3].imageRequest?.images, ['blob:image-1']);
+    h.edit(graph => ({ ...graph, nodes: graph.nodes.map(node => node.id === 'images' ? { ...node, data: { assets: [generatedAsset('replacement')] } } as AppNode : node) }));
+    assert.throws(() => h.engine.run(['g'], 1, failed.iteration), /修改或删除/);
+  } finally { h.engine.dispose(); }
+});
+
+test('remote image snapshots read only their own item and a broken item does not fail its siblings', async () => {
+  const graph = imageIteratorGraph(2);
+  graph.nodes = mapAssets(graph.nodes, asset => ({ ...asset, url: `https://images.example/${asset.id}.png` }));
+  const snapshots: string[][] = [];
+  const h = harness(graph, undefined, undefined, { snapshot: async assets => {
+    snapshots.push(assets.map(asset => asset.id));
+    assert.equal(assets.length, 1);
+    if (assets[0].id === 'image-0') throw new Error('unreadable remote image');
+    return { assets: new Map(assets.map(asset => [asset.url, { ...asset, url: `blob:snapshot-${asset.id}`, contentHash: asset.id }])), release: () => {} };
+  } });
+  try {
+    await h.engine.run(['g'], 1);
+    assert.deepEqual(snapshots.sort(), [['image-0'], ['image-1']]);
+    assert.equal(h.requests.length, 1);
+    assert.deepEqual(h.requests[0].imageRequest?.images, ['blob:snapshot-image-1']);
+    assert.equal(h.store.getSnapshot().filter(task => task.state === 'Failed').length, 1);
+    assert.equal(h.store.getSnapshot().filter(task => task.state === 'Done').length, 1);
+  } finally { h.engine.dispose(); }
+});
+
+test('repeated remote URLs remain separate iterator items after snapshot mapping', async () => {
+  const graph = imageIteratorGraph(2);
+  graph.nodes = mapAssets(graph.nodes, asset => ({ ...asset, url: 'https://images.example/shared.png' }));
+  const h = harness(graph, undefined, undefined, { snapshot: async assets => ({
+    assets: new Map(assets.map(asset => [asset.url, { ...asset, url: `blob:snapshot-${asset.id}`, contentHash: 'same-content' }])), release: () => {},
+  }) });
+  try {
+    await h.engine.run(['g'], 1);
+    assert.equal(h.requests.length, 2);
+    for (const task of h.requests) assert.deepEqual(task.imageRequest?.images, [`blob:snapshot-${task.iteration?.itemId}`]);
+    assert.ok(h.store.getSnapshot().every(task => task.state === 'Done'));
+  } finally { h.engine.dispose(); }
+});
+
+test('image cover browsing keeps active tasks alive; list edits cancel queued items and reject late results', async () => {
+  const pending: { signal: AbortSignal; resolve: (asset: FileAsset) => void }[] = [];
+  const h = harness(imageIteratorGraph(6), (_task, signal) => new Promise(resolve => pending.push({ signal, resolve })));
+  try {
+    const done = h.engine.run(['g'], 1); await until(() => pending.length === 4);
+    h.edit(graph => ({ ...graph, nodes: graph.nodes.map(node => node.id === 'images' ? { ...node, data: { ...node.data, activeAssetId: 'image-5', viewMode: 'single' } } as AppNode : node) }));
+    assert.ok(pending.every(item => !item.signal.aborted));
+    h.edit(graph => ({ ...graph, nodes: graph.nodes.map(node => node.id === 'images' ? { ...node, data: { assets: [] } } as AppNode : node) }));
+    await done;
+    assert.ok(pending.every(item => item.signal.aborted));
+    pending.forEach(item => item.resolve(generatedAsset('late'))); await new Promise(resolve => setTimeout(resolve, 5));
+    assert.equal(h.requests.length, 4);
+    assert.ok(h.store.getSnapshot().every(task => task.state === 'Cancelled'));
+    const model = h.node('g'); assert.ok(isImageGeneratorNode(model)); assert.equal(model.data.results?.length ?? 0, 0);
+  } finally { h.engine.dispose(); }
+});

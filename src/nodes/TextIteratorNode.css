@@ -1,0 +1,34 @@
+.react-flow .react-flow__node.react-flow__node-text-iterator { height: auto; min-height: 112px; display: flex; flex-direction: column; align-items: stretch; }
+.react-flow .react-flow__node-text-iterator.selected, .react-flow .react-flow__node-text-iterator:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
+.react-flow__node-text-iterator .text-node-title { min-width: 0; gap: 8px; font-size: 14px; line-height: 20px; }
+.react-flow__node-text-iterator .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.react-flow__node-text-iterator .text-node-title > svg { flex-shrink: 0; }
+.react-flow__node-text-iterator.selected .text-node-title { color: var(--text-node-primary); }
+.iterator-heading-actions { display: flex; align-items: center; gap: 12px; }
+.iterator-count { color: var(--text-node-secondary); font-size: 12px; white-space: nowrap; }
+.iterator-items { display: flex; flex-direction: column; gap: 6px; }
+.iterator-item { position: relative; }
+.iterator-item textarea { display: block; width: 100%; min-height: 32px; max-height: 180px; padding: 5px 28px 5px 8px; resize: none; overflow-y: auto; border: 1px solid transparent; border-radius: 5px; background: var(--text-node-input); color: var(--text-node-primary); font: inherit; font-size: 12px; line-height: 20px; }
+.iterator-item textarea::placeholder { color: var(--text-node-placeholder); }
+.iterator-item textarea:focus { outline: none; border-color: var(--text-node-border-selected); }
+.iterator-grip, .iterator-remove { position: absolute; display: flex; align-items: center; justify-content: center; top: 4px; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--text-node-secondary); opacity: 0; }
+.iterator-grip { left: -17px; width: 16px; cursor: grab; }
+.iterator-remove { right: 4px; cursor: pointer; }
+.iterator-item:hover .iterator-grip, .iterator-item:hover .iterator-remove, .iterator-item:focus-within .iterator-grip, .iterator-item:focus-within .iterator-remove { opacity: 1; }
+.iterator-remove:hover { background: var(--text-node-surface); color: var(--text-node-primary); }
+.iterator-item.is-drop-target::before { content: ''; position: absolute; top: -4px; left: 0; right: 0; height: 2px; background: var(--text-node-port); }
+.text-node-button.iterator-add { align-self: flex-start; gap: 6px; height: 32px; margin-top: 4px; padding: 6px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; }
+.iterator-add:hover:not(:disabled) { background: var(--text-node-input); }
+.iterator-add:active:not(:disabled) { background: var(--text-node-border); }
+.iterator-add:disabled { opacity: .4; cursor: default; }
+.iterator-input-note { font-size: 11px; line-height: 16px; color: var(--text-node-secondary); }
+.react-flow__node-text-iterator:hover .describer-port-label, .react-flow__node-text-iterator.selected .describer-port-label { visibility: visible; }
+.react-flow .react-flow__node-text-iterator .iterator-input-label, .react-flow .react-flow__node-text-iterator .iterator-output-label { top: 2px; }
+.react-flow .react-flow__node-text-iterator .iterator-input-port { border-color: #7c965a; }
+.react-flow.dark .react-flow__node-text-iterator .iterator-input-port { border-color: #f3ffe3; }
+.react-flow .react-flow__node-text-iterator .iterator-input-label { color: #7c965a; }
+.react-flow.dark .react-flow__node-text-iterator .iterator-input-label { color: #f3ffe3; }
+.react-flow .iterator-input-port.is-connected::after { background: #7c965a; }
+.react-flow.dark .iterator-input-port.is-connected::after { background: #f3ffe3; }
+.text-iteration-summary { display: flex; width: 100%; justify-content: space-between; gap: 16px; color: var(--text-node-secondary, var(--panel-muted)); font-size: 12px; }
+@media (hover: none) { .iterator-grip, .iterator-remove { opacity: 1; } }

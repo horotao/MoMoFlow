@@ -1,3 +1,6 @@
+import { isImageIteratorNode } from './nodes/types';
+import { readImageIteratorData } from './nodes/imageIterator';
+import { readTextIteratorData } from './nodes/textIterator';
 import { restoreIdeogramData } from './nodes/ideogramClipboard';
 import { restoreMasksData } from './nodes/masksExtractor';
 import { restoreNanoBananaData } from './nodes/nanoBananaClipboard';
@@ -92,6 +95,28 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       if (event.defaultPrevented || (event.target as HTMLElement).closest('input, textarea, [contenteditable="true"], [data-compositor-editor]')) return;
       try {
         const saved = JSON.parse(event.clipboardData?.getData('text/plain') ?? '');
+        if (saved.format === 'momoflow-image-iterator-node' && saved.node?.type === 'image-iterator'
+          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
+          const data = readImageIteratorData(saved.node.data);
+          if (!data) return;
+          event.preventDefault();
+          setNodes(current => [...current.map(node => ({ ...node, selected: false })), {
+            id: crypto.randomUUID(), type: 'image-iterator', selected: true,
+            position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data: { ...data, locked: false },
+          }]);
+          return;
+        }
+        if (saved.format === 'momoflow-text-iterator-node' && saved.node?.type === 'text-iterator'
+          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
+          const data = readTextIteratorData(saved.node.data);
+          if (!data) return;
+          event.preventDefault();
+          setNodes(current => [...current.map(node => ({ ...node, selected: false })), {
+            id: crypto.randomUUID(), type: 'text-iterator', selected: true,
+            position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data: { ...data, locked: false },
+          }]);
+          return;
+        }
         if (saved.format === 'momoflow-file-node' && saved.node?.type === 'file'
           && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
           const assets = saved.node.data?.assets ?? (saved.node.data?.asset ? [saved.node.data.asset] : []);
@@ -376,7 +401,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       nodesDraggable={tool === 'select'}
       nodesConnectable={tool === 'select'}
       elementsSelectable={tool === 'select'}
-      nodes={nodes.map((node) => isFileNode(node) ? {
+      nodes={nodes.map((node) => (isFileNode(node) || isImageIteratorNode(node)) ? {
         ...node, draggable: !node.data.locked && tool === 'select',
         deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select',
       } : isTextNode(node) ? {
@@ -385,7 +410,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         deletable: !node.data.locked,
         connectable: !node.data.locked && tool === 'select',
         style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
-      } : (isImageGeneratorNode(node) || isPainterNode(node) || node.type === 'masks-extractor' || node.type === 'crop' || node.type === 'color-correction' || node.type === 'matte-grow-shrink' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'blend' || node.type === 'compare' || node.type === 'resize' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview' || node.type === 'router') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
+      } : (isImageGeneratorNode(node) || isPainterNode(node) || node.type === 'masks-extractor' || node.type === 'crop' || node.type === 'color-correction' || node.type === 'matte-grow-shrink' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'blend' || node.type === 'compare' || node.type === 'resize' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview' || node.type === 'router' || node.type === 'text-iterator') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
       edges={edges.map((edge) => {
@@ -396,8 +421,8 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
           style: { ...edge.style, stroke: outputColor(outputKind(source, edge.sourceHandle, nodes, edges)) },
         };
         const fileSource = source && isFileNode(source) ? source : undefined;
-        const textConnection = (source?.type === 'color-palette' && edge.sourceHandle === 'text') || nodes.some((node) => (isTextNode(node) || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
-        const generatedSource = source && (isImageGeneratorNode(source) || source.type === 'masks-extractor' || source.type === 'painter' || source.type === 'crop' || source.type === 'color-correction' || source.type === 'matte-grow-shrink' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'rotate-flip' || source.type === 'blend' || source.type === 'compare' || source.type === 'resize' || source.type === 'compositor' || (source.type === 'color-palette' && edge.sourceHandle === 'image'));
+        const textConnection = (source?.type === 'color-palette' && edge.sourceHandle === 'text') || nodes.some((node) => (isTextNode(node) || node.type === 'text-iterator' || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
+        const generatedSource = source && (source.type === 'image-iterator' || isImageGeneratorNode(source) || source.type === 'masks-extractor' || source.type === 'painter' || source.type === 'crop' || source.type === 'color-correction' || source.type === 'matte-grow-shrink' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'rotate-flip' || source.type === 'blend' || source.type === 'compare' || source.type === 'resize' || source.type === 'compositor' || (source.type === 'color-palette' && edge.sourceHandle === 'image'));
         const sunburstTarget = target && isImageGeneratorNode(target);
         const portColor = source?.type === 'matte-grow-shrink' || target?.type === 'matte-grow-shrink' || ((source?.type === 'painter' || source?.type === 'masks-extractor') && edge.sourceHandle === 'mask') || (sunburstTarget && edge.targetHandle === 'mask') ? 'var(--sunburst-mask-port)'
           : target?.type === 'image-describer' && /^image-\d+$/.test(edge.targetHandle ?? '') ? filePortColors.image

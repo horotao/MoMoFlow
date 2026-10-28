@@ -1,5 +1,5 @@
 import {
-  ArrowExpand01Icon, AudioWave01Icon, BlendIcon, BlurIcon,
+  RepeatIcon, ArrowExpand01Icon, AudioWave01Icon, BlendIcon, BlurIcon,
   ChartHistogramIcon, ChatGptIcon, ContrastIcon, CropIcon, CubeIcon,
   CursorMagicSelection03Icon, ExpandIcon, File01Icon, FilterHorizontalIcon,
   Image02Icon, ImportIcon, Layers01Icon, Location01Icon, PaintBoardIcon,
@@ -11,6 +11,8 @@ import type { OutputKind } from './router';
 import { ideogramBrandIcon, nanoBananaBrandIcon } from './modelBrandIcons';
 
 export const nodeIcons = {
+  'text-iterator': RepeatIcon,
+  'image-iterator': RepeatIcon,
   ideogram: ideogramBrandIcon,
   'matte-grow-shrink': ExpandIcon,
   'masks-extractor': CursorMagicSelection03Icon,

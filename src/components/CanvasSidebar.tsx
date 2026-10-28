@@ -1,3 +1,4 @@
+import { isImageIteratorNode } from '../nodes/types';
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { useReactFlow, useNodes } from '@xyflow/react';
@@ -19,7 +20,7 @@ const titles: Partial<Record<Category, string>> = {
   Recents: '快速访问', Tools: '工具箱', Image: '图像模型', Video: '视频模型', Models: '社区模型',
 };
 const groupLabels: Record<string, string> = {
-  Matte: '蒙版', Helpers: '辅助工具', Editing: '图像编辑', 'Text tools': '文本工具', Datatypes: '数据类型',
+  Iterators: '迭代器', Matte: '蒙版', Helpers: '辅助工具', Editing: '图像编辑', 'Text tools': '文本工具', Datatypes: '数据类型',
   'Generate from text': '文本生成图像', 'Generate from text or image': '文本或图像生成视频',
   'Community models': '社区模型',
 };
@@ -34,7 +35,7 @@ export function CanvasSidebar({ colorMode, onThemeChange }: { colorMode: 'light'
   const contentRef = useRef<HTMLDivElement>(null);
   const { setNodes, screenToFlowPosition } = useReactFlow<AppNode>();
   const nodes = useNodes<AppNode>();
-  const assets = nodes.flatMap(n => isImageGeneratorNode(n) ? n.data.results ?? [] : isFileNode(n) ? (n.data.assets ?? (n.data.asset ? [n.data.asset] : [])) : []).filter((asset, index, all) => all.findIndex(a => a.id === asset.id) === index).filter(asset => asset.name.toLowerCase().includes(query.trim().toLowerCase()));
+  const assets = nodes.flatMap(n => isImageGeneratorNode(n) ? n.data.results ?? [] : (isFileNode(n) || isImageIteratorNode(n)) ? (n.data.assets ?? (n.data.asset ? [n.data.asset] : [])) : []).filter((asset, index, all) => all.findIndex(a => a.id === asset.id) === index).filter(asset => asset.name.toLowerCase().includes(query.trim().toLowerCase()));
   useEffect(() => {
     if (!isOpen) return;
     contentRef.current?.scrollTo(0, 0);

@@ -1,0 +1,5 @@
+.iterator-warning { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; flex-shrink: 0; padding: 14px 0 4px; border-top: 1px solid var(--text-node-border, var(--panel-border)); color: #b04438; font-size: 12px; font-weight: 400; line-height: 18px; text-align: left; }
+.dark .iterator-warning { color: #ff9f91; }
+.iterator-warning > svg { flex: 0 0 16px; }
+.iterator-warning > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.describer-panel-bottom .iterator-warning { margin-top: 12px; }

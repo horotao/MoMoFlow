@@ -4,7 +4,8 @@ import type { AppNode, FileAsset } from './types';
 import type { PreviewTask } from './taskQueue';
 import { isActiveTask } from './taskQueue.ts';
 import { isDescriberNode, isImageGeneratorNode, isNodeLocked } from './types.ts';
-import { executionInputs, executionSourceAssets, fixedOutput, graphGuard, isModelNode, nodeProblem, preflight, prepareModel, requestSignature, reusable, selectedResult, stableSignature, type ExecutionGraph } from './executionGraph.ts';
+import { executionInputs, executionSourceAssets, fixedOutput, graphGuard, isModelNode, iterationGraph, nodeProblem, planExecution, prepareModel, requestSignature, reusable, selectedResult, stableSignature, workflowIterations, type ExecutionGraph } from './executionGraph.ts';
+import { sameIteration, type WorkflowIteration } from './workflowIteration.ts';
 import { imageOutput } from './sunburstRun.ts';
 import { mapAssets } from '../persistence/workflowStorage.ts';
 
@@ -18,7 +19,7 @@ export type ExecutionIO = {
   discard: (assets: FileAsset[]) => void;
   patch: (id: string, data: Record<string, unknown>) => void;
 };
-type Root = { id: string; controller: AbortController; guard: string; tasks: string[]; memo: Map<string, Promise<void>>; remote: Map<string, FileAsset>; outputs: Map<string, Record<string, unknown>>; releases: (() => void)[]; done?: Promise<void> };
+type Root = { id: string; iteration?: WorkflowIteration; controller: AbortController; guard: string; tasks: string[]; memo: Map<string, Promise<void>>; remote: Map<string, FileAsset>; outputs: Map<string, Record<string, unknown>>; releases: (() => void)[]; done?: Promise<void> };
 type LocalFlight = { controller: AbortController; consumers: Set<AbortSignal>; promise: Promise<Record<string, unknown>> };
 type Flight = { nodeId: string; taskId: string; controller: AbortController; consumers: Set<AbortSignal>; promise: Promise<Record<string, unknown>> };
 export function aborted(signal: AbortSignal) { if (signal.aborted) throw new Error(typeof signal.reason === 'string' ? signal.reason : '运行已取消。'); }
@@ -37,6 +38,18 @@ function modelOutput(node: AppNode): Record<string, unknown> {
   if (isDescriberNode(node)) return { text: node.data.text, generation: node.data.generation, outputMode: node.data.outputMode };
   const result = selectedResult(node);
   return { results: result ? [result] : [], activeResultId: result?.id, outputMode: 'outputMode' in node.data ? node.data.outputMode : undefined };
+}
+
+function reusableModelNode(node: AppNode, signature: string, iteration?: WorkflowIteration) {
+  // Completed roots have already been released. Image history retains the
+  // item's provenance, so choose its latest valid result rather than the cover.
+  const candidates = iteration && isImageGeneratorNode(node)
+    ? [...(node.data.results ?? [])].reverse().map(asset => ({ ...node, data: { ...node.data, results: [asset], activeResultId: asset.id } } as AppNode))
+    : [node];
+  return candidates.find(candidate => {
+    const generation = isDescriberNode(candidate) ? candidate.data.generation : selectedResult(candidate)?.generation;
+    return reusable(candidate, signature) && (!iteration || (generation?.iteration && sameIteration(generation.iteration, iteration)));
+  });
 }
 
 export class WorkflowExecution {
@@ -79,29 +92,32 @@ export class WorkflowExecution {
     this.io.patch(id, data);
   }
   private graphFor(root: Root): ExecutionGraph {
-    return { ...this.graph, nodes: mapAssets(this.graph.nodes.map(node => root.outputs.has(node.id) ? { ...node, data: { ...node.data, ...root.outputs.get(node.id) } } as AppNode : node), asset => root.remote.get(asset.url) ? { ...root.remote.get(asset.url)!, maskMode: asset.maskMode } : asset) };
+    // Select the item before mapping URL snapshots: distinct entries may share
+    // a remote URL, so mapping the full list first would collapse their IDs.
+    const graph = iterationGraph({ ...this.graph, nodes: this.graph.nodes.map(node => root.outputs.has(node.id) ? { ...node, data: { ...node.data, ...root.outputs.get(node.id) } } as AppNode : node) }, root.iteration);
+    return { ...graph, nodes: mapAssets(graph.nodes, asset => root.remote.get(asset.url) ? { ...root.remote.get(asset.url)!, maskMode: asset.maskMode } : asset) };
   }
-  run(ids: string[], runs: number) {
+  run(ids: string[], runs: number, retry?: WorkflowIteration) {
     if (this.stopped) throw new Error('执行器已关闭。');
     const targets = [...new Set(ids)];
     if (!targets.length) return Promise.resolve();
     if (targets.some(id => [...this.roots].some(root => root.id === id) || [...this.flights.values()].some(flight => flight.nodeId === id))) throw new Error('选中节点已有运行中的任务，请等待完成后再运行。');
-    preflight(this.graph, targets, runs);
+    const plans = planExecution(this.graph, targets, runs, retry);
     const batchId = crypto.randomUUID();
-    const roots = targets.map(id => {
-      const tasks = Array.from({ length: runs }, () => this.placeholder(id, batchId));
-      const root: Root = { id, tasks: tasks.map(task => task.id), controller: new AbortController(), guard: graphGuard(this.graph, id, true), memo: new Map(), remote: new Map(), outputs: new Map(), releases: [] };
+    const roots = targets.flatMap(id => plans.get(id)!.map(iteration => {
+      const tasks = Array.from({ length: runs }, () => this.placeholder(id, batchId, iteration));
+      const root: Root = { id, iteration, tasks: tasks.map(task => task.id), controller: new AbortController(), guard: graphGuard(this.graph, id, true), memo: new Map(), remote: new Map(), outputs: new Map(), releases: [] };
       this.roots.add(root);
       this.store.update(current => [...current, ...tasks]);
       return root;
-    });
+    }));
     for (const root of roots) {
       // Deferral lets every selected target register before dependency traversal.
       root.done = Promise.resolve().then(async () => {
         const signal = root.controller.signal;
         const release = this.io.retain(this.graph);
         try {
-          await this.snapshotAssets(root, executionSourceAssets(this.graph, root.id, targets));
+          await this.snapshotAssets(root, executionSourceAssets(this.graphFor(root), root.id, targets));
           aborted(signal);
           const node = this.graph.nodes.find(item => item.id === root.id)!;
           await Promise.all(executionInputs(node, undefined, this.graphFor(root)).map(edge => this.ensureInput(root, node, edge)));
@@ -132,10 +148,10 @@ export class WorkflowExecution {
     }
     return Promise.all(roots.map(root => root.done)).then(() => {});
   }
-  private placeholder(id: string, batchId: string): PreviewTask {
+  private placeholder(id: string, batchId: string, iteration?: WorkflowIteration): PreviewTask {
     const node = this.graph.nodes.find(item => item.id === id)!;
     const label = node.data.label || ({ sunburst: 'GPT Image 2.5', 'nano-banana': 'Nano Banana', ideogram: 'Ideogram 4.5', 'image-describer': '图像描述' } as Record<string, string>)[node.type!] || node.type;
-    return { id: crypto.randomUUID(), nodeId: id, batchId, label, model: node.type!, createdAt: Date.now(), state: 'Queued', progress: 0, started: 0, notice: '等待上游' };
+    return { id: crypto.randomUUID(), nodeId: id, batchId, label: iteration ? `${label} · ${iteration.index + 1}/${iteration.total}` : label, iteration, model: node.type!, createdAt: Date.now(), state: 'Queued', progress: 0, started: 0, notice: '等待上游' };
   }
   private ensureInput(root: Root, consumer: AppNode, edge: Edge) {
     // Match the model adapter's Painter Mask alias, including Router chains.
@@ -160,7 +176,9 @@ export class WorkflowExecution {
     aborted(signal);
     let graph = this.graphFor(root);
     let node = graph.nodes.find(item => item.id === id)!;
-    const selected = [...this.roots].find(other => other !== root && other.id === id);
+    // A running iterator target has one root per item. Shared, non-iterated
+    // upstreams can serve every item; iterated upstreams must match its identity.
+    const selected = [...this.roots].find(other => other !== root && other.id === id && (!other.iteration || sameIteration(other.iteration, root.iteration)));
     if (selected?.done) {
       await withAbort(selected.done, signal);
       if (!selected.tasks.every(taskId => this.store.getSnapshot().find(task => task.id === taskId)?.state === 'Done')) nodeProblem(node, '上游运行失败或已取消。');
@@ -181,16 +199,18 @@ export class WorkflowExecution {
       // Locked nodes may supply a proven result, but may never be executed.
       const unlocked = { ...graph, nodes: graph.nodes.map(item => item.id === id ? { ...item, data: { ...item.data, locked: false } } as AppNode : item) };
       const prepared = prepareModel(unlocked, id), signature = requestSignature(prepared, graph);
-      if (reusable(node, signature)) {
+      const iteration = root.iteration && workflowIterations(this.graph, id).find(item => item && sameIteration(item, root.iteration));
+      const cached = reusableModelNode(node, signature, iteration);
+      if (cached) {
         try {
-          await this.verifyOutput(root, isImageGeneratorNode(node) ? [selectedResult(node)!] : []);
-          this.pinOutput(root, id, modelOutput(node));
+          await this.verifyOutput(root, isImageGeneratorNode(cached) ? [selectedResult(cached)!] : []);
+          this.pinOutput(root, id, modelOutput(cached));
           for (const taskId of root.tasks) this.state(taskId, { notice: '已复用上游，准备剩余输入' });
           return;
         } catch { aborted(signal); /* Missing cached media needs regeneration. */ }
       }
       if (isNodeLocked(node)) nodeProblem(node, '已锁定且结果需要更新，请先解锁。');
-      await this.shared(root, `${id}:${signature}`, id, prepared, signature);
+      await this.shared(root, id, prepared, signature, iteration);
     } else if (!['text', 'router', 'compare', 'model-input', 'position-logger'].includes(node.type ?? '') && !(node.type === 'color-palette' && handle === 'text')) {
       const output = imageOutput(node, handle, graph.nodes, graph.edges);
       const localSignature = graphGuard(graph, id, true, handle);
@@ -227,11 +247,17 @@ export class WorkflowExecution {
     root.releases.push(this.io.retain(this.graphFor(root)));
   }
   private async sharedLocal(root: Root, node: AppNode, graph: ExecutionGraph, signature: string, handle?: string | null) {
-    let flight = this.localFlights.get(signature);
+    // Content hashes may match across distinct assets, but local outputRevision
+    // also binds to input IDs. Only share a render when both identities match.
+    const inputs = executionInputs(node, handle, graph).map(edge => [edge.targetHandle ?? null,
+      imageOutput(graph.nodes.find(source => source.id === edge.source), edge.sourceHandle, graph.nodes, graph.edges).map(asset => asset.id),
+    ]).sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+    const key = stableSignature([signature, inputs]);
+    let flight = this.localFlights.get(key);
     if (!flight || flight.controller.signal.aborted) {
       const controller = new AbortController(), releaseAssets = this.io.retain(graph);
       const created: LocalFlight = { controller, consumers: new Set(), promise: Promise.resolve({}) };
-      flight = created; this.localFlights.set(signature, created);
+      flight = created; this.localFlights.set(key, created);
       created.promise = Promise.resolve().then(async () => {
         const signal = controller.signal;
         aborted(signal);
@@ -248,7 +274,7 @@ export class WorkflowExecution {
         const completed = { ...patch, executionSignature: signature };
         this.commit(node.id, completed);
         return completed;
-      }).finally(() => { releaseAssets(); if (this.localFlights.get(signature) === created) this.localFlights.delete(signature); });
+      }).finally(() => { releaseAssets(); if (this.localFlights.get(key) === created) this.localFlights.delete(key); });
     }
     const signal = root.controller.signal;
     flight.consumers.add(signal);
@@ -257,10 +283,13 @@ export class WorkflowExecution {
     try { const patch = await withAbort(flight.promise, signal); aborted(signal); this.pinOutput(root, node.id, patch); }
     finally { signal.removeEventListener('abort', release); release(); }
   }
-  private async shared(root: Root, key: string, id: string, prepared: PreviewTask, signature: string) {
+  private async shared(root: Root, id: string, prepared: PreviewTask, signature: string, iteration?: WorkflowIteration) {
+    // Equal requests from distinct items still represent distinct upstream
+    // results. Only consumers of the same item may share an in-flight request.
+    const key = stableSignature([id, signature, iteration && [iteration.kind ?? 'text', iteration.nodeId, iteration.itemId, iteration.kind === 'image' ? iteration.signature : iteration.text]]);
     let flight = this.flights.get(key);
     if (!flight || flight.controller.signal.aborted) {
-      const task = this.placeholder(id, this.store.getSnapshot().find(task => task.id === root.tasks[0])!.batchId);
+      const task = this.placeholder(id, this.store.getSnapshot().find(task => task.id === root.tasks[0])!.batchId, iteration);
       const controller = new AbortController();
       flight = { nodeId: id, taskId: task.id, controller, consumers: new Set(), promise: Promise.resolve({}) };
       this.flights.set(key, flight);
@@ -298,7 +327,8 @@ export class WorkflowExecution {
       releaseSlot = await this.acquireModelSlot(controller.signal);
       aborted(controller.signal);
       timeout = setTimeout(() => controller.abort('请求超时；不会自动重试。'), isDescriberNode(this.graph.nodes.find(node => node.id === id)!) ? 130000 : 310000);
-      const task = { ...prepared, id: taskId, notice: undefined, state: 'Running' as const, started: Date.now() };
+      const queued = this.store.getSnapshot().find(task => task.id === taskId)!;
+      const task = { ...prepared, id: taskId, label: queued.label, iteration: queued.iteration, notice: undefined, state: 'Running' as const, started: Date.now() };
       // Retain the caller's batch identity and user-visible label.
       const { batchId: _batchId, createdAt: _createdAt, ...request } = task;
       void _batchId; void _createdAt;
@@ -315,12 +345,12 @@ export class WorkflowExecution {
       let output: Record<string, unknown>;
       if (typeof result === 'string') {
         if (!isDescriberNode(node) || !result.trim()) throw new Error('未返回有效描述。');
-        output = { text: result, outputMode: undefined, sourceSignature: undefined, generation: { version: 1, inputSignature: signature, outputSignature: stableSignature(result) } };
+        output = { text: result, outputMode: undefined, sourceSignature: undefined, generation: { version: 1, inputSignature: signature, outputSignature: stableSignature(result), iteration: task.iteration } };
         this.commit(id, output);
       } else {
         assets = Array.isArray(result) ? result : [result];
         if (!isImageGeneratorNode(node) || !assets.length || assets.some(asset => !asset?.url)) throw new Error('未返回有效图片。');
-        const generated = assets.map(asset => ({ ...asset, generation: { version: 1 as const, inputSignature: signature, outputSignature: asset.id } }));
+        const generated = assets.map(asset => ({ ...asset, generation: { version: 1 as const, inputSignature: signature, outputSignature: asset.id, iteration: task.iteration } }));
         output = { results: generated, activeResultId: generated[generated.length - 1].id, outputMode: undefined };
         this.commit(id, { ...output, results: [...(node.data.results ?? []), ...generated] });
         attached = true;

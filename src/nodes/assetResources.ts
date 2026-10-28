@@ -88,7 +88,7 @@ export function nodeAssetUrls(nodes: Iterable<AppNode>): Set<string> {
       }
     } else if (isColorPaletteNode(node)) {
       if (node.data.result) urls.add(node.data.result.url);
-    } else if (node.type === 'file') {
+    } else if ((node.type === 'file' || node.type === 'image-iterator')) {
       const data = node.data as FileNode['data'];
       if (data.asset) urls.add(data.asset.url);
       for (const asset of data.assets ?? []) urls.add(asset.url);

@@ -1,3 +1,5 @@
+import { isTextIteratorNode } from './types';
+import { iteratorItems } from './textVariables';
 import { isMasksExtractorNode } from './types';
 import { isBlendNode } from './types';
 import { blendInputs } from './sunburstRun';
@@ -14,8 +16,8 @@ import { cloneTextNode } from './cloneTextNode';
 import { isTextNode } from './textVariables';
 import type { AppNode } from './types';
 
-export function TextNodeMenu({ id, locked, onRename, children }: {
-  id: string; locked: boolean; onRename: () => void; children: ReactNode;
+export function TextNodeMenu({ id, locked, onRename, onClear, children }: {
+  id: string; locked: boolean; onRename: () => void; onClear?: () => void; children: ReactNode;
 }) {
   const { getNode, getNodes, getEdges, setNodes, updateNodeData, deleteElements } = useReactFlow<AppNode>();
   const [open, setOpen] = useState(false);
@@ -30,29 +32,37 @@ export function TextNodeMenu({ id, locked, onRename, children }: {
 
   const act = async (action: string) => {
     const node = getNode(id);
-    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'nano-banana' && node.type !== 'ideogram' && node.type !== 'masks-extractor' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop' && node.type !== 'color-correction' && node.type !== 'matte-grow-shrink' && node.type !== 'blur' && node.type !== 'levels' && node.type !== 'invert' && node.type !== 'rotate-flip' && node.type !== 'blend' && node.type !== 'compare' && node.type !== 'resize' && node.type !== 'compositor' && node.type !== 'color-palette' && node.type !== 'router')) return;
+    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'nano-banana' && node.type !== 'ideogram' && node.type !== 'masks-extractor' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop' && node.type !== 'color-correction' && node.type !== 'matte-grow-shrink' && node.type !== 'blur' && node.type !== 'levels' && node.type !== 'invert' && node.type !== 'rotate-flip' && node.type !== 'blend' && node.type !== 'compare' && node.type !== 'resize' && node.type !== 'compositor' && node.type !== 'color-palette' && node.type !== 'router' && node.type !== 'text-iterator' && node.type !== 'image-iterator')) return;
     setError('');
+    let writingClipboard = false;
     try {
-      const edge = (isMasksExtractorNode(node) || isPainterNode(node) || isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isMatteGrowShrinkNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) ? getEdges().find(item => item.target === id && item.targetHandle === (isColorCorrectionNode(node) ? 'file' : 'image')) : undefined;
-      const snapshot: AppNode = isBlendNode(node) ? { ...node, data: { ...node.data, back: blendInputs(node, getNodes(), getEdges()).back, front: blendInputs(node, getNodes(), getEdges()).front } } : isCompareNode(node) ? { ...node, data: { ...node.data, input1: imageOutput(node, 'output-1', getNodes(), getEdges())[0], input2: imageOutput(node, 'output-2', getNodes(), getEdges())[0] } } : isCompositorNode(node) ? { ...node, data: { ...node.data, document: snapshotCompositor(node.data.document, compositorInputs(id, getNodes(), getEdges())), outputRevision: undefined } } : (isMasksExtractorNode(node) || isPainterNode(node) || isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isMatteGrowShrinkNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) && edge ? { ...node, data: { ...node.data, baseImage: imageOutput(getNode(edge.source), edge.sourceHandle, getNodes(), getEdges())[0] } } as AppNode : node;
+      const snapshot = (): AppNode => {
+        const edge = (isMasksExtractorNode(node) || isPainterNode(node) || isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isMatteGrowShrinkNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) ? getEdges().find(item => item.target === id && item.targetHandle === (isColorCorrectionNode(node) ? 'file' : 'image')) : undefined;
+        return isTextIteratorNode(node) ? { ...node, data: { ...node.data, items: iteratorItems(node, getNodes(), getEdges()).map(item => ({ ...item })) } } : isBlendNode(node) ? { ...node, data: { ...node.data, back: blendInputs(node, getNodes(), getEdges()).back, front: blendInputs(node, getNodes(), getEdges()).front } } : isCompareNode(node) ? { ...node, data: { ...node.data, input1: imageOutput(node, 'output-1', getNodes(), getEdges())[0], input2: imageOutput(node, 'output-2', getNodes(), getEdges())[0] } } : isCompositorNode(node) ? { ...node, data: { ...node.data, document: snapshotCompositor(node.data.document, compositorInputs(id, getNodes(), getEdges())), outputRevision: undefined } } : (isMasksExtractorNode(node) || isPainterNode(node) || isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isMatteGrowShrinkNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) && edge ? { ...node, data: { ...node.data, baseImage: imageOutput(getNode(edge.source), edge.sourceHandle, getNodes(), getEdges())[0] } } as AppNode : node;
+      };
       if (action === 'duplicate') {
+        const copied = snapshot();
         const copy: AppNode = isTextNode(node) ? cloneTextNode(node) : {
-          ...snapshot, id: `${node.type}-${crypto.randomUUID()}`, selected: true,
+          ...copied, id: `${node.type}-${crypto.randomUUID()}`, selected: true,
           position: { x: node.position.x + 40, y: node.position.y + 40 },
-          data: { ...snapshot.data, locked: false, ...(node.type === 'image-describer' || node.type === 'sunburst' || node.type === 'nano-banana' || node.type === 'ideogram' ? { exposed: [] } : {}) },
+          data: { ...copied.data, locked: false, ...(node.type === 'image-describer' || node.type === 'sunburst' || node.type === 'nano-banana' || node.type === 'ideogram' ? { exposed: [] } : {}) },
         } as AppNode;
         setNodes((nodes) => [...nodes.map((item) => ({ ...item, selected: false })), copy]);
       } else if (action === 'cut' && !locked) {
-        await writeAssetClipboard(JSON.stringify({ format: `momoflow-${node.type}-node`, node: snapshot }), nodeAssetUrls([snapshot]));
+        const copied = snapshot();
+        writingClipboard = true;
+        await writeAssetClipboard(JSON.stringify({ format: `momoflow-${node.type}-node`, node: copied }), nodeAssetUrls([copied]));
+        writingClipboard = false;
         await deleteElements({ nodes: [{ id }] });
       } else if (action === 'delete' && !locked) {
         await deleteElements({ nodes: [{ id }] });
-      } else if (action === 'rename') onRename();
+      } else if (action === 'clear' && !locked) onClear?.();
+      else if (action === 'rename') onRename();
       else if (action === 'lock') updateNodeData(id, { locked: !locked });
       setOpen(false);
       if (action !== 'rename') trigger.current?.focus();
-    } catch {
-      setError('无法写入剪贴板，节点已保留。请允许剪贴板访问后重试。');
+    } catch (error) {
+      setError(writingClipboard ? '无法写入剪贴板，节点已保留。请允许剪贴板访问后重试。' : error instanceof Error ? error.message : '无法完成操作，节点已保留。');
     }
   };
   const actionRef = useRef(act);
@@ -83,6 +93,7 @@ export function TextNodeMenu({ id, locked, onRename, children }: {
   }, [open]);
 
   const options = [
+    ...(onClear ? [{ action: 'clear', label: '清空', disabled: locked }] : []),
     { action: 'save', label: '保存节点', disabled: true },
     { action: 'duplicate', label: '创建副本', shortcut: `${modifier}d` },
     { action: 'cut', label: '剪切', shortcut: `${modifier}x`, disabled: locked },

@@ -1,11 +1,15 @@
+import { imageIterationSignature, validateImageIteratorAssets } from './imageIterator.ts';
+import { sameIteration, type WorkflowIteration } from './workflowIteration.ts';
 import { taskAssetUrls } from './assetResources.ts';
 import { mapAssets } from '../persistence/workflowStorage.ts';
-import { isTextNode } from './textVariables.ts';
+import { isTextNode, iteratorItems } from './textVariables.ts';
+import { isImageIteratorNode, isTextIteratorNode } from './types.ts';
+import { validateIteratorItems } from './textIterator.ts';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, FileAsset } from './types';
 import { isDescriberNode, isImageGeneratorNode, isNodeLocked, isCompositorNode, isMasksExtractorNode, isCompareNode, isBlendNode } from './types.ts';
 import { hasVariable } from './textDocument.ts';
-import { fileAssets } from './fileCollection.ts';
+import { fileAssets, orderedAssets } from './fileCollection.ts';
 import { imageOutput } from './sunburstRun.ts';
 import { defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
 import { defaultNanoBananaSettings, validateNanoBananaSettings } from './nanoBanana.ts';
@@ -19,7 +23,7 @@ import { outputKind } from './router.ts';
 import type { PreviewTask } from './taskQueue';
 
 export type ExecutionGraph = { nodes: AppNode[]; edges: Edge[] };
-export type GenerationRecord = { version: 1; inputSignature: string; outputSignature: string };
+export type GenerationRecord = { version: 1; inputSignature: string; outputSignature: string; iteration?: WorkflowIteration };
 export type OutputPolicy = { outputMode?: 'manual' | 'fixed'; sourceSignature?: string };
 export const isModelNode = (node: AppNode) => isDescriberNode(node) || isImageGeneratorNode(node);
 export const stableSignature = (value: unknown): string => JSON.stringify(value, (_key, item: unknown) => {
@@ -37,9 +41,10 @@ export function fixedOutput(node: AppNode) {
 export function executionInputs(node: AppNode, handle: string | null | undefined, graph: ExecutionGraph): Edge[] {
   const edges = graph.edges.filter(edge => edge.target === node.id);
   if (node.type === 'router') return edges.filter(edge => edge.targetHandle === 'input');
+  if (node.type === 'text-iterator') return edges.filter(edge => edge.targetHandle === 'input');
   if (node.type === 'compare') return edges.filter(edge => edge.targetHandle === (handle === 'output-2' ? 'input-2' : 'input-1'));
   if (isTextNode(node) && node.data.content) return edges.filter(edge => hasVariable(node.data.content!, edge.targetHandle ?? 'variable-1'));
-  if (node.type === 'model-input' || node.type === 'file' || node.type === 'color-palette') return [];
+  if (node.type === 'model-input' || node.type === 'image-iterator' || node.type === 'file' || node.type === 'color-palette') return [];
   if (node.type === 'ideogram') {
     const edit = edges.some(edge => edge.targetHandle === 'image-0');
     const fields: readonly string[] = edit ? ideogramEditFields : ideogramGenerationFields;
@@ -98,6 +103,7 @@ export function nodeProblem(node: AppNode, message: string): never {
 function configuration(node: AppNode, graph: ExecutionGraph, handle?: string | null) {
   const data = { ...node.data } as Record<string, unknown>;
   for (const key of ['label', 'exposed', 'imageInputs', 'variableCount', 'displayMode', 'orderBy', 'viewMode', 'generation', 'sourceSignature', 'outputRevision', 'executionSignature', 'result', 'mask', 'alphaMask']) delete data[key];
+  if (node.type === 'image-iterator') return { locked: data.locked, assets: orderedAssets(node.data).map(assetIdentity) };
   if (node.type === 'file') return { locked: data.locked, assets: fileAssets(node.data).map(assetIdentity) };
   if (isImageGeneratorNode(node)) {
     delete data.results;
@@ -225,7 +231,7 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
   } catch (error) { nodeProblem(node, error instanceof Error ? error.message : '输入参数无效。'); }
 }
 
-export function preflight(graph: ExecutionGraph, targets: string[], runs: number) {
+function preflightSingle(graph: ExecutionGraph, targets: string[], runs: number) {
   if (!Number.isInteger(runs) || runs < 1 || runs > 10) throw new Error('运行次数必须为 1–10。');
   const dependencies = new Map<string, Set<string>>();
   for (const target of targets) {
@@ -263,4 +269,96 @@ export function preflight(graph: ExecutionGraph, targets: string[], runs: number
   }
   if (runs > 1 && targets.some(target => targets.some(other => other !== target && [...dependencies.get(other)!].some(key => key.startsWith(`${target}:`))))) throw new Error('互有依赖的多选节点暂不支持多次运行，请只选择最终目标。');
   return dependencies;
+}
+
+// One iterator may fan out through any number of Prompt/Router/model nodes.
+// Distinct iterator sources require a pairing policy; reject instead of silently
+// multiplying paid requests or picking only the first source.
+export function workflowIterations(graph: ExecutionGraph, target: string): (WorkflowIteration | undefined)[] {
+  const iterators = new Set<string>(), seen = new Set<string>();
+  const visit = (id: string, handle?: string | null) => {
+    const key = `${id}:${handle ?? ''}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    const node = graph.nodes.find(item => item.id === id);
+    if (!node || (id !== target && fixedOutput(node))) return;
+    if (isTextIteratorNode(node) || isImageIteratorNode(node)) iterators.add(id);
+    executionInputs(node, handle, graph).forEach(edge => visit(edge.source, edge.sourceHandle));
+  };
+  visit(target);
+  if (!iterators.size) return [undefined];
+  const node = graph.nodes.find(item => item.id === [...iterators][0])!;
+  if (iterators.size > 1) nodeProblem(node, '同一条批量流程目前只能使用一个迭代器，请分开运行图片与文本列表。');
+  if (isImageIteratorNode(node)) {
+    const assets = orderedAssets(node.data);
+    try { validateImageIteratorAssets(assets); } catch (error) { nodeProblem(node, error instanceof Error ? error.message : '图片列表无效。'); }
+    return assets.map((asset, index) => ({ kind: 'image' as const, nodeId: node.id, itemId: asset.id, index, total: assets.length, name: asset.name, signature: imageIterationSignature(asset) }));
+  }
+  if (!isTextIteratorNode(node)) return [undefined];
+  // The number of requests must be known before starting a batch. Fixed/manual
+  // model text is allowed; an unfinished/generated list must first be confirmed.
+  const checkInput = (id: string, path = new Set<string>()) => {
+    if (path.has(id)) nodeProblem(node, '检测到循环依赖。');
+    const input = graph.nodes.find(item => item.id === id);
+    if (!input) nodeProblem(node, '连接的节点不存在。');
+    if (fixedOutput(input)) return;
+    if (isModelNode(input)) nodeProblem(node, '请先运行上游文本模型，并将列表设为手动文本后再批量运行。');
+    executionInputs(input, undefined, graph).forEach(edge => checkInput(edge.source, new Set(path).add(id)));
+  };
+  executionInputs(node, undefined, graph).forEach(edge => {
+    if (outputKind(graph.nodes.find(input => input.id === edge.source), edge.sourceHandle, graph.nodes, graph.edges) !== 'text') nodeProblem(node, '输入端口需要文本或文本数组。');
+    checkInput(edge.source);
+  });
+  try {
+    const items = iteratorItems(node, graph.nodes, graph.edges);
+    validateIteratorItems(items);
+    return items.map((item, index) => ({ nodeId: node.id, itemId: item.id, index, total: items.length, text: item.text }));
+  } catch (error) { nodeProblem(node, error instanceof Error ? error.message : '文本列表无效。'); }
+}
+
+export function iterationGraph(graph: ExecutionGraph, iteration?: WorkflowIteration): ExecutionGraph {
+  if (!iteration) return graph;
+  if (iteration.kind === 'image') return {
+    ...graph, nodes: graph.nodes.map(node => node.id === iteration.nodeId && isImageIteratorNode(node) ? {
+      ...node, type: 'file', data: { ...node.data, asset: undefined, assets: fileAssets(node.data).filter(asset => asset.id === iteration.itemId) },
+    } as AppNode : node),
+  };
+  return {
+    nodes: graph.nodes.map(node => node.id === iteration.nodeId ? {
+      ...node, type: 'text', data: { text: iteration.text, label: node.data.label, locked: isNodeLocked(node) },
+    } as AppNode : node),
+    edges: graph.edges.filter(edge => edge.target !== iteration.nodeId).map(edge => edge.source === iteration.nodeId ? { ...edge, sourceHandle: null } : edge),
+  };
+}
+
+export function planExecution(graph: ExecutionGraph, targets: string[], runs: number, retry?: WorkflowIteration) {
+  // Validate every known item before any task or provider request is created.
+  const plans = new Map(targets.map(id => [id, workflowIterations(graph, id)]));
+  if (!retry && [...plans.values()].every(iterations => !iterations[0])) {
+    preflightSingle(graph, targets, runs);
+    return plans;
+  }
+  for (const id of targets) {
+    let iterations = plans.get(id)!;
+    if (retry) {
+      iterations = iterations.filter(item => item && sameIteration(item, retry));
+      if (!iterations.length) throw new ExecutionProblem(retry.nodeId, '原条目已修改或删除，请检查列表后重新运行。');
+      plans.set(id, iterations);
+    }
+    for (const iteration of iterations) preflightSingle(iterationGraph(graph, iteration), [id], runs);
+  }
+  // Preserve the existing dependent-selection policy, also for iterator batches.
+  for (const id of targets) {
+    const dependencies = preflightSingle(iterationGraph(graph, plans.get(id)![0]), [id], runs).get(id)!;
+    if (targets.some(other => other !== id && (plans.get(id)![0] || plans.get(other)![0] || runs > 1) && [...dependencies].some(key => key.startsWith(`${other}:`)))) {
+      throw new ExecutionProblem(id, '互有依赖的批量节点请只选择最终目标运行。');
+    }
+  }
+  return plans;
+}
+
+// Retain the dependency-inspection contract used by existing callers.
+export function preflight(graph: ExecutionGraph, targets: string[], runs: number) {
+  const plan = planExecution(graph, targets, runs);
+  return new Map(targets.map(id => [id, new Set(plan.get(id)!.flatMap(iteration => [...preflightSingle(iterationGraph(graph, iteration), [id], runs).get(id)!]))]));
 }

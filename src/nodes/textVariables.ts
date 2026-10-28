@@ -4,6 +4,14 @@ import { isColorPaletteNode } from './types.ts';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, TextNode } from './types';
 import { documentText } from './textDocument.ts';
+import { parseIteratorText } from './textIterator.ts';
+import { isTextIteratorNode, type TextIteratorNode } from './types.ts';
+
+export function iteratorItems(node: TextIteratorNode, nodes: AppNode[], edges: Edge[], visited = new Set<string>()) {
+  if (visited.has(node.id)) throw new Error('文本迭代器存在循环连接。');
+  const input = edges.find(edge => edge.target === node.id && edge.targetHandle === 'input');
+  return input ? parseIteratorText(resolveTextValue(input.source, nodes, edges, new Set(visited).add(node.id))) : node.data.items;
+}
 
 export const isTextNode = (node: AppNode): node is TextNode => node.type === 'text' && 'text' in node.data;
 
@@ -26,6 +34,11 @@ export function resolveTextValue(id: string, nodes: AppNode[], edges: Edge[], vi
   if (visited.has(id)) return '';
   const node = nodes.find((item) => item.id === id);
   if (!node || node.type === 'file') return '';
+  // The canvas preview uses the first item. Execution substitutes each item
+  // into its own graph snapshot before resolving any downstream prompt.
+  if (isTextIteratorNode(node)) {
+    try { return iteratorItems(node, nodes, edges, visited)[0]?.text ?? ''; } catch { return ''; }
+  }
   if (node.type === 'router') {
     const source = resolveOutputSource(node, 'output', nodes, edges);
     return source && outputKind(source.node, source.handle) === 'text'

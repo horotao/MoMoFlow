@@ -16,7 +16,7 @@ function pending(nodeId: string, direction: 'source' | 'target' = 'source', hand
 
 test('text and image outputs recommend compatible implemented inputs with stable handle IDs', () => {
   assert.deepEqual(connectionChoices(pending('text'), [text], []).map(c => [c.itemId, c.handleId]), [
-    ['text', 'variable-1'], ['sunburst', 'prompt'], ['nano-banana', 'prompt'], ['ideogram', 'prompt'], ['image-describer', 'instructions'], ['router', 'input'],
+    ['text', 'variable-1'], ['text-iterator', 'input'], ['sunburst', 'prompt'], ['nano-banana', 'prompt'], ['ideogram', 'prompt'], ['image-describer', 'instructions'], ['router', 'input'],
   ]);
   assert.deepEqual(connectionChoices(pending('image', 'source', 'file'), [image], []).map(c => [c.itemId, c.handleId]), [
     ['blend', 'back'], ['blend', 'front'], ['compare', 'input-1'], ['compositor', 'background'], ['compositor', 'layer-1'], ['preview', 'file'], ['image-describer', 'image-0'], ['sunburst', 'image-0'], ['nano-banana', 'image-0'], ['ideogram', 'image-0'], ['masks-extractor', 'image'], ['painter', 'image'], ['resize', 'image'], ['rotate-flip', 'image'], ['invert', 'image'], ['levels', 'image'], ['matte-grow-shrink', 'image'], ['blur', 'image'], ['crop', 'image'], ['color-correction', 'file'], ['router', 'input'],
@@ -34,7 +34,7 @@ test('reverse image and mask connections retain the exact target handle and offe
   for (const handle of ['image-0', 'mask']) {
     const start = pending('generator', 'target', handle);
     const choices = connectionChoices(start, [generator], []);
-    assert.deepEqual(choices.map(c => c.itemId), ['file', 'masks-extractor', 'masks-extractor', 'blend', 'compare', 'color-palette', 'compositor', 'sunburst', 'nano-banana', 'ideogram', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'matte-grow-shrink', 'blur', 'crop', 'color-correction', 'router']);
+    assert.deepEqual(choices.map(c => c.itemId), ['file', 'image-iterator', 'masks-extractor', 'masks-extractor', 'blend', 'compare', 'color-palette', 'compositor', 'sunburst', 'nano-banana', 'ideogram', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'matte-grow-shrink', 'blur', 'crop', 'color-correction', 'router']);
     assert.deepEqual(choiceConnection(start, choices[0], 'new'), { source: 'new', sourceHandle: 'file', target: 'generator', targetHandle: handle });
     const empty: AppNode = { id: 'new', type: 'file', position: { x: 0, y: 0 }, data: {} };
     const connection = choiceConnection(start, choices[0], 'new');
@@ -44,7 +44,7 @@ test('reverse image and mask connections retain the exact target handle and offe
 });
 
 test('reverse text ports offer text producers, unavailable inputs and stale starts offer none', () => {
-  assert.deepEqual(connectionChoices(pending('generator', 'target', 'prompt'), [generator], []).map(c => c.itemId), ['text', 'model-input', 'image-describer', 'color-palette', 'router']);
+  assert.deepEqual(connectionChoices(pending('generator', 'target', 'prompt'), [generator], []).map(c => c.itemId), ['text-iterator', 'text', 'model-input', 'image-describer', 'color-palette', 'router']);
   assert.deepEqual(connectionChoices(pending('generator', 'target', 'quality'), [generator], []), []);
   assert.deepEqual(connectionChoices(pending('gone'), [text], []), []);
   assert.deepEqual(connectionChoices(pending('text'), [{ ...text, data: { text: '', locked: true } }], []), []);

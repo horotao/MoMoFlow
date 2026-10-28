@@ -114,6 +114,56 @@ export async function runBoundaryChecks(sample: FileAsset, check: (value: unknow
     check(remoteDerived.requests.every(task => task.nodeId === 'd') && remoteDerived.store.getSnapshot().every(task => task.state === 'Done'), 'Refreshing remote derived pixels does not rerun the image model');
   } finally { remoteDerived.engine.dispose(); assetResources.discard(exportedUrls); }
 
+  // Identical remote bytes still represent independent Image Iterator assets.
+  // Exercise real Invert PNG exports and sharing across two downstream models.
+  const iteratorGraph: ExecutionGraph = {
+    nodes: [
+      { id: 'images', type: 'image-iterator', position, data: { assets: ['one', 'two'].map(id => ({ ...sample, id, url: `https://example.invalid/${id}.png` })) } },
+      { id: 'router', type: 'router', position, data: {} }, { id: 'invert', type: 'invert', position, data: {} },
+      text('p', 'edit'), generate('g1'), generate('g2'),
+    ],
+    edges: [edge('images', 'router', 'input', 'file'), edge('router', 'invert', 'image', 'output'), ...['g1', 'g2'].flatMap(id => [edge('p', id, 'prompt'), edge('invert', id, 'image-0', 'result')])],
+  };
+  const iteratorRenders: string[] = [], iteratorOutputs: string[] = [];
+  let releaseExports!: () => void;
+  const exportGate = new Promise<void>(resolve => { releaseExports = resolve; });
+  const iterated = harness(iteratorGraph, sample, {
+    snapshot: async (assets, signal) => {
+      const url = assetResources.create(variants[0]);
+      const release = assetResources.retain([url]);
+      const { contentHash } = await readExecutionAsset(url, signal, true);
+      return { assets: new Map(assets.map(asset => [asset.url, { ...asset, url, contentHash }])), release: () => { release(); assetResources.discard([url]); } };
+    },
+    local: async (...args) => {
+      const source = args[1].nodes.find(node => node.id === 'images')!;
+      iteratorRenders.push((source.data as { assets: FileAsset[] }).assets[0].id);
+      await exportGate;
+      const patch = await renderExecutionOutput(...args);
+      for (const value of Object.values(patch)) if (value && typeof value === 'object' && 'url' in value) iteratorOutputs.push(String(value.url));
+      return patch;
+    },
+  });
+  try {
+    const done = iterated.engine.run(['g1', 'g2'], 2);
+    for (let index = 0; index < 100 && iteratorRenders.length < 2; index++) await new Promise(resolve => setTimeout(resolve, 10));
+    check(iteratorRenders.slice().sort().join(',') === 'one,two', 'Equal-content image items render separately while same-item model branches share Invert');
+    releaseExports(); await done;
+    check(iterated.requests.length === 8 && iterated.store.getSnapshot().every(task => task.state === 'Done'), 'Two image items × two model branches × two runs all complete');
+    const outputByItem = new Map<string, Set<string>>();
+    for (const task of iterated.requests) {
+      const item = task.iteration!.itemId;
+      const urls = outputByItem.get(item) ?? new Set<string>(); outputByItem.set(item, urls);
+      urls.add(task.imageRequest!.images[0]);
+    }
+    check(outputByItem.size === 2 && [...outputByItem.values()].every(urls => urls.size === 1) && new Set([...outputByItem.values()].flatMap(urls => [...urls])).size === 2, 'Every model request retains its own item output; repeats reuse that output');
+    for (const urls of outputByItem.values()) {
+      const { blob } = await readExecutionAsset([...urls][0], new AbortController().signal);
+      const bitmap = await createImageBitmap(blob);
+      context.clearRect(0, 0, 64, 48); context.drawImage(bitmap, 0, 0); bitmap.close();
+      check([...context.getImageData(0, 0, 1, 1).data].join(',') === '0,255,255,255', 'Each iterated Invert output contains the expected cyan pixels');
+    }
+  } finally { releaseExports(); iterated.engine.dispose(); assetResources.discard(iteratorOutputs); }
+
   // Native Painter exports, including the actual alpha PNG consumed by adapters.
   for (const type of ['sunburst', 'ideogram'] as const) for (const expired of [false, true]) {
     const data = { ...defaultPainterData, baseImage: sample, width: 64, height: 48 };

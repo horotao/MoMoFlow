@@ -18,6 +18,14 @@ import type { PainterData } from './painter';
 import type { Node, BuiltInNode } from '@xyflow/react';
 import type { SunburstSettings } from './sunburst';
 import type { JSONContent } from '@tiptap/core';
+import type { TextIteratorData } from './textIterator';
+import type { ImageIteratorData } from './imageIterator';
+
+export type ImageIteratorNode = Node<ImageIteratorData, 'image-iterator'>;
+export const isImageIteratorNode = (node: AppNode | undefined): node is ImageIteratorNode => node?.type === 'image-iterator';
+
+export type TextIteratorNode = Node<TextIteratorData, 'text-iterator'>;
+export const isTextIteratorNode = (node: AppNode | undefined): node is TextIteratorNode => node?.type === 'text-iterator' && 'items' in node.data;
 
 export type PositionLoggerNode = Node<{ label: string }, 'position-logger'>;
 export type TextDisplayMode = 'source-value' | 'value' | 'source';
@@ -67,7 +75,7 @@ export const isCompareNode = (node: AppNode | undefined): node is CompareNode =>
 export type BlendNode = Node<BlendData, 'blend'>;
 export const isBlendNode = (node: AppNode | undefined): node is BlendNode => node?.type === 'blend';
 export type RouterNode = Node<{ label?: string; locked?: boolean }, 'router'>;
-export type AppNode = IdeogramNode | MatteGrowShrinkNode | MasksExtractorNode | NanoBananaNode | RouterNode | BlendNode | CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
+export type AppNode = ImageIteratorNode | TextIteratorNode | IdeogramNode | MatteGrowShrinkNode | MasksExtractorNode | NanoBananaNode | RouterNode | BlendNode | CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
 
 export const isDescriberNode = (node: AppNode): node is ImageDescriberNode => node.type === 'image-describer' && 'imageInputs' in node.data;
 

@@ -1,4 +1,5 @@
 import { useWorkflowExecution } from './useWorkflowExecution';
+import { IterationSummary } from './IterationSummary';
 import { ExecutionProblem } from '../nodes/executionGraph';
 import { IdeogramSettings } from './IdeogramSettings';
 import { ideogramName } from '../nodes/ideogram';
@@ -16,7 +17,7 @@ import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import { X } from 'lucide-react';
 import { TaskManager } from './TaskManager';
 import { isActiveTask } from '../nodes/taskQueue';
-import { useModelTasks, useModelTaskStore } from './useModelTasks';
+import { useModelRuns, useModelTasks, useModelTaskStore } from './useModelTasks';
 import { isDescriberNode, isNodeLocked, isImageGeneratorNode, isSunburstNode, isNanoBananaNode } from '../nodes/types';
 import type { AppNode, ImageDescriberNode, ModelInputNode } from '../nodes/types';
 import { DescriberIcon } from './DescriberIcon';
@@ -59,7 +60,7 @@ export function DescriberPanel() {
   const tasks = useModelTasks();
   const taskStore = useModelTaskStore();
   const execution = useWorkflowExecution();
-  const [runs, setRuns] = useState(1);
+  const [runs, setRuns] = useModelRuns();
   const [error, setError] = useState('');
   const tasksTrigger = useRef<HTMLButtonElement>(null);
   const collapsedTasksTrigger = useRef<HTMLButtonElement>(null);
@@ -73,7 +74,7 @@ export function DescriberPanel() {
       const detail = (event as CustomEvent<string | string[]>).detail;
       const ids = Array.isArray(detail) ? detail : [detail];
       try {
-        void execution.current?.run(ids, runs);
+        void execution.current?.run(ids, taskStore.getRuns());
         setError(''); setTasksOpen(true);
       } catch (error) {
         setError(error instanceof Error ? error.message : '无法开始运行。');
@@ -86,7 +87,7 @@ export function DescriberPanel() {
     window.addEventListener('describer-run', run);
     window.addEventListener('sunburst-run', run);
     return () => { window.removeEventListener('describer-run', run); window.removeEventListener('sunburst-run', run); };
-  }, [getNodes, runs, execution, setNodes, setCenter]);
+  }, [getNodes, taskStore, execution, setNodes, setCenter]);
   const expose = (field: 'model' | 'instructions') => {
     if (!selected || isNodeLocked(getNodes().find((node) => node.id === selected.id))) return;
     const exposed = selected.data.exposed ?? [];
@@ -148,6 +149,7 @@ export function DescriberPanel() {
               <span>{runs}</span>
               <button aria-label="增加运行次数" disabled={!runnable.length || runs === 10} onClick={() => setRuns(runs + 1)}><DescriberIcon name="plus" /></button>
             </div></div>
+            {(selectedImage || selected) && <IterationSummary nodeId={(selectedImage || selected)!.id} />}
             {selectedImage && <div className="sunburst-cost"><span>总费用</span><span>按实际用量计费</span></div>}
             <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? `通过 ${isIdeogramNode(selectedImage) ? "WaveSpeed" : "ZenMux"} 运行图片模型` : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => (isDescriberNode(node) || isImageGeneratorNode(node)) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />运行选中节点</button>
           </div>
@@ -159,7 +161,10 @@ export function DescriberPanel() {
       onRetry={(task) => {
         const node = getNodes().find((item) => item.id === task.nodeId);
         if (!node || (!isDescriberNode(node) && !isImageGeneratorNode(node)) || node.data.locked) return;
-        window.dispatchEvent(new CustomEvent('describer-run', { detail: [task.nodeId] }));
+        try {
+          void execution.current?.run([task.nodeId], 1, task.iteration);
+          setError('');
+        } catch (error) { setError(error instanceof Error ? error.message : '无法重试任务。'); }
       }}
       onFocus={(id) => {
         const node = getNodes().find((n) => n.id === id);

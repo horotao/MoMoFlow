@@ -9,6 +9,7 @@ import { sunburstName, sunburstFieldLabels, validateSunburstSize } from './sunbu
 import { nanoBananaAspectRatios } from './nanoBanana';
 import { resolveTextValue } from './textVariables';
 import { ModelRunButton } from '../components/ModelRunButton';
+import { IterationSummary } from '../components/IterationSummary';
 import { TextNodeMenu } from './TextNodeMenu';
 import { FileGallery } from './FileGallery';
 import { FileIcon } from './FileIcon';
@@ -99,6 +100,7 @@ export function ImageGenerationNode({ id, data, isConnectable, name, icon, field
     </motion.div>
     </div>
     <div className="sunburst-actions">{maxImages > 0 && <button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= maxImages} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />{addImageLabel}</button>}<ModelRunButton nodeId={id} className="sunburst-run nodrag nopan" disabled={data.locked} onRun={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('describer-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</ModelRunButton></div>
+    <IterationSummary nodeId={id} />
     {ports.map(port => <div className="describer-port-wrapper" key={port.id}>
       <span className={`describer-port-label sunburst-label-${port.kind}`} style={{ top: port.top - 28 }}>{port.label}{port.kind === 'prompt' && <sup>*</sup>}</span>
       <Handle id={port.id} type="target" position={Position.Left} className={`describer-port sunburst-port-${port.kind}${edges.some(edge => edge.target === id && edge.targetHandle === port.id) ? ' is-connected' : ''}`} style={{ top: port.top }} aria-label={`${port.label} input`} isConnectable={isConnectable}>

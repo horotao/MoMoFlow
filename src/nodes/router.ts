@@ -23,6 +23,8 @@ export function outputKind(node: AppNode | undefined, handle?: string | null, no
   const source = resolveOutputSource(node, handle, nodes, edges);
   if (!source) return undefined;
   node = source.node; handle = source.handle;
+  if (node.type === 'image-iterator') return handle === 'file' ? 'image' : undefined;
+  if (node.type === 'text-iterator') return handle === 'text' ? 'text' : undefined;
   if (node.type === 'file') return handle === 'file' ? fileOutputKind(node.data) : undefined;
   if (node.type === 'color-palette') return handle === 'text' || handle === 'image' ? handle : undefined;
   if (node.type === 'painter' || node.type === 'masks-extractor') return handle === 'mask' ? 'mask' : handle === 'result' ? 'image' : undefined;

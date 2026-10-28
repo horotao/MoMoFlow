@@ -1,3 +1,4 @@
+import { isImageIteratorNode } from './types.ts';
 import { masksRevision } from './masksExtractor.ts';
 import { isMasksExtractorNode } from './types.ts';
 import { resolveOutputSource, outputKind } from './router.ts';
@@ -204,6 +205,12 @@ function imageResolution(nodes?: AppNode[], edges?: Edge[], visited = new Set<st
       }
       const asset = handle === 'mask' ? node.data.mask : handle === 'alpha-mask' ? node.data.alphaMask : node.data.result;
       return handle === 'mask' ? luminanceMaskOutput(asset) : asset ? [asset] : [];
+    }
+    if (isImageIteratorNode(node)) {
+      if (handle !== 'file') return [];
+      const assets = fileAssets(node.data).filter(asset => asset.kind === 'image');
+      const active = assets.find(asset => asset.id === node.data.activeAssetId) ?? assets[0];
+      return active ? [active] : [];
     }
     if (node?.type === 'file') return fileAssets(node.data).filter(asset => asset.kind === 'image');
     if (node && isImageGeneratorNode(node)) {

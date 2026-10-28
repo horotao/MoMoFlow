@@ -1,5 +1,5 @@
 import { isImageGeneratorNode } from './types.ts';
-import type { AppNode, FileAsset, FileNode, ImageGeneratorNode } from './types';
+import type { AppNode, FileAsset, FileNode, ImageIteratorNode, ImageGeneratorNode } from './types';
 
 export const fileAssets = (data: FileNode['data']): FileAsset[] => data.assets ?? (data.asset ? [data.asset] : []);
 export function orderedAssets(data: FileNode['data']) {
@@ -21,7 +21,7 @@ export function fileNodeTitle(data: FileNode['data']) {
 
 // Move, rather than duplicate, an asset. One state update gives undo one atomic edit.
 export function extractFileAsset(nodes: AppNode[], sourceId: string, assetId: string, position: { x: number; y: number }, newId: string): AppNode[] {
-  const source = nodes.find((node) => node.id === sourceId && (node.type === 'file' || isImageGeneratorNode(node))) as FileNode | ImageGeneratorNode | undefined;
+  const source = nodes.find((node) => node.id === sourceId && (node.type === 'file' || node.type === 'image-iterator' || isImageGeneratorNode(node))) as FileNode | ImageIteratorNode | ImageGeneratorNode | undefined;
   if (!source || source.data.locked) return nodes;
   const assets = isImageGeneratorNode(source) ? source.data.results ?? [] : fileAssets(source.data);
   const asset = assets.find((item) => item.id === assetId);

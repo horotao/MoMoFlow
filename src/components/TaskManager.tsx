@@ -37,7 +37,7 @@ export function TaskManager({ tasks, trigger, sidebarOpen, onClose, onFocus, onC
   }, [onClose, trigger]);
   const row = (task: PreviewTask) => {
     const active = isActiveTask(task);
-    const detail = `${task.model}${task.error ? ` · ${task.error}` : ''}`;
+    const detail = `${task.model}${task.iteration ? ` · 第 ${task.iteration.index + 1} ${task.iteration.kind === 'image' ? '张' : '条'}：${task.iteration.kind === 'image' ? task.iteration.name : task.iteration.text}` : ''}${task.error ? ` · ${task.error}` : ''}`;
     return <div className={`task-row state-${task.state.toLowerCase()}`} key={task.id}>
       <button className="task-main" title={detail} onClick={() => onFocus(task.nodeId)}>
         <span className="task-name"><TaskStatusIcon state={task.state} /><span>{task.label || (task.ideogramRequest ? `${ideogramName}${task.ideogramRequest.image ? ' Edit' : ''}` : task.nanoBananaRequest ? nanoBananaName : task.imageRequest ? sunburstName : '图像描述')}</span></span>

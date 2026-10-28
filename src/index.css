@@ -218,7 +218,7 @@
 }
 
 /* Text node: Figma Prompt, 460 × 405 in both themes. */
-.react-flow .react-flow__node-router, .react-flow .react-flow__node-blend, .react-flow .react-flow__node-compare, .react-flow .react-flow__node-text, .react-flow .react-flow__node-image-describer, .react-flow .react-flow__node-model-input, .react-flow .react-flow__node-sunburst, .react-flow .react-flow__node-ideogram, .react-flow .react-flow__node-nano-banana, .react-flow .react-flow__node-masks-extractor, .react-flow .react-flow__node-painter, .react-flow .react-flow__node-preview, .react-flow .react-flow__node-crop, .react-flow .react-flow__node-color-correction, .react-flow .react-flow__node-matte-grow-shrink, .react-flow .react-flow__node-blur, .react-flow .react-flow__node-levels, .react-flow .react-flow__node-invert, .react-flow .react-flow__node-resize, .react-flow .react-flow__node-rotate-flip, .react-flow .react-flow__node-compositor, .react-flow .react-flow__node-color-palette {
+.react-flow .react-flow__node-text-iterator, .react-flow .react-flow__node-router, .react-flow .react-flow__node-blend, .react-flow .react-flow__node-compare, .react-flow .react-flow__node-text, .react-flow .react-flow__node-image-describer, .react-flow .react-flow__node-model-input, .react-flow .react-flow__node-sunburst, .react-flow .react-flow__node-ideogram, .react-flow .react-flow__node-nano-banana, .react-flow .react-flow__node-masks-extractor, .react-flow .react-flow__node-painter, .react-flow .react-flow__node-preview, .react-flow .react-flow__node-crop, .react-flow .react-flow__node-color-correction, .react-flow .react-flow__node-matte-grow-shrink, .react-flow .react-flow__node-blur, .react-flow .react-flow__node-levels, .react-flow .react-flow__node-invert, .react-flow .react-flow__node-resize, .react-flow .react-flow__node-rotate-flip, .react-flow .react-flow__node-compositor, .react-flow .react-flow__node-color-palette {
   --text-node-surface: #fff;
   --text-node-input: #f3f3f5;
   --text-node-border: #dcdce1;
@@ -244,7 +244,7 @@
   line-height: 22px;
 }
 
-.react-flow.dark .react-flow__node-router, .react-flow.dark .react-flow__node-blend, .react-flow.dark .react-flow__node-compare, .react-flow.dark .react-flow__node-text, .react-flow.dark .react-flow__node-image-describer, .react-flow.dark .react-flow__node-model-input, .react-flow.dark .react-flow__node-sunburst, .react-flow.dark .react-flow__node-ideogram, .react-flow.dark .react-flow__node-nano-banana, .react-flow.dark .react-flow__node-masks-extractor, .react-flow.dark .react-flow__node-painter, .react-flow.dark .react-flow__node-preview, .react-flow.dark .react-flow__node-crop, .react-flow.dark .react-flow__node-color-correction, .react-flow.dark .react-flow__node-matte-grow-shrink, .react-flow.dark .react-flow__node-blur, .react-flow.dark .react-flow__node-levels, .react-flow.dark .react-flow__node-invert, .react-flow.dark .react-flow__node-resize, .react-flow.dark .react-flow__node-rotate-flip, .react-flow.dark .react-flow__node-compositor, .react-flow.dark .react-flow__node-color-palette {
+.react-flow.dark .react-flow__node-text-iterator, .react-flow.dark .react-flow__node-router, .react-flow.dark .react-flow__node-blend, .react-flow.dark .react-flow__node-compare, .react-flow.dark .react-flow__node-text, .react-flow.dark .react-flow__node-image-describer, .react-flow.dark .react-flow__node-model-input, .react-flow.dark .react-flow__node-sunburst, .react-flow.dark .react-flow__node-ideogram, .react-flow.dark .react-flow__node-nano-banana, .react-flow.dark .react-flow__node-masks-extractor, .react-flow.dark .react-flow__node-painter, .react-flow.dark .react-flow__node-preview, .react-flow.dark .react-flow__node-crop, .react-flow.dark .react-flow__node-color-correction, .react-flow.dark .react-flow__node-matte-grow-shrink, .react-flow.dark .react-flow__node-blur, .react-flow.dark .react-flow__node-levels, .react-flow.dark .react-flow__node-invert, .react-flow.dark .react-flow__node-resize, .react-flow.dark .react-flow__node-rotate-flip, .react-flow.dark .react-flow__node-compositor, .react-flow.dark .react-flow__node-color-palette {
   --text-node-surface: #2c2c2c;
   --text-node-input: #383838;
   --text-node-border: #444;
@@ -505,7 +505,7 @@
 .text-node-menu-error { position: absolute; right: 0; top: 32px; width: 210px; padding: 10px; background: var(--text-node-surface); color: var(--text-node-primary); box-shadow: 0 4px 12px #0003; font-size: 11px; z-index: 40; }
 
 /* File source node: dimensions are canvas units, independent of viewport zoom. */
-.react-flow .react-flow__node-file {
+.react-flow :is(.react-flow__node-file, .react-flow__node-image-iterator) {
   --file-surface: #fff;
   --file-check: #f0f0f0;
   --file-input: #f5f5f5;
@@ -534,7 +534,7 @@
   text-align: left;
   font: 14px/20px var(--font-ui);
 }
-.react-flow.dark .react-flow__node-file {
+.react-flow.dark :is(.react-flow__node-file, .react-flow__node-image-iterator) {
   --file-surface: #2c2c2c;
   --file-check: #383838;
   --file-input: #383838;
@@ -543,9 +543,9 @@
   --file-selected: #b3b3b3;
   --file-port: #f3ffe3;
 }
-.react-flow .react-flow__node-file.selectable:hover { border-color: var(--file-selected); }
-.react-flow .react-flow__node-file.selectable.selected,
-.react-flow .react-flow__node-file.selectable:focus { border-color: var(--file-selected); box-shadow: none; }
+.react-flow :is(.react-flow__node-file, .react-flow__node-image-iterator).selectable:hover { border-color: var(--file-selected); }
+.react-flow :is(.react-flow__node-file, .react-flow__node-image-iterator).selectable.selected,
+.react-flow :is(.react-flow__node-file, .react-flow__node-image-iterator).selectable:focus { border-color: var(--file-selected); box-shadow: none; }
 .file-node-header { display: flex; align-items: center; gap: 8px; height: 26px; flex-shrink: 0; margin-bottom: 16px; }
 .file-node-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; }
 .file-node-header .text-node-menu-root { margin-left: auto; }
@@ -570,13 +570,13 @@
 .file-node-link input:focus { border-color: var(--file-selected); }
 .file-node-input { display: none; }
 .file-node-error { position: absolute; left: 16px; right: 16px; top: calc(100% + 8px); padding: 8px 12px; border-radius: 6px; color: var(--file-text); background: var(--file-surface); border: 1px solid #c96060; }
-.react-flow .react-flow__node-file .file-node-port { top: 90px; right: -16px; transform: translateY(-50%); width: 32px; height: 32px; border: 8px solid var(--file-surface); border-radius: 50%; background: var(--file-port); transition: background-color .2s; }
+.react-flow :is(.react-flow__node-file, .react-flow__node-image-iterator) .file-node-port { top: 90px; right: -16px; transform: translateY(-50%); width: 32px; height: 32px; border: 8px solid var(--file-surface); border-radius: 50%; background: var(--file-port); transition: background-color .2s; }
 .file-node-port::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--file-surface); pointer-events: none; }
 .file-node-port.is-connected::before { content: ''; position: absolute; inset: 5px; background: var(--file-port); border-radius: 50%; z-index: 1; pointer-events: none; }
 .file-node-port-label { position: absolute; top: -20px; left: 30px; white-space: nowrap; color: var(--file-port); font-size: 12px; font-weight: 500; pointer-events: none; opacity: 0; transition: opacity .2s ease-in-out; }
-.react-flow__node-file:hover .file-node-port-label { opacity: 1; }
+:is(.react-flow__node-file, .react-flow__node-image-iterator):hover .file-node-port-label { opacity: 1; }
 .file-node-add:disabled, .file-node-upload:disabled { cursor: default; }
-.react-flow__node-file:has(.text-node-menu) { z-index: 1002 !important; }
+:is(.react-flow__node-file, .react-flow__node-image-iterator):has(.text-node-menu) { z-index: 1002 !important; }
 
 /* Loaded media uses its intrinsic aspect ratio; the checkerboard stays behind transparency. */
 .file-node-media.has-assets { height: auto; min-height: 0; aspect-ratio: 1; border: 0; display: block; }
@@ -615,7 +615,8 @@
 .file-popup { position: fixed; z-index: 12000; min-width: 150px; padding: 4px 0; border: 1px solid #454545; border-radius: 6px; background: #2c2c2c; box-shadow: 0 4px 16px #0005; color: #f3f3f3; font: 12px/20px var(--font-ui); }
 .file-popup-heading { height: 28px; padding: 4px 12px; color: #aaa; }
 .file-popup button { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: calc(100% - 8px); margin: 0 4px; height: 28px; padding: 4px 8px; border: 0; border-radius: 3px; text-align: left; background: transparent; color: inherit; cursor: pointer; }
-.file-popup button:hover, .file-popup button:focus-visible { background: #454545; outline: none; }
+.file-popup button:hover:not(:disabled), .file-popup button:focus-visible { background: #454545; outline: none; }
+.file-popup button:disabled { opacity: .4; cursor: default; }
 .file-popup button span { display: flex; width: 16px; }
 .file-gallery { position: fixed; inset: 0; z-index: 10000; display: flex; padding: 16px; gap: 8px; color: #f3f3f3; background: #2c2c2ce6; font: 12px/20px var(--font-ui); outline: none; }
 .file-gallery-main { min-width: 0; flex: 1; display: flex; flex-direction: column; position: relative; }
