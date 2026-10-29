@@ -28,6 +28,22 @@ test('cut clipboard round trip preserves name, selected result and downstream im
   assert.equal(imageOutput({ ...original, id: 'pasted', data })[0].url, 'blob:first');
 });
 
+test('clipboard preserves the selected provider and keeps old nodes on ZenMux', () => {
+  for (const provider of ['openai', 'zenmux'] as const) {
+    const data = clipboardRoundTrip({ ...original, data: { ...original.data, provider } });
+    assert.equal(data?.provider, provider);
+  }
+  assert.equal(clipboardRoundTrip(original)?.provider, undefined);
+  assert.throws(() => restoreSunburstData({ ...original.data, provider: 'unknown' }), /渠道商/);
+});
+test('clipboard restores OpenAI xhigh and max without downgrading', () => {
+  for (const quality of ['xhigh', 'max'] as const) {
+    const data = clipboardRoundTrip({ ...original, data: { ...original.data, provider: 'openai', quality } });
+    assert.equal(data?.provider, 'openai');
+    assert.equal(data?.quality, quality);
+  }
+});
+
 test('unfinished sizes survive clipboard restoration but still fail run validation', () => {
   const prompt: TextNode = { id: 'prompt', type: 'text', position: { x: 0, y: 0 }, data: { text: '替换产品' } };
   for (const size of ['1000x1024', 'x1024', '1024x', '', '512x512', '4096x2048']) {

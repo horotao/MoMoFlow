@@ -10,7 +10,7 @@ import { ColorPaletteColors } from '../nodes/ColorPaletteColors';
 import { isColorPaletteNode } from '../nodes/types';
 import { ModelOptionsSettings } from './ModelOptionsSettings';
 import { SunburstSettings } from './SunburstSettings';
-import { sunburstName } from '../nodes/sunburst';
+import { sunburstName, sunburstProviderLabels } from '../nodes/sunburst';
 import { useEffect, useRef, useState, type KeyboardEventHandler, type ReactNode, type RefObject } from 'react';
 import { AnimatePresence, motion, useIsPresent } from 'motion/react';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
@@ -52,6 +52,7 @@ export function DescriberPanel() {
   };
   const runnable = nodes.filter((node) => (isDescriberNode(node) || isImageGeneratorNode(node)) && node.selected && !node.data.locked);
   const selectedImage = nodes.find((node) => isImageGeneratorNode(node) && node.selected);
+  const providerName = selectedImage && isIdeogramNode(selectedImage) ? 'WaveSpeed' : selectedImage && isSunburstNode(selectedImage) ? sunburstProviderLabels[selectedImage.data.provider ?? 'zenmux'] : 'ZenMux';
   const selected = nodes.find((n): n is ImageDescriberNode => n.type === 'image-describer' && Boolean(n.selected));
   const selectedModel = nodes.find((n): n is ModelInputNode => n.type === 'model-input' && Boolean(n.selected));
   const selectedPalette = nodes.find(node => isColorPaletteNode(node) && node.selected);
@@ -115,7 +116,7 @@ export function DescriberPanel() {
     {/* Presence retains the last settings and full-height shell until the exit finishes. */}
     <AnimatePresence initial={false}>
       {panelOpen && <NodeSettingsSidebar key="node-settings" label={selectedPalette ? "Color palette settings" : selectedImage ? `${selectedImage.type === 'ideogram' ? ideogramName : selectedImage.type === 'nano-banana' ? nanoBananaName : sunburstName} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => { if (!(selectedPalette && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !(e.target as HTMLElement).closest('input'))) e.stopPropagation(); }}>
-        {!selectedPalette && selectedImage && <div className="sunburst-provider"><span>{isIdeogramNode(selectedImage) ? 'WaveSpeed' : 'ZenMux'}</span><span>按用量计费</span></div>}
+        {!selectedPalette && selectedImage && <div className="sunburst-provider"><span>{providerName}</span><span>按用量计费</span></div>}
         {taskButton(tasksTrigger)}
         {selectedPalette && isColorPaletteNode(selectedPalette) && <div className="describer-settings palette-settings"><h2>{selectedPalette.data.label || 'Color palette'}</h2><label>Color palette</label><ColorPaletteColors key={selectedPalette.id} node={selectedPalette} /></div>}
         {selectedModel && !selectedPalette && !selectedImage && <ModelOptionsSettings key={selectedModel.id} node={selectedModel} onChange={data => updateNodeData(selectedModel.id, data)} />}
@@ -151,7 +152,7 @@ export function DescriberPanel() {
             </div></div>
             {(selectedImage || selected) && <IterationSummary nodeId={(selectedImage || selected)!.id} />}
             {selectedImage && <div className="sunburst-cost"><span>总费用</span><span>按实际用量计费</span></div>}
-            <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? `通过 ${isIdeogramNode(selectedImage) ? "WaveSpeed" : "ZenMux"} 运行图片模型` : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => (isDescriberNode(node) || isImageGeneratorNode(node)) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />运行选中节点</button>
+            <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? `通过 ${providerName} 运行图片模型` : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => (isDescriberNode(node) || isImageGeneratorNode(node)) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />运行选中节点</button>
           </div>
         </>}
       </NodeSettingsSidebar>}

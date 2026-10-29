@@ -16,7 +16,7 @@ import type { ColorCorrectionData } from './colorCorrection';
 import type { CropData } from './crop';
 import type { PainterData } from './painter';
 import type { Node, BuiltInNode } from '@xyflow/react';
-import type { SunburstSettings } from './sunburst';
+import type { SunburstProvider, SunburstSettings } from './sunburst';
 import type { JSONContent } from '@tiptap/core';
 import type { TextIteratorData } from './textIterator';
 import type { ImageIteratorData } from './imageIterator';
@@ -39,7 +39,7 @@ export type FileAsset = {
 export type FileNode = Node<{ label?: string; locked?: boolean; asset?: FileAsset; assets?: FileAsset[]; activeAssetId?: string; viewMode?: 'single' | 'all'; orderBy?: 'date' | 'name' }, 'file'>;
 export type ImageDescriberNode = Node<OutputPolicy & { generation?: GenerationRecord; label?: string; locked?: boolean; text: string; model: string; instructions: string; imageInputs: number; exposed?: ('model' | 'instructions')[] }, 'image-describer'>;
 export type ModelInputNode = Node<{ label?: string; locked?: boolean; model: string; options?: string[]; parameter?: keyof SunburstSettings | keyof NanoBananaSettings | IdeogramField }, 'model-input'>;
-export type SunburstNode = Node<SunburstSettings & OutputPolicy & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof SunburstSettings)[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'sunburst'>;
+export type SunburstNode = Node<SunburstSettings & OutputPolicy & { provider?: SunburstProvider; label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof SunburstSettings)[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'sunburst'>;
 export const isSunburstNode = (node: AppNode): node is SunburstNode => node.type === 'sunburst';
 export type NanoBananaNode = Node<NanoBananaSettings & OutputPolicy & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof NanoBananaSettings)[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'nano-banana'>;
 export type IdeogramNode = Node<IdeogramSettings & Partial<IdeogramEditSettings> & OutputPolicy & { label?: string; locked?: boolean; imageInputs: number; exposed?: IdeogramField[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'ideogram'>;

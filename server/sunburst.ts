@@ -2,9 +2,13 @@ import { diagnosticText, logIdentifier, errorDiagnostic, readErrorDiagnostic, tr
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import type { Plugin } from 'vite';
-import { sunburstModel, validateSunburstSettings } from '../src/nodes/sunburst.ts';
+import { sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings, type SunburstProvider } from '../src/nodes/sunburst.ts';
 
 const maxBody = 64 * 1024 * 1024;
+const providers = {
+  zenmux: { name: 'ZenMux', baseUrl: 'https://zenmux.ai/api/v1', keyName: 'ZENMUX_API_KEY' },
+  openai: { name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', keyName: 'OPENAI_API_KEY' },
+};
 
 function imageData(value: unknown, mask = false): string {
   if (typeof value !== 'string' || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)) throw new Error('输入图片需为 PNG、JPEG 或 WebP。');
@@ -16,15 +20,17 @@ function imageData(value: unknown, mask = false): string {
 export function buildSunburstRequest(value: unknown) {
   const settings = validateSunburstSettings(value);
   const input = value as Record<string, unknown>;
+  const provider = validateSunburstProvider(input.provider);
   if (typeof input.prompt !== 'string' || !input.prompt.trim() || input.prompt.length > 32000) throw new Error('请连接非空 Prompt，最多 32000 个字符。');
   if (!Array.isArray(input.images) || input.images.length > 16) throw new Error('最多支持 16 张参考图片。');
   const images = input.images.map(url => ({ image_url: imageData(url) }));
   if (input.mask && !images.length) throw new Error('使用 Mask 时必须连接 Image。');
   const mask = input.mask ? { image_url: imageData(input.mask, true) } : undefined;
   return {
+    provider,
     endpoint: images.length ? 'edits' : 'generations',
     body: {
-      model: sunburstModel, prompt: input.prompt, n: 1,
+      model: sunburstModelForProvider(provider), prompt: input.prompt, n: 1,
       quality: settings.quality, background: settings.background, size: settings.size, output_format: settings.outputFormat,
       ...(images.length ? { images, ...(mask ? { mask } : {}) } : {}),
     },
@@ -55,7 +61,7 @@ export function buildSunburstPayload(request: ReturnType<typeof buildSunburstReq
 }
 
 
-export function sunburstPlugin(apiKey: string, providerFetch: typeof fetch = fetch): Plugin {
+export function sunburstPlugin(apiKeys: Record<SunburstProvider, string>, providerFetch: typeof fetch = fetch): Plugin {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (req.url?.split('?')[0] !== '/api/sunburst') return next();
     const send = (status: number, value: object) => {
@@ -65,7 +71,8 @@ export function sunburstPlugin(apiKey: string, providerFetch: typeof fetch = fet
     if (req.method !== 'POST') return send(405, { error: 'Method not allowed' });
     if (!trusted(req)) return send(403, { error: 'Host or Origin not allowed' });
     if (!req.headers['content-type']?.startsWith('application/json')) return send(415, { error: 'Expected application/json' });
-    if (!apiKey) return send(503, { error: '请在 .env.local 配置 ZENMUX_API_KEY，然后重启开发服务器。' });
+    let provider: SunburstProvider = 'zenmux';
+    let apiKey = '';
     const controller = new AbortController();
     const startedAt = Date.now();
     const localRequestId = randomUUID();
@@ -75,8 +82,8 @@ export function sunburstPlugin(apiKey: string, providerFetch: typeof fetch = fet
     const sendFailure = (message: string, error?: unknown) => {
       // Logging must never change request handling, even if a log sink fails.
       try {
-        console.error('[zenmux-sunburst]', JSON.stringify({
-          timestamp: new Date().toISOString(), localRequestId, stage, endpoint,
+        console.error(`[${provider}-sunburst]`, JSON.stringify({
+          timestamp: new Date().toISOString(), localRequestId, provider, stage, endpoint,
           elapsedMs: Date.now() - startedAt, aborted: controller.signal.aborted,
           status: diagnostic?.status,
           requestId: logIdentifier(diagnostic?.requestId, apiKey),
@@ -89,7 +96,7 @@ export function sunburstPlugin(apiKey: string, providerFetch: typeof fetch = fet
         error: [message, diagnostic?.type && `错误类型：${diagnostic.type}`,
           diagnostic?.code && `错误代码：${diagnostic.code}`,
           diagnostic?.message && `服务商说明：${diagnostic.message}`,
-          diagnostic && `ZenMux HTTP：${diagnostic.status}`,
+          diagnostic && `${providers[provider].name} HTTP：${diagnostic.status}`,
           diagnostic?.requestId && `Request ID：${diagnostic.requestId}`].filter(Boolean).join('\n'),
         ...(diagnostic ? { diagnostic } : {}),
       });
@@ -107,11 +114,15 @@ export function sunburstPlugin(apiKey: string, providerFetch: typeof fetch = fet
       let request: ReturnType<typeof buildSunburstRequest>;
       try { request = buildSunburstRequest(JSON.parse(Buffer.concat(chunks).toString())); }
       catch (error) { return send(400, { error: error instanceof Error ? error.message : '请求格式错误。' }); }
+      provider = request.provider;
+      apiKey = apiKeys[provider];
+      const config = providers[provider];
+      if (!apiKey) return send(503, { error: `请在 .env.local 配置 ${config.keyName}，然后重启开发服务器。` });
       endpoint = request.endpoint;
       stage = 'build-payload';
       const payload = buildSunburstPayload(request);
       stage = 'request-provider';
-      const response = await providerFetch(`https://zenmux.ai/api/v1/images/${request.endpoint}`, {
+      const response = await providerFetch(`${config.baseUrl}/images/${request.endpoint}`, {
         method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, ...payload.headers },
         body: payload.body, signal: controller.signal,
       });
@@ -120,20 +131,20 @@ export function sunburstPlugin(apiKey: string, providerFetch: typeof fetch = fet
       if (!response.ok) {
         stage = 'read-provider-error';
         diagnostic = { ...diagnostic, ...await readErrorDiagnostic(response, apiKey), ...(requestId ? { requestId } : {}) };
-        const messages: Record<number, string> = { 401: 'ZenMux API Key 无效。', 402: 'ZenMux 余额不足。', 403: 'ZenMux 拒绝访问此模型。', 429: 'ZenMux 请求过于频繁，请稍后手动重试。', 400: 'ZenMux 拒绝了图片或参数，请检查输入图片、蒙版及参数。' };
-        return sendFailure(messages[response.status] ?? `ZenMux 请求失败（${response.status}），不会自动重试。`);
+        const messages: Record<number, string> = { 401: `${config.name} API Key 无效。`, 402: `${config.name} 余额不足。`, 403: `${config.name} 拒绝访问此模型。`, 429: diagnostic.code === 'insufficient_quota' ? `${config.name} 额度不足，请检查余额与用量限制。` : `${config.name} 请求过于频繁，请稍后手动重试。`, 400: `${config.name} 拒绝了图片或参数，请检查输入图片、蒙版及参数。` };
+        return sendFailure(messages[response.status] ?? `${config.name} 请求失败（${response.status}），不会自动重试。`);
       }
       stage = 'read-result';
       const result = await response.json();
       stage = 'validate-result';
       const data = result.data?.[0];
-      if (typeof data?.b64_json !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(data.b64_json) || data.b64_json.length > maxBody) return sendFailure('ZenMux 未返回有效图片，结果未知，请检查用量后再手动重试。');
+      if (typeof data?.b64_json !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(data.b64_json) || data.b64_json.length > maxBody) return sendFailure(`${config.name} 未返回有效图片，结果未知，请检查用量后再手动重试。`);
       const format = ['png', 'jpeg', 'webp'].includes(result.output_format) ? result.output_format : request.body.output_format;
       stage = 'send-result';
       send(200, { image: `data:image/${format};base64,${data.b64_json}`, format });
     } catch (error) {
-      sendFailure(controller.signal.aborted ? '请求超时或已取消；已提交请求仍可能计费，不会自动重试。' : '无法取得 ZenMux 结果；请检查网络及用量后再手动重试。', error);
+      sendFailure(controller.signal.aborted ? '请求超时或已取消；已提交请求仍可能计费，不会自动重试。' : `无法取得 ${providers[provider].name} 结果；请检查网络及用量后再手动重试。`, error);
     } finally { clearTimeout(timeout); res.off('close', close); }
   };
-  return { name: 'zenmux-sunburst', configureServer(server) { server.middlewares.use(middleware); }, configurePreviewServer(server) { server.middlewares.use(middleware); } };
+  return { name: 'sunburst', configureServer(server) { server.middlewares.use(middleware); }, configurePreviewServer(server) { server.middlewares.use(middleware); } };
 }

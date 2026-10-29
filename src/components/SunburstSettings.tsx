@@ -1,10 +1,10 @@
 import { SunburstSizeSelect } from './SunburstSizeSelect';
-import { sunburstParameterData } from '../nodes/sunburst';
+import { sunburstParameterData, sunburstProviderLabels, sunburstProviders, validateSunburstProvider } from '../nodes/sunburst';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import type { AppNode, SunburstNode } from '../nodes/types';
 import { isNodeLocked } from '../nodes/types';
 import { effectiveSunburstSettings } from '../nodes/sunburstRun';
-import { imageBackgrounds, imageFormats, imageQualities, imageSizes, imageSizeLabels, sunburstName, validateSunburstSettings, type SunburstSettings as Settings } from '../nodes/sunburst';
+import { defaultSunburstSettings, imageBackgrounds, imageFormats, imageQualityLabels, sunburstQualities, imageSizes, imageSizeLabels, sunburstName, validateSunburstSettings, type SunburstSettings as Settings } from '../nodes/sunburst';
 import { DescriberModelSelect } from './DescriberModelSelect';
 import { DescriberIcon } from './DescriberIcon';
 import { OpenAIIcon } from './OpenAIIcon';
@@ -15,6 +15,7 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
   const { getNode, getNodes, getEdges, setNodes, setEdges, updateNodeData } = useReactFlow<AppNode>();
   const nodes = useNodes<AppNode>(); const edges = useEdges();
   const effective = effectiveSunburstSettings(node, nodes, edges);
+  const qualities = sunburstQualities(node.data.provider);
   const change = (field: keyof Settings, value: string) => {
     if (isNodeLocked(getNode(node.id))) return;
     // JPEG cannot represent transparency; switching local values keeps the pair valid.
@@ -28,33 +29,45 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
     if (!current || isNodeLocked(current)) return;
     const exposed = node.data.exposed ?? [];
     if (exposed.includes(field)) {
-      let settings: Settings;
-      try { settings = validateSunburstSettings(effectiveSunburstSettings(node, getNodes(), getEdges())); }
-      catch { settings = node.data; }
-      updateNodeData(node.id, { [field]: settings[field], exposed: exposed.filter(value => value !== field) });
+      let value = node.data[field];
+      try {
+        // Validate only the field being detached. An unrelated invalid input
+        // must not discard this value; invalid values keep their local fallback.
+        value = validateSunburstSettings({ ...defaultSunburstSettings, provider: node.data.provider,
+          [field]: effectiveSunburstSettings(node, getNodes(), getEdges())[field],
+        })[field];
+      } catch { /* Keep the previous local value for this invalid field. */ }
+      updateNodeData(node.id, { [field]: value, exposed: exposed.filter(value => value !== field) });
       setEdges(all => all.filter(edge => !(edge.target === node.id && edge.targetHandle === field)));
       return;
     }
     const id = crypto.randomUUID();
     setNodes(all => [...all.map(item => item.id === node.id ? { ...node, data: { ...node.data, exposed: [...exposed, field] } } : item), {
       id, type: 'model-input', position: { x: node.position.x - 340, y: node.position.y + exposed.length * 200 },
-      data: sunburstParameterData(field, String(effective[field] ?? node.data[field])),
+      data: sunburstParameterData(field, String(effective[field] ?? node.data[field]), node.data.provider),
     }]);
     setEdges(all => [...all, { id: crypto.randomUUID(), source: id, target: node.id, targetHandle: field }]);
   };
   const fields: { field: keyof Settings; choices: readonly string[]; labels?: string[] }[] = [
-    { field: 'quality', choices: imageQualities, labels: ['自动', '低', '中', '高'] },
+    { field: 'quality', choices: qualities, labels: qualities.map(quality => imageQualityLabels[quality]) },
     { field: 'background', choices: imageBackgrounds, labels: ['自动', '透明', '不透明'] },
     { field: 'size', choices: imageSizes, labels: imageSizeLabels }, { field: 'outputFormat', choices: imageFormats, labels: ['PNG', 'JPEG', 'WebP'] },
   ];
   return <div className="describer-settings sunburst-settings">
     <h2><OpenAIIcon /><span>{sunburstName}</span></h2>
+    <div className="describer-field"><label>渠道商</label><div className="sunburst-field-row"><DescriberModelSelect fluidHover compact label="渠道商" value={node.data.provider ?? 'zenmux'} choices={sunburstProviders} labels={sunburstProviders.map(provider => sunburstProviderLabels[provider])} disabled={node.data.locked} onChange={value => {
+      if (isNodeLocked(getNode(node.id))) return;
+      const provider = validateSunburstProvider(value);
+      updateNodeData(node.id, { provider, ...(!sunburstQualities(provider).includes(node.data.quality) ? { quality: 'high' } : {}) });
+    }} /></div></div>
     <div className="describer-field"><label>模型版本</label><div className="sunburst-field-row"><DescriberModelSelect fluidHover compact label="模型版本" value="Sunburst" choices={['Sunburst']} disabled={node.data.locked} onChange={() => {}} /></div></div>
     {fields.map(({ field, choices, labels }) => {
       const label = fieldLabels[field]; const exposed = Boolean(node.data.exposed?.includes(field));
+      const exposeButton = <button disabled={node.data.locked} className="describer-expose" data-exposed={exposed} title={exposed ? '使用本地值' : '设为输入'} aria-label={exposed ? `${label}使用本地值` : `将${label}设为输入`} aria-pressed={exposed} onClick={() => expose(field)}><DescriberIcon name="expose" /></button>;
+      if (field === 'size') return <SunburstSizeSelect key={field} value={String(effective.size ?? '')} disabled={node.data.locked || exposed} onChange={value => change('size', value)} exposeButton={exposeButton} />;
       return <div className="describer-field" key={field}><label>{label}</label><div className="describer-field-row">
-        {field === 'size' ? <SunburstSizeSelect value={String(effective.size ?? '')} disabled={node.data.locked || exposed} onChange={value => change('size', value)} /> : <DescriberModelSelect fluidHover compact label={label} value={String(effective[field] ?? '')} choices={[...choices]} labels={labels} disabled={node.data.locked || exposed} onChange={value => change(field, value)} />}
-        <button disabled={node.data.locked} className="describer-expose" data-exposed={exposed} title={exposed ? '使用本地值' : '设为输入'} aria-label={exposed ? `${label}使用本地值` : `将${label}设为输入`} aria-pressed={exposed} onClick={() => expose(field)}><DescriberIcon name="expose" /></button>
+        <DescriberModelSelect fluidHover compact label={label} value={String(effective[field] ?? '')} choices={[...choices]} labels={labels} disabled={node.data.locked || exposed} onChange={value => change(field, value)} />
+        {exposeButton}
       </div></div>;
     })}
   </div>;

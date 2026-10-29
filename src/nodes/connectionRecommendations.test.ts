@@ -101,6 +101,16 @@ test('parameter initialization leaves ordinary model nodes and other recommendat
   const target: SunburstNode = { ...generator, data: { ...generator.data, exposed: ['quality'] } };
   assert.equal(initializeConnectionParameter(text, pending(target.id, 'target', 'quality'), [target]), text);
 });
+test('reverse quality parameter creation includes the selected provider quality levels', () => {
+  const model: AppNode = { id: 'model', type: 'model-input', position: { x: 0, y: 0 }, data: { model: 'deepseek-flash' } };
+  for (const provider of ['openai', 'zenmux'] as const) {
+    const target: SunburstNode = { ...generator, data: { ...generator.data, provider, exposed: ['quality'] } };
+    const created = initializeConnectionParameter(model, pending(target.id, 'target', 'quality'), [target]);
+    assert.equal(created.type, 'model-input');
+    assert.ok('options' in created.data);
+    assert.deepEqual(created.data.options, provider === 'openai' ? ['auto', 'low', 'medium', 'high', 'xhigh', 'max'] : ['auto', 'low', 'medium', 'high']);
+  }
+});
 
 
 test('Compare quick creation appears once in either direction and preserves the dragged port', () => {

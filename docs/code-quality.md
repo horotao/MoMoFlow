@@ -67,6 +67,7 @@ CI 使用完整 Git 历史，PR 以目标分支基点、推送以事件的前一
 | Masks Extractor 选区、预览复用、PNG、4K、原图比例、取消、撤销及持久化 | `/tests/masks-extractor.html`；默认受控分割，不下载模型；覆盖重新计算后的焦点、从图片和控制区按 Escape 取消，以及迟到结果隔离；页面按钮可单独验证真实 SlimSAM / WebGPU，并测量悬停后连续添加的调用次数、耗时、蒙版摘要及 4K 导出帧间隔 |
 | Ideogram 4.5 参数、异步查询、结果、取消、失败和持久化 | `/tests/ideogram.html`；隔离数据库、模拟模型响应，无真实调用 |
 | Ideogram 4.5 编辑、参考图、Mask 转换、Compare 透传/快照和尺寸约束 | `/tests/ideogram-edit.html`；隔离数据库、模拟模型响应，无真实调用 |
+| GPT Image 2.5 渠道切换、六档画质、1K/2K/4K 尺寸、参数暴露、撤销、锁定、生成/参考图/蒙版和持久化 | `/tests/sunburst-provider.html`；真实画布、隔离数据库、本地模拟响应，无真实模型调用；页面需单独运行，沿用现有 React 浏览器验收方式与类型检查；生成本地 2K/4K PNG 验证解码和持久化不降采样；覆盖 xhigh/max 跨渠道后尺寸独立切回本地、撤销/重做和无效尺寸回退 |
 | Nano Banana 2.1 参数、参考图、结果、取消、失败和持久化 | `/tests/nano-banana.html`；隔离数据库、模拟模型响应，无真实调用 |
 | 三个图像节点的比例动画与减少动态效果 | `/tests/image-ratio-motion.html`；沿用 React 浏览器验收页，无新增框架或依赖，不读写用户工作流、不调用模型。覆盖动画中途开关媒体偏好、后续比例切换、StrictMode 卸载重挂载及 MotionConfig 策略；加 `?native` 可通过浏览器媒体模拟手动复验真实系统偏好。启动 `npm run dev` 后访问，类型检查纳入 `npm run check`，页面需单独运行 |
 | 已连接输入端口替换 | `/tests/connection-replacement.html`，点击 Run replacement checks；使用真实 Flow 与独立数据库验证正反向替换、无效拖线、文本变量、撤销/重做、反向创建与保存恢复；手动补验节点拖动、缩放与小地图 |

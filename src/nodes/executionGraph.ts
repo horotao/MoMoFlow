@@ -11,7 +11,7 @@ import { isDescriberNode, isImageGeneratorNode, isNodeLocked, isCompositorNode, 
 import { hasVariable } from './textDocument.ts';
 import { fileAssets, orderedAssets } from './fileCollection.ts';
 import { imageOutput } from './sunburstRun.ts';
-import { defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
+import { defaultSunburstSettings, sunburstModel, validateSunburstSettings } from './sunburst.ts';
 import { defaultNanoBananaSettings, validateNanoBananaSettings } from './nanoBanana.ts';
 import { resolveTextValue } from './textVariables.ts';
 import { effectiveSunburstSettings, prepareSunburstRun } from './sunburstRun.ts';
@@ -179,7 +179,22 @@ export function requestSignature(task: PreviewTask, graph: ExecutionGraph) {
 export function reusable(node: AppNode, signature: string) {
   if (isDescriberNode(node)) return Boolean(node.data.text.trim() && node.data.generation?.version === 1 && node.data.generation.inputSignature === signature && node.data.generation.outputSignature === stableSignature(node.data.text));
   const asset = selectedResult(node);
-  return Boolean(asset?.generation?.version === 1 && asset.generation.inputSignature === signature && asset.generation.outputSignature === asset.id);
+  return Boolean(asset?.generation?.version === 1 && asset.generation.outputSignature === asset.id
+    && (asset.generation.inputSignature === signature || (node.type === 'sunburst' && matchesLegacySunburstSignature(asset.generation.inputSignature, signature))));
+}
+
+// Before channel selection, ZenMux signatures omitted provider. Match only that
+// schema difference; keep all other inputs and current signatures unchanged.
+function matchesLegacySunburstSignature(saved: string, current: string): boolean {
+  try {
+    const value: unknown = JSON.parse(current);
+    if (!Array.isArray(value) || value.length !== 3 || value[0] !== 'model-input-v1' || value[1] !== sunburstModel) return false;
+    const request: unknown = value[2];
+    if (!request || typeof request !== 'object' || Array.isArray(request) || !('provider' in request) || request.provider !== 'zenmux') return false;
+    const legacy = { ...request } as Record<string, unknown>;
+    delete legacy.provider;
+    return saved === stableSignature([value[0], value[1], legacy]);
+  } catch { return false; }
 }
 // Validate values that are already knowable before submitting any model work.
 // A model-produced text field is checked again by prepareModel after execution.

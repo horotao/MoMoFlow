@@ -100,23 +100,23 @@ Tasks 显示实际排队、运行、成功或失败状态。每次 Run 都可能
 
 此入口用于 `npm run dev` 和 `npm run preview` 本地测试。单独部署 `dist/` 不包含 API 服务；生产部署需要独立后端、身份验证与用量限制。
 
-## GPT Image 2.5 Sunburst（ZenMux 本地接入）
+## GPT Image 2.5 Sunburst（OpenAI / ZenMux）
 
-在已忽略的 `.env.local` 配置 `ZENMUX_API_KEY`，重启 `npm run dev`。密钥由本地服务读取，浏览器只请求 `/api/sunburst`。此接口同样支持 `npm run preview`，单独发布 `dist/` 不提供后端。
+在已忽略的 `.env.local` 配置所需渠道的密钥：OpenAI 官方使用 `OPENAI_API_KEY`，ZenMux 使用 `ZENMUX_API_KEY`，然后重启 `npm run dev`。密钥由本地服务读取，浏览器只请求 `/api/sunburst`。此接口同样支持 `npm run preview`，单独发布 `dist/` 不提供后端。
 
-左侧 Image → Image Models 中点击或拖入 **GPT Image 2.5 Sunburst**。将 Prompt 或 Image Describer 文本输出连接到 Prompt；可选连接 File 图片或其他 Sunburst 的 Result 到 Image。没有图片时使用 ZenMux `/images/generations`，有图片时使用 `/images/edits`（服务端以 multipart/form-data 上传 `image[]` 文件，可选 `mask` 文件；文生图仍为 JSON）。参考图按 Image 端口顺序排列，最多 16 张；生成节点的输出是当前选中的结果。
+左侧 Image → Image Models 中点击或拖入 **GPT Image 2.5 Sunburst**。将 Prompt 或 Image Describer 文本输出连接到 Prompt；可选连接 File 图片或其他 Sunburst 的 Result 到 Image。没有图片时使用所选渠道的 `/images/generations`，有图片时使用 `/images/edits`（服务端以 multipart/form-data 上传 `image[]` 文件，可选 `mask` 文件；文生图仍为 JSON）。参考图按 Image 端口顺序排列，最多 16 张；生成节点的输出是当前选中的结果。
 
 Mask 必须连接一张带透明区域的 PNG，并与第一张参考图尺寸一致；透明区域表示要编辑的部分。支持 PNG / JPEG / WebP 输入，每张不超过 32 MiB，全部输入合计不超过 46 MiB。浏览器会读取连接的图片后传给本地服务。
 
-选中节点后，右侧显示 Variant（固定 Sunburst）、Quality、Background、Aspect Ratio、Output Format。默认 medium / auto / Auto / png。尺寸依据 [OpenAI 官方图像文档](https://developers.openai.com/api/docs/guides/image-generation#size-and-quality-options)：提供 Auto、14 种常用比例（含 16:9、9:16、4:3、3:4、21:9）与 Custom 宽高。自定义尺寸的宽高必须为 16 的倍数、比例在 1:3–3:1 之间、边长不超过 3840、总像素在 655,360–8,294,400 之间；超过 2560×1440 总像素标记为实验分辨率。尺寸字符串原样传递给 ZenMux，服务商实际接受情况尚需真实生成验证。选择透明背景时自动切换到 PNG；透明背景下选择 JPEG 会将背景改为 opaque。
+选中同一个 GPT Image 2.5 节点后，右侧可选择渠道商 **OpenAI 官方 / ZenMux**，并设置模型版本（固定 Sunburst）、画质、背景、宽高比、分辨率、输出格式。新节点及未保存渠道的旧节点默认 ZenMux；渠道随节点保存、复制与撤销/重做，每次运行将渠道加入任务快照。服务端只读取所选渠道的密钥，缺少密钥或请求失败不会切换到另一渠道。OpenAI 使用 `https://api.openai.com/v1` 和 `gpt-image-2.5-sunburst`，ZenMux 使用 `https://zenmux.ai/api/v1` 和 `openai/gpt-image-2.5-sunburst`。OpenAI 画质支持自动（auto）、低（low）、中（medium）、高（high）、超高（xhigh）、最高（max）；ZenMux 保留现有 auto / low / medium / high。切到 ZenMux 时，本地 xhigh / max 改为 high，可一并撤销；连接的画质参数保持原值，不支持时在运行前报错。暴露画质或反向创建参数节点时，选项按目标渠道初始化。默认 medium / auto / Auto / png。尺寸依据 [OpenAI 官方图像文档](https://developers.openai.com/api/docs/guides/image-generation#size-and-quality-options)：提供 Auto、14 种常用比例（含 16:9、9:16、4:3、3:4、21:9）与 Custom 宽高。分辨率可选自动、1K、2K、4K 或自定义；选择预设后，切换比例保留分辨率档位。1K 保留旧比例尺寸；2K 长边不超过 2048，4K 长边不超过 3840 且总像素不超过 8,294,400，所有预设严格保持比例与 16 像素对齐。例如 2K 正方形为 2048×2048、2K 16:9 为 2048×1152、4K 16:9 为 3840×2160、4K 9:16 为 2160×3840，4K 正方形受像素上限限制为 2880×2880（不支持 4096×4096）。自动或非预设自定义尺寸切换档位时使用正方形，可再改宽高比。分辨率与画质互相独立：提高画质不会自动增大尺寸。自定义尺寸的宽高必须为 16 的倍数、比例在 1:3–3:1 之间、边长不超过 3840、总像素在 655,360–8,294,400 之间；官方将超过 2560×1440 总像素的尺寸列为实验分辨率。尺寸字符串原样传递给所选渠道，服务商实际接受情况尚需真实生成验证。选择透明背景时自动切换到 PNG；透明背景下选择 JPEG 会将背景改为 opaque。
 
-参数行悬停后点击 Set as input，会创建与 Model Name 共用样式的紧凑下拉参数节点，保留当前值并自动连线。所有下拉参数节点选中后统一显示 Options 单选列表，可编辑选项并 Add another item；Aspect Ratio 的自定义尺寸用 `宽x高` 选项保存，生成节点本身仍支持 Custom 宽高输入。旧的文本参数连接继续可用。
+参数行悬停后点击 Set as input，会创建与 Model Name 共用样式的紧凑下拉参数节点，保留当前值并自动连线。所有下拉参数节点选中后统一显示 Options 单选列表，可编辑选项并 Add another item；宽高比与分辨率统一保存为 `size` 的 `宽x高`，不会向 API 发送单独的 `resolution` 参数。暴露尺寸时，宽高比与分辨率控件同时禁用；参数节点包含各档尺寸预设，生成节点本身仍支持 Custom 宽高输入。旧的文本参数连接继续可用。
 
 Run Model 和 Run selected 使用共享 Tasks 队列及 Runs 次数。每次运行保存输入快照，同一节点的多次运行依次提交，重复点击不会重复提交运行中的节点。结果追加到节点，支持切换、下载、全屏查看和下游连接，也会出现在 Assets。锁定节点不能修改参数或运行。
 
-请求不自动重试。取消或五分钟超时会停止等待，但已提交的请求仍可能计费；手动 Retry 会按当前参数和 Runs 重新提交。费用由 ZenMux 实际用量决定，界面不模拟余额或固定 credits。画布与图片沿用本项目当前页面会话生命周期，刷新前请下载需要保留的结果。
+请求不自动重试。取消或五分钟超时会停止等待，但已提交的请求仍可能计费；手动 Retry 会按当前参数和 Runs 重新提交。费用由所选渠道实际用量决定，界面不模拟余额或固定 credits。画布、渠道选择及生成图片通过 IndexedDB 保存并在刷新后恢复。
 
-验证：`npm test`、`npm run lint`、`npm run build`。Node.js 内置测试还覆盖 Sunburst 剪切粘贴后的名称、当前图片和未完成尺寸恢复，以及运行前的尺寸校验。测试使用受控响应，不消耗模型额度。接口依据：[生成图片](https://zenmux.ai/docs/zh/api/openai/generate-an-image.html)、[编辑图片](https://zenmux.ai/docs/zh/api/openai/create-image-edit.html)、[模型详情](https://zenmux.ai/openai/gpt-image-2.5-sunburst)。
+验证：`npm test`、`npm run lint`、`npm run build`。Node.js 内置测试还覆盖 Sunburst 剪切粘贴后的名称、当前图片和未完成尺寸恢复，以及运行前的尺寸校验。测试使用受控响应，不消耗模型额度。接口依据：[OpenAI Sunburst](https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst)、[OpenAI 图像生成与编辑](https://developers.openai.com/api/docs/guides/image-generation)、[生成图片](https://zenmux.ai/docs/zh/api/openai/generate-an-image.html)、[编辑图片](https://zenmux.ai/docs/zh/api/openai/create-image-edit.html)、[模型详情](https://zenmux.ai/openai/gpt-image-2.5-sunburst)。
 
 ## 画布本地保存
 

@@ -57,9 +57,10 @@
 .sunburst-size-control { flex: 1; min-width: 0; width: 100%; }
 .sunburst-size-control > .describer-model-trigger { width: 100%; }
 .sunburst-custom-size { display: flex; align-items: flex-end; gap: 6px; margin-top: 8px; }
-.sunburst-custom-size > label { flex: 1; min-width: 0; display: grid; gap: 4px; font-size: 10px; }
-.sunburst-custom-size > span { line-height: 24px; }
-.sunburst-custom-size input { width: 100%; min-width: 0; height: 24px; border: 1px solid var(--text-node-border, var(--panel-border)); border-radius: 5px; padding: 0 6px; background: transparent; color: inherit; font: inherit; }
+.sunburst-custom-size > label { flex: 1; min-width: 0; display: grid; gap: 4px; margin-bottom: 0; font-size: inherit; color: var(--panel-muted); }
+.sunburst-custom-size > span { display: flex; align-items: center; justify-content: center; height: 24px; font-size: 11px; line-height: 16px; }
+.sunburst-custom-size input { width: 100%; min-width: 0; height: 24px; border: 1px solid var(--text-node-border, var(--panel-border)); border-radius: 5px; padding: 0 6px; background: transparent; color: var(--panel-text); font: 450 11px/16px var(--font-ui); appearance: textfield; }
+.sunburst-custom-size input::-webkit-inner-spin-button, .sunburst-custom-size input::-webkit-outer-spin-button { appearance: none; margin: 0; }
 .sunburst-custom-size input:focus-visible { outline: 1px solid currentColor; }
 .sunburst-custom-size input:disabled { opacity: .5; }
 .sunburst-custom-size input[aria-invalid="true"] { border-color: #dc7373; }

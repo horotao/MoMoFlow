@@ -33,6 +33,66 @@ function harness(initial = fixture(), request?: ExecutionIO['request'], local?: 
   });
   return { engine, store, requests, discarded, get graph() { return graph; }, edit(change: (graph: ExecutionGraph) => ExecutionGraph) { graph = change(graph); engine.observe(graph); }, node(id: string) { return graph.nodes.find(node => node.id === id)!; } };
 }
+function recordedSunburstGraph(recording: 'legacy' | 'zenmux' | 'openai'): ExecutionGraph {
+  const upstream = generator('upstream');
+  assert.equal(upstream.type, 'sunburst');
+  if (recording !== 'legacy') upstream.data = { ...upstream.data, provider: recording };
+  const graph: ExecutionGraph = {
+    nodes: [file('source'), { id: 'prompt', type: 'text', position: { x: 0, y: 0 }, data: { text: 'A circle' } }, upstream, describer('downstream')],
+    edges: [edge('prompt', 'upstream', 'prompt'), edge('source', 'upstream', 'image-0', 'file'), edge('upstream', 'downstream', 'image-0', 'result')],
+  };
+  const recorded = prepareModel(graph, 'upstream');
+  assert.ok(recorded.imageRequest);
+  // Reproduce the persisted request schema before provider selection existed.
+  if (recording === 'legacy') delete recorded.imageRequest.provider;
+  const asset: FileAsset = { id: 'cached', kind: 'image', name: 'cached.png', url: 'blob:cached', generation: {
+    version: 1, inputSignature: requestSignature(recorded, graph), outputSignature: 'cached',
+  } };
+  upstream.data = { ...upstream.data, results: [asset], activeResultId: asset.id };
+  return JSON.parse(JSON.stringify(workflowSnapshot({ ...graph, colorMode: 'dark', viewport: { x: 0, y: 0, zoom: 1 } })));
+}
+
+test('saved ZenMux signatures without a provider reuse upstream results, including locked nodes', async () => {
+  for (const recording of ['legacy', 'zenmux', 'openai'] as const) for (const locked of [false, true]) {
+    for (const explicitDefault of recording === 'legacy' ? [false, true] : [false]) {
+      const graph = recordedSunburstGraph(recording);
+      graph.nodes = graph.nodes.map(node => node.id === 'upstream' ? { ...node, data: { ...node.data, locked, ...(explicitDefault ? { provider: 'zenmux' } : {}) } } as AppNode : node);
+      const h = harness(graph);
+      await h.engine.run(['downstream'], 1);
+      assert.deepEqual(h.requests.map(task => task.nodeId), ['downstream'], `${recording}, locked=${locked}, explicit=${explicitDefault}`);
+      assert.deepEqual(h.requests[0].images, ['blob:cached']);
+      assert.ok(h.store.getSnapshot().every(task => task.state === 'Done'));
+      h.engine.dispose();
+    }
+  }
+});
+
+test('legacy signature compatibility never reuses a changed provider, input, size or output', async () => {
+  for (const change of ['provider', 'prompt', 'image', '2K', '4K', 'quality', 'output', 'signature', 'locked-size', 'openai-to-zenmux']) {
+    const graph = recordedSunburstGraph(change === 'openai-to-zenmux' ? 'openai' : 'legacy');
+    graph.nodes = graph.nodes.map(node => {
+      if (change === 'prompt' && node.id === 'prompt') return { ...node, data: { text: 'A different circle' } } as AppNode;
+      if (change === 'image' && node.id === 'source') return { ...file('source'), data: { assets: [{ id: 'replacement', kind: 'image', name: 'new.png', url: 'blob:new' }] } } as AppNode;
+      if (node.id !== 'upstream' || !isImageGeneratorNode(node)) return node;
+      return { ...node, data: { ...node.data,
+        ...(change === 'provider' ? { provider: 'openai' } : change === 'openai-to-zenmux' ? { provider: 'zenmux' } : {}),
+        ...(['2K', '4K', 'locked-size'].includes(change) ? { size: change === '2K' ? '2048x2048' : '3840x2160', locked: change === 'locked-size' } : {}),
+        ...(change === 'quality' ? { quality: 'high' } : {}),
+        ...(['output', 'signature'].includes(change) ? { results: node.data.results!.map(asset => ({ ...asset, generation: { ...asset.generation!, ...(change === 'output' ? { outputSignature: 'wrong' } : { inputSignature: '{broken' }) } })) } : {}),
+      } } as AppNode;
+    });
+    const h = harness(graph); await h.engine.run(['downstream'], 1);
+    if (change === 'locked-size') {
+      assert.equal(h.requests.length, 0);
+      assert.match(h.store.getSnapshot()[0].error!, /已锁定且结果需要更新/);
+    } else {
+      assert.deepEqual(h.requests.map(task => task.nodeId), ['upstream', 'downstream'], change);
+      assert.deepEqual(h.requests[1].images, ['blob:generated']);
+      assert.ok(h.store.getSnapshot().every(task => task.state === 'Done'));
+    }
+    h.engine.dispose();
+  }
+});
 async function until(check: () => boolean) { for (let i = 0; i < 100; i++) { if (check()) return; await new Promise(resolve => setTimeout(resolve, 1)); } assert.fail('condition not reached'); }
 const changeAsset = (graph: ExecutionGraph, id: string, assetId: string): ExecutionGraph => ({ ...graph, nodes: graph.nodes.map(node => node.id === id ? { ...file(id), data: { assets: [{ id: assetId, name: assetId, kind: 'image', url: `blob:${assetId}` }] } } as AppNode : node) });
 
@@ -51,6 +111,18 @@ test('Runs = 3 prepares dependencies once and preserves three distinct target re
   assert.deepEqual(h.requests.map(task => task.nodeId), ['da', 'db', 'g', 'g', 'g']);
   assert.equal(new Set(h.requests.filter(task => task.nodeId === 'g').map(task => task.id)).size, 3);
   const node = h.node('g'); assert.ok(isImageGeneratorNode(node)); assert.equal(node.data.results?.length, 3);
+});
+
+test('workflow preflight and execution accept OpenAI advanced qualities before upstream work', async () => {
+  for (const quality of ['xhigh', 'max'] as const) {
+    const graph = fixture();
+    graph.nodes = graph.nodes.map(node => node.id === 'g' ? { ...node, data: { ...node.data, provider: 'openai', quality } } as AppNode : node);
+    assert.doesNotThrow(() => preflight(graph, ['g'], 1));
+    const h = harness(graph); await h.engine.run(['g'], 1);
+    assert.equal(h.requests.find(task => task.nodeId === 'g')?.imageRequest?.quality, quality);
+    const zenmux = { ...graph, nodes: graph.nodes.map(node => node.id === 'g' ? { ...node, data: { ...node.data, provider: 'zenmux' } } as AppNode : node) };
+    assert.throws(() => preflight(zenmux, ['g'], 1), /ZenMux.*画质参数/);
+  }
 });
 
 test('manual description survives source replacement and remains visibly distinguishable', async () => {

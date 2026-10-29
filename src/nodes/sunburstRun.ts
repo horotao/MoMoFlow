@@ -31,7 +31,7 @@ import type { AppNode, FileAsset, SunburstNode } from './types';
 import { isNodeLocked, isSunburstNode, isImageGeneratorNode } from './types.ts';
 import { fileAssets } from './fileCollection.ts';
 import { resolveTextValue } from './textVariables.ts';
-import { sunburstModel, validateSunburstSettings } from './sunburst.ts';
+import { sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
 import type { SunburstRequest } from './sunburst';
 import type { PreviewTask } from './taskQueue';
 
@@ -227,11 +227,12 @@ export function imageOutput(node: AppNode | undefined, handle?: string | null, n
   return imageResolution(nodes, edges, visited).output(node, handle);
 }
 
-export function effectiveSunburstSettings(node: SunburstNode, nodes: AppNode[], edges: Edge[]) {
-  return Object.fromEntries(Object.entries(node.data).filter(([field]) => ['quality', 'background', 'size', 'outputFormat'].includes(field)).map(([field, value]) => {
+export function effectiveSunburstSettings(node: SunburstNode, nodes: AppNode[], edges: Edge[]): Record<string, unknown> {
+  const settings = Object.fromEntries(Object.entries(node.data).filter(([field]) => ['quality', 'background', 'size', 'outputFormat'].includes(field)).map(([field, value]) => {
     const edge = edges.find(item => item.target === node.id && item.targetHandle === field);
     return [field, edge ? resolveTextValue(edge.source, nodes, edges).trim() : value];
   }));
+  return { ...settings, provider: node.data.provider };
 }
 
 export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[], runs: number): { tasks: PreviewTask[]; error?: string } {
@@ -241,6 +242,7 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
     for (const id of new Set(ids)) {
       const node = nodes.find(item => item.id === id);
       if (!node || !isSunburstNode(node) || isNodeLocked(node)) continue;
+      const provider = validateSunburstProvider(node.data.provider);
       const settings = validateSunburstSettings(effectiveSunburstSettings(node, nodes, edges));
       const inputs = edges.filter(edge => edge.target === id);
       const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
@@ -265,7 +267,7 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
         mask = assets[0].url;
         if (assets[0].maskMode === 'luminance' || isMatteGrowShrinkNode(source) || isInvertNode(source) || (isMasksExtractorNode(source) && origin?.handle === 'mask')) maskMode = 'luminance';
       }
-      for (let index = 0; index < runs; index++) tasks.push({ id: crypto.randomUUID(), batchId, createdAt, nodeId: id, model: sunburstModel, imageRequest: { ...settings, prompt, images, mask, ...(maskMode ? { maskMode } : {}) }, progress: 0, state: 'Queued', started: 0 });
+      for (let index = 0; index < runs; index++) tasks.push({ id: crypto.randomUUID(), batchId, createdAt, nodeId: id, model: sunburstModelForProvider(provider), imageRequest: { ...settings, provider, prompt, images, mask, ...(maskMode ? { maskMode } : {}) }, progress: 0, state: 'Queued', started: 0 });
     }
     return { tasks };
   } catch (error) { return { tasks: [], error: error instanceof Error ? error.message : '输入参数无效。' }; }

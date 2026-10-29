@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import type { AppNode, SunburstNode, FileAsset } from './types';
+import type { AppNode, SunburstNode, ModelInputNode, FileAsset } from './types';
 import { prepareSunburstRun, imageOutput } from './sunburstRun.ts';
 import { defaultSunburstSettings, sunburstModel, imageSizes, validateSunburstSize, sunburstParameterData } from './sunburst.ts';
 import { prepareDescriberRun } from './describerRun.ts';
@@ -13,8 +13,33 @@ test('text-only runs snapshot every setting, resolve upstream text, and honor co
   const run = prepareSunburstRun([generator, prompt], [promptEdge], ['g'], 2);
   assert.equal(run.tasks.length, 2); assert.equal(run.error, undefined);
   assert.equal(run.tasks[0].model, sunburstModel);
-  assert.deepEqual(run.tasks[0].imageRequest, { ...defaultSunburstSettings, prompt: '一只猫', images: [], mask: undefined });
+  assert.deepEqual(run.tasks[0].imageRequest, { ...defaultSunburstSettings, provider: 'zenmux', prompt: '一只猫', images: [], mask: undefined });
   assert.equal(run.tasks[0].batchId, run.tasks[1].batchId);
+});
+test('provider is frozen per task and invalid channels block the batch before enqueue', () => {
+  const node: SunburstNode = { ...generator, data: { ...generator.data, provider: 'openai' } };
+  const run = prepareSunburstRun([node, prompt], [promptEdge], ['g'], 2);
+  assert.equal(run.error, undefined);
+  node.data.provider = 'zenmux';
+  assert.ok(run.tasks.every(task => task.imageRequest?.provider === 'openai' && task.model === 'gpt-image-2.5-sunburst'));
+  const invalid = { ...node, data: { ...node.data, provider: 'unknown' } } as unknown as SunburstNode;
+  const rejected = prepareSunburstRun([invalid, prompt], [promptEdge], ['g'], 1);
+  assert.equal(rejected.tasks.length, 0);
+  assert.match(rejected.error!, /渠道商/);
+});
+test('OpenAI advanced quality survives local and connected parameter snapshots', () => {
+  for (const quality of ['xhigh', 'max'] as const) {
+    const node: SunburstNode = { ...generator, data: { ...generator.data, provider: 'openai', quality } };
+    const local = prepareSunburstRun([node, prompt], [promptEdge], ['g'], 1);
+    assert.equal(local.error, undefined);
+    assert.equal(local.tasks[0].imageRequest?.quality, quality);
+    const parameter: ModelInputNode = { id: 'quality', type: 'model-input', position: { x: 0, y: 0 }, data: sunburstParameterData('quality', quality, 'openai') };
+    assert.deepEqual(parameter.data.options, ['auto', 'low', 'medium', 'high', 'xhigh', 'max']);
+    const exposed: SunburstNode = { ...node, data: { ...node.data, quality: 'medium', exposed: ['quality'] } };
+    const connected = prepareSunburstRun([exposed, prompt, parameter], [promptEdge, { id: 'quality', source: 'quality', target: 'g', targetHandle: 'quality' }], ['g'], 1);
+    assert.equal(connected.error, undefined);
+    assert.equal(connected.tasks[0].imageRequest?.quality, quality);
+  }
 });
 test('images retain port order and mask stays separate from source images', () => {
   const second: AppNode = { ...file, id: 'second', data: { assets: [{ ...asset, url: 'blob:second' }] } };

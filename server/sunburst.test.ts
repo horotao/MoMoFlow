@@ -5,9 +5,45 @@ import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { buildSunburstPayload, buildSunburstRequest, sunburstPlugin } from './sunburst.ts';
 import { captureMiddleware } from './testMiddleware.ts';
-import { defaultSunburstSettings, sunburstModel } from '../src/nodes/sunburst.ts';
+import { defaultSunburstSettings, sunburstModel, imageQualities } from '../src/nodes/sunburst.ts';
 const png = 'data:image/png;base64,aGVsbG8=';
 const input = { ...defaultSunburstSettings, prompt: 'A green circle', images: [] };
+
+test('all six official qualities reach generation and edit payloads without rewriting', () => {
+  for (const quality of imageQualities) for (const images of [[], [png]]) {
+    const request = buildSunburstRequest({ ...input, provider: 'openai', quality, images });
+    const payload = buildSunburstPayload(request);
+    const actual = payload.body instanceof FormData ? payload.body.get('quality') : JSON.parse(payload.body).quality;
+    assert.equal(actual, quality);
+  }
+  for (const quality of ['xhigh', 'max']) {
+    assert.throws(() => buildSunburstRequest({ ...input, quality }), /ZenMux.*画质参数/);
+    assert.throws(() => buildSunburstRequest({ ...input, provider: 'zenmux', quality }), /ZenMux.*画质参数/);
+  }
+  assert.throws(() => buildSunburstRequest({ ...input, provider: 'openai', quality: 'ultra' }), /参数/);
+});
+
+test('OpenAI receives 2K and 4K sizes unchanged for generation and masked edits', async () => {
+  for (const size of ['2048x2048', '3840x2160', '2160x3840', '2880x2880']) for (const images of [[], [png]]) {
+    let calls = 0;
+    const result = await invoke({ body: { ...input, provider: 'openai', size, images, ...(images.length ? { mask: png } : {}) }, provider: async (url, options) => {
+      calls++;
+      assert.equal(url, `https://api.openai.com/v1/images/${images.length ? 'edits' : 'generations'}`);
+      const body = options!.body;
+      if (body instanceof FormData) {
+        assert.equal(body.get('size'), size);
+        assert.equal(body.has('resolution'), false);
+      } else {
+        const payload = JSON.parse(body as string);
+        assert.equal(payload.size, size);
+        assert.equal('resolution' in payload, false);
+      }
+      return Response.json({ data: [{ b64_json: 'aGVsbG8=' }] });
+    } });
+    assert.equal(result.status, 200);
+    assert.equal(calls, 1);
+  }
+});
 
 test('generation and edit normalization use the exact model, endpoint and images/mask schema', () => {
   const generation = buildSunburstRequest(input);
@@ -24,22 +60,78 @@ test('invalid settings and source data never reach the provider', () => {
     { ...input, images: ['http://localhost/private'] }, { ...input, images: Array(17).fill(png) },
     { ...input, mask: png }, { ...input, images: [png], mask: 'data:image/jpeg;base64,aGVsbG8=' }]) assert.throws(() => buildSunburstRequest(bad));
 });
-async function invoke({ hook = 'configureServer', headers = {}, body = input, key = 'test-only', provider = async () => new Response(JSON.stringify({ data: [{ b64_json: 'aGVsbG8=' }] })), method = 'POST' }: {
-  hook?: 'configureServer' | 'configurePreviewServer'; headers?: Record<string, string | undefined>; body?: unknown; key?: string; provider?: typeof fetch; method?: string;
+async function invoke({ hook = 'configureServer', headers = {}, body = input, key = 'test-only', openaiKey = 'test-openai-only', provider = async () => new Response(JSON.stringify({ data: [{ b64_json: 'aGVsbG8=' }] })), method = 'POST' }: {
+  hook?: 'configureServer' | 'configurePreviewServer'; headers?: Record<string, string | undefined>; body?: unknown; key?: string; openaiKey?: string; provider?: typeof fetch; method?: string;
 } = {}) {
-  const handler = captureMiddleware(sunburstPlugin(key, provider), hook);
+  const handler = captureMiddleware(sunburstPlugin({ zenmux: key, openai: openaiKey }, provider), hook);
   const req = Object.assign(Readable.from([Buffer.from(JSON.stringify(body))]), { url: '/api/sunburst', method, headers: { host: 'localhost:5173', 'content-type': 'application/json', ...headers }, socket: {} });
   let status = 0; let text = '';
   const res = Object.assign(new EventEmitter(), { destroyed: false, writableEnded: false, writeHead(code: number) { status = code; }, end(value: string) { text = value; this.writableEnded = true; } });
   const logs: Record<string, unknown>[] = [];
   const logger = mock.method(console, 'error', (prefix: string, entry: string) => {
-    assert.equal(prefix, '[zenmux-sunburst]');
+    assert.ok(['[zenmux-sunburst]', '[openai-sunburst]'].includes(prefix));
     logs.push(JSON.parse(entry));
   });
   try { await handler(req as unknown as IncomingMessage, res as unknown as ServerResponse, () => assert.fail('unexpected next')); }
   finally { logger.mock.restore(); }
   return { status, body: JSON.parse(text), logs };
 }
+for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
+  test(`${hook}: OpenAI generation and masked edits use only the official model, host and key`, async () => {
+    for (const images of [[], [png, png]]) {
+      let calls = 0;
+      const result = await invoke({ hook, key: '', body: { ...input, provider: 'openai', images, ...(images.length ? { mask: png } : {}) }, provider: async (url, options) => {
+        calls++;
+        assert.equal(url, `https://api.openai.com/v1/images/${images.length ? 'edits' : 'generations'}`);
+        assert.equal(new Headers(options?.headers).get('Authorization'), 'Bearer test-openai-only');
+        if (images.length) {
+          assert.ok(options?.body instanceof FormData);
+          assert.equal(options.body.get('model'), 'gpt-image-2.5-sunburst');
+          assert.equal(options.body.getAll('image[]').length, 2);
+          assert.equal(await (options.body.get('mask') as File).text(), 'hello');
+          assert.equal(options.body.has('provider'), false);
+        } else {
+          assert.equal(typeof options?.body, 'string');
+          const body = JSON.parse(options!.body as string);
+          assert.equal(body.model, 'gpt-image-2.5-sunburst');
+          assert.equal('provider' in body, false);
+        }
+        return Response.json({ data: [{ b64_json: 'aGVsbG8=' }] });
+      } });
+      assert.equal(calls, 1);
+      assert.equal(result.status, 200);
+      assert.equal(result.body.format, 'png');
+      assert.equal(JSON.stringify(result).includes('test-openai-only'), false);
+    }
+  });
+}
+
+test('selected provider requires its own key, rejects unknown providers and never falls back', async () => {
+  const provider = async () => { assert.fail('must not submit'); };
+  const missing = await invoke({ body: { ...input, provider: 'openai' }, openaiKey: '', provider });
+  assert.equal(missing.status, 503);
+  assert.match(missing.body.error, /OPENAI_API_KEY/);
+  assert.equal((await invoke({ body: { ...input, provider: 'zenmux' }, key: '', provider })).status, 503);
+  for (const invalid of ['other', '', null, {}, 'https://evil.example']) {
+    assert.equal((await invoke({ body: { ...input, provider: invalid }, provider })).status, 400);
+  }
+});
+
+test('OpenAI failures preserve diagnostics, redact its key and do not retry or switch channels', async () => {
+  let calls = 0;
+  const result = await invoke({ body: { ...input, provider: 'openai' }, provider: async url => {
+    calls++;
+    assert.equal(url, 'https://api.openai.com/v1/images/generations');
+    return Response.json({ error: { code: 'insufficient_quota', type: 'insufficient_quota', message: 'Quota exceeded for test-openai-only' } }, { status: 429, headers: { 'x-request-id': 'openai-request-123' } });
+  } });
+  assert.equal(calls, 1);
+  assert.equal(result.status, 502);
+  assert.match(result.body.error, /OpenAI 额度不足/);
+  assert.match(result.body.error, /OpenAI HTTP：429/);
+  assert.equal(result.body.diagnostic.requestId, 'openai-request-123');
+  assert.equal(result.logs[0].provider, 'openai');
+  assert.equal(JSON.stringify(result).includes('test-openai-only'), false);
+});
 for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
   test(`${hook}: credentials stay on server; only intended generation/edit endpoint receives payload`, async () => {
     for (const images of [[], [png]]) {
