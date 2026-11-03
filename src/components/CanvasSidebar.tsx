@@ -1,6 +1,7 @@
-import { Fragment, useId, useState } from 'react';
+import { Fragment, useCallback, useId, useRef, useState } from 'react';
 import type { CanvasTool } from './CanvasDock';
 import { Button } from './ui/button';
+import { NodeAddMenu } from './NodeAddMenu';
 import './CanvasSidebar.css';
 
 type DockItem = {
@@ -22,11 +23,20 @@ const dockItems: DockItem[] = [
 type Props = {
   tool: CanvasTool;
   onToolChange: (tool: CanvasTool) => void;
+  onAddNode: (id: string) => void;
+  menuOpen: boolean;
+  onMenuOpenChange: (open: boolean) => void;
 };
 
-export function CanvasSidebar({ tool, onToolChange }: Props) {
+export function CanvasSidebar({ tool, onToolChange, onAddNode, menuOpen, onMenuOpenChange }: Props) {
   const [tooltip, setTooltip] = useState<DockItem['id'] | null>(null);
+  const addTrigger = useRef<HTMLButtonElement>(null);
   const tooltipId = useId();
+  const menuId = useId();
+  const dismissMenu = useCallback(() => {
+    onMenuOpenChange(false);
+    if (document.activeElement?.closest('.node-add-menu')) addTrigger.current?.focus({ preventScroll: true });
+  }, [onMenuOpenChange]);
   const dismissTooltip = (id: DockItem['id']) => {
     setTooltip(current => current === id ? null : current);
   };
@@ -41,6 +51,7 @@ export function CanvasSidebar({ tool, onToolChange }: Props) {
       {dockItems.map(({ id, label, shortcut, divider }) => <Fragment key={id}>
         {divider && <div className="canvas-sidebar-divider" aria-hidden="true" />}
         <Button
+          ref={id === 'add' ? addTrigger : undefined}
           type="button"
           variant="ghost"
           size="icon"
@@ -48,12 +59,19 @@ export function CanvasSidebar({ tool, onToolChange }: Props) {
           aria-label={label}
           aria-pressed={id === 'select' || id === 'hand' ? tool === id : undefined}
           aria-keyshortcuts={shortcut}
+          aria-haspopup={id === 'add' ? 'dialog' : undefined}
+          aria-expanded={id === 'add' ? menuOpen : undefined}
+          aria-controls={id === 'add' && menuOpen ? menuId : undefined}
           aria-describedby={tooltip === id ? `${tooltipId}-${id}` : undefined}
-          onPointerEnter={event => { if (event.pointerType !== 'touch') setTooltip(id); }}
+          onPointerEnter={event => { if (event.pointerType !== 'touch' && !menuOpen) setTooltip(id); }}
           onPointerLeave={() => dismissTooltip(id)}
           onFocus={event => { if (event.currentTarget.matches(':focus-visible')) setTooltip(id); }}
           onBlur={() => dismissTooltip(id)}
-          onClick={() => { if (id === 'select' || id === 'hand') onToolChange(id); }}
+          onClick={() => {
+            setTooltip(null);
+            if (id === 'add') onMenuOpenChange(!menuOpen);
+            if (id === 'select' || id === 'hand') onToolChange(id);
+          }}
         >
           <img src={`/canvas-sidebar/${id}.svg`} alt="" draggable={false} />
           <span id={`${tooltipId}-${id}`} role="tooltip" className="canvas-sidebar-tooltip" data-visible={tooltip === id} aria-hidden={tooltip !== id}>
@@ -62,5 +80,7 @@ export function CanvasSidebar({ tool, onToolChange }: Props) {
         </Button>
       </Fragment>)}
     </nav>
+    {menuOpen && <NodeAddMenu id={menuId} trigger={addTrigger} onDismiss={dismissMenu}
+      onChoose={id => { onAddNode(id); dismissMenu(); }} />}
   </div>;
 }

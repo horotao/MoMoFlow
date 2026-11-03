@@ -21,11 +21,12 @@ import { isPainterNode, isNodeLocked } from './nodes/types';
 import { restorePainterData } from './nodes/painter';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasSidebar } from './components/CanvasSidebar';
+import { NodeAddMenu } from './components/NodeAddMenu';
 import { NodePortLabelMotion } from './components/NodePortLabelMotion';
 import { ConnectionMenu, type NodeMenuChoice } from './components/ConnectionMenu';
 import { canConnect, withoutReplacedInput } from './nodes/connectionRules';
 import { connectionChoices, choiceConnection, initializeConnectionParameter, type PendingConnection } from './nodes/connectionRecommendations';
-import { createLibraryNode, items } from './components/libraryCatalog';
+import { createLibraryNode } from './components/libraryCatalog';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
@@ -64,7 +65,6 @@ import { useWorkflowPersistence } from './persistence/useWorkflowPersistence';
 
 const defaultEdgeOptions = { type: 'default', pathOptions: curveOptions };
 type PendingNodeMenu = PendingConnection | Pick<PendingConnection, 'screen' | 'position'>;
-const creationChoices: NodeMenuChoice[] = items.filter(item => item.nodeType).map(item => ({ id: item.id, itemId: item.id }));
 
 export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | null }) {
   const [colorMode, setColorMode] = useState<'light' | 'dark'>(saved?.colorMode ?? 'dark');
@@ -81,7 +81,12 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
   const [tool, setTool] = useState<CanvasTool>('select');
   const [importError, setImportError] = useState('');
   const [pendingNodeMenu, setPendingNodeMenu] = useState<PendingNodeMenu | null>(null);
-  const dismissNodeMenu = useCallback(() => setPendingNodeMenu(null), []);
+  const [dockMenuOpen, setDockMenuOpen] = useState(false);
+  const dismissNodeMenu = useCallback(() => { setPendingNodeMenu(null); setDockMenuOpen(false); }, []);
+  const changeDockMenuOpen = useCallback((open: boolean) => {
+    setDockMenuOpen(open);
+    if (open) setPendingNodeMenu(null);
+  }, []);
   const restore = useCallback((snapshot: { nodes: AppNode[]; edges: typeof edges }) => {
     setNodes(snapshot.nodes);
     setEdges(snapshot.edges);
@@ -483,6 +488,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         if (!(event.target instanceof Element) || !event.target.classList.contains('react-flow__pane')) return;
         event.preventDefault();
         const screen = { x: event.clientX, y: event.clientY };
+        setDockMenuOpen(false);
         setPendingNodeMenu({ screen, position: screenToFlowPosition(screen) });
       }}
       onConnectStart={dismissNodeMenu}
@@ -509,18 +515,29 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       fitView={!saved}
     >
       <Background />
-      {pendingNodeMenu && <ConnectionMenu
+      {pendingNodeMenu && ('nodeId' in pendingNodeMenu ? <ConnectionMenu
         screen={pendingNodeMenu.screen}
-        mode={'nodeId' in pendingNodeMenu ? 'connect' : 'create'}
-        choices={'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes, edges) : creationChoices}
+        mode="connect"
+        choices={connectionChoices(pendingNodeMenu, nodes, edges)}
         onChoose={chooseNode}
         onDismiss={dismissNodeMenu}
-      />}
+      /> : <NodeAddMenu key={`${pendingNodeMenu.screen.x}:${pendingNodeMenu.screen.y}`}
+        id="canvas-node-add-menu" screen={pendingNodeMenu.screen}
+        onChoose={itemId => chooseNode({ id: itemId, itemId })} onDismiss={dismissNodeMenu}
+      />)}
       <Panel position="bottom-left" className="canvas-save-status" role={persistence.error ? 'alert' : 'status'}>
         <span>{persistence.error || persistence.status}</span>
         {persistence.error && <button type="button" onClick={persistence.retry}>重试保存</button>}
       </Panel>
-      <CanvasSidebar tool={tool} onToolChange={setTool} />
+      <CanvasSidebar tool={tool} onToolChange={setTool} menuOpen={dockMenuOpen} onMenuOpenChange={changeDockMenuOpen} onAddNode={id => {
+        const bounds = canvasRef.current?.getBoundingClientRect();
+        if (!bounds) return;
+        const center = screenToFlowPosition({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 });
+        const node = createLibraryNode(id, { x: center.x - 230, y: center.y - 150 });
+        if (!node) return;
+        setPendingNodeMenu(null);
+        setNodes(current => [...current.map(item => ({ ...item, selected: false })), node]);
+      }} />
       <DescriberPanel />
       {importError && <Panel position="top-center" className="canvas-import-error" role="alert">
         <span>{importError}</span><button type="button" aria-label="Dismiss import error" onClick={() => setImportError('')}>×</button>

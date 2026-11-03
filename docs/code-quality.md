@@ -59,6 +59,7 @@ CI 使用完整 Git 历史，PR 以目标分支基点、推送以事件的前一
 
 | 场景 | 入口与重点 |
 | --- | --- |
+| Dock / 画布右键添加菜单 | `/tests/node-add-menu.html`（`tests/node-add-menu.test.tsx`），沿用 React 浏览器验收页与独立 IndexedDB，无新增测试框架或模型调用。启动 `npm run dev` 后打开，自动检查全部注册节点的分类/搜索/创建、撤销重做/持久化、220ms 打开、360ms 关闭、三角区与 1.2s 上限、菜单间隙、三角区内折返/纵向移动/离开重入、快速切行和连续指针事件、迟到计时器取消、左右展开、右键落点/边界定位/替换旧菜单、键盘与输入法确认、Figma 图标尺寸。页面保留独立画布用于手动补验拖动、连线、缩放和窄窗口布局；类型检查纳入 `npm run check`，浏览器页面需单独运行 |
 | Compositor 渲染、Worker、PNG、键盘与保存恢复 | `/tests/compositor-browser.html`，点击页面的运行按钮 |
 | Compositor 实际交互、4K 与共享上游链 | `/tests/compositor-interaction.html`，链路场景加 `?chain=16`；具体流程见 [Compositor 文档](compositor.md) |
 | Color palette 编辑器 | `/tests/color-palette-picker.html` |

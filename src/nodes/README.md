@@ -39,11 +39,13 @@
 
 画布右键创建与拖线推荐菜单共用 `libraryItemLabel` 显示名称；GPT Image 2.5 与 Nano Banana 的节点标题、设置面板和任务列表复用对应模型的名称常量，保持一致。菜单搜索同时匹配中文和原英文，端口说明仅翻译显示，不改变连接标识。
 
-左侧 Dock 暂不展开节点资源库或二级菜单；添加、文件、搜索和更多仅展示并提供悬停反馈。节点继续通过画布右键创建与拖线推荐菜单添加，节点注册和已有节点保持可用。
+左侧 Dock 的「+」与画布空白处右键共用 [NodeAddMenu.tsx](../components/NodeAddMenu.tsx)：搜索支持中文、英文和节点类型标识。Dock 在当前视口中心附近创建并选中节点；右键按点击时转换后的画布坐标创建，菜单贴边调整位置不改变节点落点。两种入口互斥，重新右键会重置搜索和待执行延时；拖线推荐仍使用按端口筛选的 `ConnectionMenu`。创建复用节点库默认数据、撤销历史与持久化。图像编辑与辅助工具按 [nodeMenuCatalog.ts](../components/nodeMenuCatalog.ts) 分类，覆盖全部已注册节点；普通菜单图标使用 Lucide，模型菜单图标使用 Figma 导出的本地 SVG。尚未接入的原型入口保持禁用，不创建替代节点；文件、搜索和更多 Dock 按钮仍仅提供悬停反馈。
+
+级联菜单悬停 220ms 打开、离开整个菜单区域 360ms 关闭；从当前父行上一鼠标位置到子菜单近侧上下角的三角区内暂缓切换，保护最长 1.2 秒，支持窗口边界定位与反向三角区。折返或纵向切行立即撤销保护，已完成 220ms 悬停的目标行立即切换；离开菜单、进入子菜单、键盘操作和窗口缩放会清理旧轨迹及待切换计时，重新进入不能沿用外部坐标。快速切行只保留最后一行的悬停时间。搜索、方向键、Enter、Escape 和 Tab 可操作菜单；输入法确认不触发创建。菜单容器使用 `border-radius: 16px` 和 `corner-shape: superellipse(1.25)`，不支持连续圆角的浏览器保留普通圆角。
 
 节点库的名称、分类和创建数据在 [libraryCatalog.ts](../components/libraryCatalog.ts) 中维护。只有提供 `nodeType` 的条目才能通过 `createLibraryNode` 创建节点；目录中的展示卡片不等于已实现的节点，不应为占位卡片生成替代节点。
 
-节点标题与侧栏卡片共用 [nodeIcons.ts](./nodeIcons.ts) 中的共享图标映射（通用节点使用 Hugeicons Stroke Rounded）；标题通过 [NodeIcon.tsx](./NodeIcon.tsx) 渲染并保留各节点原有尺寸。修改节点图标时更新共享映射，避免两处显示不一致。Nano Banana 与 Ideogram 4.5 使用 [modelBrandIcons.ts](./modelBrandIcons.ts) 中从 Weavy 对应模型卡片同步的原始 SVG 路径；Nano Banana 保留品牌紫色，Ideogram 随主题文字颜色变化，节点库、标题与设置面板共用同一图标。Router 仍根据输入内容切换文本、图片 / 蒙版、视频、音频、3D 或文件图标，未连接时使用路由图标。
+节点标题与旧节点库卡片共用 [nodeIcons.ts](./nodeIcons.ts) 中的共享图标映射（通用节点使用 Hugeicons Stroke Rounded）；标题通过 [NodeIcon.tsx](./NodeIcon.tsx) 渲染并保留各节点原有尺寸。修改节点图标时更新共享映射，避免两处显示不一致。Nano Banana 与 Ideogram 4.5 使用 [modelBrandIcons.ts](./modelBrandIcons.ts) 中从 Weavy 对应模型卡片同步的原始 SVG 路径；Nano Banana 保留品牌紫色，Ideogram 随主题文字颜色变化，旧节点库、标题与设置面板共用同一图标。「+」菜单按其 Figma 设计使用独立图标。Router 仍根据输入内容切换文本、图片 / 蒙版、视频、音频、3D 或文件图标，未连接时使用路由图标。
 
 Compositor 文本、形状及钢笔交互与验证入口见 [合成编辑器文档](../../docs/compositor.md)。锚点在不同缩放下保持固定命中区，可越界调整及插入曲线点；交互草稿按帧更新，提交仍复用工作流历史与持久化。
 
