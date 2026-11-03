@@ -1,3 +1,4 @@
+import { canvasHistoryShortcut } from './canvasShortcuts';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useNodes, useEdges, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
 import { Flow } from '../src/App';
@@ -124,15 +125,15 @@ async function run() {
   pass('拖入追加、非图片拒绝、按名称排序、右键图片菜单');
 
   await menu('清空'); check(iterator().data.assets?.length === 0, 'Clear collection');
-  find('[aria-label="撤销"]').click(); await settle(); check(iterator().data.assets?.length === 3, 'Clear is one undo step');
-  find('[aria-label="重做"]').click(); await settle(); check(iterator().data.assets?.length === 0, 'Redo clear');
-  find('[aria-label="撤销"]').click(); await settle();
+  canvasHistoryShortcut('undo'); await settle(); check(iterator().data.assets?.length === 3, 'Clear is one undo step');
+  canvasHistoryShortcut('redo'); await settle(); check(iterator().data.assets?.length === 0, 'Redo clear');
+  canvasHistoryShortcut('undo'); await settle();
   await menu('锁定'); check(iterator().data.locked, 'Locked');
   check(find<HTMLButtonElement>(`${selector} .file-node-add`).disabled && !find(`${selector} .react-flow__handle.source`).classList.contains('connectable'), 'Locked import and output');
   await menu('解锁'); await menu('创建副本');
   const copy = api.getNodes().find(node => isImageIteratorNode(node) && node.id !== 'iterator'); check(copy && isImageIteratorNode(copy) && copy.data.assets?.length === 3, 'Independent image iterator duplicate');
   await menu('清空'); check(copy.data.assets?.length === 3, 'Clear does not clear copy');
-  find('[aria-label="撤销"]').click(); await settle(); await api.deleteElements({ nodes: [copy] }); await settle();
+  canvasHistoryShortcut('undo'); await settle(); await api.deleteElements({ nodes: [copy] }); await settle();
   pass('清空的单步撤销重做、锁定与解锁、独立副本及素材保留');
 
   await menu('创建副本');

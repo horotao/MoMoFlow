@@ -61,7 +61,7 @@ Learn:
 项目保留 React 18，已配置 Tailwind CSS 4、shadcn/ui（neutral 主题）和 React Flow UI。
 此次依赖安装使用 npm，以 `package-lock.json` 为准；原有 pnpm 锁文件未同步。
 
-界面字体统一使用 `src/index.css` 的 `--font-ui`：英文为随项目提供的 Inter，macOS 中文优先使用苹方（PingFang SC），Windows 中文使用 Noto Sans SC／思源黑体。`@fontsource-variable/noto-sans-sc` 提供随应用构建的字体分片，未安装字体时按需加载，无需访问外部字体服务。新增界面样式请复用 `var(--font-ui)` 或继承字体。侧边栏使用中文名称，并保留原英文名称的搜索匹配。
+界面字体统一使用 `src/index.css` 的 `--font-ui`：英文为随项目提供的 Inter，macOS 中文优先使用苹方（PingFang SC），Windows 中文使用 Noto Sans SC／思源黑体。`@fontsource-variable/noto-sans-sc` 提供随应用构建的字体分片，未安装字体时按需加载，无需访问外部字体服务。新增界面样式请复用 `var(--font-ui)` 或继承字体。左侧悬浮 Dock 使用中文悬停提示；添加、文件、搜索和更多暂为展示入口，选择与抓手共用现有画布工具状态。节点创建菜单同时匹配中文和原英文名称。
 
 - `components.json`：shadcn 配置，`@/` 映射到 `src/`。
 - `src/index.css`：Tailwind、React Flow 样式、主题变量和现有画布样式。
@@ -84,7 +84,7 @@ React Flow CSS 通过 `src/index.css` 中的 `layer(base)` 在 Tailwind 之后�
 现有画布样式也放在同一层，避免破坏 React Flow 深色主题的优先级。
 
 验证命令：`npm run lint`、`npm run build`。手动检查拖动、坐标更新、双向拖线创建节点、
-普通连线、主题切换、缩放及小地图。
+普通连线、主题切换及滚轮／触控板缩放。主画布暂不显示未命名标题、常驻任务栏、底部工具栏和小地图；选择／抓手使用左侧 Dock 或 V／H，撤销／重做使用 ⌘／Ctrl Z 和 ⌘／Ctrl Shift Z。节点设置及其任务入口在选中对应节点时显示。
 
 ## DeepSeek 图片反推提示词（本地测试）
 

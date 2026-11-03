@@ -156,7 +156,7 @@
   }
 
   .react-flow.dark {
-    --xy-background-color: #1e1e1e;
+    --xy-background-color: #1a1a1a;
   }
 
   .react-flow .react-flow__node {
@@ -794,8 +794,6 @@
 .describer-tasks.task-manager { right: 247px; }
 @media (max-width: 700px) { .describer-tasks.task-manager { right: 12px; } }
 
-/* Keep the collapsed Tasks shell free of the sidebar's internal divider. */
-.describer-panel:not(.is-open) .describer-panel-top { border-bottom: 0; }
 .react-flow__node-image-describer .text-node-footer { height: 32px; }
 .react-flow__node-image-describer .text-node-footer button { height: 32px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 0 8px; border-radius: 5px; cursor: pointer; transition: background-color 120ms; }
 .react-flow__node-image-describer .text-node-footer .text-node-button { margin-left: -4px; padding: 0 4px; }

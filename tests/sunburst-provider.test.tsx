@@ -1,3 +1,4 @@
+import { canvasHistoryShortcut } from './canvasShortcuts';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useNodes, useEdges, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
 import { Flow } from '../src/App';
@@ -85,9 +86,9 @@ async function run() {
   await chooseProvider('OpenAI 官方');
   check(read().data.provider === 'openai' && read().type === 'sunburst', 'Official channel uses the same Sunburst node');
   check(find('.sunburst-provider').textContent?.includes('OpenAI 官方') && find('.describer-primary').title.includes('OpenAI 官方'), 'Provider badge and run tooltip match the selected channel');
-  find('[aria-label="撤销"]').click(); await settle();
+  canvasHistoryShortcut('undo'); await settle();
   check((read().data.provider ?? 'zenmux') === 'zenmux', 'Undo restores previous channel');
-  find('[aria-label="重做"]').click(); await settle();
+  canvasHistoryShortcut('redo'); await settle();
   check(read().data.provider === 'openai', 'Redo restores OpenAI');
   check((await qualityOptions()).join(',') === '自动,低,中,高,超高,最高', 'OpenAI offers all six official quality options');
   await chooseSetting('画质', '最高');
@@ -113,9 +114,9 @@ async function run() {
   await closeTasks();
   await chooseProvider('ZenMux');
   check(read().data.quality === 'high', 'Switching to ZenMux changes unsupported local quality to high');
-  find('[aria-label="撤销"]').click(); await settle();
+  canvasHistoryShortcut('undo'); await settle();
   check(read().data.provider === 'openai' && read().data.quality === 'max', 'One undo restores channel and max quality together');
-  find('[aria-label="重做"]').click(); await settle();
+  canvasHistoryShortcut('redo'); await settle();
   runButton().click(); await until(() => read().data.results?.length === 2, 'ZenMux mock generation did not finish');
   check(requests[1].provider === 'zenmux', 'Switching back routes the next request to ZenMux');
   await closeTasks(); await chooseProvider('OpenAI 官方');
@@ -126,9 +127,9 @@ async function run() {
   await new Promise(resolve => setTimeout(resolve, 800));
   await chooseSetting('宽高比', '9:16');
   check(read().data.size === '2160x3840', '4K portrait resolves to 2160 by 3840');
-  find('[aria-label="撤销"]').click(); await settle();
+  canvasHistoryShortcut('undo'); await settle();
   check(read().data.size === '2880x2880' && find('[aria-label="分辨率"]').textContent === '4K', 'Undo restores dimensions and derived resolution together');
-  find('[aria-label="重做"]').click(); await settle();
+  canvasHistoryShortcut('redo'); await settle();
   check(read().data.size === '2160x3840', 'Redo restores 4K portrait');
   await chooseSetting('宽高比', '16:9');
   find('[aria-label="将宽高比设为输入"]').click(); await settle();
@@ -155,7 +156,7 @@ async function run() {
   find('[data-id="image"] [aria-label="更多选项"]').click(); await settle();
   [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(item => item.textContent?.includes('创建副本'))!.click(); await settle();
   check(api.getNodes().filter(isSunburstNode).every(node => node.data.provider === 'openai'), 'Duplicate retains selected channel');
-  find('[aria-label="撤销"]').click(); await settle();
+  canvasHistoryShortcut('undo'); await settle();
   api.setNodes(current => current.map(node => ({ ...node, selected: node.id === 'image' }))); await settle();
   // A different invalid field must not discard a valid connected size on detach.
   for (const quality of ['超高', '最高']) for (const [size, tier] of [['2048x1152', '2K'], ['3840x2160', '4K']]) {
@@ -172,9 +173,9 @@ async function run() {
     check(read().data.size === size && find('[aria-label="分辨率"]').textContent === tier, `Returning ${tier} to local preserves size despite unsupported ${quality}`);
     const preservedSource = api.getNode(sizeSource);
     check(preservedSource?.type === 'model-input' && 'model' in preservedSource.data && preservedSource.data.model === size && api.getEdges().some(edge => edge.source === qualitySource && edge.target === 'image'), 'Detaching size leaves upstream values and quality connection unchanged');
-    find('[aria-label="撤销"]').click(); await settle();
+    canvasHistoryShortcut('undo'); await settle();
     check(read().data.size === localSize && api.getEdges().some(edge => edge.source === sizeSource && edge.target === 'image'), `Undo restores the connected ${tier} and prior local size`);
-    find('[aria-label="重做"]').click(); await settle();
+    canvasHistoryShortcut('redo'); await settle();
     check(read().data.size === size && !api.getEdges().some(edge => edge.target === 'image' && edge.targetHandle === 'size'), `Redo retains ${tier} locally`);
     find('[aria-label="画质使用本地值"]').click(); await settle();
     const prepared = prepareSunburstRun(api.getNodes(), api.getEdges(), ['image'], 1);

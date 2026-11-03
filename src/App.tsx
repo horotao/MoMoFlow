@@ -34,7 +34,6 @@ import {
   Background,
   Controls,
   ControlButton,
-  MiniMap,
   Panel,
   addEdge,
   useNodesState,
@@ -46,7 +45,7 @@ import {
 import { DescriberPanel } from './components/DescriberPanel';
 import { ModelTasksProvider } from './components/ModelTasksProvider';
 import { defaultInstructions } from './nodes/describer';
-import { CanvasDock, type CanvasTool } from './components/CanvasDock';
+import type { CanvasTool } from './components/CanvasDock';
 import { CanvasHistoryContext, useCanvasHistory } from './components/useCanvasHistory';
 import { initialNodes, nodeTypes } from './nodes';
 import { isDescriberNode, isImageGeneratorNode } from './nodes/types';
@@ -521,13 +520,11 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         <span>{persistence.error || persistence.status}</span>
         {persistence.error && <button type="button" onClick={persistence.retry}>重试保存</button>}
       </Panel>
-      <CanvasSidebar colorMode={colorMode} onThemeChange={() => setColorMode(mode => mode === 'dark' ? 'light' : 'dark')} />
+      <CanvasSidebar tool={tool} onToolChange={setTool} />
       <DescriberPanel />
       {importError && <Panel position="top-center" className="canvas-import-error" role="alert">
         <span>{importError}</span><button type="button" aria-label="Dismiss import error" onClick={() => setImportError('')}>×</button>
       </Panel>}
-      <CanvasDock tool={tool} onToolChange={setTool} colorMode={colorMode} {...history} />
-      <MiniMap />
       <Controls showInteractive={false}>
         <ControlButton title="添加 Image Describer" aria-label="添加 Image Describer" onClick={() => {
           const bounds = canvasRef.current?.getBoundingClientRect();

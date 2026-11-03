@@ -1,3 +1,4 @@
+import { canvasHistoryShortcut } from './canvasShortcuts';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useNodes, useEdges, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
 import { Flow } from '../src/App';
@@ -84,8 +85,8 @@ find<HTMLButtonElement>('#run').onclick = async () => {
     check(sourceOf('branch', 'input') === 'old-image', 'Other branches survive');
     await until(() => find<HTMLImageElement>('[data-id="preview"] img').alt === 'blue.png', 'Preview displays new image');
     pass('Occupied image input replaced; preview updates; other branch preserved');
-    find('[aria-label="撤销"]').click(); await settle(); check(sourceOf('preview', 'file') === 'old-image', 'One-step undo restores original edge');
-    find('[aria-label="重做"]').click(); await settle(); check(sourceOf('preview', 'file') === 'new-image', 'Redo restores replacement');
+    canvasHistoryShortcut('undo'); await settle(); check(sourceOf('preview', 'file') === 'old-image', 'One-step undo restores original edge');
+    canvasHistoryShortcut('redo'); await settle(); check(sourceOf('preview', 'file') === 'new-image', 'Redo restores replacement');
     pass('One-step undo and redo');
     await drag(handle('new-text', 'source'), handle('preview', 'target'));
     check(sourceOf('preview', 'file') === 'new-image', 'Invalid media connection preserves existing edge');
@@ -95,8 +96,8 @@ find<HTMLButtonElement>('#run').onclick = async () => {
     await drag(handle('new-text', 'source'), handle('consumer', 'target', 'variable-1'));
     check(sourceOf('consumer', 'variable-1') === 'new-text' && api.getEdges().length === 3, 'Text variable input replaced');
     check(resolveTextValue('consumer', api.getNodes(), api.getEdges()).includes('New value'), 'Variable resolves to the new source');
-    find('[aria-label="撤销"]').click(); await settle(); check(sourceOf('consumer', 'variable-1') === 'old-text', 'Text replacement undo');
-    find('[aria-label="重做"]').click(); await settle(); check(sourceOf('consumer', 'variable-1') === 'new-text', 'Text replacement redo');
+    canvasHistoryShortcut('undo'); await settle(); check(sourceOf('consumer', 'variable-1') === 'old-text', 'Text replacement undo');
+    canvasHistoryShortcut('redo'); await settle(); check(sourceOf('consumer', 'variable-1') === 'new-text', 'Text replacement redo');
     pass('Text variable value updates with undo/redo');
     const before = JSON.stringify(api.getEdges());
     const previewBounds = find('[data-id="preview"]').getBoundingClientRect();
@@ -112,7 +113,7 @@ find<HTMLButtonElement>('#run').onclick = async () => {
     check(choice, 'Import remains available for an occupied port'); choice.click(); await settle();
     const imported = sourceOf('preview', 'file');
     check(imported !== 'old-image' && api.getNode(imported!)?.type === 'file' && api.getEdges().length === 3, 'Created Import replaces old edge');
-    find('[aria-label="撤销"]').click(); await settle();
+    canvasHistoryShortcut('undo'); await settle();
     check(sourceOf('preview', 'file') === 'old-image' && !api.getNode(imported!), 'Undo restores edge and removes created node together');
     pass('Reverse creation, cancel and atomic undo');
     await drag(handle('new-image', 'source'), handle('preview', 'target'));

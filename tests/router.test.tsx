@@ -1,3 +1,4 @@
+import { canvasHistoryShortcut } from './canvasShortcuts';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useEdges, useNodes, useReactFlow, type ReactFlowInstance, type Edge } from '@xyflow/react';
 import { Flow } from '../src/App';
@@ -71,18 +72,18 @@ async function run() {
   const replace: Edge = { ...edges[0], source: 'alternate' };
   api.setEdges(current => [...withoutReplacedInput(replace, api.getNodes(), current), replace]); await settle();
   check(read('consumer').includes('blue balloon') && read('consumer-2').includes('blue balloon'), 'Replacing one input updates every branch');
-  find<HTMLButtonElement>('[aria-label="撤销"]').click(); await settle(); check(read('consumer').includes('red balloon'), 'One undo restores prior source');
-  find<HTMLButtonElement>('[aria-label="重做"]').click(); await settle(); check(read('consumer').includes('blue balloon'), 'One redo restores replacement');
+  canvasHistoryShortcut('undo'); await settle(); check(read('consumer').includes('red balloon'), 'One undo restores prior source');
+  canvasHistoryShortcut('redo'); await settle(); check(read('consumer').includes('blue balloon'), 'One redo restores replacement');
   api.setEdges(current => current.filter(edge => edge.target !== 'router')); await settle(); check(read('consumer') === '' && read('consumer-2') === '', 'Disconnect clears both consumers');
-  find<HTMLButtonElement>('[aria-label="撤销"]').click(); await settle();
+  canvasHistoryShortcut('undo'); await settle();
   const before = api.getNodes().length;
   find('[data-id="alternate"] .react-flow__handle.source').dispatchEvent(new MouseEvent('dblclick', { bubbles: true })); await settle();
   check(api.getNodes().length === before + 1 && api.getNodes().at(-1)?.type === 'router', 'Double-click output creates and connects Router');
-  find<HTMLButtonElement>('[aria-label="撤销"]').click(); await settle(); check(api.getNodes().length === before && api.getEdges().length === edges.length, 'Quick creation undoes node and edge together');
+  canvasHistoryShortcut('undo'); await settle(); check(api.getNodes().length === before && api.getEdges().length === edges.length, 'Quick creation undoes node and edge together');
   find<HTMLButtonElement>('[data-id="router"] [aria-label="更多选项"]').click(); await settle();
   Array.from(document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(button => button.textContent?.includes('创建副本'))!.click(); await settle();
   check(api.getNodes().length === before + 1 && imageOutput(api.getNodes().at(-1), 'output', api.getNodes(), api.getEdges()).length === 0, 'Duplicate is an independent empty Router');
-  find<HTMLButtonElement>('[aria-label="撤销"]').click(); await settle();
+  canvasHistoryShortcut('undo'); await settle();
   api.updateNodeData('router', { label: 'Shared prompt', locked: true }); await settle();
   check(!api.getNode('router')?.draggable && !api.getNode('router')?.connectable && !api.getNode('router')?.deletable, 'Lock disables dragging, connecting and deletion');
   api.updateNodeData('router', { locked: false }); await settle();
