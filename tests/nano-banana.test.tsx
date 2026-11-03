@@ -72,7 +72,7 @@ async function run() {
   const root = createRoot(document.getElementById('root')!);
   root.render(<ReactFlowProvider><Flow storage={storage} saved={workflow} /><Probe /></ReactFlowProvider>);
   await until(() => Boolean(document.querySelector('[aria-label="Nano Banana 设置"]')), 'Node and settings mount');
-  check(find('[data-id="banana"] .text-node-title').textContent?.includes('Nano Banana'), 'Dedicated model title and settings');
+  check(find('[data-id="banana"] .text-node-title').textContent?.includes('图像生成NANO BANANA'), 'Chinese title and Nano Banana model type');
   check(!document.querySelector('[data-id="banana"] [data-handleid="mask"]'), 'Only Gemini input ports, without OpenAI mask');
   find('[aria-label="分辨率"]').click(); await settle();
   const select = (text: string) => {

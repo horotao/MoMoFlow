@@ -1,10 +1,12 @@
+import { nodeConnectionOffset } from './nodes/nodeLayout';
+import { nodeEdgeStyle } from './nodes/nodeConnectionStyle';
 import { isImageIteratorNode } from './nodes/types';
 import { readImageIteratorData } from './nodes/imageIterator';
 import { readTextIteratorData } from './nodes/textIterator';
 import { restoreIdeogramData } from './nodes/ideogramClipboard';
 import { restoreMasksData } from './nodes/masksExtractor';
 import { restoreNanoBananaData } from './nodes/nanoBananaClipboard';
-import { outputColor, outputKind, routerFromOutput } from './nodes/router';
+import { routerFromOutput } from './nodes/router';
 import { restoreBlendData } from './nodes/blend';
 import { restoreCompareData } from './nodes/compare';
 import { restoreResizeData } from './nodes/resize';
@@ -51,9 +53,9 @@ import { CanvasHistoryContext, useCanvasHistory } from './components/useCanvasHi
 import { initialNodes, nodeTypes } from './nodes';
 import { isDescriberNode, isImageGeneratorNode } from './nodes/types';
 import type { AppNode } from './nodes/types';
-import { isTextNode, textVariableCount, variableIndex } from './nodes/textVariables';
+import { isTextNode, variableIndex } from './nodes/textVariables';
 import { imagesFromDrop, isFileNode } from './nodes/fileAsset';
-import { fileOutputKind, filePortColors, isFileAsset } from './nodes/fileCollection';
+import { isFileAsset } from './nodes/fileCollection';
 import { cloneTextNode } from './nodes/cloneTextNode';
 import { defaultTextNodeText } from './nodes/defaults';
 import { initialEdges, edgeTypes } from './edges';
@@ -63,7 +65,7 @@ import { curveOptions } from './edges/curve';
 import { WorkflowStorage, type Workflow } from './persistence/workflowStorage';
 import { useWorkflowPersistence } from './persistence/useWorkflowPersistence';
 
-const defaultEdgeOptions = { type: 'default', pathOptions: curveOptions };
+const defaultEdgeOptions = { type: 'default', pathOptions: curveOptions, interactionWidth: 24 };
 type PendingNodeMenu = PendingConnection | Pick<PendingConnection, 'screen' | 'position'>;
 
 export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | null }) {
@@ -380,10 +382,8 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
     const connection = choiceConnection(pendingConnection, choice, node.id);
     if (!canConnect(connection, [...currentNodes, node], currentEdges, node.type === 'file' ? node.id : undefined)) return;
     // Place the new connecting port at the drop point, including reverse connections.
-    node.position = {
-      x: pendingConnection.position.x - (pendingConnection.direction === 'target' ? node.type === 'model-input' || node.type === 'router' ? 250 : 460 : 0),
-      y: pendingConnection.position.y - choice.portY,
-    };
+    const portOffset = nodeConnectionOffset(node, choice.handleId, pendingConnection.direction === 'source' ? 'target' : 'source');
+    node.position = { x: pendingConnection.position.x - portOffset.x, y: pendingConnection.position.y - portOffset.y };
     setNodes(current => [...current.map(item => {
       const deselected = { ...item, selected: false };
       return item.id === connection.target && isTextNode(item)
@@ -413,30 +413,15 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         draggable: !node.data.locked && tool === 'select',
         deletable: !node.data.locked,
         connectable: !node.data.locked && tool === 'select',
-        style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
+        style: { ...node.style, height: undefined, minHeight: undefined },
       } : (isImageGeneratorNode(node) || isPainterNode(node) || node.type === 'masks-extractor' || node.type === 'crop' || node.type === 'color-correction' || node.type === 'matte-grow-shrink' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'blend' || node.type === 'compare' || node.type === 'resize' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview' || node.type === 'router' || node.type === 'text-iterator') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
-      edges={edges.map((edge) => {
-        const source = nodes.find((node) => node.id === edge.source);
-        const target = nodes.find((node) => node.id === edge.target);
-        if (source?.type === 'router' || target?.type === 'router') return {
-          ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
-          style: { ...edge.style, stroke: outputColor(outputKind(source, edge.sourceHandle, nodes, edges)) },
-        };
-        const fileSource = source && isFileNode(source) ? source : undefined;
-        const textConnection = (source?.type === 'color-palette' && edge.sourceHandle === 'text') || nodes.some((node) => (isTextNode(node) || node.type === 'text-iterator' || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
-        const generatedSource = source && (source.type === 'image-iterator' || isImageGeneratorNode(source) || source.type === 'masks-extractor' || source.type === 'painter' || source.type === 'crop' || source.type === 'color-correction' || source.type === 'matte-grow-shrink' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'rotate-flip' || source.type === 'blend' || source.type === 'compare' || source.type === 'resize' || source.type === 'compositor' || (source.type === 'color-palette' && edge.sourceHandle === 'image'));
-        const sunburstTarget = target && isImageGeneratorNode(target);
-        const portColor = source?.type === 'matte-grow-shrink' || target?.type === 'matte-grow-shrink' || ((source?.type === 'painter' || source?.type === 'masks-extractor') && edge.sourceHandle === 'mask') || (sunburstTarget && edge.targetHandle === 'mask') ? 'var(--sunburst-mask-port)'
-          : target?.type === 'image-describer' && /^image-\d+$/.test(edge.targetHandle ?? '') ? filePortColors.image
-          : (sunburstTarget && /^image-\d+$/.test(edge.targetHandle ?? '')) || generatedSource ? 'var(--sunburst-image-port)'
-          : fileSource ? filePortColors[fileOutputKind(fileSource.data)] : undefined;
-        return fileSource || textConnection || generatedSource ? {
-          ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
-          style: { ...edge.style, ...(portColor ? { stroke: portColor } : {}) },
-        } : edge;
-      })}
+      edges={edges.map(edge => ({
+        ...edge,
+        className: [...(edge.className ?? '').split(' ').filter(name => name && name !== 'text-variable-edge' && name !== 'node-design-edge'), 'node-design-edge'].join(' '),
+        style: nodeEdgeStyle(edge, nodes, edges),
+      }))}
       edgeTypes={edgeTypes}
       defaultEdgeOptions={defaultEdgeOptions}
       connectionLineComponent={ConnectionLine}

@@ -71,9 +71,9 @@ async function run() {
   const root = createRoot(document.getElementById('root')!);
   root.render(<ReactFlowProvider><Flow storage={storage} saved={workflow} /><Probe /></ReactFlowProvider>);
   await until(() => Boolean(document.querySelector('[aria-label="Ideogram 4.5 设置"]')), 'Node and settings mount');
-  check(find('[data-id="ideogram"] .text-node-title').textContent?.includes('Ideogram 4.5'), 'Dedicated model title and settings');
+  check(find('[data-id="ideogram"] .node-frame-title').textContent === '图像生成IDEOGRAM 4.5', 'Dedicated model title and settings');
   check(document.querySelectorAll('[data-id="ideogram"] [data-handleid="mask"], [data-id="ideogram"] [data-handleid="image-0"]').length === 2, 'Optional original image and mask ports are available');
-  check(find('.sunburst-provider').textContent?.includes('WaveSpeed'), 'Correct provider label');
+  check(find('.settings-provider').textContent?.includes('WaveSpeed'), 'Correct provider label');
   find('[aria-label="分辨率"]').click(); await settle();
   const select = (text: string) => {
     const option = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(item => item.textContent === text);

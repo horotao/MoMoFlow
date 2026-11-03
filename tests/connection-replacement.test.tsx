@@ -113,6 +113,9 @@ find<HTMLButtonElement>('#run').onclick = async () => {
     check(choice, 'Import remains available for an occupied port'); choice.click(); await settle();
     const imported = sourceOf('preview', 'file');
     check(imported !== 'old-image' && api.getNode(imported!)?.type === 'file' && api.getEdges().length === 3, 'Created Import replaces old edge');
+    await until(() => Boolean(document.querySelector(`[data-id="${imported}"] .react-flow__handle.source`)), 'Created source handle mounts');
+    const createdPort = handle(imported!, 'source').getBoundingClientRect();
+    check(Math.abs(createdPort.right - blank.x) < 1 && Math.abs(createdPort.y + createdPort.height / 2 - blank.y) < 1, 'New source port lands at the drop point with the redesigned width');
     canvasHistoryShortcut('undo'); await settle();
     check(sourceOf('preview', 'file') === 'old-image' && !api.getNode(imported!), 'Undo restores edge and removes created node together');
     pass('Reverse creation, cancel and atomic undo');

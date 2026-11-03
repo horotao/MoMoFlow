@@ -1,8 +1,9 @@
-import { NodeIcon } from './NodeIcon';
+import { NodePort } from './NodePort';
+import { ToolNodeFrame } from './ToolNodeFrame';
 import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { flushSync } from 'react-dom';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Eye, EyeOff } from 'lucide-react';
+import { useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { Eye, EyeOff } from 'lucide-react';
 import type { AppNode, MatteGrowShrinkNode as MatteGrowShrink } from './types';
 import { isMatteGrowShrinkNode, isNodeLocked } from './types';
 import { matteGrowShrinkControls, matteGrowShrinkRevision, type MatteGrowShrinkSettings } from './matteGrowShrink';
@@ -12,7 +13,6 @@ import { imageOutput } from './sunburstRun';
 import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
-import { TextNodeMenu } from './TextNodeMenu';
 import { CanvasHistoryContext } from '../components/useCanvasHistory';
 
 function MatteGrowShrinkNumber({ value, control, disabled, onCommit }: {
@@ -56,7 +56,6 @@ export function MatteGrowShrinkNode({ id, data, isConnectable }: NodeProps<Matte
   const [displayed, setDisplayed] = useState<{ image: HTMLImageElement; revision: string; draft: boolean }>();
   const [engine, setEngine] = useState<{ image: HTMLImageElement; renderer: MatteGrowShrinkRenderer; draftRenderer: MatteGrowShrinkRenderer; draftScale: number }>();
   const [original, setOriginal] = useState(false);
-  const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
   const [error, setError] = useState('');
   const canvas = useRef<HTMLCanvasElement>(null);
   const image = loaded?.url === input?.url ? loaded?.image : undefined;
@@ -155,36 +154,7 @@ export function MatteGrowShrinkNode({ id, data, isConnectable }: NodeProps<Matte
     }).catch(() => { if (isCurrent()) setError('无法处理蒙版扩张 / 收缩图片，请重试或更换可读取的图片。'); });
   }, [id, engine, image, settings, draft, revision, inputId, input?.url, data.locked, getNode, getNodes, getEdges, updateNodeData]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="matte-grow-shrink" size={18} />{renaming
-        ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
-          onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '蒙版扩张 / 收缩'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '蒙版扩张 / 收缩'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
-    </header>
-    <div className="preview-image color-image nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
-      {ready && <>
-        <canvas ref={canvas} aria-label="Matte Grow / Shrink preview" style={{ visibility: original ? 'hidden' : undefined }} />
-        {original && <img src={input!.url} alt="Original mask" draggable={false} />}
-        <div className="file-media-overlay">
-          <div className="file-media-top">
-            <button className="file-icon-button" type="button" aria-label="Show original" title="按住查看原始蒙版" aria-pressed={original}
-              onPointerDown={event => { if (event.button === 0) { event.currentTarget.setPointerCapture(event.pointerId); setOriginal(true); } }}
-              onPointerUp={() => setOriginal(false)} onPointerCancel={() => setOriginal(false)} onLostPointerCapture={() => setOriginal(false)}
-              onBlur={() => setOriginal(false)}
-              onKeyDown={event => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); setOriginal(true); } }}
-              onKeyUp={event => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); setOriginal(false); } }}>
-              {original ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-            <button className="file-icon-button" type="button" aria-label="Download mask" title="Download image" disabled={!output || Boolean(draft) || displayed?.draft || displayed?.image !== image || displayed?.revision !== revision}
-              onClick={() => { if (output) { setError(''); void downloadAsset(output).catch(() => setError('下载失败，请重试。')); } }}><FileIcon name="download" /></button>
-          </div>
-          {width && height && <span className="file-media-resolution">{width} × {height}</span>}
-        </div>
-      </>}
-    </div>
+  const toolbar = (
     <div className="color-settings matte-grow-shrink-settings nodrag nopan nowheel" onKeyDown={event => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') return; event.stopPropagation(); if (event.key === 'Escape') cancelDraft(); }}>
       {matteGrowShrinkControls.map(control => <div className="color-setting" key={control.key}>
         <label htmlFor={`${id}-${control.key}`}>{control.label}</label>
@@ -217,15 +187,35 @@ export function MatteGrowShrinkNode({ id, data, isConnectable }: NodeProps<Matte
           onCommit={value => patch({ settings: { ...data.settings, [control.key]: value } })} />
       </div>)}
     </div>
+  );
+  return <ToolNodeFrame id={id} label={data.label} defaultLabel="蒙版扩张 / 收缩" type="MATTE GROW / SHRINK" locked={data.locked} toolbar={toolbar} onToolbarClose={cancelDraft}>
+
+    <div className="preview-image color-image nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
+      {ready && <>
+        <canvas ref={canvas} aria-label="Matte Grow / Shrink preview" style={{ visibility: original ? 'hidden' : undefined }} />
+        {original && <img src={input!.url} alt="Original mask" draggable={false} />}
+        <div className="file-media-overlay">
+          <div className="file-media-top">
+            <button className="file-icon-button" type="button" aria-label="Show original" title="按住查看原始蒙版" aria-pressed={original}
+              onPointerDown={event => { if (event.button === 0) { event.currentTarget.setPointerCapture(event.pointerId); setOriginal(true); } }}
+              onPointerUp={() => setOriginal(false)} onPointerCancel={() => setOriginal(false)} onLostPointerCapture={() => setOriginal(false)}
+              onBlur={() => setOriginal(false)}
+              onKeyDown={event => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); setOriginal(true); } }}
+              onKeyUp={event => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); setOriginal(false); } }}>
+              {original ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+            <button className="file-icon-button" type="button" aria-label="Download mask" title="Download image" disabled={!output || Boolean(draft) || displayed?.draft || displayed?.image !== image || displayed?.revision !== revision}
+              onClick={() => { if (output) { setError(''); void downloadAsset(output).catch(() => setError('下载失败，请重试。')); } }}><FileIcon name="download" /></button>
+          </div>
+          {width && height && <span className="file-media-resolution">{width} × {height}</span>}
+        </div>
+      </>}
+    </div>
     {[{ handle: 'image', label: 'Input', output: false }, { handle: 'result', label: 'Output', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-mask${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
-          aria-label={`Matte Grow / Shrink ${port.label}`} className={`describer-port sunburst-port-mask${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked} />
-      </div>;
+      return <NodePort key={port.handle} id={port.handle} direction={port.output ? 'source' : 'target'}
+        label={`Matte Grow / Shrink ${port.label}`} connected={connected} isConnectable={isConnectable && !data.locked} />;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </ToolNodeFrame>;
 }

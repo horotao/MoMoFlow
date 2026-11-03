@@ -1,3 +1,4 @@
+import { changeModelRuns } from './modelRunsInput';
 import { canvasHistoryShortcut } from './canvasShortcuts';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useNodes, useEdges, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
@@ -73,12 +74,12 @@ async function menu(action: string) {
 async function run() {
   await storage.load(); render(workflow);
   await until(() => Boolean(document.querySelector(`${iteratorSelector} textarea`)), 'Nodes mount'); await settle();
-  check(getComputedStyle(find(iteratorSelector)).width === '460px', 'Reference node width');
-  check(parseFloat(getComputedStyle(find(iteratorSelector)).height) < 260, 'Compact height overrides shared Prompt height');
-  check(parseFloat(getComputedStyle(find(`${iteratorSelector} textarea`)).width) > 400, 'Entries fill available width');
+  check(getComputedStyle(find(iteratorSelector)).width === '528px', 'Text iterator uses the shared 528px shell');
+  check(getComputedStyle(find(`${iteratorSelector} .node-frame-card`)).height === '336px', 'Text entries use the shared 336px card');
+  check(parseFloat(getComputedStyle(find(`${iteratorSelector} textarea`)).width) === 400, 'Entries fill the card width after padding');
   check(find(`${iteratorSelector} .iterator-count`).textContent === '3/50', 'Counter');
   check(document.querySelectorAll(`${iteratorSelector} textarea`).length === 3, 'Three separate entries');
-  pass('460px 节点、3/50 计数、独立文本输入与双端口');
+  pass('528px 节点、3/50 计数、独立文本输入与双端口');
 
   const selector = `${iteratorSelector} textarea[aria-label="第 1 条文本"]`;
   find(selector).dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
@@ -203,7 +204,7 @@ async function run() {
   const model = api.getNode('model'); check(model && isImageGeneratorNode(model) && model.data.results?.length === 3, 'Three results accumulated');
   pass('三条独立请求、两成功一失败、单项重试、三张结果汇总（模拟）');
 
-  find('[aria-label="增加运行次数"]').click(); await settle();
+  changeModelRuns(1); await settle();
   for (const summary of document.querySelectorAll('.text-iteration-summary')) check(summary.textContent?.includes('6 个任务（每条 2 次）'), 'Node and settings show the same count');
   check(document.querySelectorAll('.text-iteration-summary').length === 2, 'Node and settings summaries both present');
   api.setNodes(nodes => nodes.map(node => ({ ...node, selected: node.id === 'iterator' }))); await settle();
@@ -213,7 +214,7 @@ async function run() {
   await until(() => requests.length === beforeRepeats + 6 && !store.getSnapshot().some(isActiveTask), 'Six independent repeated requests finish');
   check(requests.slice(beforeRepeats).sort().join('|') === initialItems.flatMap(item => [item.text, item.text]).sort().join('|'), 'Displayed six tasks match two requests per item');
   api.setNodes(nodes => nodes.map(node => ({ ...node, selected: node.id === 'model' }))); await settle();
-  find('[aria-label="减少运行次数"]').click(); await settle();
+  changeModelRuns(-1); await settle();
   for (const summary of document.querySelectorAll('.text-iteration-summary')) check(summary.textContent?.includes('3 个任务') && !summary.textContent.includes('每条 2 次'), 'Reducing repeats updates both summaries');
   pass('运行次数共享：3 条 × 2 次显示 6 个任务，切换选择后节点入口仍提交 6 次（模拟）');
 

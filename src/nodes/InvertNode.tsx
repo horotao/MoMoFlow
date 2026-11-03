@@ -1,6 +1,7 @@
+import { NodePort } from './NodePort';
 import { NodeIcon } from './NodeIcon';
 import { useEffect, useState } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Ellipsis, Eye, EyeOff } from 'lucide-react';
 import { isInvertNode, isNodeLocked, type AppNode, type InvertNode as Invert } from './types';
 import { imageOutput } from './sunburstRun';
@@ -92,12 +93,8 @@ export function InvertNode({ id, data, isConnectable }: NodeProps<Invert>) {
     </div>
     {[{ handle: 'image', label: 'Input', output: false }, { handle: 'result', label: 'Output', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
-          aria-label={`Invert ${port.label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked} />
-      </div>;
+      return <NodePort key={port.handle} id={port.handle} direction={port.output ? 'source' : 'target'}
+        label={`Invert ${port.label}`} connected={connected} isConnectable={isConnectable && !data.locked} />;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
   </>;

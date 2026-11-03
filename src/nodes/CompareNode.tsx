@@ -1,10 +1,10 @@
-import { NodeIcon } from './NodeIcon';
+import { NodePort } from './NodePort';
+import { ToolNodeFrame, ToolbarIcon } from './ToolNodeFrame';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Eye, EyeOff } from 'lucide-react';
+import { useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { Eye, EyeOff } from 'lucide-react';
 import { isNodeLocked, type AppNode, type CompareNode as Compare } from './types';
 import { imageOutput } from './sunburstRun';
-import { TextNodeMenu } from './TextNodeMenu';
 import { DescriberModelSelect } from '../components/DescriberModelSelect';
 
 export function CompareNode({ id, data, isConnectable }: NodeProps<Compare>) {
@@ -20,7 +20,6 @@ export function CompareNode({ id, data, isConnectable }: NodeProps<Compare>) {
   const [draft, setDraft] = useState<number>();
   const draftRef = useRef<number>();
   const [hoverY, setHoverY] = useState(50);
-  const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
   const preview = useRef<HTMLDivElement>(null);
   const reference = first ?? second;
   const size = reference && (dimensions[reference.url] ?? (reference.width && reference.height ? { width: reference.width, height: reference.height } : undefined));
@@ -45,15 +44,14 @@ export function CompareNode({ id, data, isConnectable }: NodeProps<Compare>) {
   const image = (asset: typeof first, index: number) => asset && <img key={`${index}-${asset.url}`} src={asset.url} alt={`Image ${index}`} draggable={false}
     onLoad={event => { const img = event.currentTarget; setDimensions(current => ({ ...current, [asset.url]: { width: img.naturalWidth, height: img.naturalHeight } })); setFailed(current => current.filter(url => url !== asset.url)); }}
     onError={() => setFailed(current => current.includes(asset.url) ? current : [...current, asset.url])} />;
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="compare" />{renaming
-        ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
-          onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '对比'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '对比'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
-    </header>
+  const toolbar = (
+    <div className="compare-controls nodrag nopan"><span>Mode</span><DescriberModelSelect trailingIcon={<ToolbarIcon name="menu-chevron" />} compact label="Mode" menuLabel="Compare mode" value={data.mode === 'toggle' ? 'Toggle' : 'Slider'} choices={['Toggle', 'Slider']} disabled={Boolean(data.locked)}
+      onChange={value => { cancel(); setReveal(false); patch({ mode: value === 'Toggle' ? 'toggle' : 'slider', split: .5 }); }} />
+      {data.mode === 'slider' && <button className="compare-reset" type="button" disabled={data.locked || split === .5} onClick={() => { cancel(); patch({ split: .5 }); }}>Reset</button>}
+    </div>
+  );
+  return <ToolNodeFrame id={id} label={data.label} defaultLabel="对比" type="COMPARE" locked={data.locked} toolbar={toolbar} onToolbarClose={cancel}>
+
     <div ref={preview} className="preview-image compare-image nodrag nopan" style={{ aspectRatio: size ? `${size.width} / ${size.height}` : '1' }}>
       <div className="compare-layer" style={{ visibility: data.mode === 'toggle' && reveal && both ? 'hidden' : undefined }}>{image(second ?? first, second ? 2 : 1)}</div>
       {both && <div className="compare-layer" style={{ clipPath: data.mode === 'slider' ? `inset(0 ${(1 - split) * 100}% 0 0)` : undefined, visibility: data.mode === 'toggle' && !reveal ? 'hidden' : undefined }}>{image(first, 1)}</div>}
@@ -88,19 +86,12 @@ export function CompareNode({ id, data, isConnectable }: NodeProps<Compare>) {
         </button><span>{reveal || !second ? 'Image 1' : 'Image 2'}</span>
       </div>}
     </div>
-    <div className="compare-controls nodrag nopan"><span>Mode</span><DescriberModelSelect compact label="Mode" menuLabel="Compare mode" value={data.mode === 'toggle' ? 'Toggle' : 'Slider'} choices={['Toggle', 'Slider']} disabled={Boolean(data.locked)}
-      onChange={value => { cancel(); setReveal(false); patch({ mode: value === 'Toggle' ? 'toggle' : 'slider', split: .5 }); }} />
-      {data.mode === 'slider' && <button className="compare-reset" type="button" disabled={data.locked || split === .5} onClick={() => { cancel(); patch({ split: .5 }); }}>Reset</button>}
-    </div>
     {[false, true].flatMap(output => [1, 2].map(index => {
       const handle = `${output ? 'output' : 'input'}-${index}`, label = `${output ? 'Output' : 'Input'} ${index}`;
       const connected = edges.some(edge => output ? edge.source === id && edge.sourceHandle === handle : edge.target === id && edge.targetHandle === handle);
-      return <div className="describer-port-wrapper" key={handle}>
-        <span className={`describer-port-label sunburst-label-image${output ? ' output-label' : ''}`} style={{ top: 61 + (index - 1) * 60 }}>{label}</span>
-        <Handle id={handle} type={output ? 'source' : 'target'} position={output ? Position.Right : Position.Left} style={{ top: 89 + (index - 1) * 60 }}
-          aria-label={`Compare ${label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`} isConnectable={isConnectable && !data.locked} />
-      </div>;
+      return <NodePort key={handle} id={handle} direction={output ? 'source' : 'target'}
+        label={`Compare ${label}`} connected={connected} isConnectable={isConnectable && !data.locked} />;
     }))}
     {[first, second].some(asset => asset && failed.includes(asset.url)) && <div role="alert" className="preview-error">无法读取对比图片，请检查图片来源。</div>}
-  </>;
+  </ToolNodeFrame>;
 }

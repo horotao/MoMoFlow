@@ -427,19 +427,11 @@
   overflow-wrap: anywhere;
 }
 .text-node-variable-name { color: var(--text-node-port); flex-shrink: 0; }
-.react-flow .text-variable-edge { --xy-edge-stroke: #b34bd1; --xy-edge-stroke-selected: #b34bd1; }
-.react-flow.dark .text-variable-edge { --xy-edge-stroke: #e28cf8; --xy-edge-stroke-selected: #e28cf8; }
-
-/* Weavy uses a quieter 2px completed edge and a 3px live preview. */
+/* Shared completed and preview connections use the doubled Figma width. */
 .react-flow {
-  --xy-edge-stroke-width: 2;
+  --xy-edge-stroke-width: 3;
   --xy-connectionline-stroke-width: 3;
 }
-.react-flow .text-variable-edge .react-flow__edge-path { opacity: 0.64; }
-.react-flow .text-variable-edge:hover .react-flow__edge-path,
-.react-flow .text-variable-edge.selected .react-flow__edge-path { opacity: 1; }
-.text-variable-connection { --xy-connectionline-stroke: #b34bd1; }
-.dark .text-variable-connection { --xy-connectionline-stroke: #e28cf8; }
 .connection-endpoint {
   fill: var(--xy-connectionline-stroke, var(--xy-connectionline-stroke-default));
 }
@@ -642,8 +634,8 @@
 .react-flow .react-flow__node-text .text-node-port.is-type-error::after { content: ''; position: absolute; inset: 0; border: 8px solid #e85555; border-radius: 50%; pointer-events: none; }
 @media (max-width: 600px) { .file-gallery-title { width: auto; min-width: 70px; } .file-gallery-sidebar { width: 64px; } .file-gallery-thumbnails button { width: 64px; height: 64px; } }
 
-.react-flow { --media-port-file: #7c965a; --media-port-image: #25865b; --media-port-video: #6877bd; --media-port-audio: #a06828; --media-port-3d: #b65c84; }
-.react-flow.dark { --media-port-file: #f3ffe3; --media-port-image: #97ffcd; --media-port-video: #a7b5ff; --media-port-audio: #ffce94; --media-port-3d: #ffadce; }
+.react-flow { --media-port-file: #7c965a; --media-port-image: #80b9f1; --media-port-video: #6877bd; --media-port-audio: #a06828; --media-port-3d: #b65c84; }
+.react-flow.dark { --media-port-file: #f3ffe3; --media-port-image: #80b9f1; --media-port-video: #a7b5ff; --media-port-audio: #ffce94; --media-port-3d: #ffadce; }
 
 .canvas-import-error { display: flex; align-items: center; gap: 12px; max-width: min(560px, 80vw); padding: 10px 14px; border: 1px solid #c96060; border-radius: 8px; background: #fff; color: #292929; font-size: 12px; }
 .dark .canvas-import-error { background: #2c2c2c; color: #f3f3f3; }

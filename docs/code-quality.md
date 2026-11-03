@@ -57,6 +57,14 @@ CI 使用完整 Git 历史，PR 以目标分支基点、推送以事件的前一
 
 现有浏览器测试页继续保留，不因增加自动化就宣称已被 `npm test` 执行。启动 `npm run dev` 后使用相应独立测试页：
 
+节点改版阶段 1 使用 `/tests/node-visual-redesign.html`（`tests/node-visual-redesign.test.tsx`），加 `?light` 验证浅色主题。沿用 React 浏览器验收和独立 IndexedDB，无新增框架或模型调用；覆盖两倍布局、旧宽高兼容、中英标题、本地端点资产、真实 Handle 测量、动态输入、内联变量、撤销、缩放、连线颜色及保存恢复。页面保留示范工作流供拖动、改名和文本编辑补验；`npm run check` 包含其类型检查，自动检查须另行在浏览器打开页面。同步复验 `/tests/connection-replacement.html` 的新建节点端点落点、`/tests/nano-banana.html` 和 `/tests/image-ratio-motion.html`。
+
+节点改版阶段 2 使用 `/tests/node-ports.html`（`tests/node-ports.test.tsx`），加 `?light` 验证浅色主题。页面加载与主应用相同的节点 CSS，使用独立数据库，阻止真实 API 和外部素材请求；自动检查全部 26 类节点的图标尺寸、卡片间隔、线头锚点、正反向拖线颜色、Router 类型变化、动态输入重测、锁定、加号行为及保存恢复。`src/nodes/nodePorts.test.ts` 使用现有 Node.js 测试运行器，随 `npm test` 验证共享类型／颜色、Router 链、动态输入布局与创建落点，无新增框架。另在真实画布补验连接选中／删除／撤销、拖线新建和节点移动；结合 `/tests/router.html`、`/tests/connection-replacement.html` 与模型页面检查已有功能。
+
+节点改版阶段 3 使用 `/tests/node-media-redesign.html`（`tests/node-media-redesign.test.tsx`），加 `?light` 验证浅色主题。复用同一浏览器验收方式、独立数据库和本地图片；模拟临时任务状态，阻止真实 API 请求。覆盖所有图像模型与迭代／描述节点的外壳、端点、完整预览、结果集合／图库、动态输入、状态／错误／取消、导入、下载、锁定和保存恢复。实际运行链路通过现有 `/tests/model-run-progress.html`、`/tests/sunburst-provider.html`、`/tests/nano-banana.html`、`/tests/ideogram.html`、`/tests/ideogram-edit.html` 的模拟请求回归；另复验两类迭代、比例动画及前两阶段页面。无新增测试框架，`npm run check` 包含类型检查，页面须另行在浏览器打开。
+
+节点改版阶段 4 使用 `/tests/node-toolbars.html`（`tests/node-toolbars.test.tsx`），加 `?light` 验证浅色主题。沿用真实 React Flow、主应用节点 CSS、隔离数据库、本地图片和受控蒙版推理，不新增框架，不下载分割模型或调用生成模型。覆盖八类单选／关闭／重新打开、多选、50px 屏幕固定高度、25% 缩放、窗口边缘及移动定位、真实端点、参数提交与取消、绘图笔画及历史、蒙版取消、锁定和保存。运行方式为 `npm run dev` 后打开该页面；`npm run check` 包含类型检查但不执行页面。同步复验 `/tests/resize.html`、`/tests/blend.html`、`/tests/matte-grow-shrink.html`、`/tests/masks-extractor.html`、`/tests/compare.html`、全节点端点与连接替换；原回归只调整工具栏选择器，以及恢复工作流后先选中节点的前置步骤，保留业务断言。
+
 | 场景 | 入口与重点 |
 | --- | --- |
 | Dock / 画布右键添加菜单 | `/tests/node-add-menu.html`（`tests/node-add-menu.test.tsx`），沿用 React 浏览器验收页与独立 IndexedDB，无新增测试框架或模型调用。启动 `npm run dev` 后打开，自动检查全部注册节点的分类/搜索/创建、撤销重做/持久化、220ms 打开、360ms 关闭、三角区与 1.2s 上限、菜单间隙、三角区内折返/纵向移动/离开重入、快速切行和连续指针事件、迟到计时器取消、左右展开、右键落点/边界定位/替换旧菜单、键盘与输入法确认、Figma 图标尺寸。页面保留独立画布用于手动补验拖动、连线、缩放和窄窗口布局；类型检查纳入 `npm run check`，浏览器页面需单独运行 |
@@ -79,3 +87,7 @@ CI 使用完整 Git 历史，PR 以目标分支基点、推送以事件的前一
 画布修改检查拖动、坐标、连线、缩放、主题、撤销与刷新恢复；小地图仅在仍包含该组件的独立验收页验证。主画布已移除底部工具栏和小地图，使用真实 `Flow` 的浏览器验收通过 `tests/canvasShortcuts.ts` 触发现有撤销／重做快捷键，不依赖已移除的按钮。文本编辑修改还需检查中文输入法、Tab 建议、粘贴和变量；图片处理按需检查交互草稿与原尺寸 / 4K 输出一致。测试页使用隔离场景，不应向用户的现有工作流插入验收素材。
 
 新增节点除了通过注册表检查，还需按 [节点开发约定](../src/nodes/README.md) 核对端口、输出失效、素材引用、锁定、剪贴板、历史及 IndexedDB 恢复。检查器只能验证可确定的结构，不能代替语义审查。
+
+### 高级参数侧栏验收
+
+运行 `npm run dev` 后打开 `/tests/node-settings.html`，浅色主题加 `?light`。独立工作流覆盖 300px 固定宽度、调色／色阶参数与真实输出、实时预览关闭后的提交、切换／关闭／多选／删除／锁定草稿清理、撤销重做、模型参数设为输入与收回、运行状态、批量运行入口、模型选项，以及 IndexedDB 保存与重新挂载。使用本地图片，阻止真实模型请求；不属于 `npm test`。模型运行回归沿用 `/tests/sunburst-provider.html`、`ideogram.html`、`ideogram-edit.html`、`nano-banana.html`、`model-run-progress.html` 和 `workflow-execution.html` 的受控响应，运行次数通过新版侧栏数值输入操作。

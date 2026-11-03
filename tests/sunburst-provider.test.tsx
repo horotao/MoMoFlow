@@ -85,7 +85,7 @@ async function run() {
   check((await qualityOptions()).join(',') === '自动,低,中,高', 'ZenMux retains its four quality options');
   await chooseProvider('OpenAI 官方');
   check(read().data.provider === 'openai' && read().type === 'sunburst', 'Official channel uses the same Sunburst node');
-  check(find('.sunburst-provider').textContent?.includes('OpenAI 官方') && find('.describer-primary').title.includes('OpenAI 官方'), 'Provider badge and run tooltip match the selected channel');
+  check(find('.settings-provider').textContent?.includes('OpenAI 官方') && find('.describer-primary').title.includes('OpenAI 官方'), 'Provider badge and run tooltip match the selected channel');
   canvasHistoryShortcut('undo'); await settle();
   check((read().data.provider ?? 'zenmux') === 'zenmux', 'Undo restores previous channel');
   canvasHistoryShortcut('redo'); await settle();

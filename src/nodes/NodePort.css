@@ -1,0 +1,35 @@
+/* Ports remain outside legacy cards until their bodies migrate to NodeFrame. */
+.react-flow .react-flow__node .node-port, .react-flow .react-flow__node .node-port-add {
+  position: absolute;
+  box-sizing: border-box;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #5f5f5f;
+  border-radius: 50%;
+  background: #404040;
+  box-shadow: none;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+.react-flow .react-flow__node .node-port.react-flow__handle-left, .react-flow .react-flow__node .node-port-add { left: var(--node-port-side, calc(-38px - var(--node-port-border, 2px))); }
+.react-flow .react-flow__node .node-port.react-flow__handle-right { right: var(--node-port-side, calc(-38px - var(--node-port-border, 2px))); }
+.react-flow__node-position-logger { --node-port-border: 1px; }
+.node-port-add { cursor: pointer; }
+.node-port::before, .node-port-add::before { content: ''; position: absolute; inset: -3px; border-radius: 50%; }
+.node-port-icon { display: block; width: 8px; height: 8px; transform: scale(2); pointer-events: none; }
+.node-port-icon img { display: block; max-width: none; }
+.node-port-media-icon { pointer-events: none; }
+.node-port-label { position: absolute; top: 3px; right: calc(100% + 8px); white-space: nowrap; max-width: 240px; overflow: hidden; text-overflow: ellipsis; padding: 2px 6px; border-radius: 4px; background: #252525; color: #eee; font: 12px/20px var(--font-ui); visibility: hidden; opacity: 0; pointer-events: none; }
+.react-flow__handle-right .node-port-label { left: calc(100% + 8px); right: auto; }
+.node-port:is(:hover, :focus-visible) .node-port-label, .node-port-add:is(:hover, :focus-visible) .node-port-label { opacity: 1; visibility: visible; }
+.react-flow .react-flow__node .node-port.is-connected { border-color: #aaa; }
+.react-flow .react-flow__node .node-port:is(:hover, .connectingto, :focus-visible), .node-port-add:is(:hover, :focus-visible) { outline: 2px solid #80b9f1; outline-offset: 2px; }
+.react-flow .react-flow__node .node-port.is-type-error, .react-flow .react-flow__node .node-port.connectingto:not(.valid) { outline: 2px solid #e85555; }
+.react-flow .react-flow__node .node-port[aria-disabled="true"], .react-flow .react-flow__node .node-port-add:disabled { opacity: .45; cursor: default; }
+.react-flow .node-design-edge .react-flow__edge-path { opacity: 1; stroke-linecap: round; }
+
+.react-flow .node-design-edge:is(.selected, :focus-visible) .react-flow__edge-path { stroke-width: 4px !important; }

@@ -1,13 +1,14 @@
+import type { ReactNode } from 'react';
+import { SettingsIcon, SettingsSection } from './ParameterControls';
 import { SunburstSizeSelect } from './SunburstSizeSelect';
 import { sunburstParameterData, sunburstProviderLabels, sunburstProviders, validateSunburstProvider } from '../nodes/sunburst';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import type { AppNode, SunburstNode } from '../nodes/types';
 import { isNodeLocked } from '../nodes/types';
 import { effectiveSunburstSettings } from '../nodes/sunburstRun';
-import { defaultSunburstSettings, imageBackgrounds, imageFormats, imageQualityLabels, sunburstQualities, imageSizes, imageSizeLabels, sunburstName, validateSunburstSettings, type SunburstSettings as Settings } from '../nodes/sunburst';
+import { defaultSunburstSettings, imageBackgrounds, imageFormats, imageQualityLabels, sunburstQualities, imageSizes, imageSizeLabels, validateSunburstSettings, type SunburstSettings as Settings } from '../nodes/sunburst';
 import { DescriberModelSelect } from './DescriberModelSelect';
 import { DescriberIcon } from './DescriberIcon';
-import { OpenAIIcon } from './OpenAIIcon';
 
 const fieldLabels: Record<keyof Settings, string> = { quality: '画质', background: '背景', size: '宽高比', outputFormat: '输出格式' };
 
@@ -53,22 +54,26 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
     { field: 'background', choices: imageBackgrounds, labels: ['自动', '透明', '不透明'] },
     { field: 'size', choices: imageSizes, labels: imageSizeLabels }, { field: 'outputFormat', choices: imageFormats, labels: ['PNG', 'JPEG', 'WebP'] },
   ];
+  const renderField = ({ field, choices, labels }: typeof fields[number]): ReactNode => {
+      const label = fieldLabels[field]; const exposed = Boolean(node.data.exposed?.includes(field));
+      const exposeButton = <button disabled={node.data.locked} className="describer-expose" data-exposed={exposed} title={exposed ? '使用本地值' : '设为输入'} aria-label={exposed ? `${label}使用本地值` : `将${label}设为输入`} aria-pressed={exposed} onClick={() => expose(field)}><DescriberIcon name="expose" /></button>;
+      if (field === 'size') return <SunburstSizeSelect key={field} value={String(effective.size ?? '')} disabled={node.data.locked || exposed} onChange={value => change('size', value)} exposeButton={exposeButton} qualityControl={renderField(fields[0])} />;
+      return <div className="describer-field" key={field}><label>{label}<SettingsIcon name="info" /></label><div className="describer-field-row">
+        <DescriberModelSelect settings fluidHover compact trailingIcon={<SettingsIcon name="chevron" />} label={label} value={String(effective[field] ?? '')} choices={[...choices]} labels={labels} disabled={node.data.locked || exposed} onChange={value => change(field, value)} />
+        {exposeButton}
+      </div></div>;
+  };
+
   return <div className="describer-settings sunburst-settings">
-    <h2><OpenAIIcon /><span>{sunburstName}</span></h2>
-    <div className="describer-field"><label>渠道商</label><div className="sunburst-field-row"><DescriberModelSelect fluidHover compact label="渠道商" value={node.data.provider ?? 'zenmux'} choices={sunburstProviders} labels={sunburstProviders.map(provider => sunburstProviderLabels[provider])} disabled={node.data.locked} onChange={value => {
+    <div className="describer-field settings-provider"><label title="选择本次生成使用的渠道">渠道商<SettingsIcon name="info" /></label><div className="sunburst-field-row"><DescriberModelSelect settings fluidHover compact trailingIcon={<SettingsIcon name="chevron" />} label="渠道商" value={node.data.provider ?? 'zenmux'} choices={sunburstProviders} labels={sunburstProviders.map(provider => sunburstProviderLabels[provider])} disabled={node.data.locked} onChange={value => {
       if (isNodeLocked(getNode(node.id))) return;
       const provider = validateSunburstProvider(value);
       updateNodeData(node.id, { provider, ...(!sunburstQualities(provider).includes(node.data.quality) ? { quality: 'high' } : {}) });
     }} /></div></div>
-    <div className="describer-field"><label>模型版本</label><div className="sunburst-field-row"><DescriberModelSelect fluidHover compact label="模型版本" value="Sunburst" choices={['Sunburst']} disabled={node.data.locked} onChange={() => {}} /></div></div>
-    {fields.map(({ field, choices, labels }) => {
-      const label = fieldLabels[field]; const exposed = Boolean(node.data.exposed?.includes(field));
-      const exposeButton = <button disabled={node.data.locked} className="describer-expose" data-exposed={exposed} title={exposed ? '使用本地值' : '设为输入'} aria-label={exposed ? `${label}使用本地值` : `将${label}设为输入`} aria-pressed={exposed} onClick={() => expose(field)}><DescriberIcon name="expose" /></button>;
-      if (field === 'size') return <SunburstSizeSelect key={field} value={String(effective.size ?? '')} disabled={node.data.locked || exposed} onChange={value => change('size', value)} exposeButton={exposeButton} />;
-      return <div className="describer-field" key={field}><label>{label}</label><div className="describer-field-row">
-        <DescriberModelSelect fluidHover compact label={label} value={String(effective[field] ?? '')} choices={[...choices]} labels={labels} disabled={node.data.locked || exposed} onChange={value => change(field, value)} />
-        {exposeButton}
-      </div></div>;
-    })}
+    {renderField(fields.find(item => item.field === 'size')!)}
+    <SettingsSection>
+      {fields.filter(item => ['background', 'outputFormat'].includes(item.field)).map(renderField)}
+    <div className="describer-field"><label>模型版本<SettingsIcon name="info" /></label><div className="sunburst-field-row"><DescriberModelSelect settings fluidHover compact trailingIcon={<SettingsIcon name="chevron" />} label="模型版本" value="Sunburst" choices={['Sunburst']} disabled={node.data.locked} onChange={() => {}} /></div></div>
+    </SettingsSection>
   </div>;
 }

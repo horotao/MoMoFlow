@@ -67,7 +67,7 @@ async function run() {
   const style = getComputedStyle(find('[data-id="router"]'));
   check(style.width === '250px' && style.height === '62px' && style.borderRadius === '16px', 'Compact dimensions: 250 × 62 / shared node radius 16');
   const handle = find('[data-id="router"] .react-flow__handle-left').getBoundingClientRect(), bounds = find('[data-id="router"]').getBoundingClientRect();
-  check(Math.abs(handle.left + handle.width / 2 - bounds.left) <= 1, 'Input port is centered on the node border');
+  check(Math.abs(bounds.left - handle.right - 8 * api.getZoom()) <= 1, 'Input icon sits 8px outside the card');
   check(imageOutput(api.getNode('image-router'), 'output', api.getNodes(), api.getEdges())[0]?.id === source.id, 'Original image identity and dimensions are retained');
   const replace: Edge = { ...edges[0], source: 'alternate' };
   api.setEdges(current => [...withoutReplacedInput(replace, api.getNodes(), current), replace]); await settle();
@@ -89,7 +89,7 @@ async function run() {
   api.updateNodeData('router', { locked: false }); await settle();
   find<HTMLButtonElement>('[aria-label="切换至浅色模式"]').click(); await settle();
   check(getComputedStyle(find('[data-id="router"]')).backgroundColor === 'rgb(255, 255, 255)', 'Light theme uses the shared white surface');
-  check(getComputedStyle(find('.react-flow__edge[data-id="consumer"] .react-flow__edge-path')).stroke === 'rgb(179, 75, 209)', 'Routed text edges follow the light theme');
+  check(getComputedStyle(find('.react-flow__edge[data-id="consumer"] .react-flow__edge-path')).stroke === 'rgb(95, 95, 95)', 'Routed text edges retain the shared gray in the light theme');
   find<HTMLButtonElement>('[aria-label="切换至深色模式"]').click(); await settle();
   const saved = { ...workflow, nodes: api.getNodes(), edges: api.getEdges() };
   await storage.save(saved);

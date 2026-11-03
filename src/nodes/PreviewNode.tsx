@@ -1,3 +1,4 @@
+import { NodePort } from './NodePort';
 import { NodeIcon } from './NodeIcon';
 import { matteGrowShrinkLivePreviews } from './matteGrowShrinkLivePreview';
 import { resolveOutputSource } from './router';
@@ -6,7 +7,7 @@ import { blurLivePreviews } from './blurLivePreview';
 import { colorLivePreviews } from './colorCorrectionLivePreview';
 import { cropLivePreviews } from './cropLivePreview';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Ellipsis } from 'lucide-react';
 import type { AppNode, PreviewNode as Preview } from './types';
 import { isNodeLocked } from './types';
@@ -106,9 +107,7 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
         </div>
       </> : active && <div className="preview-empty" role="status"><span>Image unavailable</span></div>}
     </div>
-    <span className="describer-port-label preview-port-label" style={{ top: 61 }}>File</span>
-    <Handle id="file" type="target" position={Position.Left} className={`describer-port preview-port${connected ? ' is-connected' : ''}`}
-      style={{ top: 89 }} aria-label="Preview image input" isConnectable={isConnectable} />
+    <NodePort id="file" direction="target" label="Preview image input" connected={connected} isConnectable={isConnectable && !data.locked} />
     {fullscreen && active && <FileGallery assets={assets.map(asset => measured?.url === asset.url ? { ...asset, width: measured.width, height: measured.height } : asset)} activeId={viewId} onSelect={setViewId} onClose={() => setFullscreen(false)} />}
     {error && <div role="alert" className="preview-error">{error}</div>}
   </>;

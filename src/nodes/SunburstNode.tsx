@@ -1,13 +1,16 @@
-import { NodeIcon } from './NodeIcon';
-import { useEffect, useState, type ReactNode } from 'react';
+import { NodeFrame, NodeTitle } from './NodeFrame';
+import { NodePort, NodePortAdd } from './NodePort';
+import { nodePortY } from './nodeLayout';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Handle, Position, useEdges, useReactFlow, useStore, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { ArrowRight, Ellipsis, Plus } from 'lucide-react';
+import { useReactFlow, useStore, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { ArrowRight, Ellipsis } from 'lucide-react';
 import type { AppNode, ImageGeneratorNode as Generator, SunburstNode as Sunburst } from './types';
 import { isNodeLocked } from './types';
 import { sunburstName, sunburstFieldLabels, validateSunburstSize } from './sunburst';
 import { nanoBananaAspectRatios } from './nanoBanana';
 import { resolveTextValue } from './textVariables';
+import { NodeRunFeedback } from '../components/NodeRunFeedback';
 import { ModelRunButton } from '../components/ModelRunButton';
 import { IterationSummary } from '../components/IterationSummary';
 import { TextNodeMenu } from './TextNodeMenu';
@@ -19,13 +22,13 @@ import { downloadAsset, downloadAssets } from './fileMedia';
 import { useImagePreviewHeight } from './useImagePreviewHeight';
 
 export function SunburstNode(props: NodeProps<Sunburst>) {
-  return <ImageGenerationNode {...props} name={sunburstName} icon={<NodeIcon nodeType="sunburst" />} fieldLabels={sunburstFieldLabels} maxImages={16} mask />;
+  return <ImageGenerationNode {...props} name={sunburstName} fieldLabels={sunburstFieldLabels} maxImages={16} mask />;
 }
 
-type GenerationProps = NodeProps<Generator> & { name: string; icon: ReactNode; fieldLabels: Record<string, string>; maxImages: number; mask?: boolean; imageLabels?: string[]; addImageLabel?: string; previewAspectRatio?: string | null };
-export function ImageGenerationNode({ id, data, isConnectable, name, icon, fieldLabels, maxImages, mask = false, imageLabels, addImageLabel = '添加图片输入', previewAspectRatio }: GenerationProps) {
+type GenerationProps = NodeProps<Generator> & { name: string; fieldLabels: Record<string, string>; maxImages: number; mask?: boolean; imageLabels?: string[]; addImageLabel?: string; previewAspectRatio?: string | null };
+export function ImageGenerationNode({ id, data, isConnectable, name, fieldLabels, maxImages, mask = false, imageLabels, addImageLabel = '添加图片输入', previewAspectRatio }: GenerationProps) {
   const { getNode, updateNodeData, setNodes, screenToFlowPosition } = useReactFlow<AppNode>();
-  const edges = useEdges(); const internals = useUpdateNodeInternals();
+  const internals = useUpdateNodeInternals();
   const requestedSize = useStore(state => {
     const field = 'size' in data ? 'size' : 'aspectRatio';
     const edge = state.edges.find(item => item.target === id && item.targetHandle === field);
@@ -33,6 +36,7 @@ export function ImageGenerationNode({ id, data, isConnectable, name, icon, field
   });
   const [renaming, setRenaming] = useState(false); const [draft, setDraft] = useState('');
   const [fullscreen, setFullscreen] = useState(false); const [error, setError] = useState('');
+  const [failedUrls, setFailedUrls] = useState<string[]>([]);
   const [showAll, setShowAll] = useState(false);
   const results = orderedAssets({ assets: data.results ?? [], orderBy: data.orderBy });
   const grid = showAll && results.length > 1;
@@ -47,22 +51,28 @@ export function ImageGenerationNode({ id, data, isConnectable, name, icon, field
     else if ('size' in data && validateSunburstSize(requestedSize) !== 'auto') aspectRatio = requestedSize.replace('x', ' / ');
   } catch { /* Incomplete or invalid custom sizes use the result ratio or a square. */ }
   const preview = useImagePreviewHeight(aspectRatio, grid);
-  const portSpace = (mask ? 110 : 50) + (data.imageInputs + (data.exposed?.length ?? 0)) * 60;
   const index = Math.max(0, results.findIndex(asset => asset.id === active?.id));
   const patch = (value: Partial<Generator['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
   useEffect(() => internals(id), [id, data.imageInputs, data.exposed, aspectRatio, grid, internals]);
   const ports = [
-    { id: 'prompt', label: 'Prompt', kind: 'prompt', top: 89 },
-    ...Array.from({ length: data.imageInputs }, (_, i) => ({ id: `image-${i}`, label: imageLabels?.[i] ?? (data.imageInputs === 1 ? 'Image' : `Image ${i + 1}`), kind: 'image', top: 149 + i * 60 })),
-    ...(mask ? [{ id: 'mask', label: 'Mask', kind: 'mask', top: 149 + data.imageInputs * 60 }] : []),
-    ...(data.exposed ?? []).map((field, index) => ({ id: field, label: fieldLabels[field], kind: 'parameter', top: (mask ? 209 : 149) + (data.imageInputs + index) * 60 })),
+    { id: 'prompt', label: 'Prompt', kind: 'prompt', row: 0 },
+    ...Array.from({ length: data.imageInputs }, (_, i) => ({ id: `image-${i}`, label: imageLabels?.[i] ?? (data.imageInputs === 1 ? 'Image' : `Image ${i + 1}`), kind: 'image', row: i + 1 })),
+    ...(mask ? [{ id: 'mask', label: 'Mask', kind: 'mask', row: data.imageInputs + 1 }] : []),
+    ...(data.exposed ?? []).map((field, index) => ({ id: field, label: fieldLabels[field], kind: 'parameter', row: (mask ? 2 : 1) + data.imageInputs + index })),
   ];
-  return <>
-    <header className="text-node-header"><div className="text-node-title">{icon}{renaming ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => { if (draft.trim()) patch({ label: draft.trim() }); setRenaming(false); }} onKeyDown={e => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setRenaming(false); }} /> : <span>{data.label || name}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setDraft(data.label || name); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
+  const displayName = !data.label || data.label === name ? '图像生成' : data.label;
+  const title = renaming ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={draft}
+    onChange={event => setDraft(event.target.value)} onBlur={() => { if (draft.trim()) patch({ label: draft.trim() }); setRenaming(false); }}
+    onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return;
+      if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false);
+    }} /> : <span>{displayName}</span>;
+  return <NodeFrame minHeight={nodePortY(ports.length) + 30}>
+    <header className="text-node-header"><NodeTitle type={name.toUpperCase()}>{title}</NodeTitle>
+      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setDraft(displayName); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
     </header>
-    <div className="sunburst-preview-area" style={{ minHeight: portSpace }}>
+    <div className="sunburst-preview-area" style={{ minHeight: nodePortY(ports.length) - 28 + 24 }}>
     <motion.div ref={preview.ref} className={`sunburst-preview${active ? ' has-result' : ''}${grid ? ' is-grid nodrag nopan nowheel' : ''}`} style={{ aspectRatio: grid ? undefined : aspectRatio, height: preview.height }}>
+      {!active && <div className="node-media-empty"><span>图像预览</span><small>运行后，生成结果将显示在这里</small></div>}
       {active && <>{grid ? <div className="file-node-grid" aria-label="Results">
         {[0, 1].map(column => <div className="file-node-grid-column" key={column}>{results.filter((_, i) => i % 2 === column).map(item => <div key={item.id}
           className={`file-node-tile${item.id === active.id ? ' is-active' : ''}`} role="button" tabIndex={0} aria-label={`Select ${item.name}`} aria-pressed={item.id === active.id} aria-disabled={Boolean(data.locked)}
@@ -80,7 +90,7 @@ export function ImageGenerationNode({ id, data, isConnectable, name, icon, field
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); patch({ activeResultId: item.id }); } }}>
           <img src={item.url} alt={item.name} draggable={false} />
         </div>)}</div>)}
-      </div> : <img src={active.url} alt={active.name} draggable={false} onLoad={event => {
+      </div> : <img src={active.url} alt={active.name} draggable={false} onError={() => setFailedUrls(current => current.includes(active.url) ? current : [...current, active.url])} onLoad={event => {
         const { naturalWidth: width, naturalHeight: height } = event.currentTarget;
         if (width && height && (size?.width !== width || size.height !== height)) setDimensions(current => ({ ...current, [active.url]: { width, height } }));
       }} />}<div className="file-media-overlay nodrag nopan">
@@ -96,19 +106,17 @@ export function ImageGenerationNode({ id, data, isConnectable, name, icon, field
             <button className="file-icon-button" aria-label={grid ? 'Download all' : 'Download current'} title={grid ? 'Download all' : 'Download current'} onClick={() => { setError(''); void (grid ? downloadAssets(results) : downloadAsset(active)).catch(() => setError('下载失败，请重试。')); }}><FileIcon name="download" /></button><button className="file-icon-button" aria-label="Full screen result" title="Full screen" onClick={() => { setViewId(active.id); setFullscreen(true); }}><FileIcon name="fullscreen" /></button></div>
         </div>
         {!grid && <span className="file-media-resolution">{size?.width} × {size?.height}</span>}
-      </div></>}
+      </div>{!grid && failedUrls.includes(active.url) && <div className="node-media-empty node-media-failed" role="status"><span>无法显示预览</span><small>原始结果仍保留，可下载或切换其他结果</small></div>}</>}
     </motion.div>
     </div>
-    <div className="sunburst-actions">{maxImages > 0 && <button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= maxImages} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />{addImageLabel}</button>}<ModelRunButton nodeId={id} className="sunburst-run nodrag nopan" disabled={data.locked} onRun={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('describer-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</ModelRunButton></div>
+    <div className="sunburst-actions node-run-footer"><NodeRunFeedback nodeId={id} outputLabel={results.length ? `${results.length} 张结果` : undefined} /><ModelRunButton nodeId={id} className="sunburst-run nodrag nopan" disabled={data.locked} onRun={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('describer-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</ModelRunButton></div>
     <IterationSummary nodeId={id} />
-    {ports.map(port => <div className="describer-port-wrapper" key={port.id}>
-      <span className={`describer-port-label sunburst-label-${port.kind}`} style={{ top: port.top - 28 }}>{port.label}{port.kind === 'prompt' && <sup>*</sup>}</span>
-      <Handle id={port.id} type="target" position={Position.Left} className={`describer-port sunburst-port-${port.kind}${edges.some(edge => edge.target === id && edge.targetHandle === port.id) ? ' is-connected' : ''}`} style={{ top: port.top }} aria-label={`${port.label} input`} isConnectable={isConnectable}>
-        {port.kind === 'prompt' && <svg className="sunburst-prompt-asterisk" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 2V10M9.464 4L2.536 8M9.464 8L2.536 4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-      </Handle>
-    </div>)}
-    <span className="describer-port-label output-label sunburst-label-image">Result</span><Handle id="result" type="source" position={Position.Right} className={`describer-port sunburst-port-image${edges.some(edge => edge.source === id) ? ' is-connected' : ''}`} style={{ top: 89 }} aria-label="Result output" isConnectable={isConnectable} />
+    {maxImages > 0 && <NodePortAdd index={ports.length} label={addImageLabel} disabled={data.locked || data.imageInputs >= maxImages}
+      onClick={() => patch({ imageInputs: data.imageInputs + 1 })} />}
+    {ports.map(port => <NodePort key={port.id} id={port.id} direction="target" label={`${port.label} input`}
+      index={port.row} isConnectable={isConnectable && !data.locked} />)}
+    <NodePort id="result" direction="source" label="Result output" isConnectable={isConnectable && !data.locked} />
     {fullscreen && active && <FileGallery assets={results} activeId={viewId} onSelect={setViewId} onClose={() => setFullscreen(false)} />}
     {error && <div role="alert">{error}</div>}
-  </>;
+  </NodeFrame>;
 }

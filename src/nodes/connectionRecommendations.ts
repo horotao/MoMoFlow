@@ -19,7 +19,6 @@ export type ConnectionChoice = {
   id: string;
   itemId: string;
   handleId: string | null;
-  portY: number;
   detail?: string;
   exposed?: 'instructions';
 };
@@ -49,34 +48,34 @@ export function initializeConnectionParameter(node: AppNode, pending: PendingCon
 function directConnectionChoices(pending: PendingConnection, nodes: AppNode[]): ConnectionChoice[] {
   const node = nodes.find(item => item.id === pending.nodeId);
   if (!node || isNodeLocked(node)) return [];
-  const choice = (itemId: string, handleId: string | null, portY = 91, detail?: string): ConnectionChoice => ({
-    id: `${itemId}:${handleId ?? 'output'}`, itemId, handleId, portY, detail,
+  const choice = (itemId: string, handleId: string | null, detail?: string): ConnectionChoice => ({
+    id: `${itemId}:${handleId ?? 'output'}`, itemId, handleId, detail,
   });
   if (pending.direction === 'source') {
     const kind = node.type === 'color-palette' ? (pending.handleId === 'image' ? 'image' : pending.handleId === 'text' ? 'text' : undefined) : ['image-iterator', 'blend', 'compare', 'compositor', 'sunburst', 'nano-banana', 'ideogram', 'masks-extractor', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'matte-grow-shrink', 'blur', 'crop', 'color-correction'].includes(node.type ?? '') ? 'image' : node.type === 'file' ? fileOutputKind(node.data)
       : ['text-iterator', 'text', 'image-describer', 'model-input', 'position-logger'].includes(node.type ?? '') ? 'text' : undefined;
-    if (kind === 'image') return [choice('blend', 'back', 89, 'Back'), choice('blend', 'front', 149, 'Front'), choice('compare', 'input-1', 89, 'Input 1'), choice('compositor', 'background', 89, 'Background'), choice('compositor', 'layer-1', 149, 'Layer 1'), choice('preview', 'file', 89, 'File'), choice('image-describer', 'image-0'), choice('sunburst', 'image-0', 151, 'Image'), choice('nano-banana', 'image-0', 149, 'Image'), choice('ideogram', 'image-0', 149, 'Image'), choice('masks-extractor', 'image', 89, 'Image'), choice('painter', 'image', 89, 'Image'), choice('resize', 'image', 89, 'Input'), choice('rotate-flip', 'image', 89, 'Input'), choice('invert', 'image', 89, 'Input'), choice('levels', 'image', 89, 'Input'), choice('matte-grow-shrink', 'image', 89, 'Input'), choice('blur', 'image', 89, 'Input'), choice('crop', 'image', 89, 'Input'), choice('color-correction', 'file', 89, 'File'), ...(((node.type === 'painter' || node.type === 'masks-extractor') && pending.handleId === 'mask') || node.type === 'matte-grow-shrink' ? [choice('sunburst', 'mask', 209, 'Mask'), choice('ideogram', 'mask', 209, 'Mask')] : [])];
+    if (kind === 'image') return [choice('blend', 'back', 'Back'), choice('blend', 'front', 'Front'), choice('compare', 'input-1', 'Input 1'), choice('compositor', 'background', 'Background'), choice('compositor', 'layer-1', 'Layer 1'), choice('preview', 'file', 'File'), choice('image-describer', 'image-0'), choice('sunburst', 'image-0', 'Image'), choice('nano-banana', 'image-0', 'Image'), choice('ideogram', 'image-0', 'Image'), choice('masks-extractor', 'image', 'Image'), choice('painter', 'image', 'Image'), choice('resize', 'image', 'Input'), choice('rotate-flip', 'image', 'Input'), choice('invert', 'image', 'Input'), choice('levels', 'image', 'Input'), choice('matte-grow-shrink', 'image', 'Input'), choice('blur', 'image', 'Input'), choice('crop', 'image', 'Input'), choice('color-correction', 'file', 'File'), ...(((node.type === 'painter' || node.type === 'masks-extractor') && pending.handleId === 'mask') || node.type === 'matte-grow-shrink' ? [choice('sunburst', 'mask', 'Mask'), choice('ideogram', 'mask', 'Mask')] : [])];
     if (kind !== 'text') return [];
-    const choices = [choice('text', 'variable-1'), ...(node.type === 'text-iterator' ? [] : [choice('text-iterator', 'input', 30, '文本 / 数组')])];
+    const choices = [choice('text', 'variable-1'), ...(node.type === 'text-iterator' ? [] : [choice('text-iterator', 'input', '文本 / 数组')])];
     if (node.type !== 'position-logger') choices.push(
-      choice('sunburst', 'prompt', 91, 'Prompt'), choice('nano-banana', 'prompt', 89, 'Prompt'), choice('ideogram', 'prompt', 89, 'Prompt'),
-      { ...choice('image-describer', 'instructions', 141, 'System Instructions'), exposed: 'instructions' },
+      choice('sunburst', 'prompt', 'Prompt'), choice('nano-banana', 'prompt', 'Prompt'), choice('ideogram', 'prompt', 'Prompt'),
+      { ...choice('image-describer', 'instructions', 'System Instructions'), exposed: 'instructions' },
     );
     return choices;
   }
   const imageInput = (node.type === 'blend' && ['back', 'front'].includes(pending.handleId ?? '')) || (node.type === 'compare' && ['input-1', 'input-2'].includes(pending.handleId ?? '')) || (isCompositorNode(node) && node.data.document.inputs.some(input => input.id === pending.handleId)) || (['preview', 'color-correction'].includes(node.type ?? '') && pending.handleId === 'file') || (['masks-extractor', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'matte-grow-shrink', 'blur', 'crop'].includes(node.type ?? '') && pending.handleId === 'image') || ['sunburst', 'nano-banana', 'ideogram', 'image-describer'].includes(node.type ?? '')
     && (pending.handleId?.startsWith('image-') || pending.handleId === 'mask');
-  if (imageInput) return [choice('file', 'file'), choice('image-iterator', 'file', 90, 'File'), choice('masks-extractor', 'result', 89, 'Image With Alpha'), choice('masks-extractor', 'mask', 149, 'Mask'), choice('blend', 'result', 89, 'Result'), choice('compare', 'output-1', 89, 'Output 1'), choice('color-palette', 'image', 89, 'Image'), choice('compositor', 'result', 89, 'Output'), choice('sunburst', 'result'), choice('nano-banana', 'result', 89, 'Result'), choice('ideogram', 'result', 89, 'Result'), choice('painter', pending.handleId === 'mask' ? 'mask' : 'result', pending.handleId === 'mask' ? 149 : 89), choice('resize', 'result', 89, 'Output'), choice('rotate-flip', 'result', 89, 'Result'), choice('invert', 'result', 89, 'Output'), choice('levels', 'result', 89, 'Output'), choice('matte-grow-shrink', 'result', 89, 'Output'), choice('blur', 'result', 89, 'Output'), choice('crop', 'result', 89, 'Output'), choice('color-correction', 'result', 89, 'Result'), ...(['preview', 'invert', 'matte-grow-shrink'].includes(node.type ?? '') ? [choice('painter', 'mask', 149, 'Mask')] : [])];
+  if (imageInput) return [choice('file', 'file'), choice('image-iterator', 'file', 'File'), choice('masks-extractor', 'result', 'Image With Alpha'), choice('masks-extractor', 'mask', 'Mask'), choice('blend', 'result', 'Result'), choice('compare', 'output-1', 'Output 1'), choice('color-palette', 'image', 'Image'), choice('compositor', 'result', 'Output'), choice('sunburst', 'result'), choice('nano-banana', 'result', 'Result'), choice('ideogram', 'result', 'Result'), choice('painter', pending.handleId === 'mask' ? 'mask' : 'result'), choice('resize', 'result', 'Output'), choice('rotate-flip', 'result', 'Result'), choice('invert', 'result', 'Output'), choice('levels', 'result', 'Output'), choice('matte-grow-shrink', 'result', 'Output'), choice('blur', 'result', 'Output'), choice('crop', 'result', 'Output'), choice('color-correction', 'result', 'Result'), ...(['preview', 'invert', 'matte-grow-shrink'].includes(node.type ?? '') ? [choice('painter', 'mask', 'Mask')] : [])];
   const textInput = (node.type === 'text-iterator' && pending.handleId === 'input') || node.type === 'text' || node.type === 'position-logger'
     || (isImageGeneratorNode(node) && (pending.handleId === 'prompt' || (node.data.exposed ?? []).some(field => field === pending.handleId)))
     || (isDescriberNode(node) && (node.data.exposed ?? []).some(field => field === pending.handleId));
-  return textInput ? [...(node.type === 'text-iterator' ? [] : [choice('text-iterator', 'text', 30, '文本')]), choice('text', null), choice('model-input', null, 32), choice('image-describer', null), choice('color-palette', 'text', 149, 'Text')] : [];
+  return textInput ? [...(node.type === 'text-iterator' ? [] : [choice('text-iterator', 'text', '文本')]), choice('text', null), choice('model-input', null), choice('image-describer', null), choice('color-palette', 'text', 'Text')] : [];
 }
 
 export function connectionChoices(pending: PendingConnection, nodes: AppNode[], edges: Edge[]): ConnectionChoice[] {
   const node = nodes.find(item => item.id === pending.nodeId);
   if (!node || isNodeLocked(node)) return [];
-  const router: ConnectionChoice = { id: `router:${pending.direction === 'source' ? 'input' : 'output'}`, itemId: 'router', handleId: pending.direction === 'source' ? 'input' : 'output', portY: 31 };
+  const router: ConnectionChoice = { id: `router:${pending.direction === 'source' ? 'input' : 'output'}`, itemId: 'router', handleId: pending.direction === 'source' ? 'input' : 'output' };
   if (node.type !== 'router') {
     const choices = directConnectionChoices(pending, nodes);
     return pending.direction === 'source' ? (outputKind(node, pending.handleId) ? [...choices, router] : choices) : choices.length ? [...choices, router] : [];

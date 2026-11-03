@@ -1,9 +1,9 @@
+import { SettingsIcon, SettingsSection } from './ParameterControls';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
-import { NodeIcon } from '../nodes/NodeIcon';
 import type { AppNode, NanoBananaNode } from '../nodes/types';
 import { isNanoBananaNode, isNodeLocked } from '../nodes/types';
 import { effectiveNanoBananaSettings } from '../nodes/nanoBananaRun';
-import { nanoBananaChoices, nanoBananaName, nanoBananaParameterData, validateNanoBananaSettings, type NanoBananaSettings as Settings } from '../nodes/nanoBanana';
+import { nanoBananaChoices, nanoBananaParameterData, validateNanoBananaSettings, type NanoBananaSettings as Settings } from '../nodes/nanoBanana';
 import { DescriberModelSelect } from './DescriberModelSelect';
 import { DescriberIcon } from './DescriberIcon';
 
@@ -31,16 +31,21 @@ export function NanoBananaSettings({ node }: { node: NanoBananaNode }) {
       setEdges(all => [...all, { id: crypto.randomUUID(), source: id, target: node.id, targetHandle: field }]);
     }
   };
-  return <div className="describer-settings sunburst-settings">
-    <h2><NodeIcon nodeType="nano-banana" size={20} /><span>{nanoBananaName}</span></h2>
-    {(Object.keys(nanoBananaChoices) as (keyof Settings)[]).map(field => {
+  const renderField = (field: keyof Settings) => {
       const exposed = Boolean(node.data.exposed?.includes(field)), label = labels[field];
       const choices = [...nanoBananaChoices[field]];
       return <div className="describer-field" key={field}><label>{label}</label><div className="describer-field-row">
-        <DescriberModelSelect fluidHover compact label={label} value={String(effective[field] ?? '')} choices={choices} labels={choices.map(value => value === 'auto' ? '自动' : value.toUpperCase())} disabled={node.data.locked || exposed} onChange={value => { if (!isNodeLocked(getNode(node.id))) updateNodeData(node.id, { [field]: value }); }} />
+        <DescriberModelSelect settings fluidHover compact trailingIcon={<SettingsIcon name="chevron" />} label={label} value={String(effective[field] ?? '')} choices={choices} labels={choices.map(value => value === 'auto' ? '自动' : value.toUpperCase())} disabled={node.data.locked || exposed} onChange={value => { if (!isNodeLocked(getNode(node.id))) updateNodeData(node.id, { [field]: value }); }} />
         <button disabled={node.data.locked} className="describer-expose" data-exposed={exposed} title={exposed ? '使用本地值' : '设为输入'} aria-label={exposed ? `${label}使用本地值` : `将${label}设为输入`} aria-pressed={exposed} onClick={() => expose(field)}><DescriberIcon name="expose" /></button>
       </div></div>;
-    })}
-    <p className="describer-hint">格式在生成后转换；JPEG 的透明区域会填为白色。</p>
+  };
+
+  return <div className="describer-settings sunburst-settings">
+    <div className="describer-field settings-provider"><label>渠道商</label><div className="settings-fixed-value">ZenMux</div></div>
+    {renderField('aspectRatio')}{renderField('imageSize')}
+    <SettingsSection>{renderField('outputFormat')}
+      <div className="describer-field"><label>模型版本</label><div className="settings-fixed-value">Nano Banana 2.1</div></div>
+      <p className="describer-hint">格式在生成后转换；JPEG 的透明区域会填为白色。</p>
+    </SettingsSection>
   </div>;
 }

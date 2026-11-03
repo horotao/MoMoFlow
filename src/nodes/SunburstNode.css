@@ -24,8 +24,8 @@
 .sunburst-prompt-asterisk { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--text-node-surface); pointer-events: none; }
 .react-flow :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana) .sunburst-port-prompt.is-connected { background: var(--text-node-surface); }
 .sunburst-port-prompt.is-connected .sunburst-prompt-asterisk { display: none; }
-.react-flow { --sunburst-image-port: #31885b; --sunburst-mask-port: #7c965a; }
-.react-flow.dark { --sunburst-image-port: #97ffcd; --sunburst-mask-port: #e4ff97; }
+.react-flow { --sunburst-image-port: #80b9f1; --sunburst-mask-port: #80b9f1; }
+.react-flow.dark { --sunburst-image-port: #80b9f1; --sunburst-mask-port: #80b9f1; }
 .react-flow .sunburst-port-image { border-color: var(--sunburst-image-port); }.sunburst-label-image { color: #97ffcd; }
 .react-flow .sunburst-port-mask { border-color: var(--sunburst-mask-port); }.sunburst-label-mask { color: #e4ff97; }
 .react-flow .sunburst-port-image.is-connected::after { background: #97ffcd; }

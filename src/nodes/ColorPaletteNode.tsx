@@ -1,6 +1,7 @@
+import { NodePort } from './NodePort';
 import { NodeIcon } from './NodeIcon';
 import { useEffect, useState } from 'react';
-import { Handle, Position, useEdges, useReactFlow, type NodeProps } from '@xyflow/react';
+import { useReactFlow, type NodeProps } from '@xyflow/react';
 import { Ellipsis } from 'lucide-react';
 import { isColorPaletteNode, type AppNode, type ColorPaletteNode as PaletteNode } from './types';
 import { paletteBands, paletteRevision, paletteSize } from './colorPalette';
@@ -9,7 +10,6 @@ import { TextNodeMenu } from './TextNodeMenu';
 import { ColorPaletteColors } from './ColorPaletteColors';
 
 export function ColorPaletteNode({ id, data, isConnectable }: NodeProps<PaletteNode>) {
-  const edges = useEdges();
   const { getNode, updateNodeData } = useReactFlow<AppNode>();
   const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -41,12 +41,8 @@ export function ColorPaletteNode({ id, data, isConnectable }: NodeProps<PaletteN
       <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '调色板'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
     </header>
     <ColorPaletteColors node={{ id, data }} inline />
-    {[{ id: 'image', label: 'Image', top: 89 }, { id: 'text', label: 'Text', top: 149 }].map(port => <div className="describer-port-wrapper" key={port.id}>
-      <span className={`describer-port-label output-label ${port.id === 'image' ? 'sunburst-label-image' : ''}`} style={{ top: port.top - 28 }}>{port.label}</span>
-      <Handle type="source" position={Position.Right} id={port.id} style={{ top: port.top }} aria-label={`Color palette ${port.label}`}
-        className={`describer-port ${port.id === 'image' ? 'sunburst-port-image' : ''}${edges.some(edge => edge.source === id && edge.sourceHandle === port.id) ? ' is-connected' : ''}`}
-        isConnectable={isConnectable && !data.locked} />
-    </div>)}
+    {[{ id: 'image', label: 'Image' }, { id: 'text', label: 'Text' }].map(port => <NodePort key={port.id}
+      id={port.id} direction="source" label={`Color palette ${port.label}`} isConnectable={isConnectable && !data.locked} />)}
     {error && <div role="alert" className="preview-error">{error}</div>}
   </>;
 }

@@ -1,3 +1,4 @@
+import { changeModelRuns } from './modelRunsInput';
 import { canvasHistoryShortcut } from './canvasShortcuts';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useNodes, useEdges, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
@@ -90,7 +91,7 @@ async function run() {
   const green = await sample('m-green.png', '#76a087', 200);
   await storage.load(); render(workflow);
   await until(() => !!document.querySelector(`${selector} .file-node-upload`), 'Nodes mount'); await settle();
-  check(getComputedStyle(find(selector)).width === '460px', 'Node width');
+  check(getComputedStyle(find(selector)).width === '476px', 'Image iterator uses the shared 476px shell');
   check(find(`${selector} .file-node-title`).textContent === '图片迭代', 'Chinese title');
   check(find<HTMLInputElement>(`${selector} input[type="file"]`).multiple, 'Multi-image picker');
   check(find<HTMLInputElement>(`${selector} input[type="file"]`).accept.includes('.png') && !find<HTMLInputElement>(`${selector} input[type="file"]`).accept.includes('.mp4'), 'Image-only picker');
@@ -168,12 +169,12 @@ async function run() {
   check(requests[3].images[0] === blue, 'Retry only failed image');
   pass('逐图独立请求、一张失败不影响其他、单张重试（模拟）');
 
-  find('[aria-label="增加运行次数"]').click(); await settle();
+  changeModelRuns(1); await settle();
   for (const summary of document.querySelectorAll('.text-iteration-summary')) check(summary.textContent?.includes('6 个任务（每张 2 次）'), 'Six-task count shared');
   find('[data-id="model"] .sunburst-run').click();
   await until(() => requests.length === 10 && !store.getSnapshot().some(isActiveTask), 'Six image requests');
   check(requests.slice(4).map(request => request.images[0]).sort().join('|') === [red.url, blue, green.url].flatMap(url => [url, url]).sort().join('|'), 'Two requests per image');
-  find('[aria-label="减少运行次数"]').click(); await settle();
+  changeModelRuns(-1); await settle();
   const model = api.getNode('model'); check(model && isImageGeneratorNode(model) && model.data.results?.length === 9, 'All successful images accumulated');
   pass('3 张 × 2 次 = 6 个目标任务、结果追加且保留图片来源');
 

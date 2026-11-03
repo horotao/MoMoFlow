@@ -1,3 +1,4 @@
+import { changeModelRuns } from './modelRunsInput';
 import { runBoundaryChecks } from './workflow-boundaries.test';
 import { defaultBlendSettings } from '../src/nodes/blend';
 import { defaultLevelsSettings } from '../src/nodes/levels';
@@ -94,10 +95,10 @@ async function run() {
   check(String(requests[2].body.prompt).includes('Description 1') && String(requests[2].body.prompt).includes('Description 2'), 'Target receives fresh upstream text');
   count = store.getSnapshot().length; start(); await completed(count);
   check(requests.length === 4, 'Unchanged upstream results are reused');
-  document.querySelector<HTMLButtonElement>('[aria-label="增加运行次数"]')!.click(); await settle(); document.querySelector<HTMLButtonElement>('[aria-label="增加运行次数"]')!.click(); await settle();
+  changeModelRuns(1); await settle(); changeModelRuns(1); await settle();
   count = store.getSnapshot().length; start(); await completed(count);
   check(requests.length === 7 && requests.slice(4).every(request => request.path === '/api/sunburst'), 'Runs = 3 sends three target requests and no repeated descriptions');
-  document.querySelector<HTMLButtonElement>('[aria-label="减少运行次数"]')!.click(); await settle(); document.querySelector<HTMLButtonElement>('[aria-label="减少运行次数"]')!.click(); await settle();
+  changeModelRuns(-1); await settle(); changeModelRuns(-1); await settle();
   const da = graph.nodes.find(node => node.id === 'da')!;
   const marker = sourceSignature(graph, da);
   setNodes(all => all.map(node => node.id === 'da' ? { ...node, data: { ...node.data, text: 'Manually edited description', outputMode: 'manual', sourceSignature: marker } } as AppNode : node)); await settle();

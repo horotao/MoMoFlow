@@ -65,8 +65,8 @@ const find = <T extends HTMLElement = HTMLElement>(selector: string) => { const 
 function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
 const node = () => nodesNow.find(node => node.id === 'matte') as Matte;
 const output = () => imageOutput(node(), 'result', nodesNow, edgesNow)[0];
-const field = () => find<HTMLInputElement>('.react-flow__node-matte-grow-shrink input[type="number"]');
-const slider = () => find<HTMLInputElement>('.react-flow__node-matte-grow-shrink input[type="range"]');
+const field = () => find<HTMLInputElement>('.react-flow__node-toolbar[data-id="matte"] input[type="number"]');
+const slider = () => find<HTMLInputElement>('.react-flow__node-toolbar[data-id="matte"] input[type="range"]');
 async function until(check: () => boolean, message: string) { const start = performance.now(); while (performance.now() - start < 20000) { if (check()) return; await settle(); } throw new Error(message); }
 async function verify(size: number, width = 640, height = 480) {
   await until(() => !!output() && node().data.settings.size === size && output().width === width, `Output size ${size}, ${width} px`);
@@ -183,15 +183,15 @@ async function run() {
   const copy = nodesNow.find(item => item.id !== 'matte' && item.type === 'matte-grow-shrink') as Matte;
   assert(copy?.data.baseImage?.id === source.id, 'Independent copy retains original mask');
   await until(() => !!imageOutput(copy, 'result', nodesNow, edgesNow)[0], 'Copy produces output');
-  replaceNodes(nodesNow.filter(item => item.id !== copy.id)); await settle();
+  replaceNodes(nodesNow.filter(item => item.id !== copy.id).map(item => ({ ...item, selected: item.id === 'matte' }))); await settle();
   replaceNodes(nodesNow.map(item => item.id === 'matte' ? { ...node(), data: { ...node().data, locked: true } } : item)); await settle();
-  assert(field().disabled && find<HTMLInputElement>('.react-flow__node-matte-grow-shrink input[type="range"]').disabled, 'Locked controls');
+  assert(field().disabled && find<HTMLInputElement>('.react-flow__node-toolbar[data-id="matte"] input[type="range"]').disabled, 'Locked controls');
   replaceNodes(nodesNow.map(item => item.id === 'matte' ? { ...node(), data: { ...node().data, locked: false } } : item)); await settle();
   pass('Independent duplicate and locked controls');
   const databaseName = `momoflow-matte-test-${crypto.randomUUID()}`, storage = new WorkflowStorage(databaseName);
   try {
     await storage.save({ nodes: nodesNow, edges: edgesNow, colorMode: 'dark', viewport: { x: 0, y: 0, zoom: .55 } });
-    const saved = await storage.load(); assert(saved, 'Saved workflow'); replaceNodes(saved.nodes); replaceEdges(saved.edges); await settle(); await verify(13);
+    const saved = await storage.load(); assert(saved, 'Saved workflow'); replaceNodes(saved.nodes.map(node => ({ ...node, selected: node.id === 'matte' }))); replaceEdges(saved.edges); await settle(); await verify(13);
   } finally { storage.dispose(); indexedDB.deleteDatabase(databaseName); }
   pass('IndexedDB round trip restores settings, graph and PNG assets');
   replaceEdges(edgesNow.filter(edge => edge.id !== 'input')); await settle();

@@ -1,7 +1,8 @@
-import { NodeIcon } from './NodeIcon';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Eye, EyeOff } from 'lucide-react';
+import { NodePort } from './NodePort';
+import { ToolNodeFrame, ToolbarIcon } from './ToolNodeFrame';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { Eye, EyeOff } from 'lucide-react';
 import type { AppNode, BlurNode as Blur } from './types';
 import { isBlurNode, isNodeLocked } from './types';
 import { blurControls, blurRevision, type BlurSettings } from './blur';
@@ -12,7 +13,6 @@ import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
 import { DescriberModelSelect } from '../components/DescriberModelSelect';
-import { TextNodeMenu } from './TextNodeMenu';
 
 function BlurNumber({ value, control, disabled, onCommit }: {
   value: number; control: typeof blurControls[number]; disabled: boolean; onCommit: (value: number) => void;
@@ -53,7 +53,6 @@ export function BlurNode({ id, data, isConnectable }: NodeProps<Blur>) {
   const [displayed, setDisplayed] = useState<{ image: HTMLImageElement; revision: string; draft: boolean }>();
   const [engine, setEngine] = useState<{ image: HTMLImageElement; renderer: BlurRenderer; draftRenderer: BlurRenderer; draftScale: number }>();
   const [original, setOriginal] = useState(false);
-  const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
   const [error, setError] = useState('');
   const canvas = useRef<HTMLCanvasElement>(null);
   const image = loaded?.url === input?.url ? loaded?.image : undefined;
@@ -149,15 +148,30 @@ export function BlurNode({ id, data, isConnectable }: NodeProps<Blur>) {
     }).catch(() => { if (isCurrent()) setError('无法处理模糊图片，请重试或更换可读取的图片。'); });
   }, [id, engine, image, settings, draft, revision, inputId, input?.url, data.locked, getNode, getNodes, getEdges, updateNodeData]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="blur" size={18} />{renaming
-        ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
-          onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '模糊'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '模糊'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
-    </header>
+  const toolbar = (
+    <div className="color-settings blur-settings nodrag nopan nowheel" onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') cancelDraft(); }}>
+      <div className="blur-type"><span>Type</span><DescriberModelSelect trailingIcon={<ToolbarIcon name="menu-chevron" />} compact label="Type" menuLabel="Blur type" value={settings.type === 'box' ? 'Box' : 'Gaussian'} choices={['Box', 'Gaussian']} disabled={Boolean(data.locked)}
+        onChange={value => { cancelDraft(); patch({ settings: { ...data.settings, type: value === 'Box' ? 'box' : 'gaussian' } }); }} /></div>
+      {blurControls.map(control => <div className="color-setting" key={control.key}>
+        <label htmlFor={`${id}-${control.key}`}>{control.label}</label>
+        <input id={`${id}-${control.key}`} type="range" aria-label={control.label} min={control.min} max={control.max} step={control.step}
+          value={settings[control.key]} disabled={data.locked} style={{ '--toolbar-progress': `${(settings[control.key] - control.min) / (control.max - control.min) * 100}%` } as CSSProperties}
+          onPointerDown={event => { cancelledGesture.current = false; dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); }}
+          onChange={event => {
+            if (cancelledGesture.current) return;
+            const next = { ...settings, [control.key]: Number(event.target.value) };
+            if (dragging.current) { if (!draftRef.current) gesture.current++; draftRef.current = next; setDraft(next); }
+            else patch({ settings: next });
+          }}
+          onPointerUp={commitDraft} onPointerCancel={() => { cancelDraft(); cancelledGesture.current = false; }}
+          onLostPointerCapture={() => { if (dragging.current) cancelDraft(); cancelledGesture.current = false; }} />
+        <BlurNumber control={control} value={settings[control.key]} disabled={Boolean(data.locked)}
+          onCommit={value => patch({ settings: { ...data.settings, [control.key]: value } })} />
+      </div>)}
+    </div>
+  );
+  return <ToolNodeFrame id={id} label={data.label} defaultLabel="模糊" type="BLUR" locked={data.locked} toolbar={toolbar} onToolbarClose={cancelDraft}>
+
     <div className="preview-image color-image nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
       {ready && <>
         <canvas ref={canvas} aria-label="Blur preview" style={{ visibility: original ? 'hidden' : undefined }} />
@@ -179,35 +193,11 @@ export function BlurNode({ id, data, isConnectable }: NodeProps<Blur>) {
         </div>
       </>}
     </div>
-    <div className="color-settings blur-settings nodrag nopan nowheel" onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') cancelDraft(); }}>
-      <div className="blur-type"><span>Type</span><DescriberModelSelect compact label="Type" menuLabel="Blur type" value={settings.type === 'box' ? 'Box' : 'Gaussian'} choices={['Box', 'Gaussian']} disabled={Boolean(data.locked)}
-        onChange={value => { cancelDraft(); patch({ settings: { ...data.settings, type: value === 'Box' ? 'box' : 'gaussian' } }); }} /></div>
-      {blurControls.map(control => <div className="color-setting" key={control.key}>
-        <label htmlFor={`${id}-${control.key}`}>{control.label}</label>
-        <input id={`${id}-${control.key}`} type="range" aria-label={control.label} min={control.min} max={control.max} step={control.step}
-          value={settings[control.key]} disabled={data.locked}
-          onPointerDown={event => { cancelledGesture.current = false; dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); }}
-          onChange={event => {
-            if (cancelledGesture.current) return;
-            const next = { ...settings, [control.key]: Number(event.target.value) };
-            if (dragging.current) { if (!draftRef.current) gesture.current++; draftRef.current = next; setDraft(next); }
-            else patch({ settings: next });
-          }}
-          onPointerUp={commitDraft} onPointerCancel={() => { cancelDraft(); cancelledGesture.current = false; }}
-          onLostPointerCapture={() => { if (dragging.current) cancelDraft(); cancelledGesture.current = false; }} />
-        <BlurNumber control={control} value={settings[control.key]} disabled={Boolean(data.locked)}
-          onCommit={value => patch({ settings: { ...data.settings, [control.key]: value } })} />
-      </div>)}
-    </div>
     {[{ handle: 'image', label: 'Input', output: false }, { handle: 'result', label: 'Output', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
-          aria-label={`Blur ${port.label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked} />
-      </div>;
+      return <NodePort key={port.handle} id={port.handle} direction={port.output ? 'source' : 'target'}
+        label={`Blur ${port.label}`} connected={connected} isConnectable={isConnectable && !data.locked} />;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </ToolNodeFrame>;
 }
