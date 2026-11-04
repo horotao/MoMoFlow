@@ -1,4 +1,4 @@
-/* Only migrated nodes opt in. Ignore saved dimensions from the previous shell. */
+/* All registered nodes share this shell; ignore saved legacy dimensions. */
 .react-flow .react-flow__node:has(> .node-frame) {
   width: max-content !important;
   height: auto !important;
@@ -33,6 +33,7 @@
   min-height: 138px;
   padding: 0 38px;
   color: var(--node-text);
+  text-align: left;
   font: 16px/20px var(--font-ui);
 }
 .react-flow.dark .node-frame {
@@ -43,6 +44,7 @@
   --text-node-placeholder: #ffffff80;
 }
 .node-frame--text { width: 528px; }
+.node-frame--compact { width: 420px; }
 .node-frame > :is(.text-node-header, .file-node-header) {
   height: 20px;
   min-height: 20px;
@@ -102,3 +104,22 @@
 .node-frame .iterator-item textarea { font-size: 16px; line-height: 24px; }
 .node-frame .iterator-heading-actions { gap: 4px; }
 @media (hover: none) { .node-frame .file-media-overlay { opacity: 1; } }
+
+/* Remaining media nodes share the same body, title and selection treatment. */
+.node-frame .preview-image,
+.node-frame .palette-canvas,
+.node-frame .compositor-node-preview { border-radius: 24px; }
+.react-flow__node.selected > .node-frame :is(.preview-image, .palette-canvas, .compositor-node-preview),
+.react-flow__node:focus-visible > .node-frame :is(.preview-image, .palette-canvas, .compositor-node-preview) { outline: 2px solid #80b9f1; outline-offset: 3px; }
+.node-frame .node-input-card { min-height: 110px; padding: 32px 16px; justify-content: center; }
+.node-frame .node-input-card .describer-model-trigger { height: 36px; padding: 0 12px; border-radius: 12px; font-size: 14px; }
+.node-frame .node-position-card { min-height: 110px; padding: 24px; justify-content: center; gap: 8px; font-variant-numeric: tabular-nums; }
+.node-frame .rotate-flip-controls,
+.node-frame .compositor-node-footer { margin-top: 8px; }
+.node-frame .rotate-flip-controls > button { height: 32px; min-width: 32px; border-radius: 8px; }
+.node-frame .rotate-flip-controls > .rotate-flip-reset,
+.node-frame .compositor-node-footer > button { font-size: 13px; }
+.node-frame .palette-hex-label { font-size: 14px; line-height: 20px; }
+.node-frame .palette-canvas .palette-color-row { padding-left: 16px; padding-right: 16px; }
+.node-frame .compositor-node-size { bottom: 16px; left: 24px; font-size: 11px; }
+.node-frame .compositor-download { top: 16px; right: 16px; }

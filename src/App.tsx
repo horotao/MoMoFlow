@@ -397,6 +397,14 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
   return (
     <CanvasHistoryContext.Provider value={history}><ReactFlow
       ref={canvasRef}
+      tabIndex={-1}
+      onPointerDownCapture={event => {
+        const target = event.target as HTMLElement;
+        // Keep canvas shortcuts reachable after dragging nodes or wiring ports.
+        // Portaled menus/editors and their text fields retain their own focus.
+        if (!event.currentTarget.contains(target) || target.closest('input,textarea,select,button,a,[contenteditable="true"],[role="button"],[role="combobox"],[role="slider"],[role="dialog"],[data-compositor-editor]')) return;
+        event.currentTarget.focus({ preventScroll: true });
+      }}
       minZoom={0.01}
       colorMode={colorMode}
       className={`canvas-tool-${tool}`}

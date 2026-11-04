@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useReactFlow, type ReactFlowInstance, type Edge } from '@xyflow/react';
 import { Flow } from '../src/App';
 import { createLibraryNode } from '../src/components/libraryCatalog';
+import { nodeConnectionOffset, nodeFrameWidth } from '../src/nodes/nodeLayout';
 import { nodeTypes } from '../src/nodes';
 import type { AppNode, SunburstNode, ImageDescriberNode } from '../src/nodes/types';
 import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
@@ -60,7 +61,7 @@ async function run() {
   };
   const nodes = Object.keys(nodeTypes).map((type, index) => ({
     ...(createLibraryNode(type, { x: 100 + index % 4 * 700, y: 1600 + Math.floor(index / 4) * 900 }) ?? { type, position: { x: 800, y: 8500 }, data: { label: '坐标记录' } }),
-    id: type, selected: false,
+    id: type, selected: false, style: { width: 460, height: 405 },
   } as AppNode));
   const paint = nodes.find(node => node.id === 'painter')!; paint.position = { x: 120, y: 110 };
   const model = nodes.find(node => node.id === 'sunburst')!; model.position = { x: 1250, y: 110 };
@@ -69,19 +70,24 @@ async function run() {
   const edges = [edge('image-in', 'painter', 'result', 'router', 'input'), edge('image-out', 'router', 'output', 'sunburst', 'image-0'), edge('mask-in', 'painter', 'mask', 'mask-router', 'input'), edge('mask-out', 'mask-router', 'output', 'sunburst', 'mask')];
   const workflow: Workflow = { nodes, edges, colorMode: new URLSearchParams(location.search).has('light') ? 'light' : 'dark', viewport };
   const db = `momoflow-ports-qa-${crypto.randomUUID()}`, storage = new WorkflowStorage(db); await storage.load();
-  createRoot(find('#root')).render(<ReactFlowProvider><Flow storage={storage} saved={workflow} /><Probe /></ReactFlowProvider>);
+  const root = createRoot(find('#root'));
+  root.render(<ReactFlowProvider><Flow storage={storage} saved={workflow} /><Probe /></ReactFlowProvider>);
   await until(() => document.querySelectorAll('.react-flow__node').length === nodes.length && document.querySelectorAll('.react-flow__edge-path').length === edges.length, 'All node families and edges mount');
   await until(() => [...document.querySelectorAll<HTMLImageElement>('.node-port-icon img')].every(img => img.naturalWidth === 8), 'Local SVGs load');
   for (const type of Object.keys(nodeTypes)) {
     const ports = [...find(`[data-id="${type}"]`).querySelectorAll<HTMLElement>('.react-flow__handle')];
     check(ports.length > 0 && ports.every(port => port.classList.contains('node-port') && getComputedStyle(port).width === '30px' && Boolean(port.querySelector('img,svg'))), `${type}：全部端点为 30px 图标`);
-    const bounds = find(`[data-id="${type}"]`).getBoundingClientRect();
-    if (!find(`[data-id="${type}"]`).querySelector('.node-frame')) {
-      for (const port of ports) {
-        const rect = port.getBoundingClientRect(), gap = port.classList.contains('source') ? rect.left - bounds.right : bounds.left - rect.right;
-        check(Math.abs(gap - 8 * api.getZoom()) < 1, `${type}：端点与卡片保留 8px 间隔`);
-      }
-    }
+    const node = api.getNode(type)!;
+    const frame = find(`[data-id="${type}"] > .node-frame`), bounds = frame.getBoundingClientRect();
+    check(Math.abs(bounds.width / api.getZoom() - nodeFrameWidth(type)!) < .1 && Boolean(frame.querySelector('.node-frame-name')?.textContent) && Boolean(frame.querySelector('.node-frame-type')?.textContent), `${type}：旧宽高恢复后使用统一外框与中英文标题`);
+    check(ports.every(port => {
+      const rect = port.getBoundingClientRect();
+      const direction = port.classList.contains('source') ? 'source' : 'target';
+      const offset = nodeConnectionOffset(node, port.dataset.handleid, direction);
+      return Math.abs((direction === 'source' ? rect.right : rect.left) - bounds.left - offset.x * api.getZoom()) < 1
+        && Math.abs(rect.top + rect.height / 2 - bounds.top - offset.y * api.getZoom()) < 1
+        && rect.top >= bounds.top - 1 && rect.bottom <= bounds.bottom + 1;
+    }), `${type}：所有端点位于外框内，实际锚点与新建连线坐标一致`);
   }
   check(handle('painter', 'source', 'result').classList.contains('node-port--image') && handle('painter', 'source', 'mask').classList.contains('node-port--mask'), '双输出用不同图标区分图片与蒙版');
   check(handle('router', 'source').classList.contains('node-port--image') && handle('mask-router', 'source').classList.contains('node-port--mask'), 'Router 图标跟随上游类型');
@@ -114,6 +120,11 @@ async function run() {
   const reader = new WorkflowStorage(`${db}-roundtrip`); await reader.load(); await reader.save({ ...workflow, nodes: api.getNodes(), edges: api.getEdges() });
   const restored = await reader.load();
   check(restored?.edges.length === 4 && restored.edges.some(item => item.sourceHandle === 'mask') && restored.nodes.find(node => node.id === 'painter')?.position.x === 120, '保存恢复保留蒙版端口 ID、连线与原始坐标'); reader.dispose();
+  check(restored?.nodes.length === nodes.length && restored.nodes.every(node => Boolean(nodeFrameWidth(node.type))), '保存恢复覆盖全部 26 类节点及其参数');
+  root.render(<ReactFlowProvider key="restored"><Flow storage={storage} saved={restored!} /><Probe /></ReactFlowProvider>);
+  await until(() => document.querySelectorAll('.react-flow__node').length === nodes.length && document.querySelectorAll('.react-flow__edge-path').length === 4, 'Restored graph remounts');
+  await settle();
+  check(Object.keys(nodeTypes).every(type => Math.abs(find(`[data-id="${type}"]`).getBoundingClientRect().width / api.getZoom() - nodeFrameWidth(type)!) < .1), '重新挂载后全部外框尺寸与端点继续有效');
   await api.setViewport({ ...viewport, zoom: 1 }); await settle();
   check(handle('painter', 'source').getBoundingClientRect().width === 30, '100% 下图标端点为 30px，随画布缩放');
   await api.setViewport(viewport); await settle();

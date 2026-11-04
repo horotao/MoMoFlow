@@ -1,9 +1,5 @@
 .react-flow .react-flow__node-color-palette { height: auto; gap: 16px; }
 .react-flow .react-flow__node-color-palette.selected, .react-flow .react-flow__node-color-palette:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-.react-flow__node-color-palette .text-node-title { min-width: 0; gap: 8px; font-size: 16px; line-height: 20px; }
-.react-flow__node-color-palette .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.react-flow__node-color-palette .text-node-title > svg { flex-shrink: 0; }
-.react-flow__node-color-palette:hover .describer-port-label, .react-flow__node-color-palette.selected .describer-port-label { visibility: visible; }
 .palette-canvas { position: relative; width: 100%; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: repeating-conic-gradient(#ddd 0% 25%, #eee 0% 50%) 0 / 20px 20px; }
 .dark .palette-canvas { background: repeating-conic-gradient(#333 0% 25%, #2c2c2c 0% 50%) 0 / 20px 20px; }
 .palette-canvas button { border: 0; color: inherit; cursor: pointer; font: inherit; }

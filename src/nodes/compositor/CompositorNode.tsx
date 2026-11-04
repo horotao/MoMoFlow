@@ -1,16 +1,17 @@
 import { NodePort } from '../NodePort';
-import { NodeIcon } from '../NodeIcon';
+import { nodePortY } from '../nodeLayout';
+import { NodeFrame } from '../NodeFrame';
+import { NodeHeader } from '../NodeHeader';
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { isCompositorNode, type AppNode, type CompositorNode as Compositor } from '../types';
 import { addCompositorInput, compositorLayout, compositorPending, compositorRenderDocument, compositorRevision, MAX_COMPOSITOR_LAYERS, type CompositorDocument, type CompositorInputs, type CompositorLayout } from '../compositor';
 import { compositorInputs, imageOutput } from '../sunburstRun';
 import { assetResources } from '../assetResources';
 import { downloadAsset } from '../fileMedia';
 import { FileIcon } from '../FileIcon';
-import { TextNodeMenu } from '../TextNodeMenu';
 import { CompositorRenderer } from './renderer';
 import { CompositorEditor } from './CompositorEditor';
 import { CompositorPreviewSession } from './interaction';
@@ -30,7 +31,7 @@ export function CompositorNode({ id, data, isConnectable }: NodeProps<Compositor
   const nodes = useNodes<AppNode>(), edges = useEdges();
   const { getNode, getNodes, getEdges, updateNodeData, setEdges } = useReactFlow<AppNode>();
   const internals = useUpdateNodeInternals();
-  const [open, setOpen] = useState(false), [renaming, setRenaming] = useState(false), [name, setName] = useState('');
+  const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<CompositorDocument>();
   const [view, setView] = useState<CompositorView>();
   const [error, setError] = useState('');
@@ -101,15 +102,9 @@ export function CompositorNode({ id, data, isConnectable }: NodeProps<Compositor
   const layout = view?.layout ?? compositorLayout(document, inputs);
   useEffect(() => internals(id), [id, data.document.inputs.length, layout.width, layout.height, internals]);
   const visibleView = pending || error ? undefined : view;
-  return <>
-    <header className="text-node-header"><div className="text-node-title"><NodeIcon nodeType="compositor" size={18} />{renaming
-      ? <input autoFocus className="text-node-rename nodrag nopan" aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
-        onBlur={() => { if (name.trim() && !data.locked) updateNodeData(id, { label: name.trim() }); setRenaming(false); }}
-        onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-      : <span>{data.label || '合成器'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '合成器'); setRenaming(true); }}><Ellipsis size={20} /></TextNodeMenu>
-    </header>
-    <div className="compositor-node-body" style={{ minHeight: data.document.inputs.length * 60 }}>
+  return <NodeFrame minHeight={nodePortY(Math.max(0, data.document.inputs.length - 1)) + 30}>
+    <NodeHeader id={id} label={data.label} fallback="合成器" type="COMPOSITOR" locked={data.locked} />
+    <div className="compositor-node-body">
       <div className="compositor-node-preview nodrag nopan" role="group" aria-label="Composition preview controls" style={{ aspectRatio: `${layout.width} / ${layout.height}` }} aria-busy={!output && !error}>
         <CompositorCanvas view={visibleView} label="Compositor preview" />
         <div className="file-media-overlay compositor-node-overlay">
@@ -129,5 +124,5 @@ export function CompositorNode({ id, data, isConnectable }: NodeProps<Compositor
     {open && createPortal(<CompositorEditor id={id} name={data.label || '合成器'} document={document} inputs={inputs} view={visibleView}
       locked={Boolean(data.locked)} error={error} pending={pending || view?.revision !== revision || (!output && !draft)} previewing={Boolean(draft)} onDraft={setDraft} onChange={patch}
       onClose={() => { setDraft(undefined); setOpen(false); }} />, window.document.body)}
-  </>;
+  </NodeFrame>;
 }

@@ -1,16 +1,15 @@
 import { NodePort } from './NodePort';
-import { NodeIcon } from './NodeIcon';
+import { NodeFrame } from './NodeFrame';
+import { NodeHeader } from './NodeHeader';
 import { useEffect, useRef, useState } from 'react';
 import { useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis } from 'lucide-react';
-import { isRotateFlipNode, isNodeLocked, type AppNode, type RotateFlipNode as RotateFlip } from './types';
+import { isRotateFlipNode, type AppNode, type RotateFlipNode as RotateFlip } from './types';
 import { changeRotateFlip, rotateFlipRevision, rotateFlipTransform, type RotateFlipAction } from './rotateFlip';
 import { imageOutput } from './sunburstRun';
 import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
 import { FlipIcon, RotateFlipIcon } from './RotateFlipIcon';
-import { TextNodeMenu } from './TextNodeMenu';
 
 export function RotateFlipNode({ id, data, isConnectable }: NodeProps<RotateFlip>) {
   const nodes = useNodes<AppNode>(), edges = useEdges();
@@ -22,14 +21,12 @@ export function RotateFlipNode({ id, data, isConnectable }: NodeProps<RotateFlip
   const revision = rotateFlipRevision(data, inputId);
   const output = imageOutput(nodes.find(node => node.id === id), 'result', nodes, edges)[0];
   const [loaded, setLoaded] = useState<{ url: string; image: HTMLImageElement }>();
-  const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
   const [error, setError] = useState('');
   const canvas = useRef<HTMLCanvasElement>(null);
   const image = loaded?.url === inputUrl ? loaded?.image : undefined;
   const sourceWidth = image?.naturalWidth ?? input?.width, sourceHeight = image?.naturalHeight ?? input?.height;
   const size = sourceWidth && sourceHeight ? rotateFlipTransform(sourceWidth, sourceHeight, data.settings) : undefined;
   const width = size?.width, height = size?.height;
-  const patch = (value: Partial<RotateFlip['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
   const change = (action: RotateFlipAction) => {
     const node = getNode(id);
     if (isRotateFlipNode(node) && !node.data.locked) updateNodeData(id, { settings: changeRotateFlip(node.data.settings, action) });
@@ -83,15 +80,8 @@ export function RotateFlipNode({ id, data, isConnectable }: NodeProps<RotateFlip
 
   useEffect(() => updateInternals(id), [id, width, height, updateInternals]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="rotate-flip" />{renaming
-        ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
-          onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '旋转与翻转'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '旋转与翻转'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
-    </header>
+  return <NodeFrame>
+    <NodeHeader id={id} label={data.label} fallback="旋转与翻转" type="ROTATE / FLIP" locked={data.locked} />
     <div className="preview-image nodrag nopan" aria-busy={Boolean(input && !output && !error && !data.locked)} style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
       {image && <canvas ref={canvas} aria-label="Rotate and flip preview" />}
       {input && <div className="file-media-overlay">
@@ -116,5 +106,5 @@ export function RotateFlipNode({ id, data, isConnectable }: NodeProps<RotateFlip
         label={`Rotate and flip ${port.label}`} connected={connected} isConnectable={isConnectable && !data.locked} />;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }

@@ -64,9 +64,9 @@ async function run() {
   await until(() => Boolean(document.querySelector('.react-flow__node-router')) && Boolean(document.querySelector<HTMLImageElement>('.preview-image img')?.naturalWidth), 'Router and image preview mount');
   const read = (id: string) => resolveTextValue(id, api.getNodes(), api.getEdges()).trim();
   check(read('consumer') === 'A red balloon above the mountains' && read('consumer-2') === read('consumer'), 'Text fans out to both consumers');
-  const style = getComputedStyle(find('[data-id="router"]'));
-  check(style.width === '250px' && style.height === '62px' && style.borderRadius === '16px', 'Compact dimensions: 250 × 62 / shared node radius 16');
-  const handle = find('[data-id="router"] .react-flow__handle-left').getBoundingClientRect(), bounds = find('[data-id="router"]').getBoundingClientRect();
+  const style = getComputedStyle(find('[data-id="router"] .node-router-card'));
+  check(style.width === '344px' && style.height === '84px' && style.borderRadius === '24px', 'Figma ×2 compact card: 344 × 84 / radius 24');
+  const handle = find('[data-id="router"] .react-flow__handle-left').getBoundingClientRect(), bounds = find('[data-id="router"] .node-router-card').getBoundingClientRect();
   check(Math.abs(bounds.left - handle.right - 8 * api.getZoom()) <= 1, 'Input icon sits 8px outside the card');
   check(imageOutput(api.getNode('image-router'), 'output', api.getNodes(), api.getEdges())[0]?.id === source.id, 'Original image identity and dimensions are retained');
   const replace: Edge = { ...edges[0], source: 'alternate' };
@@ -88,7 +88,7 @@ async function run() {
   check(!api.getNode('router')?.draggable && !api.getNode('router')?.connectable && !api.getNode('router')?.deletable, 'Lock disables dragging, connecting and deletion');
   api.updateNodeData('router', { locked: false }); await settle();
   find<HTMLButtonElement>('[aria-label="切换至浅色模式"]').click(); await settle();
-  check(getComputedStyle(find('[data-id="router"]')).backgroundColor === 'rgb(255, 255, 255)', 'Light theme uses the shared white surface');
+  check(getComputedStyle(find('[data-id="router"] .node-router-card')).backgroundColor === 'rgb(255, 255, 255)', 'Light theme uses the shared white surface');
   check(getComputedStyle(find('.react-flow__edge[data-id="consumer"] .react-flow__edge-path')).stroke === 'rgb(95, 95, 95)', 'Routed text edges retain the shared gray in the light theme');
   find<HTMLButtonElement>('[aria-label="切换至深色模式"]').click(); await settle();
   const saved = { ...workflow, nodes: api.getNodes(), edges: api.getEdges() };

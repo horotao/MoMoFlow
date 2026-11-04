@@ -1,15 +1,15 @@
 import { NodePort } from './NodePort';
-import { NodeIcon } from './NodeIcon';
+import { NodeFrame } from './NodeFrame';
+import { NodeHeader } from './NodeHeader';
 import { useEffect, useState } from 'react';
 import { useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Eye, EyeOff } from 'lucide-react';
-import { isInvertNode, isNodeLocked, type AppNode, type InvertNode as Invert } from './types';
+import { Eye, EyeOff } from 'lucide-react';
+import { isInvertNode, type AppNode, type InvertNode as Invert } from './types';
 import { imageOutput } from './sunburstRun';
 import { invertPixels, invertRevision } from './invert';
 import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
-import { TextNodeMenu } from './TextNodeMenu';
 
 export function InvertNode({ id, data, isConnectable }: NodeProps<Invert>) {
   const nodes = useNodes<AppNode>(), edges = useEdges();
@@ -22,11 +22,9 @@ export function InvertNode({ id, data, isConnectable }: NodeProps<Invert>) {
   const output = imageOutput(nodes.find(node => node.id === id), 'result', nodes, edges)[0];
   const [loaded, setLoaded] = useState<{ url: string; width: number; height: number }>();
   const [original, setOriginal] = useState(false);
-  const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
   const [error, setError] = useState('');
   const size = loaded?.url === inputUrl ? loaded : input;
   const width = size?.width, height = size?.height;
-  const patch = (value: Partial<Invert['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
 
   useEffect(() => {
     let cancelled = false;
@@ -66,15 +64,8 @@ export function InvertNode({ id, data, isConnectable }: NodeProps<Invert>) {
 
   useEffect(() => updateInternals(id), [id, width, height, updateInternals]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="invert" />{renaming
-        ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
-          onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '反相'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '反相'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
-    </header>
+  return <NodeFrame>
+    <NodeHeader id={id} label={data.label} fallback="反相" type="INVERT" locked={data.locked} />
     <div className="preview-image nodrag nopan" aria-busy={Boolean(input && !output && !error && !data.locked)} style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
       {input && <>
         {(original || output) && <img src={original ? input.url : output?.url} alt={original ? 'Original image' : 'Inverted image'} draggable={false} />}
@@ -97,5 +88,5 @@ export function InvertNode({ id, data, isConnectable }: NodeProps<Invert>) {
         label={`Invert ${port.label}`} connected={connected} isConnectable={isConnectable && !data.locked} />;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }

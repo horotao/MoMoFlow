@@ -1,3 +1,4 @@
+import { flushSync } from 'react-dom';
 import { NodePort } from './NodePort';
 import { NodeFrame, NodeTitle } from './NodeFrame';
 import { NodeSettingsPortal } from '../components/NodeSettingsPortal';
@@ -140,7 +141,7 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
       <NodeTitle type="COLOR CORRECTION">{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
+          onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return; if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
         : <span>{data.label || '色彩校正'}</span>}</NodeTitle>
       <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '色彩校正'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
     </header>
@@ -169,7 +170,14 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
       <div className="color-settings" onKeyDown={event => { if (event.key === 'Escape') cancelDraft(); }}>
         {colorControls.map(control => <ParameterSlider key={control.key} id={`${id}-${control.key}`} label={control.label}
           min={control.min} max={control.max} step={control.step} value={settings[control.key]} disabled={data.locked || !ready}
-          onPointerDown={event => { cancelledGesture.current = false; dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); }}
+          onPointerDown={event => {
+            if (event.button !== 0) return;
+            const slider = event.currentTarget;
+            // Commit a focused number field before starting the new gesture.
+            if (document.activeElement !== slider) flushSync(() => slider.focus());
+            cancelledGesture.current = false; dragging.current = true; slider.setPointerCapture(event.pointerId);
+          }}
+          onKeyDown={event => { if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) cancelledGesture.current = false; }}
           onChange={event => {
             if (cancelledGesture.current) return;
             const next = { ...settings, [control.key]: Number(event.target.value) };

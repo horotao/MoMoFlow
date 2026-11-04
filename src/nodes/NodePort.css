@@ -1,4 +1,4 @@
-/* Ports remain outside legacy cards until their bodies migrate to NodeFrame. */
+/* Shared 30px icon handles, with their anchor at the frame edge. */
 .react-flow .react-flow__node .node-port, .react-flow .react-flow__node .node-port-add {
   position: absolute;
   box-sizing: border-box;
@@ -17,7 +17,6 @@
 }
 .react-flow .react-flow__node .node-port.react-flow__handle-left, .react-flow .react-flow__node .node-port-add { left: var(--node-port-side, calc(-38px - var(--node-port-border, 2px))); }
 .react-flow .react-flow__node .node-port.react-flow__handle-right { right: var(--node-port-side, calc(-38px - var(--node-port-border, 2px))); }
-.react-flow__node-position-logger { --node-port-border: 1px; }
 .node-port-add { cursor: pointer; }
 .node-port::before, .node-port-add::before { content: ''; position: absolute; inset: -3px; border-radius: 50%; }
 .node-port-icon { display: block; width: 8px; height: 8px; transform: scale(2); pointer-events: none; }

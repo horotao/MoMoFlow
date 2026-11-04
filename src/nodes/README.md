@@ -35,15 +35,15 @@
 | 预览（Preview）：查看上游图片与遮罩 | `preview` | [PreviewNode.tsx](./PreviewNode.tsx) | 单图片输入 `file`，无输出；实时显示上游图片 |
 | 坐标记录（Position Logger）：显示节点坐标的示例节点 | `position-logger` | [PositionLoggerNode.tsx](./PositionLoggerNode.tsx) | 左侧输入、右侧输出；不执行模型任务 |
 
-画布节点的默认标题使用中文，自定义名称保持原样；模型品牌名（如 GPT Image 2.5）保留英文。标题与重命名框使用相同默认文案，界面字体复用全局 `--font-ui`（英文 Inter、macOS 中文苹方、Windows 中文 Noto Sans SC）。已迁移的提示词、文件和 Nano Banana 使用卡片外“中文名称＋英文类型”；文件默认按媒体类型命名，原始文件名保留在素材、标题提示和图库中，不改写素材名称。Nano Banana 默认显示“图像生成 NANO BANANA”，自定义主标题仍可重命名。
+画布节点的默认标题使用中文，自定义名称保持原样；模型品牌名（如 GPT Image 2.5）保留英文。标题与重命名框使用相同默认文案，界面字体复用全局 `--font-ui`（英文 Inter、macOS 中文苹方、Windows 中文 Noto Sans SC）。全部节点使用“中文名称＋英文类型”，普通标题位于卡片外左上角，紧凑 Router 标题位于卡片内；文件默认按媒体类型命名，原始文件名保留在素材、标题提示和图库中，不改写素材名称。Nano Banana 默认显示“图像生成 NANO BANANA”，自定义主标题仍可重命名。
 
 画布右键创建与拖线推荐菜单共用 `libraryItemLabel` 显示名称；模型设置面板和任务列表复用对应模型的名称常量，Nano Banana 的节点标题按上述中英分段显示品牌。菜单搜索同时匹配中文和原英文，端口说明仅翻译显示，不改变连接标识。
 
-节点主体按阶段接入 [NodeFrame.tsx](./NodeFrame.tsx) 和 [NodeFrame.css](./NodeFrame.css)，目前覆盖提示词、文件／图片迭代、文本迭代、图像描述，GPT Image 2.5／Ideogram 4.5／Nano Banana，以及绘图、模糊、调整尺寸、裁剪、混合、蒙版扩张／收缩、蒙版提取和对比；卡片宽 452／400px，标题 16px。旧工作流的外壳宽高由新布局覆盖，位置与业务字段保留。其余节点主体和高级参数面板留待后续阶段。
+全部 26 类节点主体接入 [NodeFrame.tsx](./NodeFrame.tsx) 和 [NodeFrame.css](./NodeFrame.css)。文本卡片宽 452px，图片／处理节点宽 400px；Router、参数选项和坐标记录使用 344px 紧凑卡片。标题 16px、主体圆角 24px；Router 主体为 344×84px。旧工作流的外壳宽高由新布局覆盖，位置、素材、参数及业务字段保留。无工具栏节点的共享 [NodeHeader.tsx](./NodeHeader.tsx) 保留菜单、重命名、输入法保护、Escape 取消及提交时的锁定检查。旋转翻转的操作按钮、合成器添加图层／编辑入口仍位于预览下方；这些控件没有独立 Figma 工具栏稿，不改变其交互归属。
 
-全部 26 类已注册节点使用 [NodePort.tsx](./NodePort.tsx)／[NodePort.css](./NodePort.css)：30px 底座、16px 图标，真实 Handle 与图标边缘对齐；文本、图片、蒙版、文件和变量使用本地 SVG，视频／音频／3D 复用 Hugeicons。保留所有 Handle ID 和无 ID 的文本输出，添加变量／图片的加号仅为按钮。动态输入、暴露参数、合成器图层继续刷新端点测量。端口标签支持悬停、选中、聚焦及减少动态效果，多选时收起。
+全部 26 类已注册节点使用 [NodePort.tsx](./NodePort.tsx)／[NodePort.css](./NodePort.css)：30px 底座、16px 图标，真实 Handle 与图标边缘对齐；文本、图片、蒙版、文件和变量使用本地 SVG，视频／音频／3D 复用 Hugeicons。保留所有 Handle ID 和无 ID 的文本输出，添加变量／图片的加号仅为按钮。动态输入、暴露参数、合成器图层继续刷新端点测量。端口标签支持悬停、单选、聚焦及减少动态效果，多选时收起；动效由画布的 `NodePortLabelMotion` 统一管理。
 
-几何值统一在 [nodeLayout.ts](./nodeLayout.ts)：普通端点首行中心 95px、行距 42px；Router 为 31px，参数选项为 32px，坐标记录保持垂直居中。文本类新外壳宽 528px，图片与图像模型外壳宽 476px；旧卡片的端点在外侧留 8px 间隔，拖线创建共用实际端点偏移。[nodeConnectionStyle.ts](./nodeConnectionStyle.ts) 和 [nodePortAppearance.ts](./nodePortAppearance.ts) 统一所有正式线、正反向拖线预览、Router 与文件媒体的类型颜色：文字灰色 `#5F5F5F`，图片和蒙版均为浅蓝 `#80B9F1`，正常线宽 3px、选中 4px、默认点击区域 24px。蒙版与图片仍保留各自类型和执行语义，颜色不参与连接校验。
+几何值统一在 [nodeLayout.ts](./nodeLayout.ts)：普通端点首行中心 95px、行距 42px；Router 为 45px。文本类外壳宽 528px，图片类为 476px，紧凑类为 420px；左右各含 30px 图标端点与 8px 间隔。坐标记录、参数选项与普通节点共用 95px 首行，不再使用旧卡片中心偏移。拖线创建、正式连线和实际 Handle 共用这些坐标。[nodeConnectionStyle.ts](./nodeConnectionStyle.ts) 和 [nodePortAppearance.ts](./nodePortAppearance.ts) 统一所有正式线、正反向拖线预览、Router 与文件媒体的类型颜色：文字灰色 `#5F5F5F`，图片和蒙版均为浅蓝 `#80B9F1`，正常线宽 3px、选中 4px、默认点击区域 24px。蒙版与图片仍保留各自类型和执行语义，颜色不参与连接校验。
 
 浏览器入口 `/tests/node-ports.html` 覆盖全部节点的实际端点、连线锚点、动态输入、锁定和保存恢复，加 `?light` 检查浅色主题；`nodePorts.test.ts` 随 `npm test` 验证类型、Router 链、参数输入和新建落点。图片比例、运行反馈、原始素材与模型请求逻辑沿用原实现。八类顶部工具栏已迁移，详见 [实施计划](../../docs/node-visual-redesign-plan.md)。
 
@@ -63,7 +63,7 @@
 
 节点库的名称、分类和创建数据在 [libraryCatalog.ts](../components/libraryCatalog.ts) 中维护。只有提供 `nodeType` 的条目才能通过 `createLibraryNode` 创建节点；目录中的展示卡片不等于已实现的节点，不应为占位卡片生成替代节点。
 
-节点标题与旧节点库卡片共用 [nodeIcons.ts](./nodeIcons.ts) 中的共享图标映射（通用节点使用 Hugeicons Stroke Rounded）；标题通过 [NodeIcon.tsx](./NodeIcon.tsx) 渲染并保留各节点原有尺寸。修改节点图标时更新共享映射，避免两处显示不一致。Nano Banana 与 Ideogram 4.5 使用 [modelBrandIcons.ts](./modelBrandIcons.ts) 中从 Weavy 对应模型卡片同步的原始 SVG 路径；Nano Banana 保留品牌紫色，Ideogram 随主题文字颜色变化，旧节点库、标题与设置面板共用同一图标。「+」菜单按其 Figma 设计使用独立图标。Router 仍根据输入内容切换文本、图片 / 蒙版、视频、音频、3D 或文件图标，未连接时使用路由图标。
+节点菜单、设置面板与旧节点库卡片共用 [nodeIcons.ts](./nodeIcons.ts) 中的共享图标映射（通用节点使用 Hugeicons Stroke Rounded）；需要通用图标时通过 [NodeIcon.tsx](./NodeIcon.tsx) 渲染；新版画布标题以中文名称和英文类型为主。修改节点图标时更新共享映射，避免两处显示不一致。Nano Banana 与 Ideogram 4.5 使用 [modelBrandIcons.ts](./modelBrandIcons.ts) 中从 Weavy 对应模型卡片同步的原始 SVG 路径；Nano Banana 保留品牌紫色，Ideogram 随主题文字颜色变化，旧节点库与设置面板共用同一图标。「+」菜单按其 Figma 设计使用独立图标。Router 仍根据输入内容切换文本、图片 / 蒙版、视频、音频、3D 或文件图标，未连接时使用 Figma 导出的本地路由图标 `/node-ports/router.svg`。
 
 Compositor 文本、形状及钢笔交互与验证入口见 [合成编辑器文档](../../docs/compositor.md)。锚点在不同缩放下保持固定命中区，可越界调整及插入曲线点；交互草稿按帧更新，提交仍复用工作流历史与持久化。
 
@@ -166,6 +166,8 @@ Preview 不运行模型、不生成新的图片素材；节点、选中图片和
 ## 高级参数侧栏约定
 
 图像描述、GPT Image 2.5、Ideogram、Nano Banana 及模型参数选项共用 300px 面板外壳、14px 参数标签、32px 选择器、12px 圆角、独立内容滚动和底部运行区。图像描述保留模型与系统指令输入；各图像模型保留原字段、参数“设为输入／使用本地值”、上游有效值、锁定及运行状态。GPT 背景仍为自动／透明／不透明三态，保留 JPEG 联动和渠道画质限制。模型任务管理独立于侧栏生命周期，关闭侧栏不取消任务；多选时不显示混合参数，使用独立批量运行入口。
+
+参数工具栏、侧栏与绘图弹层中的非文本控件支持 Cmd/Ctrl+Z 和 Cmd/Ctrl+Shift+Z；数值框、文本框及输入法保留自身编辑行为。取消滑块草稿后可直接使用方向键继续修改；数值框切到滑块时先提交数值，再开始新的拖动。图像模型“设为输入”的新参数节点使用公共外框宽度留出连线间距，并避开已有节点，不移动或删除已保留的输入节点。
 
 侧栏专项验收为 `/tests/node-settings.html`（浅色加 `?light`），运行 `npm run dev` 后打开；沿用浏览器测试页，无新增测试依赖。包含本地渲染、草稿清理、参数输入、撤销重做、锁定、任务状态、模型选项、保存与重新挂载；不调用真实模型。
 
@@ -388,3 +390,7 @@ Mask 必须恰好一张且与原图尺寸一致。[ideogramEditClient.ts](./ideo
 自动执行的补充边界：各运行保存自己接受的上游模型输出，其他并发运行更新同一节点时不替换本次输入。开始执行前检查已知提示词、静态参数和必要连接；来自待运行节点的动态文本在准备好后再校验。Painter Mask 直连或经过 Router 接入 GPT Image / Ideogram 时，按实际请求的 alpha PNG 校验缓存，缺失或无法读取则自动重新导出；Compare 保持原来的可见图片输出语义。模型请求超时从取得并发名额后开始计时，排队期间仍可取消。每张资源读取设 30 秒期限，包含响应体和远程内容指纹计算，超时中止读取并结束等待；原图读取失败不会提交模型请求。
 
 这些边界由 `workflowExecution.test.ts`、`executionAssets.test.ts` 随 `npm test` 验证（包括虚拟时钟下的排队、取消和迟到返回）。`tests/workflow-boundaries.test.ts` 由 `/tests/workflow-execution.html` 调用，使用隔离的执行器、模拟模型返回、原生 Painter 导出与资源读取检查并发、提前校验、蒙版恢复和超时；另以真实 Resize 像素验证远程生成内容更新、相同内容复用，以及 Runs 中单次失败后的剩余次数执行；不读取或改动用户保存的画布，不调用真实模型。
+
+## 全节点改版收尾验收
+
+运行 `npm run dev` 后打开 `/tests/node-ports.html`，检查全部 26 类节点的外框、标题、真实图标端点、正反向连线、动态参数输入、锁定、旧宽高数据与 IndexedDB 重新挂载；`?light` 验证浅色主题。新入口 `/tests/node-final-review.html` 使用真实本地图片处理和隔离工作流，覆盖反相像素、旋转翻转与历史、预览经 Router 传递、参数选项、合成器输入、30%／100%／150% 缩放、重命名的输入法／取消行为及保存恢复，同样支持 `?light`。页面保留可操作场景供真实鼠标拖动、连线及合成编辑器验收。无新增测试依赖，无真实模型请求；完整记录见 [实施计划](../../docs/node-visual-redesign-plan.md)。

@@ -3,7 +3,7 @@ import './NodeFrame.css';
 
 export function NodeFrame({ children, kind = 'image', minHeight, className = '', ...props }: {
   children: ReactNode;
-  kind?: 'text' | 'image';
+  kind?: 'text' | 'image' | 'compact';
   minHeight?: number;
 } & Omit<ComponentPropsWithoutRef<'div'>, 'children'>) {
   return <div {...props} className={`node-frame node-frame--${kind} ${className}`} style={{ minHeight }}>{children}</div>;

@@ -6,6 +6,7 @@ import { ideogramImageInputCount } from './ideogram.ts';
 export const nodeLayout = {
   imageWidth: 400,
   textWidth: 452,
+  compactWidth: 344,
   portInset: 38,
   portDiameter: 30,
   firstPortY: 95,
@@ -14,7 +15,25 @@ export const nodeLayout = {
 
 export const nodePortY = (index = 0) => nodeLayout.firstPortY + index * nodeLayout.portGap;
 export const nodeFrameWidth = (type: string | undefined) => ['text', 'text-iterator', 'image-describer'].includes(type ?? '') ? nodeLayout.textWidth + nodeLayout.portInset * 2
-  : ['file', 'image-iterator', 'sunburst', 'ideogram', 'nano-banana', 'painter', 'blur', 'resize', 'crop', 'blend', 'matte-grow-shrink', 'masks-extractor', 'compare', 'color-correction', 'levels'].includes(type ?? '') ? nodeLayout.imageWidth + nodeLayout.portInset * 2 : undefined;
+  : ['router', 'model-input', 'position-logger'].includes(type ?? '') ? nodeLayout.compactWidth + nodeLayout.portInset * 2
+  : ['file', 'image-iterator', 'sunburst', 'ideogram', 'nano-banana', 'painter', 'blur', 'resize', 'crop', 'blend', 'matte-grow-shrink', 'masks-extractor', 'compare', 'color-correction', 'levels', 'preview', 'invert', 'rotate-flip', 'color-palette', 'compositor'].includes(type ?? '') ? nodeLayout.imageWidth + nodeLayout.portInset * 2 : undefined;
+
+export function modelParameterPosition(parent: AppNode, nodes: AppNode[], index: number) {
+  const width = nodeFrameWidth('model-input')!, height = 200, gap = 40;
+  const position = { x: parent.position.x - width - 90, y: parent.position.y + index * height };
+  // Re-exposing a field leaves its old input intact. Find space without moving it
+  // or covering neighboring nodes after the larger node frames are applied.
+  const occupied = nodes.map(node => ({ ...node.position,
+    width: nodeFrameWidth(node.type) ?? node.measured?.width ?? node.width ?? width,
+    height: node.measured?.height ?? node.height ?? 400,
+  }));
+  for (;;) {
+    const collision = occupied.find(box => position.x < box.x + box.width + gap && position.x + width + gap > box.x
+      && position.y < box.y + box.height + gap && position.y + height + gap > box.y);
+    if (!collision) return position;
+    position.y = collision.y + collision.height + gap;
+  }
+}
 
 export function nodePortRow(node: AppNode, handle: string | null | undefined, direction: 'source' | 'target') {
   if (direction === 'source') return handle === 'mask' || handle === 'output-2' || (node.type === 'color-palette' && handle === 'text') ? 1 : 0;
@@ -33,16 +52,15 @@ export function nodePortRow(node: AppNode, handle: string | null | undefined, di
 }
 
 export function nodePortCenterY(node: AppNode, handle: string | null | undefined, direction: 'source' | 'target', index?: number) {
-  if (node.type === 'router') return 31;
-  if (node.type === 'model-input') return 32;
+  if (node.type === 'router') return 45;
   return nodePortY(index ?? nodePortRow(node, handle, direction));
 }
 
 // Coordinates of the visible connection edge, relative to the node's origin.
-// Legacy shells keep their bodies; their ports sit 8px outside the card.
+// Every registered node uses the shared frame; fallback is for unknown types.
 export function nodeConnectionOffset(node: AppNode, handle: string | null | undefined, direction: 'source' | 'target') {
   const frameWidth = nodeFrameWidth(node.type);
-  const width = frameWidth ?? (node.type === 'router' || node.type === 'model-input' ? 250 : 460);
+  const width = frameWidth ?? 460;
   const outside = frameWidth ? 0 : nodeLayout.portInset;
   return { x: direction === 'source' ? width + outside : frameWidth ? 0 : -outside, y: nodePortCenterY(node, handle, direction) };
 }

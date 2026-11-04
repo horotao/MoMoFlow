@@ -1,9 +1,6 @@
 .react-flow :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana) { height: auto; gap: 16px; }
 .react-flow :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana).selected,
 .react-flow :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana):focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-:is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana) .text-node-title { color: var(--text-node-primary); min-width: 0; }
-:is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana) .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-:is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana) .text-node-title > svg { flex-shrink: 0; }
 .sunburst-preview-area { width: 100%; flex-shrink: 0; }
 .sunburst-preview.has-result { min-height: 0; border: 0; }
 .sunburst-preview { position: relative; width: 100%; aspect-ratio: 1; border: 1px solid var(--text-node-surface); overflow: hidden; border-radius: 3px; background-color: #eee; background-image: conic-gradient(#ddd 25%, transparent 0 50%, #ddd 0 75%, transparent 0); background-size: 30px 30px; }
@@ -19,20 +16,8 @@
 .sunburst-run:hover { opacity: .85; }.sunburst-run:active { opacity: .7; }
 :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana) button:disabled { opacity: .35; cursor: default; }
 :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana) button:focus-visible { outline: 1px solid var(--text-node-secondary); outline-offset: 2px; }
-:is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana):hover .describer-port-label, :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana).selected .describer-port-label { visibility: visible; }
-.react-flow .sunburst-port-prompt { background: #e28cf8; border-color: #e28cf8; }
-.sunburst-prompt-asterisk { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--text-node-surface); pointer-events: none; }
-.react-flow :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana) .sunburst-port-prompt.is-connected { background: var(--text-node-surface); }
-.sunburst-port-prompt.is-connected .sunburst-prompt-asterisk { display: none; }
 .react-flow { --sunburst-image-port: #80b9f1; --sunburst-mask-port: #80b9f1; }
 .react-flow.dark { --sunburst-image-port: #80b9f1; --sunburst-mask-port: #80b9f1; }
-.react-flow .sunburst-port-image { border-color: var(--sunburst-image-port); }.sunburst-label-image { color: #97ffcd; }
-.react-flow .sunburst-port-mask { border-color: var(--sunburst-mask-port); }.sunburst-label-mask { color: #e4ff97; }
-.react-flow .sunburst-port-image.is-connected::after { background: #97ffcd; }
-.react-flow .sunburst-port-mask.is-connected::after { background: #e4ff97; }
-.react-flow .sunburst-port-image:hover, .react-flow .sunburst-port-image.connectingto { background: #97ffcd; }
-.react-flow .sunburst-port-mask:hover, .react-flow .sunburst-port-mask.connectingto { background: #e4ff97; }
-.react-flow:not(.dark) .sunburst-label-image { color: #23754d; }.react-flow:not(.dark) .sunburst-label-mask { color: #677d23; }
 .sunburst-settings h2 { display: flex; align-items: center; gap: 8px; min-height: 24px; margin-bottom: 16px; }
 .sunburst-settings h2 svg { flex-shrink: 0; }
 .sunburst-settings h2 span { font-size: 11px; line-height: 16px; }
@@ -47,12 +32,8 @@
 
 .sunburst-provider { height: 40px; flex-shrink: 0; padding: 0 16px; display: flex; align-items: center; gap: 6px; color: var(--panel-text); }
 .sunburst-provider > span:last-child { margin-left: auto; color: var(--panel-muted); font-size: 10px; }
-
-.react-flow:not(.dark) .sunburst-label-prompt { color: #9135b0; }
-.react-flow:not(.dark) .sunburst-port-prompt { background: #b34bd1; border-color: #b34bd1; }
 .sunburst-settings .describer-model-trigger:hover { background: var(--panel-input); }
 .sunburst-settings .describer-model-trigger[aria-expanded="true"] { border-color: var(--panel-muted); }
-.react-flow:not(.dark) .sunburst-label-parameter { color: #9135b0; }
 
 .sunburst-size-control { flex: 1; min-width: 0; width: 100%; }
 .sunburst-size-control > .describer-model-trigger { width: 100%; }

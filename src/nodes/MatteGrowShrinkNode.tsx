@@ -170,6 +170,7 @@ export function MatteGrowShrinkNode({ id, data, isConnectable }: NodeProps<Matte
             cancelledGesture.current = false; dragging.current = true; slider.setPointerCapture(event.pointerId);
           }}
           onKeyDown={event => {
+            if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) cancelledGesture.current = false;
             if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && !event.nativeEvent.isComposing) {
               event.preventDefault(); event.stopPropagation(); cancelDraft();
               if (event.shiftKey) history.redo(); else history.undo();

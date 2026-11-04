@@ -218,7 +218,7 @@
   font-display: swap;
 }
 
-/* Text node: Figma Prompt, 460 × 405 in both themes. */
+/* Shared node tokens; actual canvas geometry is owned by NodeFrame. */
 .react-flow .react-flow__node-text-iterator, .react-flow .react-flow__node-router, .react-flow .react-flow__node-blend, .react-flow .react-flow__node-compare, .react-flow .react-flow__node-text, .react-flow .react-flow__node-image-describer, .react-flow .react-flow__node-model-input, .react-flow .react-flow__node-sunburst, .react-flow .react-flow__node-ideogram, .react-flow .react-flow__node-nano-banana, .react-flow .react-flow__node-masks-extractor, .react-flow .react-flow__node-painter, .react-flow .react-flow__node-preview, .react-flow .react-flow__node-crop, .react-flow .react-flow__node-color-correction, .react-flow .react-flow__node-matte-grow-shrink, .react-flow .react-flow__node-blur, .react-flow .react-flow__node-levels, .react-flow .react-flow__node-invert, .react-flow .react-flow__node-resize, .react-flow .react-flow__node-rotate-flip, .react-flow .react-flow__node-compositor, .react-flow .react-flow__node-color-palette {
   --text-node-surface: #fff;
   --text-node-input: #f3f3f5;
@@ -381,33 +381,9 @@
   vertical-align: baseline;
 }
 .text-node-variable-selected { outline: 1px solid var(--text-node-port); }
-.react-flow .react-flow__node-text .text-node-port { top: 89px; width: 32px; height: 32px; border: 0; background: transparent; }
-.react-flow .react-flow__node-text .react-flow__handle-left { left: -2px; }
-.react-flow .react-flow__node-text .react-flow__handle-right { right: -2px; }
-/* Keep the icon's outer padding clear, as in Weavy. Edges terminate at
-   the 32px handle bounds without a separate segment bridging to the ring. */
-.text-node-port-label {
-  position: absolute;
-  top: 66px;
-  visibility: hidden;
-  color: var(--text-node-port);
-  font-size: 11px;
-  line-height: 16px;
-  white-space: nowrap;
-  pointer-events: none;
-  user-select: none;
-}
-.text-node-port-label-input { left: -78px; }
-.text-node-port-label-output { left: 478px; }
-.react-flow .react-flow__node-text:hover .text-node-port-label,
-.react-flow .react-flow__node-text.selected .text-node-port-label { visibility: visible; }
 .react-flow .react-flow__node-text.selected { border-color: var(--text-node-border-selected); }
-.react-flow .react-flow__node-text.selected .text-node-title { color: var(--text-node-primary); }
 
 .text-node-add { cursor: pointer; }
-.text-node-icon-port-connected { width: 32px; height: 32px; }
-.text-node-icon-port-connected .text-node-icon-light { transform: scale(0.90909091); }
-.text-node-icon-port-connected .text-node-icon-dark { transform: none; }
 .react-flow .react-flow__node-text, .react-flow .react-flow__node-image-describer, .react-flow .react-flow__node-model-input { --text-node-variable-chip: #eddbf5; }
 .react-flow.dark .react-flow__node-text, .react-flow.dark .react-flow__node-image-describer, .react-flow.dark .react-flow__node-model-input { --text-node-variable-chip: #59475e; }
 .text-node-content { flex: 1; min-height: 287px; }
@@ -563,11 +539,6 @@
 .file-node-link input:focus { border-color: var(--file-selected); }
 .file-node-input { display: none; }
 .file-node-error { position: absolute; left: 16px; right: 16px; top: calc(100% + 8px); padding: 8px 12px; border-radius: 6px; color: var(--file-text); background: var(--file-surface); border: 1px solid #c96060; }
-.react-flow :is(.react-flow__node-file, .react-flow__node-image-iterator) .file-node-port { top: 90px; right: -16px; transform: translateY(-50%); width: 32px; height: 32px; border: 8px solid var(--file-surface); border-radius: 50%; background: var(--file-port); transition: background-color .2s; }
-.file-node-port::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--file-surface); pointer-events: none; }
-.file-node-port.is-connected::before { content: ''; position: absolute; inset: 5px; background: var(--file-port); border-radius: 50%; z-index: 1; pointer-events: none; }
-.file-node-port-label { position: absolute; top: -20px; left: 30px; white-space: nowrap; color: var(--file-port); font-size: 12px; font-weight: 500; pointer-events: none; opacity: 0; transition: opacity .2s ease-in-out; }
-:is(.react-flow__node-file, .react-flow__node-image-iterator):hover .file-node-port-label { opacity: 1; }
 .file-node-add:disabled, .file-node-upload:disabled { cursor: default; }
 :is(.react-flow__node-file, .react-flow__node-image-iterator):has(.text-node-menu) { z-index: 1002 !important; }
 
@@ -631,7 +602,6 @@
 .file-gallery-thumbnails button.is-active, .file-gallery-thumbnails button:hover { opacity: 1; }
 .file-gallery-thumbnails img { width: 100%; height: 100%; object-fit: cover; }
 .file-gallery-message { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); padding: 8px 12px; border-radius: 6px; background: #222; text-align: center; }
-.react-flow .react-flow__node-text .text-node-port.is-type-error::after { content: ''; position: absolute; inset: 0; border: 8px solid #e85555; border-radius: 50%; pointer-events: none; }
 @media (max-width: 600px) { .file-gallery-title { width: auto; min-width: 70px; } .file-gallery-sidebar { width: 64px; } .file-gallery-thumbnails button { width: 64px; height: 64px; } }
 
 .react-flow { --media-port-file: #7c965a; --media-port-image: #80b9f1; --media-port-video: #6877bd; --media-port-audio: #a06828; --media-port-3d: #b65c84; }
@@ -650,11 +620,6 @@
 .describer-expand { position: absolute; top: 8px; right: 8px; opacity: 0; background: var(--text-node-surface); border: 0; padding: 5px; border-radius: 4px; }
 .describer-output:hover .describer-expand, .describer-expand:focus-visible { opacity: 1; }
 .describer-run { display: flex; align-items: center; gap: 5px; border: 1px solid var(--text-node-border); border-radius: 5px; background: transparent; color: inherit; font: inherit; padding: 6px 10px; }
-.react-flow .describer-port { width: 15px; height: 15px; border: 3px solid #df8bf6; background: var(--text-node-surface); box-shadow: 0 0 0 5px var(--text-node-surface); }
-.react-flow .describer-port.image-port { border-color: var(--media-port-image); }
-.describer-port-label { position: absolute; right: calc(100% + 20px); color: #df8bf6; font-size: 11px; white-space: nowrap; visibility: hidden; }
-.describer-port-label.output-label { left: calc(100% + 20px); right: auto; top: 61px; }
-.react-flow__node-image-describer:hover .describer-port-label, .react-flow__node-image-describer.selected .describer-port-label { visibility: visible; }
 .describer-panel, .describer-tasks { --panel-bg: #fff; --panel-input: #f3f3f5; --panel-border: #ddd; --panel-text: #292929; --panel-muted: #707070; position: absolute; z-index: 8; background: var(--panel-bg); color: var(--panel-text); font-family: var(--font-ui); font-size: 11px; }
 .dark .describer-panel, .dark .describer-tasks { --panel-bg: #2c2c2c; --panel-input: #383838; --panel-border: #444; --panel-text: #eee; --panel-muted: #b3b3b3; }
 .describer-panel { right: 16px; top: 16px; width: 240px; border: 1px solid var(--panel-border); border-radius: 12px; }
@@ -815,8 +780,6 @@
 @media (max-width: 700px) { .describer-preview-title { width: auto; padding-right: 12px; }.describer-preview-info { background: #2c2c2c; }.describer-preview-stage { right: 0; top: 176px; } }
 @media (prefers-reduced-motion: reduce) { .describer-panel.is-open { animation: none; }.describer-expand, .react-flow__node-image-describer .text-node-footer button { transition: none; } }
 
-.describer-port-wrapper { display: contents; }
-
 /* Exposed list selector mirrors the compact Model Name node. */
 .react-flow .react-flow__node-model-input { width: 250px; min-height: 100px; height: auto; padding: 16px; gap: 16px; }
 .react-flow__node-model-input .describer-model-trigger { width: 100%; height: 24px; display: flex; align-items: center; justify-content: space-between; padding: 0 0 0 8px; border: 1px solid var(--text-node-border); border-radius: 5px; background: transparent; color: inherit; font: 11px var(--font-ui); cursor: pointer; }
@@ -839,22 +802,6 @@
 .react-flow__node-text .text-node-editor-host, .react-flow__node-text .text-node-editor-content { height: auto; }
 .react-flow__node-text .text-node-editor { height: auto; min-height: 287px; max-height: 518px; overflow-y: auto; scrollbar-color: var(--text-node-border) transparent; }
 .model-options-settings { scrollbar-width: thin; scrollbar-color: #666 transparent; overscroll-behavior: contain; }
-
-.react-flow .describer-port.model-options-port { border-color: #f3ffe3; }
-.describer-port-label.model-options-label { top: 2px; color: #f3ffe3; }
-.describer-port-label.model-text-label { top: 2px; }
-.react-flow__node-model-input:hover .describer-port-label, .react-flow__node-model-input.selected .describer-port-label { visibility: visible; }
-.react-flow:not(.dark) .model-options-label { color: #7c965a; }
-.react-flow:not(.dark) .describer-port.model-options-port { border-color: #7c965a; }
-
-/* Match the existing ports: retain the ring and add a separate center dot. */
-.react-flow .describer-port.is-connected::after { content: ''; position: absolute; left: 50%; top: 50%; width: 5px; height: 5px; transform: translate(-50%, -50%); border-radius: 50%; background: #df8bf6; pointer-events: none; }
-.react-flow .describer-port.image-port.is-connected::after { background: var(--media-port-image); }
-
-/* Overlapping selected nodes must not leak their port labels into a group selection. */
-.react-flow .react-flow__nodes:has(> .react-flow__node.selected ~ .react-flow__node.selected) .react-flow__node :is(.text-node-port-label, .describer-port-label, .file-node-port-label) {
-  visibility: hidden;
-}
 
 .canvas-save-status {
   margin-left: 72px;

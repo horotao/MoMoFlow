@@ -1,3 +1,4 @@
+import { flushSync } from 'react-dom';
 import { NodePort } from './NodePort';
 import { ToolNodeFrame, ToolbarIcon } from './ToolNodeFrame';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
@@ -156,7 +157,14 @@ export function BlurNode({ id, data, isConnectable }: NodeProps<Blur>) {
         <label htmlFor={`${id}-${control.key}`}>{control.label}</label>
         <input id={`${id}-${control.key}`} type="range" aria-label={control.label} min={control.min} max={control.max} step={control.step}
           value={settings[control.key]} disabled={data.locked} style={{ '--toolbar-progress': `${(settings[control.key] - control.min) / (control.max - control.min) * 100}%` } as CSSProperties}
-          onPointerDown={event => { cancelledGesture.current = false; dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); }}
+          onPointerDown={event => {
+            if (event.button !== 0) return;
+            const slider = event.currentTarget;
+            // Commit a focused number field before starting the new gesture.
+            if (document.activeElement !== slider) flushSync(() => slider.focus());
+            cancelledGesture.current = false; dragging.current = true; slider.setPointerCapture(event.pointerId);
+          }}
+          onKeyDown={event => { if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) cancelledGesture.current = false; }}
           onChange={event => {
             if (cancelledGesture.current) return;
             const next = { ...settings, [control.key]: Number(event.target.value) };

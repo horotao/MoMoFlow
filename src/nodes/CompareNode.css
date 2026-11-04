@@ -1,9 +1,5 @@
 .react-flow .react-flow__node-compare { height: auto; min-height: 184px; gap: 16px; }
 .react-flow .react-flow__node-compare.selected, .react-flow .react-flow__node-compare:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-.react-flow__node-compare .text-node-title { min-width: 0; gap: 8px; }
-.react-flow__node-compare .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.react-flow__node-compare .text-node-title > svg { flex-shrink: 0; }
-.react-flow__node-compare:hover .describer-port-label, .react-flow__node-compare.selected .describer-port-label { visibility: visible; }
 .compare-layer, .compare-slider { position: absolute; inset: 0; }
 .compare-layer { background: inherit; }
 .compare-layer img { width: 100%; height: 100%; object-fit: contain; display: block; user-select: none; }

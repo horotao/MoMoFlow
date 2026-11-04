@@ -1,34 +1,24 @@
 import { NodePort } from './NodePort';
-import { useEffect, useRef, useState } from 'react';
-import { useEdges, useNodes, useReactFlow, type NodeProps } from '@xyflow/react';
-import { Ellipsis, LockKeyhole } from 'lucide-react';
+import { useEdges, useNodes, type NodeProps } from '@xyflow/react';
+import { LockKeyhole } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { nodeIcons, routerIcons } from './nodeIcons';
+import { routerIcons } from './nodeIcons';
 import type { AppNode, RouterNode as Router } from './types';
-import { isNodeLocked } from './types';
 import { outputKind } from './router';
-import { TextNodeMenu } from './TextNodeMenu';
+import { NodeFrame } from './NodeFrame';
+import { NodeHeader } from './NodeHeader';
 import './RouterNode.css';
 
 export function RouterNode({ id, data, isConnectable }: NodeProps<Router>) {
   const nodes = useNodes<AppNode>(), edges = useEdges();
-  const { getNode, updateNodeData } = useReactFlow<AppNode>();
-  const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
-  const input = useRef<HTMLInputElement>(null), cancelled = useRef(false);
   const kind = outputKind(nodes.find(node => node.id === id), 'output', nodes, edges);
-  useEffect(() => { if (renaming) { input.current?.focus(); input.current?.select(); } }, [renaming]);
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><HugeiconsIcon icon={kind ? routerIcons[kind] : nodeIcons.router} aria-hidden="true" />
-        {renaming ? <input ref={input} className="text-node-rename nodrag nopan" aria-label="节点名称" value={name} maxLength={100}
-          onChange={event => setName(event.target.value)}
-          onBlur={() => { if (!cancelled.current && name.trim() && !isNodeLocked(getNode(id))) updateNodeData(id, { label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return; if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') { cancelled.current = true; event.currentTarget.blur(); } }} /> : <span>{data.label || '路由'}</span>}
-        {data.locked && <LockKeyhole size={12} aria-label="已锁定" />}
-      </div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { cancelled.current = false; setName(data.label || '路由'); setRenaming(true); }}><Ellipsis size={24} strokeWidth={1.2} /></TextNodeMenu>
-    </header>
+  return <NodeFrame kind="compact" className="node-router-frame" minHeight={84}>
+    <div className="node-frame-card node-router-card">
+      <NodeHeader id={id} label={data.label} fallback="路由" type="ROUTER" locked={data.locked}
+        icon={<span className="node-router-icon">{kind ? <HugeiconsIcon icon={routerIcons[kind]} size={16} aria-hidden="true" /> : <img src="/node-ports/router.svg" alt="" />}</span>} />
+      {data.locked && <LockKeyhole className="node-router-lock" size={12} aria-label="已锁定" />}
+    </div>
     <NodePort id="input" direction="target" label="Router input" isConnectable={isConnectable && !data.locked} />
     <NodePort id="output" direction="source" label="Router output" isConnectable={isConnectable && !data.locked} />
-  </>;
+  </NodeFrame>;
 }

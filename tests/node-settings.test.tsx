@@ -84,9 +84,35 @@ async function run() {
   const gammaInput = find<HTMLInputElement>(`${panel} input[type="number"][aria-label="伽马"]`); await edit('伽马', '2', 'Escape'); check(gammaInput.value === '1', '数值 Escape 恢复原值');
   await drag('输入黑点', 70); api.updateNodeData('levels', { locked: true }); await settle(); check(levels().data.settings.R.inputMin === 35 && find<HTMLInputElement>(`${panel} input[type="range"]`).disabled, '锁定取消草稿并禁止编辑'); api.updateNodeData('levels', { locked: false }); await settle();
   find(`${panel} .node-settings-actions button`).click(); await settle(); check(levels().data.settings.R.inputMin === 0 && levels().data.settings.RGB.gamma === 1, '顶部重置覆盖所有色阶通道');
-  await select('color-correction'); await click(`${panel} [role="switch"]`); const noPreview = await drag('曝光', .9); check(!colorLivePreviews.get('color-correction'), '调色关闭实时预览有效'); noPreview.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, bubbles: true })); await settle(); await until(() => Boolean(color().data.outputRevision?.includes('0.9')), 'Color preview-off final');
-  canvasHistoryShortcut('undo'); await settle(); check(color().data.settings.exposure === .7, '侧栏调色提交支持画布撤销'); canvasHistoryShortcut('redo'); await settle(); check(color().data.settings.exposure === .9, '侧栏调色提交支持重做');
+  await select('color-correction');
+  const reopenedExposure = find<HTMLInputElement>(`${panel} input[type="range"][aria-label="曝光"]`);
+  reopenedExposure.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(reopenedExposure, '.71');
+  reopenedExposure.dispatchEvent(new Event('input', { bubbles: true })); await settle();
+  check(color().data.settings.exposure === .71, '取消拖动并重开侧栏后，方向键仍可修改曝光');
+  canvasHistoryShortcut('undo'); await settle();
+  await click(`${panel} [role="switch"]`); const noPreview = await drag('曝光', .9); check(!colorLivePreviews.get('color-correction'), '调色关闭实时预览有效'); noPreview.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, bubbles: true })); await settle(); await until(() => Boolean(color().data.outputRevision?.includes('0.9')), 'Color preview-off final');
+  const exposure = find<HTMLInputElement>(`${panel} input[type="range"][aria-label="曝光"]`);
+  exposure.focus(); exposure.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true })); await settle(); check(color().data.settings.exposure === .7, '焦点在侧栏滑块时支持撤销');
+  exposure.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', metaKey: true, shiftKey: true, bubbles: true, cancelable: true })); await settle(); check(color().data.settings.exposure === .9, '焦点在侧栏滑块时支持重做');
+  const numberUndo = new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true, cancelable: true });
+  find<HTMLInputElement>(`${panel} input[type="number"][aria-label="曝光"]`).dispatchEvent(numberUndo); await settle();
+  check(!numberUndo.defaultPrevented && color().data.settings.exposure === .9, '数值输入保留原生文本撤销，不回退画布');
+  const pendingNumber = find<HTMLInputElement>(`${panel} input[type="number"][aria-label="曝光"]`);
+  pendingNumber.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(pendingNumber, '1.2'); pendingNumber.dispatchEvent(new Event('input', { bubbles: true })); await settle();
+  const nextDrag = await drag('曝光', 1.3); nextDrag.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, bubbles: true })); await settle();
+  check(color().data.settings.exposure === 1.3, '编辑曝光数值后首次拖动滑块即可提交');
+  canvasHistoryShortcut('undo'); await settle(); canvasHistoryShortcut('undo'); await settle();
   await drag('曝光', 2); api.setNodes(all => all.map(node => ({ ...node, selected: ['levels', 'color-correction'].includes(node.id) }))); await settle(); check(color().data.settings.exposure === .9 && !colorLivePreviews.get('color-correction') && !document.querySelector(`${panel} .color-settings`), '多选取消草稿且不混用参数');
+  for (const type of ['color-correction', 'levels']) {
+    await select(type); await click(`[data-id="${type}"] [aria-label="更多选项"]`);
+    const rename = [...document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')].find(item => item.textContent?.trim() === '重命名')!;
+    rename.click(); await settle();
+    const name = find<HTMLInputElement>(`[data-id="${type}"] input[aria-label="节点名称"]`);
+    name.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true })); await settle();
+    check(name.isConnected && document.activeElement === name, `${type} 中文输入法确认候选词不会结束重命名`);
+    name.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
+  }
   for (const type of ['sunburst', 'ideogram', 'nano-banana']) {
     await select(type); check(getComputedStyle(find(panel)).width === '300px', `${type} 共用 300px 外壳`);
     const label = type === 'sunburst' ? '画质' : '宽高比';
@@ -94,6 +120,13 @@ async function run() {
     const edge = api.getEdges().find(edge => edge.target === type && edge.targetHandle === (type === 'sunburst' ? 'quality' : 'aspectRatio'))!;
     await until(() => Boolean(document.querySelector(`[data-id="${edge.id}"] path`)), `${type} exposed edge renders`);
     check(Boolean(edge) && find<HTMLButtonElement>(`${panel} [role="combobox"][aria-label="${label}"]`).disabled, `${type} 参数设为输入并禁用本地控件`);
+    const inputBox = find(`[data-id="${edge.source}"]`).getBoundingClientRect();
+    const modelBox = find(`[data-id="${type}"]`).getBoundingClientRect();
+    check(modelBox.left - inputBox.right >= 80, `${type} 设为输入后节点间保留连线间距、不重叠`);
+    check([...document.querySelectorAll<HTMLElement>('.react-flow__node')].filter(element => element.dataset.id !== edge.source).every(element => {
+      const box = element.getBoundingClientRect();
+      return inputBox.right <= box.left || inputBox.left >= box.right || inputBox.bottom <= box.top || inputBox.top >= box.bottom;
+    }), `${type} 新参数节点避开已有节点`);
     const upstream = type === 'sunburst' ? 'high' : '16:9'; api.updateNodeData(edge.source, { model: upstream }); await settle();
     check(find(`${panel} [role="combobox"][aria-label="${label}"]`).textContent?.includes(type === 'sunburst' ? '高' : upstream), `${type} 显示上游有效值`);
     await click(`${panel} [aria-label="${label}使用本地值"]`); check(!api.getEdges().some(item => item.id === edge.id) && !find<HTMLButtonElement>(`${panel} [role="combobox"][aria-label="${label}"]`).disabled, `${type} 收回输入保留有效值`);
@@ -119,6 +152,12 @@ async function run() {
   const optionInput = find<HTMLInputElement>(`${panel} input[type="text"]`); optionInput.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(optionInput, '自定义模型'); optionInput.dispatchEvent(new Event('input', { bubbles: true })); await settle();
   check((api.getNode('model-input') as ModelInputNode).data.options?.[0] === '自定义模型', '模型参数节点选项仍可编辑');
   for (const type of ['sunburst', 'ideogram', 'nano-banana', 'image-describer', 'model-input']) { await select(type); api.updateNodeData(type, { locked: true }); await settle(); check([...document.querySelectorAll<HTMLButtonElement>(`${panel} [role="combobox"], ${panel} .describer-expose`)].every(button => button.disabled), `${type} 锁定后参数与设为输入禁用`); api.updateNodeData(type, { locked: false }); await settle(); }
+  const exposedEdges = [];
+  for (const type of ['sunburst', 'ideogram', 'nano-banana']) {
+    await select(type);
+    await click(`${panel} [aria-label="将${type === 'sunburst' ? '画质' : '宽高比'}设为输入"]`);
+    exposedEdges.push(api.getEdges().find(edge => edge.target === type)!);
+  }
   await storage.save({ nodes: api.getNodes(), edges: api.getEdges(), viewport, colorMode: workflow.colorMode }); const saved = await storage.load();
   check((saved?.nodes.find(node => node.id === 'color-correction') as ColorCorrectionNode).data.settings.exposure === .9 && (saved?.nodes.find(node => node.id === 'sunburst') as SunburstNode).data.provider === 'openai', '保存恢复保留本地参数与模型渠道');
   await select('levels'); const deleted = api.getNode('levels')!; await drag('输入黑点', 80); api.setNodes(all => all.filter(node => node.id !== 'levels')); await settle(); check(!levelsLivePreviews.get('levels'), '删除节点清理预览资源'); api.addNodes({ ...deleted, selected: false }); await settle();
@@ -127,6 +166,16 @@ async function run() {
   root.render(<ReactFlowProvider key="restored"><ModelTasksContext.Provider value={store}><Flow storage={storage} saved={restored} /><Probe /></ModelTasksContext.Provider></ReactFlowProvider>);
   await settle(); await select('color-correction'); await until(() => Boolean(document.querySelector(`${panel} input[aria-label="曝光"]`)) && Boolean(imageOutput(color(), 'result', api.getNodes(), api.getEdges())[0]), 'Restored renderer output');
   check(color().data.settings.exposure === .9 && find<HTMLInputElement>(`${panel} input[type="number"][aria-label="曝光"]`).value === '0.9' && find('[role="switch"]').getAttribute('aria-checked') === 'true', '重新挂载后恢复参数与有效输出，会话预览偏好重置');
+  for (const edge of exposedEdges) {
+    await select(edge.target);
+    const field = edge.target === 'sunburst' ? '画质' : '宽高比';
+    const value = edge.target === 'sunburst' ? '高' : '16:9';
+    check(api.getEdges().some(item => item.id === edge.id && item.source === edge.source && item.targetHandle === edge.targetHandle)
+      && find<HTMLButtonElement>(`${panel} [role="combobox"][aria-label="${field}"]`).disabled
+      && find(`${panel} [role="combobox"][aria-label="${field}"]`).textContent?.includes(value), `${edge.target} 重挂载后保留参数输入连线、禁用状态和有效值`);
+    check(find(`[data-id="${edge.target}"]`).getBoundingClientRect().left - find(`[data-id="${edge.source}"]`).getBoundingClientRect().right >= 80, `${edge.target} 恢复后输入节点仍不重叠`);
+  }
+  await select('color-correction');
   const result = find('#results'); result.dataset.result = 'passed'; result.textContent = `${checks.length} 项通过\n${checks.join('\n')}`;
   window.fetch = originalFetch;
 }

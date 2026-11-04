@@ -91,3 +91,14 @@ CI 使用完整 Git 历史，PR 以目标分支基点、推送以事件的前一
 ### 高级参数侧栏验收
 
 运行 `npm run dev` 后打开 `/tests/node-settings.html`，浅色主题加 `?light`。独立工作流覆盖 300px 固定宽度、调色／色阶参数与真实输出、实时预览关闭后的提交、切换／关闭／多选／删除／锁定草稿清理、撤销重做、模型参数设为输入与收回、运行状态、批量运行入口、模型选项，以及 IndexedDB 保存与重新挂载。使用本地图片，阻止真实模型请求；不属于 `npm test`。模型运行回归沿用 `/tests/sunburst-provider.html`、`ideogram.html`、`ideogram-edit.html`、`nano-banana.html`、`model-run-progress.html` 和 `workflow-execution.html` 的受控响应，运行次数通过新版侧栏数值输入操作。
+
+### 全节点改版收尾验收
+
+阶段 6 复用 `/tests/node-ports.html`，新增 `/tests/node-final-review.html`（入口 `tests/node-final-review.test.tsx`）。运行 `npm run dev` 后打开，浅色主题加 `?light`；沿用现有 React 独立浏览器验收，无新增框架或依赖，不由 `npm test` 执行。
+
+前者遍历全部 26 类注册节点，核对旧尺寸覆盖、中文名称＋英文类型、30px 图标端点、正式线与拖线锚点、动态输入和完整保存后重新挂载。后者使用本地素材验证反相真实像素、旋转／翻转／重置与撤销重做、Router 预览、参数选项、合成器添加图层、锁定、中文重命名及取消、多个缩放级别和持久化；不访问用户工作流或真实模型。工具栏、侧栏、模型任务和合成器原有专项入口仍保留，不能以静态截图代替这些行为验收。
+
+
+### 节点改版复审补充
+
+`/tests/node-settings.html` 补测取消滑动后重开并使用方向键、数值输入转滑块的首次提交、滑块焦点内的撤销／重做、输入框保留原生撤销、调色／色阶中文重命名，以及三个模型暴露参数后的节点避让与完整保存重挂载。`/tests/node-toolbars.html` 补测相同手势边界、模糊／蒙版扩张历史和绘图弹层历史。`/tests/node-final-review.html` 补测点击空白画布后从真实焦点接收快捷键；手动补验鼠标拖动和连接后直接撤销，不能只向 `.react-flow` 合成发送按键来替代焦点验证。均沿用既有浏览器框架，启动 `npm run dev` 后访问，浅色主题加 `?light`。`nodePorts.test.ts` 随 `npm test` 检查新参数节点的尺寸偏移、避让和不改变原节点。

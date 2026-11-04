@@ -1,3 +1,4 @@
+import { modelParameterPosition } from '../nodes/nodeLayout';
 import { SettingsIcon, SettingsSection } from './ParameterControls';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import type { AppNode, NanoBananaNode } from '../nodes/types';
@@ -25,7 +26,7 @@ export function NanoBananaSettings({ node }: { node: NanoBananaNode }) {
     } else {
       const id = crypto.randomUUID();
       setNodes(all => [...all.map(item => item.id === node.id ? { ...current, data: { ...current.data, exposed: [...exposed, field] } } : item), {
-        id, type: 'model-input', position: { x: node.position.x - 340, y: node.position.y + exposed.length * 200 },
+        id, type: 'model-input', position: modelParameterPosition(current, all, exposed.length),
         data: nanoBananaParameterData(field, String(effective[field] ?? current.data[field])),
       }]);
       setEdges(all => [...all, { id: crypto.randomUUID(), source: id, target: node.id, targetHandle: field }]);

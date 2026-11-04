@@ -28,7 +28,7 @@ export function NodePort({ id, direction, kind, label, index, connected, isConne
     const node = state.nodeLookup.get(nodeId ?? '') as AppNode | undefined;
     return {
       kind: kind ?? nodePortKind(node, id, direction, state.nodes as AppNode[], state.edges),
-      y: node?.type === 'position-logger' ? '50%' : node ? nodePortCenterY(node, id, direction, index) : nodePortY(index),
+      y: node ? nodePortCenterY(node, id, direction, index) : nodePortY(index),
       connected: connected ?? state.edges.some(edge => direction === 'source' ? edge.source === nodeId && (edge.sourceHandle ?? null) === (id ?? null) : edge.target === nodeId && (edge.targetHandle ?? null) === (id ?? null)),
     };
   }, (a, b) => a.kind === b.kind && a.y === b.y && a.connected === b.connected);

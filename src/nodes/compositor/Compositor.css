@@ -1,9 +1,5 @@
 .react-flow .react-flow__node-compositor { height: auto; min-height: 0; display: flex; flex-direction: column; }
 .react-flow .react-flow__node-compositor.selected, .react-flow .react-flow__node-compositor:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-.react-flow__node-compositor .text-node-title { min-width: 0; gap: 8px; }
-.react-flow__node-compositor .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.react-flow__node-compositor .text-node-title > svg { flex-shrink: 0; }
-.react-flow__node-compositor:hover .describer-port-label, .react-flow__node-compositor.selected .describer-port-label { visibility: visible; }
 .compositor-node-body { width: 100%; display: flex; align-items: flex-start; }
 .compositor-node-preview { background: repeating-conic-gradient(#ddd 0% 25%, #eee 0% 50%) 0 / 20px 20px; }
 .dark .compositor-node-preview { background: repeating-conic-gradient(#333 0% 25%, #2c2c2c 0% 50%) 0 / 20px 20px; }

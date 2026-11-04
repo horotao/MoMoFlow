@@ -134,7 +134,7 @@ export function LevelsNode({ id, data, isConnectable }: NodeProps<Levels>) {
       <NodeTitle type="LEVELS">{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
+          onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return; if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
         : <span>{data.label || '色阶'}</span>}</NodeTitle>
       <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '色阶'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
     </header>

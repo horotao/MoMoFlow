@@ -4,7 +4,7 @@ import type { Edge } from '@xyflow/react';
 import type { AppNode, FileAsset } from './types';
 import { nodeConnectionColor, nodeEdgeStyle, nodePortKind } from './nodeConnectionStyle.ts';
 import { nodeConnectionColors } from './nodePortAppearance.ts';
-import { nodeConnectionOffset, nodePortCenterY } from './nodeLayout.ts';
+import { modelParameterPosition, nodeConnectionOffset, nodePortCenterY } from './nodeLayout.ts';
 import { defaultSunburstSettings } from './sunburst.ts';
 import { defaultNanoBananaSettings } from './nanoBanana.ts';
 import { defaultCompositorDocument } from './compositor.ts';
@@ -66,13 +66,29 @@ test('dynamic inputs, exposed parameters and double outputs retain distinct rows
   doc.inputs.forEach((input, index) => assert.equal(nodePortCenterY(compositor, input.id, 'target'), 95 + index * 42));
 });
 
-test('creation offsets land on the actual connection edge for new and legacy shells', () => {
+test('creation offsets land on the actual connection edge for all shared frames', () => {
   assert.deepEqual(nodeConnectionOffset(node('text', { text: '' }), null, 'source'), { x: 528, y: 95 });
   assert.deepEqual(nodeConnectionOffset(node('file'), 'file', 'source'), { x: 476, y: 95 });
   assert.deepEqual(nodeConnectionOffset(node('nano-banana', { imageInputs: 1 }), 'image-0', 'target'), { x: 0, y: 137 });
   assert.deepEqual(nodeConnectionOffset(node('sunburst', { imageInputs: 1 }), 'image-0', 'target'), { x: 0, y: 137 });
   assert.deepEqual(nodeConnectionOffset(node('blend'), 'front', 'target'), { x: 0, y: 137 });
   assert.deepEqual(nodeConnectionOffset(node('painter'), 'mask', 'source'), { x: 476, y: 137 });
-  assert.deepEqual(nodeConnectionOffset(node('router'), 'output', 'source'), { x: 288, y: 31 });
-  assert.deepEqual(nodeConnectionOffset(node('model-input'), null, 'source'), { x: 288, y: 32 });
+  assert.deepEqual(nodeConnectionOffset(node('router'), 'output', 'source'), { x: 420, y: 45 });
+  assert.deepEqual(nodeConnectionOffset(node('model-input'), null, 'source'), { x: 420, y: 95 });
+});
+
+
+test('exposed parameter placement accounts for the enlarged input frame', () => {
+  const parent = { ...node('sunburst'), position: { x: 1000, y: 80 } };
+  assert.deepEqual(modelParameterPosition(parent, [parent], 0), { x: 490, y: 80 });
+  assert.deepEqual(modelParameterPosition(parent, [parent], 2), { x: 490, y: 480 });
+});
+
+test('re-exposing parameters avoids neighbors and retained inputs without moving them', () => {
+  const parent = { ...node('sunburst'), position: { x: 1000, y: 80 } };
+  const existing = [parent, { ...node('model-input'), position: { x: 490, y: 80 }, width: 250, measured: { height: 140 } },
+    { ...node('text'), position: { x: 490, y: 260 }, measured: { height: 300 } }];
+  const before = structuredClone(existing);
+  assert.deepEqual(modelParameterPosition(parent, existing, 0), { x: 490, y: 600 });
+  assert.deepEqual(existing, before);
 });

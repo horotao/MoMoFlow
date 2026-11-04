@@ -1,3 +1,4 @@
+import { useParameterHistory } from './useParameterHistory';
 import { NodeRunFeedback } from './NodeRunFeedback';
 import { NodeSettingsMount } from './NodeSettingsPortal';
 import { ParameterSlider, SettingsIcon } from './ParameterControls';
@@ -34,6 +35,7 @@ function NodeSettingsSidebar({ children, label, onKeyDown, title, nodeId, local,
   children: ReactNode; label: string; onKeyDown: KeyboardEventHandler<HTMLElement>;
 }) {
   const isPresent = useIsPresent();
+  const historyKeyDown = useParameterHistory();
   return <motion.aside
     className="describer-panel node-settings-panel is-open nodrag nopan nowheel"
     aria-label={label}
@@ -42,7 +44,7 @@ function NodeSettingsSidebar({ children, label, onKeyDown, title, nodeId, local,
     exit={{ x: '100%', opacity: 0, transition: spring.slow.exit }}
     transition={spring.slow}
     {...(!isPresent ? { inert: '' } : {})}
-    onKeyDown={onKeyDown}
+    onKeyDownCapture={historyKeyDown} onKeyDown={onKeyDown}
   ><header className="node-settings-header"><h2>{title}</h2><div>
     {isPresent && local && <NodeSettingsMount key={nodeId} nodeId={nodeId} part="actions" />}
     <button type="button" aria-label="关闭参数面板" onClick={onClose}><SettingsIcon name="close" /></button>

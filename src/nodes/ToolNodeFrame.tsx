@@ -1,9 +1,9 @@
-import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { NodeToolbar, useReactFlow, useStore, useViewport } from '@xyflow/react';
 import { Ellipsis } from 'lucide-react';
 import { NodeFrame, NodeTitle } from './NodeFrame';
 import { TextNodeMenu } from './TextNodeMenu';
-import { CanvasHistoryContext } from '../components/useCanvasHistory';
+import { useParameterHistory } from '../components/useParameterHistory';
 import { isNodeLocked, type AppNode } from './types';
 import './ToolNodeFrame.css';
 
@@ -11,10 +11,10 @@ export function ToolbarIcon({ name }: { name: 'close' | 'brush' | 'rectangle' | 
   return <span className={`node-toolbar-icon node-toolbar-icon--${name}`} aria-hidden="true"><img src={`/node-toolbar/${name}.svg`} alt="" draggable={false} /></span>;
 }
 
-function ToolbarSurface({ id, children, label, onClose }: { id: string; children: ReactNode; label: string; onClose: () => void }) {
+function ToolbarSurface({ id, children, label, onClose, cancelDraft }: { cancelDraft?: () => void; id: string; children: ReactNode; label: string; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const viewport = useViewport();
-  const history = useContext(CanvasHistoryContext);
+  const historyKeyDown = useParameterHistory(cancelDraft);
   const x = useStore(state => state.nodeLookup.get(id)?.internals.positionAbsolute.x);
   const y = useStore(state => state.nodeLookup.get(id)?.internals.positionAbsolute.y);
   const [shift, setShift] = useState({ x: 0, y: 0 });
@@ -33,14 +33,7 @@ function ToolbarSurface({ id, children, label, onClose }: { id: string; children
   }, [viewport.x, viewport.y, viewport.zoom, x, y]);
   return <div ref={ref} className="node-parameter-toolbar nodrag nopan nowheel" role="toolbar" aria-label={`${label}参数`} style={{ left: shift.x, top: shift.y }}
     onPointerDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}
-    onKeyDown={event => {
-      // Portaled controls must never delete or move the canvas selection.
-      event.stopPropagation();
-      if (event.nativeEvent.isComposing) return;
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z' && !(event.target instanceof HTMLInputElement && event.target.type !== 'range')) {
-        event.preventDefault(); if (event.shiftKey) history.redo(); else history.undo();
-      }
-    }}>
+    onKeyDownCapture={historyKeyDown} onKeyDown={event => event.stopPropagation()}>
     <button type="button" className="node-toolbar-close" aria-label="关闭参数工具栏" title="关闭参数工具栏" onClick={onClose}><ToolbarIcon name="close" /></button>
     <span className="node-toolbar-separator" />
     <div className="node-toolbar-content">{children}</div>
@@ -81,7 +74,7 @@ export function ToolNodeFrame({ id, label, defaultLabel, type, locked, toolbar, 
     </header>
     <div className="tool-node-menu"><TextNodeMenu id={id} locked={Boolean(locked)} onRename={rename}><Ellipsis size={18} /></TextNodeMenu></div>
     <NodeToolbar nodeId={id} isVisible={visible} offset={8 - 28 * zoom}>
-      <ToolbarSurface id={id} label={defaultLabel} onClose={() => setDismissed(true)}>{toolbar}</ToolbarSurface>
+      <ToolbarSurface id={id} label={defaultLabel} cancelDraft={onToolbarClose} onClose={() => setDismissed(true)}>{toolbar}</ToolbarSurface>
     </NodeToolbar>
     {children}
   </NodeFrame>;
