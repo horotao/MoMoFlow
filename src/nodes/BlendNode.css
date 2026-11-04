@@ -1,9 +1,5 @@
 .react-flow .react-flow__node-blend { height: auto; min-height: 184px; gap: 16px; }
 .react-flow .react-flow__node-blend.selected, .react-flow .react-flow__node-blend:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-.react-flow__node-blend .text-node-title { min-width: 0; gap: 8px; }
-.react-flow__node-blend .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.react-flow__node-blend .text-node-title > svg { flex-shrink: 0; }
-.react-flow__node-blend:hover .describer-port-label, .react-flow__node-blend.selected .describer-port-label { visibility: visible; }
 .blend-controls { width: 100%; display: flex; align-items: center; gap: 32px; height: 24px; font-size: 11px; }
 .blend-mode, .blend-opacity { display: flex; align-items: center; gap: 8px; }
 .blend-mode { flex-shrink: 0; }

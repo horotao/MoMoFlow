@@ -1,9 +1,5 @@
 .react-flow .react-flow__node-levels { height: auto; gap: 16px; }
 .react-flow .react-flow__node-levels.selected, .react-flow .react-flow__node-levels:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-.react-flow__node-levels .text-node-title { min-width: 0; gap: 10px; }
-.react-flow__node-levels .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.react-flow__node-levels .text-node-title > svg { flex-shrink: 0; }
-.react-flow__node-levels:hover .describer-port-label, .react-flow__node-levels.selected .describer-port-label { visibility: visible; }
 .levels-settings { display: flex; flex-direction: column; gap: 16px; width: 100%; font-size: 11px; }
 .levels-row { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 16px; align-items: start; }
 .levels-row > span { color: var(--text-node-secondary); line-height: 24px; }

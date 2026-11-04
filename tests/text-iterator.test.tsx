@@ -1,3 +1,5 @@
+import { changeModelRuns } from './modelRunsInput';
+import { canvasHistoryShortcut } from './canvasShortcuts';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useNodes, useEdges, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
 import { Flow } from '../src/App';
@@ -72,12 +74,12 @@ async function menu(action: string) {
 async function run() {
   await storage.load(); render(workflow);
   await until(() => Boolean(document.querySelector(`${iteratorSelector} textarea`)), 'Nodes mount'); await settle();
-  check(getComputedStyle(find(iteratorSelector)).width === '460px', 'Reference node width');
-  check(parseFloat(getComputedStyle(find(iteratorSelector)).height) < 260, 'Compact height overrides shared Prompt height');
-  check(parseFloat(getComputedStyle(find(`${iteratorSelector} textarea`)).width) > 400, 'Entries fill available width');
+  check(getComputedStyle(find(iteratorSelector)).width === '528px', 'Text iterator uses the shared 528px shell');
+  check(getComputedStyle(find(`${iteratorSelector} .node-frame-card`)).height === '336px', 'Text entries use the shared 336px card');
+  check(parseFloat(getComputedStyle(find(`${iteratorSelector} textarea`)).width) === 400, 'Entries fill the card width after padding');
   check(find(`${iteratorSelector} .iterator-count`).textContent === '3/50', 'Counter');
   check(document.querySelectorAll(`${iteratorSelector} textarea`).length === 3, 'Three separate entries');
-  pass('460px 节点、3/50 计数、独立文本输入与双端口');
+  pass('528px 节点、3/50 计数、独立文本输入与双端口');
 
   const selector = `${iteratorSelector} textarea[aria-label="第 1 条文本"]`;
   find(selector).dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
@@ -93,20 +95,20 @@ async function run() {
   input(`${iteratorSelector} textarea[aria-label="第 4 条文本"]`, '新增条目'); await settle();
   find(`${iteratorSelector} [aria-label="删除第 4 条文本"]`).click(); await settle();
   check(iterator().data.items.length === 3, 'Delete row');
-  find('[aria-label="撤销"]').click(); await settle(); check(iterator().data.items[3]?.text === '新增条目', 'Undo deletion');
-  find('[aria-label="重做"]').click(); await settle(); check(iterator().data.items.length === 3, 'Redo deletion');
+  canvasHistoryShortcut('undo'); await settle(); check(iterator().data.items[3]?.text === '新增条目', 'Undo deletion');
+  canvasHistoryShortcut('redo'); await settle(); check(iterator().data.items.length === 3, 'Redo deletion');
   pass('添加自动聚焦、删除与单步撤销重做');
 
   find(`${iteratorSelector} [aria-label="移动第 1 条文本"]`).dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })); await settle();
   check(iterator().data.items[1].id === 'item-0', 'Reorder keyboard');
-  find('[aria-label="撤销"]').click(); await settle(); check(iterator().data.items[0].id === 'item-0', 'Reorder undo');
+  canvasHistoryShortcut('undo'); await settle(); check(iterator().data.items[0].id === 'item-0', 'Reorder undo');
   const grip = find(`${iteratorSelector} [aria-label="移动第 1 条文本"]`), last = find(`${iteratorSelector} .iterator-item:last-of-type`);
   const transfer = new DataTransfer(); grip.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: transfer }));
   last.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: transfer }));
   last.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer }));
   grip.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: transfer })); await settle();
   check(iterator().data.items[2].id === 'item-0', 'Drag reorder');
-  find('[aria-label="撤销"]').click(); await settle();
+  canvasHistoryShortcut('undo'); await settle();
   pass('键盘和拖放排序、顺序撤销');
 
   await menu('锁定'); check(iterator().data.locked && find<HTMLTextAreaElement>(selector).readOnly, 'Locked editor');
@@ -135,8 +137,8 @@ async function run() {
   rename.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '中文迭代名称' })); await settle();
   rename.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await settle();
   check(iterator().data.label === '中文迭代名称' && !rename.isConnected, 'Enter commits only after composition ends');
-  find('[aria-label="撤销"]').click(); await settle(); check(!iterator().data.label, 'Undo rename');
-  find('[aria-label="重做"]').click(); await settle(); check(iterator().data.label === '中文迭代名称', 'Redo rename');
+  canvasHistoryShortcut('undo'); await settle(); check(!iterator().data.label, 'Undo rename');
+  canvasHistoryShortcut('redo'); await settle(); check(iterator().data.label === '中文迭代名称', 'Redo rename');
   await menu('重命名');
   const cancelRename = find<HTMLInputElement>(`${iteratorSelector} [aria-label="节点名称"]`);
   Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(cancelRename, '取消更名');
@@ -163,7 +165,7 @@ async function run() {
     await menu('锁定'); check(iterator().data.locked, 'Lock works with invalid upstream');
     await menu('解锁'); check(!iterator().data.locked, 'Unlock works with invalid upstream');
     await menu('删除'); check(!api.getNode('iterator'), 'Delete works with invalid upstream');
-    find('[aria-label="撤销"]').click(); await settle();
+    canvasHistoryShortcut('undo'); await settle();
     check(api.getNode('iterator') && api.getEdges().some(edge => edge.id === 'invalid-iterator'), 'Undo restores node and invalid input');
   }
   await api.deleteElements({ nodes: [{ id: 'invalid-input' }] });
@@ -202,7 +204,7 @@ async function run() {
   const model = api.getNode('model'); check(model && isImageGeneratorNode(model) && model.data.results?.length === 3, 'Three results accumulated');
   pass('三条独立请求、两成功一失败、单项重试、三张结果汇总（模拟）');
 
-  find('[aria-label="增加运行次数"]').click(); await settle();
+  changeModelRuns(1); await settle();
   for (const summary of document.querySelectorAll('.text-iteration-summary')) check(summary.textContent?.includes('6 个任务（每条 2 次）'), 'Node and settings show the same count');
   check(document.querySelectorAll('.text-iteration-summary').length === 2, 'Node and settings summaries both present');
   api.setNodes(nodes => nodes.map(node => ({ ...node, selected: node.id === 'iterator' }))); await settle();
@@ -212,7 +214,7 @@ async function run() {
   await until(() => requests.length === beforeRepeats + 6 && !store.getSnapshot().some(isActiveTask), 'Six independent repeated requests finish');
   check(requests.slice(beforeRepeats).sort().join('|') === initialItems.flatMap(item => [item.text, item.text]).sort().join('|'), 'Displayed six tasks match two requests per item');
   api.setNodes(nodes => nodes.map(node => ({ ...node, selected: node.id === 'model' }))); await settle();
-  find('[aria-label="减少运行次数"]').click(); await settle();
+  changeModelRuns(-1); await settle();
   for (const summary of document.querySelectorAll('.text-iteration-summary')) check(summary.textContent?.includes('3 个任务') && !summary.textContent.includes('每条 2 次'), 'Reducing repeats updates both summaries');
   pass('运行次数共享：3 条 × 2 次显示 6 个任务，切换选择后节点入口仍提交 6 次（模拟）');
 

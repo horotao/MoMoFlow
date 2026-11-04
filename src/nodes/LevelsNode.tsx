@@ -1,10 +1,13 @@
-import { NodeIcon } from './NodeIcon';
+import { NodePort } from './NodePort';
+import { NodeFrame, NodeTitle } from './NodeFrame';
+import { NodeSettingsPortal } from '../components/NodeSettingsPortal';
+import { PreviewSwitch, SettingsSection } from '../components/ParameterControls';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Ellipsis, Eye, EyeOff } from 'lucide-react';
 import type { AppNode, LevelsNode as Levels } from './types';
 import { isLevelsNode, isNodeLocked } from './types';
-import { levelsRevision, type LevelsSettings, type LevelsHistograms } from './levels';
+import { defaultLevelsSettings, levelsRevision, type LevelsSettings, type LevelsHistograms } from './levels';
 import { LevelsRenderer } from './levelsRender';
 import { levelsLivePreviews } from './levelsLivePreview';
 import { imageOutput } from './sunburstRun';
@@ -32,6 +35,7 @@ export function LevelsNode({ id, data, isConnectable }: NodeProps<Levels>) {
   const [engine, setEngine] = useState<{ image: HTMLImageElement; renderer: LevelsRenderer; draftRenderer: LevelsRenderer }>();
   const [histogram, setHistogram] = useState<{ image: HTMLImageElement; bins: LevelsHistograms }>();
   const [original, setOriginal] = useState(false);
+  const [livePreview, setLivePreview] = useState(true);
   const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
   const [error, setError] = useState('');
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -90,7 +94,7 @@ export function LevelsNode({ id, data, isConnectable }: NodeProps<Levels>) {
   }, [id, image]);
 
   useEffect(() => {
-    if (!image || engine?.image !== image || !inputId) return;
+    if (!image || engine?.image !== image || !inputId || (draft && !livePreview)) return;
     const epoch = gesture.current;
     const isCurrent = () => current.current.image === image && current.current.revision === revision
       && current.current.locked === data.locked && gesture.current === epoch;
@@ -123,15 +127,15 @@ export function LevelsNode({ id, data, isConnectable }: NodeProps<Levels>) {
         }
       } finally { frame.bitmap?.close(); }
     }).catch(() => { if (isCurrent()) setError('无法处理色阶图片，请重试或更换可读取的图片。'); });
-  }, [id, engine, image, settings, draft, revision, inputId, input?.url, data.locked, getNode, getNodes, getEdges, updateNodeData]);
+  }, [livePreview, id, engine, image, settings, draft, revision, inputId, input?.url, data.locked, getNode, getNodes, getEdges, updateNodeData]);
 
-  return <>
+  return <NodeFrame>
     <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="levels" size={18} />{renaming
+      <NodeTitle type="LEVELS">{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '色阶'}</span>}</div>
+          onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return; if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
+        : <span>{data.label || '色阶'}</span>}</NodeTitle>
       <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '色阶'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
     </header>
     <div className="preview-image color-image nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
@@ -155,6 +159,7 @@ export function LevelsNode({ id, data, isConnectable }: NodeProps<Levels>) {
         </div>
       </>}
     </div>
+    <NodeSettingsPortal id={id} onClose={cancelDraft} actions={<button type="button" disabled={data.locked} onClick={() => { cancelDraft(); patch({ settings: structuredClone(defaultLevelsSettings) }); }}>重置</button>}>
     <LevelsControls channel={data.channel} settings={settings} histogram={histogram?.image === image ? histogram?.bins : undefined} disabled={Boolean(data.locked)}
       onChannel={channel => { cancelDraft(); patch({ channel }); }}
       onStart={() => { cancelledGesture.current = false; dragging.current = true; }}
@@ -165,15 +170,13 @@ export function LevelsNode({ id, data, isConnectable }: NodeProps<Levels>) {
       }}
       onCommit={commitDraft} onCancel={cancelDraft}
       onSettings={next => { cancelDraft(); patch({ settings: next }); }} />
+    <SettingsSection><PreviewSwitch checked={livePreview} disabled={data.locked} onChange={value => { cancelDraft(); setLivePreview(value); }} /></SettingsSection>
+    </NodeSettingsPortal>
     {[{ handle: 'image', label: '输入', output: false }, { handle: 'result', label: '输出', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
-          aria-label={`色阶${port.label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked} />
-      </div>;
+      return <NodePort key={port.handle} id={port.handle} direction={port.output ? 'source' : 'target'}
+        label={`色阶${port.label}`} connected={connected} isConnectable={isConnectable && !data.locked} />;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }

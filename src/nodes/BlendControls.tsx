@@ -1,3 +1,4 @@
+import { ToolbarIcon } from './ToolNodeFrame';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { DescriberModelSelect } from '../components/DescriberModelSelect';
 import { blendModes, type BlendMode, type BlendSettings } from './blend';
@@ -12,7 +13,7 @@ export function BlendControls({ settings, disabled, onDraft, onCommit, onCancel 
   const cancel = () => { dragging.current = false; onCancel(); };
   useEffect(() => { const blur = () => { dragging.current = false; onCancel(); }; window.addEventListener('blur', blur); return () => window.removeEventListener('blur', blur); }, [onCancel]);
   return <div className="blend-controls nodrag nopan nowheel" onKeyDown={event => { if (!((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z')) event.stopPropagation(); if (event.key === 'Escape') cancel(); }}>
-    <div className="blend-mode"><span>Mode</span><DescriberModelSelect compact label="Mode" menuLabel="Blend mode" value={settings.mode} choices={blendModes} separators={separators} disabled={disabled} onChange={mode => onCommit({ ...settings, mode: mode as BlendMode })} /></div>
+    <div className="blend-mode"><span>Mode</span><DescriberModelSelect trailingIcon={<ToolbarIcon name="menu-chevron" />} compact label="Mode" menuLabel="Blend mode" value={settings.mode} choices={blendModes} separators={separators} disabled={disabled} onChange={mode => onCommit({ ...settings, mode: mode as BlendMode })} /></div>
     <div className="blend-opacity"><span>Opacity</span>
       <input type="range" aria-label="Opacity slider" min={0} max={100} step={1} value={percent} disabled={disabled} style={{ '--blend-opacity': `${percent}%` } as CSSProperties}
         onPointerDown={() => { dragging.current = true; draft.current = settings; }}

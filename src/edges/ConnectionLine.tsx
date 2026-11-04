@@ -1,13 +1,11 @@
 import { useEdges, useNodes } from '@xyflow/react';
-import { outputKind, outputColor } from '../nodes/router';
 import { getBezierPath, type ConnectionLineComponentProps } from '@xyflow/react';
-import { isFileNode } from '../nodes/fileAsset';
-import { fileOutputKind, filePortColors } from '../nodes/fileCollection';
 import type { AppNode } from '../nodes/types';
 import { curveOptions } from './curve';
+import { nodeConnectionColor } from '../nodes/nodeConnectionStyle';
 
 export function ConnectionLine({
-  fromX, fromY, toX, toY, fromPosition, toPosition, fromNode, fromHandle, toNode,
+  fromX, fromY, toX, toY, fromPosition, toPosition, fromNode, fromHandle,
 }: ConnectionLineComponentProps) {
   const nodes = useNodes<AppNode>(), edges = useEdges();
   const [path] = getBezierPath({
@@ -19,21 +17,9 @@ export function ConnectionLine({
     targetPosition: toPosition,
     ...curveOptions,
   });
-  const source = fromNode as AppNode;
-  // The starting handle determines the preview color, including reverse drags from inputs.
-  const handleId = fromHandle.id ?? '';
-  const portColor = source.type === 'router' ? outputColor(outputKind(source, 'output', nodes, edges)) : isFileNode(source) ? filePortColors[fileOutputKind(source.data)]
-    : source.type === 'preview' || source.type === 'matte-grow-shrink' ? 'var(--sunburst-mask-port)'
-    : ['sunburst', 'painter'].includes(source.type ?? '') && handleId === 'mask' ? 'var(--sunburst-mask-port)'
-    : ['sunburst', 'painter'].includes(source.type ?? '') && (handleId === 'image' || handleId === 'result' || /^image-\d+$/.test(handleId)) ? 'var(--sunburst-image-port)'
-    : source.type === 'image-describer' && /^image-\d+$/.test(handleId) ? filePortColors.image
-    : undefined;
-  const isTextConnection = fromNode.type === 'text' || toNode?.type === 'text';
-
-  return (
-    <g className={isTextConnection ? 'text-variable-connection' : undefined}>
-      <path className="react-flow__connection-path" d={path} fill="none" style={portColor ? { stroke: portColor } : undefined} />
-      <circle className="connection-endpoint" cx={toX} cy={toY} r={3} style={portColor ? { fill: portColor, stroke: portColor } : undefined} />
-    </g>
-  );
+  const portColor = nodeConnectionColor(fromNode as AppNode, fromHandle.id, fromHandle.type, nodes, edges);
+  return <g className="node-design-connection">
+    <path className="react-flow__connection-path" d={path} fill="none" style={{ stroke: portColor, strokeWidth: 3, strokeLinecap: 'round' }} />
+    <circle className="connection-endpoint" cx={toX} cy={toY} r={3} style={{ fill: portColor, stroke: portColor }} />
+  </g>;
 }

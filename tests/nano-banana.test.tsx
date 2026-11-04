@@ -1,3 +1,4 @@
+import { canvasHistoryShortcut } from './canvasShortcuts';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useNodes, useEdges, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
 import { Flow } from '../src/App';
@@ -71,7 +72,7 @@ async function run() {
   const root = createRoot(document.getElementById('root')!);
   root.render(<ReactFlowProvider><Flow storage={storage} saved={workflow} /><Probe /></ReactFlowProvider>);
   await until(() => Boolean(document.querySelector('[aria-label="Nano Banana 设置"]')), 'Node and settings mount');
-  check(find('[data-id="banana"] .text-node-title').textContent?.includes('Nano Banana'), 'Dedicated model title and settings');
+  check(find('[data-id="banana"] .text-node-title').textContent?.includes('图像生成NANO BANANA'), 'Chinese title and Nano Banana model type');
   check(!document.querySelector('[data-id="banana"] [data-handleid="mask"]'), 'Only Gemini input ports, without OpenAI mask');
   find('[aria-label="分辨率"]').click(); await settle();
   const select = (text: string) => {
@@ -122,9 +123,9 @@ async function run() {
   find('[data-id="banana"] [aria-label="更多选项"]').click(); await settle();
   [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(item => item.textContent?.includes('创建副本'))!.click(); await settle();
   check(api.getNodes().length === before + 1 && api.getNodes().at(-1)?.type === 'nano-banana', 'Duplicate preserves node type and results');
-  find('[aria-label="撤销"]').click(); await settle(); check(api.getNodes().length === before, 'Undo removes the duplicate');
-  find('[aria-label="重做"]').click(); await settle(); check(api.getNodes().length === before + 1, 'Redo restores the duplicate');
-  find('[aria-label="撤销"]').click(); await settle();
+  canvasHistoryShortcut('undo'); await settle(); check(api.getNodes().length === before, 'Undo removes the duplicate');
+  canvasHistoryShortcut('redo'); await settle(); check(api.getNodes().length === before + 1, 'Redo restores the duplicate');
+  canvasHistoryShortcut('undo'); await settle();
   api.setNodes(current => current.map(node => ({ ...node, selected: node.id === 'banana' }))); await settle();
   mode = 'cancel'; runButton().click(); await until(() => requests.length === 3, 'Cancellable request starts');
   find('[aria-label="取消任务"]').click(); await until(() => cancelled, 'Cancellation reaches fetch signal');

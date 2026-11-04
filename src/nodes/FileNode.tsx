@@ -1,12 +1,13 @@
-import { NodeIcon } from './NodeIcon';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { NodeFrame, NodeTitle } from './NodeFrame';
+import { NodePort } from './NodePort';
+import { useEffect, useRef, useState } from 'react';
 import { assetResources } from './assetResources';
 import { Upload, Box, Music2 } from 'lucide-react';
-import { Handle, Position, useEdges, useReactFlow, type NodeProps } from '@xyflow/react';
+import { useEdges, useReactFlow, type NodeProps } from '@xyflow/react';
 import { assetFromFile, assetFromLink, fileAccept, fileKind, isFileNode } from './fileAsset';
 import { imageIteratorAccept, imageIteratorLimit } from './imageIterator';
 import { isImageIteratorNode } from './types';
-import { extractFileAsset, fileAssets, fileNodeTitle, fileOutputKind, filePortColors, orderedAssets } from './fileCollection';
+import { extractFileAsset, fileAssets, fileNodeTitle, fileOutputKind, orderedAssets } from './fileCollection';
 import { copyAssetImage, downloadAsset, downloadAssets, measureAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
 import { FileActionMenu } from './FileActionMenu';
@@ -49,6 +50,7 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
   const locked = Boolean(data.locked);
   const nodeTitle = iterator ? data.label || '图片迭代' : fileNodeTitle(data);
   const kind = iterator ? 'image' : fileOutputKind(data);
+  const displayName = iterator ? nodeTitle : data.label || ({ image: '图片', video: '视频', audio: '音频', '3d': '3D 模型', file: '文件' }[kind]);
   const select = (assetId: string) => { if (!iterator || !locked) updateNodeData(id, { activeAssetId: assetId }); };
   const append = (imported: FileAsset[], version: number) => {
     if (!mounted.current || version !== importVersion.current) {
@@ -132,19 +134,19 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
     }} />}
     {item.kind === 'audio' && <div className="file-node-file"><Music2 size={40} strokeWidth={1} /><span>{item.name}</span><audio src={item.url} controls /></div>}
     {item.kind === '3d' && <div className="file-node-file"><Box size={48} strokeWidth={1} /><span>{item.name}</span><small>3D file · Preview unavailable</small></div>}
-    {failedAssets.includes(item.id) && <div className="file-node-preview-error" role="status">Preview unavailable. Check the file format or link.</div>}
+    {failedAssets.includes(item.id) && <div className="file-node-preview-error" role="status">无法显示预览，请检查文件格式或链接。</div>}
   </>;
-  return <>
+  const titleContent = renaming ? <input autoFocus className="file-node-rename nodrag nopan" aria-label="File node name"
+    value={title} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setTitle(event.target.value)}
+    onBlur={() => { if (title.trim()) updateNodeData(id, { label: title.trim() }); setRenaming(false); }}
+    onKeyDown={(event) => { event.stopPropagation(); if (event.nativeEvent.isComposing) return;
+      if (event.key === 'Enter') event.currentTarget.blur();
+      if (event.key === 'Escape') setRenaming(false);
+    }} /> : <span className="file-node-title" title={nodeTitle}>{displayName}</span>;
+  return <NodeFrame>
     <header className="file-node-header">
-      <NodeIcon nodeType={iterator ? 'image-iterator' : 'file'} />
-      {renaming ? <input autoFocus className="file-node-rename nodrag nopan" aria-label="File node name"
-        value={title} onFocus={(event) => event.currentTarget.select()} onChange={(event) => setTitle(event.target.value)}
-        onBlur={() => { if (title.trim()) updateNodeData(id, { label: title.trim() }); setRenaming(false); }}
-        onKeyDown={(event) => { event.stopPropagation(); if (event.nativeEvent.isComposing) return;
-          if (event.key === 'Enter') event.currentTarget.blur();
-          if (event.key === 'Escape') setRenaming(false);
-        }} /> : <span className="file-node-title" title={nodeTitle}>{nodeTitle}</span>}
-      <TextNodeMenu id={id} locked={locked} onRename={() => { setTitle(nodeTitle); setRenaming(true); }} onClear={iterator ? () => {
+      <NodeTitle type={iterator ? 'IMAGE ITERATOR' : kind.toUpperCase()}>{titleContent}</NodeTitle>
+      <TextNodeMenu id={id} locked={locked} onRename={() => { setTitle(displayName); setRenaming(true); }} onClear={iterator ? () => {
         const current = getNode(id);
         if (!isImageIteratorNode(current) || current.data.locked) return;
         importVersion.current++; importPending.current = false; setBusy(false); setError('');
@@ -219,10 +221,8 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
     {error && <div className="file-node-error nodrag" role="alert">{error}</div>}
     <input ref={input} type="file" className="file-node-input" accept={iterator ? imageIteratorAccept : fileAccept} multiple tabIndex={-1} aria-label={iterator ? '选择图片' : 'Choose files'} disabled={locked || busy}
       onChange={(event) => { if (event.target.files) void importFiles(event.target.files); event.target.value = ''; }} />
-    <Handle id="file" type="source" position={Position.Right} isConnectable={isConnectable && !locked} aria-label={`${kind === 'image' ? 'Image' : 'File'} output`}
-      style={{ '--file-port': filePortColors[kind] } as CSSProperties} className={`file-node-port${connected ? ' is-connected' : ''}`}>
-      <span className="file-node-port-label">File</span>
-    </Handle>
+    <NodePort id="file" direction="source" label={iterator ? 'Image output' : kind === 'image' ? '图片输出' : `${kind.toUpperCase()} 文件输出`}
+      connected={connected} isConnectable={isConnectable && !locked} />
     {gallery && asset && <FileGallery assets={assets} activeId={asset.id} onSelect={select} onClose={() => setGallery(false)} />}
-  </>;
+  </NodeFrame>;
 }

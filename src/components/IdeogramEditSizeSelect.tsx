@@ -1,3 +1,4 @@
+import { SettingsIcon } from './ParameterControls';
 import { useState } from 'react';
 import { ideogramChoices, validateIdeogramEditSize } from '../nodes/ideogram';
 import { DescriberModelSelect } from './DescriberModelSelect';
@@ -10,7 +11,7 @@ export function IdeogramEditSizeSelect({ value, disabled, onChange }: { value: s
   let error = '';
   try { validateIdeogramEditSize(value); } catch (cause) { error = (cause as Error).message; }
   return <div className="sunburst-size-control nodrag nopan nowheel">
-    <DescriberModelSelect fluidHover compact label="编辑尺寸" value={isCustom && !disabled ? 'custom' : value} choices={[...choices, 'custom']} labels={['跟随原图', '1024 × 1024', '1536 × 1024', '1024 × 1536', '2048 × 2048', '自定义']} disabled={disabled} onChange={next => {
+    <DescriberModelSelect settings fluidHover compact trailingIcon={<SettingsIcon name="chevron" />} label="编辑尺寸" value={isCustom && !disabled ? 'custom' : value} choices={[...choices, 'custom']} labels={['跟随原图', '1024 × 1024', '1536 × 1024', '1024 × 1536', '2048 × 2048', '自定义']} disabled={disabled} onChange={next => {
       setCustom(next === 'custom'); onChange(next === 'custom' ? (value === 'auto' ? '1024*1024' : value) : next);
     }} />
     {isCustom && !disabled && <div className="sunburst-custom-size">

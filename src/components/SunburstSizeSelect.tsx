@@ -1,9 +1,10 @@
+import { SettingsIcon } from './ParameterControls';
 import { useState, type ReactNode } from 'react';
 import { imageSizes, imageSizeLabels, validateSunburstSize, sunburstPresetSize, sunburstResolutions, sunburstSizePreset, type SunburstResolution } from '../nodes/sunburst';
 import { DescriberModelSelect } from './DescriberModelSelect';
 
-export function SunburstSizeSelect({ value, disabled, onChange, exposeButton }: {
-  value: string; disabled?: boolean; onChange: (value: string) => void; exposeButton?: ReactNode;
+export function SunburstSizeSelect({ value, disabled, onChange, exposeButton, qualityControl }: {
+  value: string; disabled?: boolean; onChange: (value: string) => void; exposeButton?: ReactNode; qualityControl?: ReactNode;
 }) {
   const [custom, setCustom] = useState(false);
   const preset = sunburstSizePreset(value);
@@ -15,7 +16,7 @@ export function SunburstSizeSelect({ value, disabled, onChange, exposeButton }: 
   return <>
     <div className="describer-field"><label>宽高比</label><div className="describer-field-row">
       <div className="sunburst-size-control nodrag nopan nowheel">
-        <DescriberModelSelect fluidHover compact label="宽高比" value={isCustom ? 'custom' : preset?.ratio ?? 'auto'} choices={[...imageSizes, 'custom']} labels={[...imageSizeLabels, '自定义']} disabled={disabled} onChange={next => {
+        <DescriberModelSelect settings fluidHover compact trailingIcon={<SettingsIcon name="chevron" />} label="宽高比" value={isCustom ? 'custom' : preset?.ratio ?? 'auto'} choices={[...imageSizes, 'custom']} labels={[...imageSizeLabels, '自定义']} disabled={disabled} onChange={next => {
           setCustom(next === 'custom');
           onChange(next === 'custom' ? (value === 'auto' ? '1024x1024' : value) : next === 'auto' ? 'auto' : sunburstPresetSize(next, resolution));
         }} />
@@ -27,8 +28,9 @@ export function SunburstSizeSelect({ value, disabled, onChange, exposeButton }: 
         {error && <div className="sunburst-size-note" role="alert">{error}</div>}
       </div>{exposeButton}
     </div></div>
+    {qualityControl}
     <div className="describer-field"><label>分辨率</label><div className="sunburst-field-row">
-      <DescriberModelSelect fluidHover compact label="分辨率" value={isCustom ? 'custom' : value === 'auto' ? 'auto' : resolution}
+      <DescriberModelSelect settings fluidHover compact trailingIcon={<SettingsIcon name="chevron" />} label="分辨率" value={isCustom ? 'custom' : value === 'auto' ? 'auto' : resolution}
         choices={['auto', ...sunburstResolutions, 'custom']} labels={['自动', '1K', '2K', '4K', '自定义']}
         disabled={disabled} onChange={next => {
           if (next === 'custom') { setCustom(true); if (value === 'auto') onChange('1024x1024'); return; }

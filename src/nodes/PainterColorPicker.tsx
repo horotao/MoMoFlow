@@ -3,9 +3,10 @@ import { createPortal } from 'react-dom';
 import { useViewport } from '@xyflow/react';
 import { colorFromHex as fromHex, colorToHex as toHex } from './colorPicker';
 
-export function PainterColorPicker({ label, color, opacity, onColor, onOpacity }: {
+export function PainterColorPicker({ label, color, opacity, onColor, onOpacity, disabled }: {
   label: string; color: string; opacity: number;
   onColor: (value: string) => void; onOpacity: (value: number) => void;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [hsv, setHsv] = useState(() => fromHex(color));
@@ -67,12 +68,12 @@ export function PainterColorPicker({ label, color, opacity, onColor, onOpacity }
   const close = () => { setOpen(false); trigger.current?.focus(); };
 
   return <>
-    <button ref={trigger} type="button" className="painter-color-swatch" aria-label={`${label}选择器`}
+    <button ref={trigger} type="button" className="painter-color-swatch" aria-label={`${label}选择器`} disabled={disabled}
       aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? dialogId : undefined}
       onClick={() => setOpen(value => !value)}>
       <span style={{ background: color, opacity }} />
     </button>
-    {open && createPortal(<div ref={panel} id={dialogId} role="dialog" aria-label={`${label}选择器`} tabIndex={-1}
+    {open && !disabled && createPortal(<div ref={panel} id={dialogId} role="dialog" aria-label={`${label}选择器`} tabIndex={-1}
       className="painter-color-popover nodrag nopan nowheel" style={position}
       onPointerDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}
       onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); close(); } }}

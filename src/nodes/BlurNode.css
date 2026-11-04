@@ -1,9 +1,5 @@
 .react-flow .react-flow__node-blur { height: auto; gap: 20px; }
 .react-flow .react-flow__node-blur.selected, .react-flow .react-flow__node-blur:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-.react-flow__node-blur .text-node-title { min-width: 0; gap: 10px; }
-.react-flow__node-blur .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.react-flow__node-blur .text-node-title > svg { flex-shrink: 0; }
-.react-flow__node-blur:hover .describer-port-label, .react-flow__node-blur.selected .describer-port-label { visibility: visible; }
 .blur-settings.color-settings { flex-direction: row; gap: 24px; align-items: center; }
 .blur-type { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .blur-type > span { color: var(--text-node-secondary); font-size: 11px; }

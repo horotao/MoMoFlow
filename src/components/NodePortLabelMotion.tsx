@@ -9,7 +9,7 @@ const enter = createSpring({
   bounce: spring.moderate.bounce,
 }).toString();
 const leave = `${spring.moderate.exit.duration}s ease-out`;
-const labels = ':is(.text-node-port-label, .describer-port-label, .file-node-port-label, .router-port-label)';
+const labels = '.node-port-label';
 
 export function NodePortLabelMotion() {
   return <style>{`
@@ -21,8 +21,9 @@ export function NodePortLabelMotion() {
       transition: opacity ${leave}, transform ${leave}, visibility 0s ${spring.moderate.exit.duration}s;
     }
 
+    .react-flow .react-flow__node:focus-within ${labels},
     .react-flow .react-flow__node:hover ${labels},
-    .react-flow .react-flow__node.selected ${labels}:not(.file-node-port-label) {
+    .react-flow .react-flow__node.selected ${labels} {
       visibility: visible;
       opacity: 1;
       transform: translateY(0);
@@ -43,8 +44,9 @@ export function NodePortLabelMotion() {
         transition-duration: ${spring.moderate.exit.duration}s, 0s !important;
         transition-delay: 0s, ${spring.moderate.exit.duration}s !important;
       }
+      .react-flow .react-flow__node:focus-within ${labels},
       .react-flow .react-flow__node:hover ${labels},
-      .react-flow .react-flow__node.selected ${labels}:not(.file-node-port-label) {
+      .react-flow .react-flow__node.selected ${labels} {
         transition-delay: 0s !important;
       }
       .react-flow .react-flow__nodes:has(> .react-flow__node.selected ~ .react-flow__node.selected) .react-flow__node ${labels} {

@@ -1,3 +1,4 @@
+import { changeModelRuns } from './modelRunsInput';
 import { useCallback, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, addEdge, useNodesState, useEdgesState, type Edge } from '@xyflow/react';
@@ -140,16 +141,16 @@ async function run() {
   await until(() => nodeTask('image')?.state === 'Done' && Boolean(document.querySelector('.sunburst-run')), 'Image did not finish');
   const completed = nodesNow.find(node => node.id === 'image');
   check(completed && isSunburstNode(completed) && completed.data.results?.length === 2, 'Image success appends one result and stops animation');
-  find<HTMLButtonElement>('[aria-label="增加运行次数"]').click();
-  await until(() => document.querySelector('.describer-runs > div > span')?.textContent === '2', 'Batch count not updated');
+  changeModelRuns(1);
+  await until(() => document.querySelector<HTMLInputElement>('.settings-run-count input[type="number"]')?.value === '2', 'Batch count not updated');
   find('.sunburst-run').click();
   await until(() => requests.length === 5 && store.getSnapshot().some(task => task.nodeId === 'image' && task.state === 'Queued'), 'Ordered batch did not start');
   find(`${nodeSelector('image')} .model-run-cancel`).click();
   await until(() => !store.getSnapshot().some(task => task.nodeId === 'image' && isActiveTask(task)), 'Batch cancellation left queued work');
   check(requests[4].signal?.aborted && store.getSnapshot().slice(-2).every(task => task.state === 'Cancelled'), 'Node cancellation stops both running and queued runs');
   respond(requests[4]);
-  find<HTMLButtonElement>('[aria-label="减少运行次数"]').click();
-  await until(() => document.querySelector('.describer-runs > div > span')?.textContent === '1', 'Batch count not reset');
+  changeModelRuns(-1);
+  await until(() => document.querySelector<HTMLInputElement>('.settings-run-count input[type="number"]')?.value === '1', 'Batch count not reset');
   // Keep a fresh mock run available for visual/mouse/zoom acceptance.
   start();
   await until(() => requests.length === 7, 'Visual demo did not start');

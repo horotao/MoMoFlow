@@ -1,14 +1,13 @@
-import { NodeIcon } from './NodeIcon';
+import { NodePort } from './NodePort';
+import { ToolNodeFrame } from './ToolNodeFrame';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis } from 'lucide-react';
+import { useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { isBlendNode, isNodeLocked, type AppNode, type BlendNode as Blend } from './types';
 import { blendRevision, type BlendSettings } from './blend';
 import { BlendRenderer } from './blendRender';
 import { BlendControls } from './BlendControls';
 import { blendInputs, imageOutput } from './sunburstRun';
 import { assetResources } from './assetResources';
-import { TextNodeMenu } from './TextNodeMenu';
 
 export function BlendNode({ id, data, isConnectable }: NodeProps<Blend>) {
   const nodes = useNodes<AppNode>(), edges = useEdges();
@@ -19,7 +18,6 @@ export function BlendNode({ id, data, isConnectable }: NodeProps<Blend>) {
   const sourceKey = JSON.stringify([back?.url, front?.url, inputs.pending]);
   const [loaded, setLoaded] = useState<{ key: string; renderer: BlendRenderer; width: number; height: number }>();
   const [draft, setDraft] = useState<BlendSettings>();
-  const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
   const [error, setError] = useState('');
   const [painted, setPainted] = useState('');
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -90,28 +88,20 @@ export function BlendNode({ id, data, isConnectable }: NodeProps<Blend>) {
   }, [id, current, settings, draft, revision, sourceKey, data.locked, output, back?.url, front?.url, getNode, getNodes, getEdges, updateNodeData]);
   useEffect(() => updateInternals(id), [id, current?.width, current?.height, updateInternals]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="blend" />{renaming
-        ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
-          onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '混合'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '混合'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
-    </header>
+  const toolbar = (
+    <BlendControls settings={settings} disabled={Boolean(data.locked)} onDraft={setDraft} onCommit={commit} onCancel={cancel} />
+  );
+  return <ToolNodeFrame id={id} label={data.label} defaultLabel="混合" type="BLEND" locked={data.locked} toolbar={toolbar} onToolbarClose={cancel}>
+
     <div className="preview-image nodrag nopan" aria-busy={Boolean((back || front) && !output && !error && !data.locked)} style={{ aspectRatio: current ? `${current.width} / ${current.height}` : '1' }}>
       <canvas ref={canvas} aria-label="Blend preview" style={{ visibility: painted === sourceKey && current ? 'visible' : 'hidden' }} />
     </div>
-    <BlendControls settings={settings} disabled={Boolean(data.locked)} onDraft={setDraft} onCommit={commit} onCancel={cancel} />
-    {[{ handle: 'back', label: 'Back', top: 89 }, { handle: 'front', label: 'Front', top: 149 }, { handle: 'result', label: 'Result', top: 89 }].map(port => {
+    {[{ handle: 'back', label: 'Back' }, { handle: 'front', label: 'Front' }, { handle: 'result', label: 'Result' }].map(port => {
       const output = port.handle === 'result';
       const connected = edges.some(edge => output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-image${output ? ' output-label' : ''}`} style={{ top: port.top - 28 }}>{port.label}</span>
-        <Handle id={port.handle} type={output ? 'source' : 'target'} position={output ? Position.Right : Position.Left} style={{ top: port.top }} aria-label={`Blend ${port.label}`}
-          className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`} isConnectable={isConnectable && !data.locked} />
-      </div>;
+      return <NodePort key={port.handle} id={port.handle} direction={output ? 'source' : 'target'}
+        label={`Blend ${port.label}`} connected={connected} isConnectable={isConnectable && !data.locked} />;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </ToolNodeFrame>;
 }

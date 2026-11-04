@@ -2,11 +2,6 @@
 .react-flow .react-flow__node.react-flow__node-masks-extractor { height: auto; gap: 16px; }
 .react-flow .react-flow__node-masks-extractor.selected,
 .react-flow .react-flow__node-masks-extractor:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-.react-flow__node-masks-extractor .text-node-title { min-width: 0; gap: 8px; font-size: 16px; line-height: 20px; }
-.react-flow__node-masks-extractor .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.react-flow__node-masks-extractor .text-node-title > svg { flex-shrink: 0; }
-.react-flow__node-masks-extractor:hover .describer-port-label,
-.react-flow__node-masks-extractor.selected .describer-port-label { visibility: visible; }
 .masks-preview { position: relative; width: 100%; flex-shrink: 0; overflow: hidden; border-radius: 8px; background: repeating-conic-gradient(#ddd 0% 25%, #eee 0% 50%) 0 / 20px 20px; }
 .dark .masks-preview { background: repeating-conic-gradient(#333 0% 25%, #2c2c2c 0% 50%) 0 / 20px 20px; }
 .masks-preview canvas { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }

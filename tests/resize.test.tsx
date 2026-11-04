@@ -68,7 +68,7 @@ const find = <T extends HTMLElement = HTMLElement>(selector: string) => { const 
 function assert(condition: unknown, message: string): asserts condition { if (!condition) throw new Error(message); }
 const node = () => nodesNow.find(node => node.id === 'resize') as Resize;
 const output = () => imageOutput(node(), 'result', nodesNow, edgesNow)[0];
-const field = (axis: string) => find<HTMLInputElement>(`.react-flow__node-resize input[aria-label="${axis}"]`);
+const field = (axis: string) => find<HTMLInputElement>(`.react-flow__node-toolbar[data-id="resize"] input[aria-label="${axis}"]`);
 async function until(check: () => boolean, message: string) { for (let i = 0; i < 180; i++) { if (check()) return; await settle(); } throw new Error(message); }
 async function size(width: number, height: number, checkTransparency = true) {
   await until(() => output()?.width === width && output()?.height === height, `Expected output ${width} × ${height}`);
@@ -100,7 +100,7 @@ async function roundTrip() {
   try {
     await storage.save({ nodes: nodesNow, edges: edgesNow, colorMode: 'dark', viewport: { x: 0, y: 0, zoom: .58 } });
     const saved = await storage.load(); assert(saved, 'Saved workflow');
-    replaceNodes(saved.nodes); replaceEdges(saved.edges); await settle();
+    replaceNodes(saved.nodes.map(node => ({ ...node, selected: node.id === 'resize' }))); replaceEdges(saved.edges); await settle();
   } finally { storage.dispose(); indexedDB.deleteDatabase(databaseName); }
 }
 function key(element: HTMLElement, value: string, options: KeyboardEventInit = {}) { element.dispatchEvent(new KeyboardEvent('keydown', { key: value, bubbles: true, cancelable: true, ...options })); }
@@ -110,7 +110,7 @@ async function edit(axis: string, text: string, end = 'Enter') {
   const input = field(axis); input.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, text); input.dispatchEvent(new Event('input', { bubbles: true })); await settle(); key(input, end); await settle();
 }
 async function click(selector: string) { find(selector).click(); await settle(); }
-const lock = '.react-flow__node-resize [role="checkbox"]';
+const lock = '.react-flow__node-toolbar[data-id="resize"] [role="checkbox"]';
 const reset = '.resize-reset';
 const results = document.getElementById('results')!;
 const reports: string[] = [];

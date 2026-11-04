@@ -1,9 +1,5 @@
 .react-flow .react-flow__node.react-flow__node-text-iterator { height: auto; min-height: 112px; display: flex; flex-direction: column; align-items: stretch; }
 .react-flow .react-flow__node-text-iterator.selected, .react-flow .react-flow__node-text-iterator:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-.react-flow__node-text-iterator .text-node-title { min-width: 0; gap: 8px; font-size: 14px; line-height: 20px; }
-.react-flow__node-text-iterator .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.react-flow__node-text-iterator .text-node-title > svg { flex-shrink: 0; }
-.react-flow__node-text-iterator.selected .text-node-title { color: var(--text-node-primary); }
 .iterator-heading-actions { display: flex; align-items: center; gap: 12px; }
 .iterator-count { color: var(--text-node-secondary); font-size: 12px; white-space: nowrap; }
 .iterator-items { display: flex; flex-direction: column; gap: 6px; }
@@ -22,7 +18,6 @@
 .iterator-add:active:not(:disabled) { background: var(--text-node-border); }
 .iterator-add:disabled { opacity: .4; cursor: default; }
 .iterator-input-note { font-size: 11px; line-height: 16px; color: var(--text-node-secondary); }
-.react-flow__node-text-iterator:hover .describer-port-label, .react-flow__node-text-iterator.selected .describer-port-label { visibility: visible; }
 .react-flow .react-flow__node-text-iterator .iterator-input-label, .react-flow .react-flow__node-text-iterator .iterator-output-label { top: 2px; }
 .react-flow .react-flow__node-text-iterator .iterator-input-port { border-color: #7c965a; }
 .react-flow.dark .react-flow__node-text-iterator .iterator-input-port { border-color: #f3ffe3; }

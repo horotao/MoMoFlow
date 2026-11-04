@@ -1,8 +1,9 @@
-import { NodeIcon } from './NodeIcon';
+import { NodePort } from './NodePort';
+import { ToolNodeFrame } from './ToolNodeFrame';
 import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { flushSync } from 'react-dom';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Eye, EyeOff } from 'lucide-react';
+import { useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { Eye, EyeOff } from 'lucide-react';
 import type { AppNode, MatteGrowShrinkNode as MatteGrowShrink } from './types';
 import { isMatteGrowShrinkNode, isNodeLocked } from './types';
 import { matteGrowShrinkControls, matteGrowShrinkRevision, type MatteGrowShrinkSettings } from './matteGrowShrink';
@@ -12,7 +13,6 @@ import { imageOutput } from './sunburstRun';
 import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
-import { TextNodeMenu } from './TextNodeMenu';
 import { CanvasHistoryContext } from '../components/useCanvasHistory';
 
 function MatteGrowShrinkNumber({ value, control, disabled, onCommit }: {
@@ -56,7 +56,6 @@ export function MatteGrowShrinkNode({ id, data, isConnectable }: NodeProps<Matte
   const [displayed, setDisplayed] = useState<{ image: HTMLImageElement; revision: string; draft: boolean }>();
   const [engine, setEngine] = useState<{ image: HTMLImageElement; renderer: MatteGrowShrinkRenderer; draftRenderer: MatteGrowShrinkRenderer; draftScale: number }>();
   const [original, setOriginal] = useState(false);
-  const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
   const [error, setError] = useState('');
   const canvas = useRef<HTMLCanvasElement>(null);
   const image = loaded?.url === input?.url ? loaded?.image : undefined;
@@ -155,15 +154,43 @@ export function MatteGrowShrinkNode({ id, data, isConnectable }: NodeProps<Matte
     }).catch(() => { if (isCurrent()) setError('无法处理蒙版扩张 / 收缩图片，请重试或更换可读取的图片。'); });
   }, [id, engine, image, settings, draft, revision, inputId, input?.url, data.locked, getNode, getNodes, getEdges, updateNodeData]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="matte-grow-shrink" size={18} />{renaming
-        ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
-          onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '蒙版扩张 / 收缩'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '蒙版扩张 / 收缩'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
-    </header>
+  const toolbar = (
+    <div className="color-settings matte-grow-shrink-settings nodrag nopan nowheel" onKeyDown={event => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') return; event.stopPropagation(); if (event.key === 'Escape') cancelDraft(); }}>
+      {matteGrowShrinkControls.map(control => <div className="color-setting" key={control.key}>
+        <label htmlFor={`${id}-${control.key}`}>{control.label}</label>
+        <input id={`${id}-${control.key}`} type="range" aria-label={control.label} min={control.min} max={control.max} step={control.step}
+          value={settings[control.key]} disabled={data.locked}
+          style={{ '--matte-fill': `calc(${progress * 100}% + ${6 - progress * 12}px)` } as CSSProperties}
+          onPointerDown={event => {
+            if (event.button !== 0) return;
+            // Finish a focused number field's blur commit before starting this drag.
+            // Its revision effect must not cancel the new pointer gesture.
+            const slider = event.currentTarget;
+            if (document.activeElement !== slider) flushSync(() => slider.focus());
+            cancelledGesture.current = false; dragging.current = true; slider.setPointerCapture(event.pointerId);
+          }}
+          onKeyDown={event => {
+            if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) cancelledGesture.current = false;
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && !event.nativeEvent.isComposing) {
+              event.preventDefault(); event.stopPropagation(); cancelDraft();
+              if (event.shiftKey) history.redo(); else history.undo();
+            }
+          }}
+          onChange={event => {
+            if (cancelledGesture.current) return;
+            const next = { ...settings, [control.key]: Number(event.target.value) };
+            if (dragging.current) { if (!draftRef.current) gesture.current++; draftRef.current = next; setDraft(next); }
+            else patch({ settings: next });
+          }}
+          onPointerUp={commitDraft} onPointerCancel={() => { cancelDraft(); cancelledGesture.current = false; }}
+          onLostPointerCapture={() => { if (dragging.current) cancelDraft(); cancelledGesture.current = false; }} />
+        <MatteGrowShrinkNumber control={control} value={settings[control.key]} disabled={Boolean(data.locked)}
+          onCommit={value => patch({ settings: { ...data.settings, [control.key]: value } })} />
+      </div>)}
+    </div>
+  );
+  return <ToolNodeFrame id={id} label={data.label} defaultLabel="蒙版扩张 / 收缩" type="MATTE GROW / SHRINK" locked={data.locked} toolbar={toolbar} onToolbarClose={cancelDraft}>
+
     <div className="preview-image color-image nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
       {ready && <>
         <canvas ref={canvas} aria-label="Matte Grow / Shrink preview" style={{ visibility: original ? 'hidden' : undefined }} />
@@ -185,47 +212,11 @@ export function MatteGrowShrinkNode({ id, data, isConnectable }: NodeProps<Matte
         </div>
       </>}
     </div>
-    <div className="color-settings matte-grow-shrink-settings nodrag nopan nowheel" onKeyDown={event => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') return; event.stopPropagation(); if (event.key === 'Escape') cancelDraft(); }}>
-      {matteGrowShrinkControls.map(control => <div className="color-setting" key={control.key}>
-        <label htmlFor={`${id}-${control.key}`}>{control.label}</label>
-        <input id={`${id}-${control.key}`} type="range" aria-label={control.label} min={control.min} max={control.max} step={control.step}
-          value={settings[control.key]} disabled={data.locked}
-          style={{ '--matte-fill': `calc(${progress * 100}% + ${6 - progress * 12}px)` } as CSSProperties}
-          onPointerDown={event => {
-            if (event.button !== 0) return;
-            // Finish a focused number field's blur commit before starting this drag.
-            // Its revision effect must not cancel the new pointer gesture.
-            const slider = event.currentTarget;
-            if (document.activeElement !== slider) flushSync(() => slider.focus());
-            cancelledGesture.current = false; dragging.current = true; slider.setPointerCapture(event.pointerId);
-          }}
-          onKeyDown={event => {
-            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && !event.nativeEvent.isComposing) {
-              event.preventDefault(); event.stopPropagation(); cancelDraft();
-              if (event.shiftKey) history.redo(); else history.undo();
-            }
-          }}
-          onChange={event => {
-            if (cancelledGesture.current) return;
-            const next = { ...settings, [control.key]: Number(event.target.value) };
-            if (dragging.current) { if (!draftRef.current) gesture.current++; draftRef.current = next; setDraft(next); }
-            else patch({ settings: next });
-          }}
-          onPointerUp={commitDraft} onPointerCancel={() => { cancelDraft(); cancelledGesture.current = false; }}
-          onLostPointerCapture={() => { if (dragging.current) cancelDraft(); cancelledGesture.current = false; }} />
-        <MatteGrowShrinkNumber control={control} value={settings[control.key]} disabled={Boolean(data.locked)}
-          onCommit={value => patch({ settings: { ...data.settings, [control.key]: value } })} />
-      </div>)}
-    </div>
     {[{ handle: 'image', label: 'Input', output: false }, { handle: 'result', label: 'Output', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-mask${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
-          aria-label={`Matte Grow / Shrink ${port.label}`} className={`describer-port sunburst-port-mask${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked} />
-      </div>;
+      return <NodePort key={port.handle} id={port.handle} direction={port.output ? 'source' : 'target'}
+        label={`Matte Grow / Shrink ${port.label}`} connected={connected} isConnectable={isConnectable && !data.locked} />;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </ToolNodeFrame>;
 }

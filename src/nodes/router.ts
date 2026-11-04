@@ -1,7 +1,8 @@
+import { nodePortColor } from './nodePortAppearance.ts';
 import type { Edge, XYPosition } from '@xyflow/react';
 import type { AppNode, RouterNode } from './types';
 import { isNodeLocked } from './types.ts';
-import { fileOutputKind, filePortColors } from './fileCollection.ts';
+import { fileOutputKind } from './fileCollection.ts';
 
 export type OutputKind = 'text' | 'image' | 'mask' | 'video' | 'audio' | '3d' | 'file';
 
@@ -36,8 +37,7 @@ export function outputKind(node: AppNode | undefined, handle?: string | null, no
 }
 
 export function outputColor(kind?: OutputKind) {
-  return kind === 'text' ? 'var(--router-text-port, #e28cf8)' : kind === 'mask' ? 'var(--sunburst-mask-port, #f3ffe3)'
-    : kind ? filePortColors[kind] : 'var(--router-empty-port)';
+  return nodePortColor(kind);
 }
 
 export function routerFromOutput(sourceId: string, sourceHandle: string | null, position: XYPosition, nodes: AppNode[], edges: Edge[], id: string) {

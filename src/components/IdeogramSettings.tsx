@@ -1,9 +1,10 @@
+import { modelParameterPosition } from '../nodes/nodeLayout';
+import { SettingsIcon, SettingsSection } from './ParameterControls';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
-import { NodeIcon } from '../nodes/NodeIcon';
 import type { AppNode, IdeogramNode } from '../nodes/types';
 import { isIdeogramNode, isNodeLocked } from '../nodes/types';
 import { effectiveIdeogramSettings } from '../nodes/ideogramRun';
-import { defaultIdeogramEditSettings, ideogramChoices, ideogramEditFields, ideogramGenerationFields, ideogramName, ideogramParameterData, validateIdeogramEditSettings, validateIdeogramSettings, type IdeogramField } from '../nodes/ideogram';
+import { defaultIdeogramEditSettings, ideogramChoices, ideogramEditFields, ideogramGenerationFields, ideogramParameterData, validateIdeogramEditSettings, validateIdeogramSettings, type IdeogramField } from '../nodes/ideogram';
 import { DescriberModelSelect } from './DescriberModelSelect';
 import { DescriberIcon } from './DescriberIcon';
 import { IdeogramEditSizeSelect } from './IdeogramEditSizeSelect';
@@ -35,14 +36,14 @@ export function IdeogramSettings({ node }: { node: IdeogramNode }) {
     } else {
       const id = crypto.randomUUID();
       setNodes(all => [...all.map(item => item.id === node.id ? { ...current, data: { ...current.data, exposed: [...exposed, field] } } : item), {
-        id, type: 'model-input', position: { x: node.position.x - 340, y: node.position.y + exposed.length * 200 },
+        id, type: 'model-input', position: modelParameterPosition(current, all, exposed.length),
         data: ideogramParameterData(field, String(effective[field] ?? current.data[field])),
       }]);
       setEdges(all => [...all, { id: crypto.randomUUID(), source: id, target: node.id, targetHandle: field }]);
     }
   };
   return <div className="describer-settings sunburst-settings">
-    <h2><NodeIcon nodeType="ideogram" size={20} /><span>{ideogramName}</span></h2>
+    <div className="describer-field settings-provider"><label>渠道商</label><div className="settings-fixed-value">WaveSpeed</div></div>
     <p className="describer-hint">{editing ? '图片编辑 · 修改 Image 输入的原图' : '文生图 · 连接 Image 原图后自动切换为编辑'}</p>
     {fields.map(field => {
       const exposed = Boolean(node.data.exposed?.includes(field)), label = labels[field];
@@ -51,11 +52,13 @@ export function IdeogramSettings({ node }: { node: IdeogramNode }) {
       const disabled = Boolean(node.data.locked || exposed || inactive || (field === 'editSize' && sourceSize));
       const change = (value: string) => { if (!isNodeLocked(getNode(node.id))) updateNodeData(node.id, { [field]: field === 'enablePromptExpansion' ? value === 'true' : value }); };
       return <div className="describer-field" key={field}><label>{label}</label><div className="describer-field-row">
-        {field === 'editSize' ? <IdeogramEditSizeSelect value={sourceSize ? 'auto' : String(effective[field] ?? 'auto')} disabled={disabled} onChange={change} /> : <DescriberModelSelect fluidHover compact label={label} value={String(effective[field] ?? '')} choices={choices} labels={choices.map(value => choiceLabels[value] ?? value.toUpperCase())} disabled={disabled} onChange={change} />}
+        {field === 'editSize' ? <IdeogramEditSizeSelect value={sourceSize ? 'auto' : String(effective[field] ?? 'auto')} disabled={disabled} onChange={change} /> : <DescriberModelSelect settings fluidHover compact trailingIcon={<SettingsIcon name="chevron" />} label={label} value={String(effective[field] ?? '')} choices={choices} labels={choices.map(value => choiceLabels[value] ?? value.toUpperCase())} disabled={disabled} onChange={change} />}
         <button disabled={node.data.locked || (!exposed && field === 'editSize' && sourceSize)} className="describer-expose" data-exposed={exposed} title={exposed ? '使用本地值' : '设为输入'} aria-label={exposed ? `${label}使用本地值` : `将${label}设为输入`} aria-pressed={exposed} onClick={() => expose(field)}><DescriberIcon name="expose" /></button>
       </div>{inactive && <p className="describer-hint">当前模式不使用此参数。</p>}</div>;
     })}
+    <SettingsSection><div className="describer-field"><label>模型版本</label><div className="settings-fixed-value">Ideogram 4.5</div></div>
     <p className="describer-hint">{editing ? `参考图最多 ${masked ? 3 : 4} 张，只编辑 Image 原图。${sourceSize ? '使用 Mask 或高精度时，尺寸跟随原图。' : ''}` : '开启提示词扩展后，模型会先丰富提示词。'}</p>
     {editing && <p className="describer-hint">导入的黑白 Mask：黑色修改、白色保留。Painter 等节点的蒙版会自动转换，尺寸须与原图一致。</p>}
+    </SettingsSection>
   </div>;
 }

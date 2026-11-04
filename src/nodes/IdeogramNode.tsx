@@ -1,4 +1,3 @@
-import { NodeIcon } from './NodeIcon';
 import { useEdges, useNodes, type NodeProps } from '@xyflow/react';
 import type { AppNode, IdeogramNode as Ideogram } from './types';
 import { ideogramFieldLabels, ideogramImageInputCount, ideogramName, validateIdeogramEditSize } from './ideogram';
@@ -25,6 +24,6 @@ export function IdeogramNode(props: NodeProps<Ideogram>) {
       }
     }
   }
-  return <ImageGenerationNode {...props} data={{ ...props.data, imageInputs: ideogramImageInputCount(props.data.imageInputs) }} name={ideogramName} icon={<NodeIcon nodeType="ideogram" size={20} />} fieldLabels={ideogramFieldLabels} maxImages={masked ? 4 : 5} mask
+  return <ImageGenerationNode {...props} data={{ ...props.data, imageInputs: ideogramImageInputCount(props.data.imageInputs) }} name={ideogramName} fieldLabels={ideogramFieldLabels} maxImages={masked ? 4 : 5} mask
     imageLabels={['Image', 'Reference 1', 'Reference 2', 'Reference 3', 'Reference 4']} addImageLabel="添加参考图输入" previewAspectRatio={previewAspectRatio} />;
 }

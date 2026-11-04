@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { describerModels } from '../nodes/describer';
 import { DescriberIcon } from './DescriberIcon';
@@ -20,10 +20,11 @@ function SelectOption({ id, index, selected, active, separator, label, registerI
   </div>;
 }
 
-export function DescriberModelSelect({ value, disabled, onChange, choices = describerModels, node = false, compact = false, fluidHover = false, label = 'Model', labels, includeCurrentValue = true, menuLabel, separators = noSeparators }: {
-  separators?: readonly number[]; value: string; choices?: readonly string[]; node?: boolean; compact?: boolean; fluidHover?: boolean; label?: string; labels?: string[]; disabled?: boolean; includeCurrentValue?: boolean; menuLabel?: string; onChange: (model: string) => void;
+export function DescriberModelSelect({ value, disabled, onChange, choices = describerModels, node = false, compact = false, fluidHover = false, label = 'Model', labels, includeCurrentValue = true, menuLabel, separators = noSeparators, trailingIcon, settings = false }: {
+  separators?: readonly number[]; value: string; choices?: readonly string[]; node?: boolean; compact?: boolean; fluidHover?: boolean; label?: string; labels?: string[]; disabled?: boolean; includeCurrentValue?: boolean; menuLabel?: string; onChange: (model: string) => void; trailingIcon?: ReactNode; settings?: boolean;
 }) {
   const id = useId();
+  const rowHeight = settings ? 32 : 24;
   const trigger = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const pointer = useRef<{ x: number; y: number } | null>(null);
@@ -44,8 +45,8 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
     if (disabled) return;
     const rect = trigger.current!.getBoundingClientRect();
     const index = Math.max(0, options.indexOf(value));
-    const height = Math.min(node || compact ? options.length * 24 + separators.length * 16 + 16 : 410, window.innerHeight - 24, rect.top - 12 + (options.length - index) * 24 + 8);
-    const top = Math.max(12, Math.min(rect.top - index * 24 - separators.filter(n => n <= index).length * 16 - 8, window.innerHeight - height - 12));
+    const height = Math.min(node || compact ? options.length * rowHeight + separators.length * 16 + 16 : 410, window.innerHeight - 24, rect.top - 12 + (options.length - index) * rowHeight + 8);
+    const top = Math.max(12, Math.min(rect.top - index * rowHeight - separators.filter(n => n <= index).length * 16 - 8, window.innerHeight - height - 12));
     activate(index);
     if (compact) {
       // The portal keeps screen-sized text while the canvas scales its trigger.
@@ -58,9 +59,9 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
   };
   useLayoutEffect(() => {
     if (!placement || !list.current || !trigger.current) return;
-    list.current.scrollTop = Math.max(0, options.indexOf(value) * 24 + separators.filter(n => n <= options.indexOf(value)).length * 16 - (trigger.current.getBoundingClientRect().top - placement.top - 8));
+    list.current.scrollTop = Math.max(0, options.indexOf(value) * rowHeight + separators.filter(n => n <= options.indexOf(value)).length * 16 - (trigger.current.getBoundingClientRect().top - placement.top - 8));
     list.current.focus();
-  }, [placement, value, options, separators]);
+  }, [placement, value, options, separators, rowHeight]);
   useEffect(() => {
     if (!placement) return;
     const dismiss = (event: PointerEvent) => {
@@ -74,8 +75,8 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
   return <>
     <button id={node || compact ? id + "-trigger" : "describer-model"} ref={trigger} role="combobox" aria-label={label} aria-haspopup="listbox" aria-expanded={Boolean(placement)} aria-controls={placement ? id : undefined} disabled={disabled} className="describer-model-trigger nodrag nopan" onClick={() => placement ? close() : open()} onKeyDown={(e) => {
       if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) { e.preventDefault(); open(); }
-    }}><span>{labels?.[choices.indexOf(value)] ?? (value || 'Select an option')}</span><DescriberIcon name="chevron" /></button>
-    {placement && !disabled && createPortal(<div ref={list} id={id} role="listbox" aria-label={menuLabel ?? (compact || label !== 'Model' ? label : "Models")} aria-activedescendant={options[activeIndex] !== undefined ? `${id}-${activeIndex}` : undefined} tabIndex={-1} className={`describer-model-menu nodrag nopan nowheel${fluidHover ? ' describer-model-menu-fluid' : ''}`} style={placement}
+    }}><span>{labels?.[choices.indexOf(value)] ?? (value || 'Select an option')}</span>{trailingIcon ?? <DescriberIcon name="chevron" />}</button>
+    {placement && !disabled && createPortal(<div ref={list} id={id} role="listbox" aria-label={menuLabel ?? (compact || label !== 'Model' ? label : "Models")} aria-activedescendant={options[activeIndex] !== undefined ? `${id}-${activeIndex}` : undefined} tabIndex={-1} className={`describer-model-menu nodrag nopan nowheel${fluidHover ? ' describer-model-menu-fluid' : ''}${settings ? ' describer-model-menu-settings' : ''}`} style={placement}
       {...(fluidHover ? hover.handlers : {})}
       onMouseMove={fluidHover ? event => {
         pointer.current = { x: event.clientX, y: event.clientY };

@@ -193,7 +193,7 @@ async function run() {
     await until(() => Boolean(output('mask')), 'Output before save');
     await storage.save({ nodes: nodesNow, edges: edgesNow, viewport: { x: 35, y: 10, zoom: .7 }, colorMode: 'dark' });
     const saved = await storage.load(); assert(saved, 'Stored workflow');
-    replaceNodes(saved.nodes); replaceEdges(saved.edges); await settle();
+    replaceNodes(saved.nodes.map(node => ({ ...node, selected: node.id === 'masks' }))); replaceEdges(saved.edges); await settle();
     assert(output('mask') && selected() === 1024 && calls === beforeSave, 'Restoration does not call model');
   } finally { storage.dispose(); indexedDB.deleteDatabase(databaseName); }
   pass('IndexedDB restores selection and both PNGs without another inference');
@@ -226,14 +226,14 @@ async function run() {
   await click('[data-test="undo"]'); await until(() => Boolean(output()), 'Undo clear restores output');
   await choose(.25, true);
   holdPredictions = true;
-  for (const focusTarget of ['canvas', '.masks-modes button', '.masks-display button']) {
+  for (const focusTarget of ['canvas', '.masks-controls [role="combobox"]', '.masks-display button']) {
     const beforeEscape = { selection: node().data.selection?.id, result: output()?.id, mask: output('mask')?.id };
     const pendingIndex = heldPredictions.length;
     const recalculate = find<HTMLButtonElement>('.masks-recalculate');
     recalculate.focus(); recalculate.click();
     await until(() => heldPredictions.length > pendingIndex && Boolean(document.querySelector('.masks-progress')), 'Recalculation pending');
     assert(document.activeElement === find('.masks-preview canvas'), 'Recalculate moves focus to the canvas before disabling its button');
-    const target = find<HTMLElement>(`.react-flow__node[data-id="masks"] ${focusTarget}`);
+    const target = find<HTMLElement>(focusTarget.startsWith('.masks-controls') ? `.react-flow__node-toolbar[data-id="masks"] ${focusTarget}` : `.react-flow__node[data-id="masks"] ${focusTarget}`);
     target.focus();
     const escapedBefore = escapeEvents;
     target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));

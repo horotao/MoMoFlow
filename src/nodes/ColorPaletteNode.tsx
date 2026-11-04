@@ -1,17 +1,15 @@
-import { NodeIcon } from './NodeIcon';
+import { NodePort } from './NodePort';
+import { NodeFrame } from './NodeFrame';
+import { NodeHeader } from './NodeHeader';
 import { useEffect, useState } from 'react';
-import { Handle, Position, useEdges, useReactFlow, type NodeProps } from '@xyflow/react';
-import { Ellipsis } from 'lucide-react';
+import { useReactFlow, type NodeProps } from '@xyflow/react';
 import { isColorPaletteNode, type AppNode, type ColorPaletteNode as PaletteNode } from './types';
 import { paletteBands, paletteRevision, paletteSize } from './colorPalette';
 import { assetResources } from './assetResources';
-import { TextNodeMenu } from './TextNodeMenu';
 import { ColorPaletteColors } from './ColorPaletteColors';
 
 export function ColorPaletteNode({ id, data, isConnectable }: NodeProps<PaletteNode>) {
-  const edges = useEdges();
   const { getNode, updateNodeData } = useReactFlow<AppNode>();
-  const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
   const [error, setError] = useState('');
   const revision = paletteRevision(data.colors);
   useEffect(() => {
@@ -32,21 +30,11 @@ export function ColorPaletteNode({ id, data, isConnectable }: NodeProps<PaletteN
     }, 'image/png');
     return () => { cancelled = true; };
   }, [id, data.colors, data.locked, revision, getNode, updateNodeData]);
-  return <>
-    <header className="text-node-header"><div className="text-node-title"><NodeIcon nodeType="color-palette" />{renaming
-      ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
-        onBlur={() => { const current = getNode(id); if (name.trim() && isColorPaletteNode(current) && !current.data.locked) updateNodeData(id, { label: name.trim() }); setRenaming(false); }}
-        onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-      : <span>{data.label || '调色板'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '调色板'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
-    </header>
+  return <NodeFrame>
+    <NodeHeader id={id} label={data.label} fallback="调色板" type="COLOR PALETTE" locked={data.locked} />
     <ColorPaletteColors node={{ id, data }} inline />
-    {[{ id: 'image', label: 'Image', top: 89 }, { id: 'text', label: 'Text', top: 149 }].map(port => <div className="describer-port-wrapper" key={port.id}>
-      <span className={`describer-port-label output-label ${port.id === 'image' ? 'sunburst-label-image' : ''}`} style={{ top: port.top - 28 }}>{port.label}</span>
-      <Handle type="source" position={Position.Right} id={port.id} style={{ top: port.top }} aria-label={`Color palette ${port.label}`}
-        className={`describer-port ${port.id === 'image' ? 'sunburst-port-image' : ''}${edges.some(edge => edge.source === id && edge.sourceHandle === port.id) ? ' is-connected' : ''}`}
-        isConnectable={isConnectable && !data.locked} />
-    </div>)}
+    {[{ id: 'image', label: 'Image' }, { id: 'text', label: 'Text' }].map(port => <NodePort key={port.id}
+      id={port.id} direction="source" label={`Color palette ${port.label}`} isConnectable={isConnectable && !data.locked} />)}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }

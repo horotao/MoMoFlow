@@ -1,106 +1,86 @@
-import { isImageIteratorNode } from '../nodes/types';
-import { useEffect, useRef, useState } from 'react';
-import { motion } from 'motion/react';
-import { useReactFlow, useNodes } from '@xyflow/react';
-import { HugeiconsIcon } from '@hugeicons/react';
-import { Album01Icon, ArrowDown01Icon, Cancel01Icon, HelpCircleIcon, Moon02Icon, Search01Icon, SlidersHorizontalIcon, Sun01Icon } from '@hugeicons/core-free-icons';
-import { isFileNode } from '../nodes/fileAsset';
-import { isImageGeneratorNode, type AppNode } from '../nodes/types';
-import { spring } from '../lib/springs';
-import { items as catalogItems, navigation, createLibraryNode, libraryItemLabel as itemLabel, type Category, type Item } from './libraryCatalog';
+import { Fragment, useCallback, useId, useRef, useState } from 'react';
+import type { CanvasTool } from './CanvasDock';
+import { Button } from './ui/button';
+import { NodeAddMenu } from './NodeAddMenu';
 import './CanvasSidebar.css';
 
-const items = catalogItems.filter(item => !['position-logger', 'model-input'].includes(item.id));
+type DockItem = {
+  id: 'add' | 'files' | CanvasTool | 'search' | 'more';
+  label: string;
+  shortcut?: string;
+  divider?: boolean;
+};
 
-const categoryLabels: Record<Category, string> = {
-  Search: '搜索', Recents: '最近', Saved: '收藏', Tools: '工具',
-  Image: '图像', Video: '视频', Models: '模型', Assets: '素材',
+const dockItems: DockItem[] = [
+  { id: 'add', label: '添加' },
+  { id: 'files', label: '文件' },
+  { id: 'select', label: '选择工具', shortcut: 'V', divider: true },
+  { id: 'hand', label: '抓手工具', shortcut: 'H' },
+  { id: 'search', label: '搜索' },
+  { id: 'more', label: '更多', divider: true },
+];
+
+type Props = {
+  tool: CanvasTool;
+  onToolChange: (tool: CanvasTool) => void;
+  onAddNode: (id: string) => void;
+  menuOpen: boolean;
+  onMenuOpenChange: (open: boolean) => void;
 };
-const titles: Partial<Record<Category, string>> = {
-  Recents: '快速访问', Tools: '工具箱', Image: '图像模型', Video: '视频模型', Models: '社区模型',
-};
-const groupLabels: Record<string, string> = {
-  Iterators: '迭代器', Matte: '蒙版', Helpers: '辅助工具', Editing: '图像编辑', 'Text tools': '文本工具', Datatypes: '数据类型',
-  'Generate from text': '文本生成图像', 'Generate from text or image': '文本或图像生成视频',
-  'Community models': '社区模型',
-};
-export function CanvasSidebar({ colorMode, onThemeChange }: { colorMode: 'light' | 'dark'; onThemeChange: () => void }) {
-  const [active, setActive] = useState<Category | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const [recent, setRecent] = useState<string[]>([]);
-  const [filter, setFilter] = useState('All');
-  const [help, setHelp] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const { setNodes, screenToFlowPosition } = useReactFlow<AppNode>();
-  const nodes = useNodes<AppNode>();
-  const assets = nodes.flatMap(n => isImageGeneratorNode(n) ? n.data.results ?? [] : (isFileNode(n) || isImageIteratorNode(n)) ? (n.data.assets ?? (n.data.asset ? [n.data.asset] : [])) : []).filter((asset, index, all) => all.findIndex(a => a.id === asset.id) === index).filter(asset => asset.name.toLowerCase().includes(query.trim().toLowerCase()));
-  useEffect(() => {
-    if (!isOpen) return;
-    contentRef.current?.scrollTo(0, 0);
-    if (active === 'Search') searchRef.current?.focus();
-  }, [active, isOpen]);
-  const choose = (category: Category) => {
-    setIsOpen(current => active !== category || !current);
-    // Keep the current category and search results in place while the drawer closes.
-    if (active !== category || !isOpen) {
-      setActive(category);
-      setQuery('');
-      setFilter('All');
-    }
-    setHelp(false);
+
+export function CanvasSidebar({ tool, onToolChange, onAddNode, menuOpen, onMenuOpenChange }: Props) {
+  const [tooltip, setTooltip] = useState<DockItem['id'] | null>(null);
+  const addTrigger = useRef<HTMLButtonElement>(null);
+  const tooltipId = useId();
+  const menuId = useId();
+  const dismissMenu = useCallback(() => {
+    onMenuOpenChange(false);
+    if (document.activeElement?.closest('.node-add-menu')) addTrigger.current?.focus({ preventScroll: true });
+  }, [onMenuOpenChange]);
+  const dismissTooltip = (id: DockItem['id']) => {
+    setTooltip(current => current === id ? null : current);
   };
-  const add = (item: Item) => {
-    const position = screenToFlowPosition({ x: 310 + (window.innerWidth - 310) / 2 - 140, y: Math.max(100, window.innerHeight / 2 - 160) });
-    const node = createLibraryNode(item.id, position);
-    if (node) setNodes(current => [...current.map(n => ({ ...n, selected: false })), node]);
-    setRecent(current => [item.id, ...current.filter(id => id !== item.id)].slice(0, 8));
-  };
-  const cards = (list: Item[]) => <div className="library-grid">{list.map(item => <button type="button" key={item.id} className="library-card" disabled={!item.nodeType} title={item.nodeType ? `添加${itemLabel(item)}` : `${itemLabel(item)} · 暂未开放`} draggable={Boolean(item.nodeType)} onDragStart={event => { event.dataTransfer.setData('application/x-momoflow-library', item.id); event.dataTransfer.effectAllowed = 'copy'; }} onDragEnd={event => { if (event.dataTransfer.dropEffect !== 'none') setRecent(current => [item.id, ...current.filter(id => id !== item.id)].slice(0, 8)); }} onClick={() => add(item)}><HugeiconsIcon icon={item.icon} size={20} style={{ color: item.color }} aria-hidden="true" /><span>{itemLabel(item)}</span>{!item.nodeType && <small>未开放</small>}</button>)}</div>;
-  const matching = items.filter(item => `${itemLabel(item)} ${item.label}`.toLowerCase().includes(query.trim().toLowerCase()) && (filter === 'All' || item.category === filter));
-  const quick = [...recent.flatMap(id => items.filter(item => item.id === id)), ...items.filter(item => ['text', 'file', 'image-describer'].includes(item.id) && !recent.includes(item.id))];
-  return <>
-    <div className="canvas-library nodrag nopan nowheel" onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { setIsOpen(false); setHelp(false); } }}>
-      <motion.aside
-        className="library-drawer"
-        aria-label={active ? `${categoryLabels[active]}面板` : '资源库面板'}
-        id="canvas-library-panel"
-        initial={false}
-        animate={{ x: isOpen ? '0%' : '-100%' }}
-        transition={isOpen ? spring.slow : spring.slow.exit}
-        {...(!isOpen ? { inert: '' } : {})}
-      >
-        <div className="library-title"><span>未命名</span><button type="button" aria-label="关闭侧边栏" onClick={() => setIsOpen(false)}><HugeiconsIcon icon={Cancel01Icon} size={15} aria-hidden="true" /></button></div>
-        <div className="library-search"><HugeiconsIcon icon={Search01Icon} size={15} aria-hidden="true" /><input ref={searchRef} aria-label="搜索资源库" placeholder="搜索" value={query} onChange={event => setQuery(event.target.value)} />{query && <button type="button" aria-label="清空搜索" onClick={() => setQuery('')}><HugeiconsIcon icon={Cancel01Icon} size={12} aria-hidden="true" /></button>}</div>
-        {active === 'Search' && <div className="library-filters"><HugeiconsIcon icon={SlidersHorizontalIcon} size={13} aria-hidden="true" /><span>类型</span><select aria-label="筛选分类" value={filter} onChange={event => setFilter(event.target.value)}>{['All', 'Tools', 'Image', 'Video', 'Models'].map(value => <option key={value} value={value}>{value === 'All' ? '全部' : categoryLabels[value as Category]}</option>)}</select></div>}
-        <div className={`library-content ${active && !['Assets', 'Recents', 'Search'].includes(active) ? 'library-content-category' : ''}`} ref={contentRef}>
-          {(query && active !== 'Assets') || (active === 'Search' && filter !== 'All') ? <><h2>搜索结果 <span>{matching.length}</span></h2>{matching.length ? cards(matching) : <p className="library-empty">未找到结果。<br />试试其他名称。</p>}</> : active === 'Assets' ? <><h2>素材</h2>{assets.length ? <div className="library-grid">{assets.map(asset => <button type="button" className="library-asset" key={asset.id} title={asset.name} onClick={() => { const position = screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 3 }); setNodes(current => [...current.map(n => ({ ...n, selected: false })), { id: crypto.randomUUID(), type: 'file', position, selected: true, data: { assets: [asset] } }]); }}>{asset.kind === 'image' ? <img src={asset.url} alt={asset.name} /> : <HugeiconsIcon icon={Album01Icon} aria-hidden="true" />}<span>{asset.name}</span></button>)}</div> : <div className="library-asset-empty"><HugeiconsIcon icon={Album01Icon} size={28} aria-hidden="true" /><p>暂无素材</p><span>导入的文件会显示在这里。</span><button type="button" onClick={() => add(items.find(item => item.id === 'file')!)}>+ 导入</button></div>}</> : active === 'Saved' ? <><h2>收藏 <HugeiconsIcon icon={ArrowDown01Icon} size={14} aria-hidden="true" /></h2>{['模型', '节点', '分组'].map(label => <section key={label}><h3>{label}</h3><p className="library-empty">暂无收藏的{label}。{label === '节点' && <><br />节点收藏功能即将推出。</>}</p></section>)}</> : <>
-            {(active === 'Search' || active === 'Recents') && <section><h2>快速访问</h2>{cards(quick)}</section>}
-            {(active === 'Search' || active === 'Recents' ? ['Tools', 'Image', 'Video', 'Models'] : [active]).map(category => category && <section key={category}><h2>{titles[category as Category]}</h2>{Array.from(new Set(items.filter(item => item.category === category).map(item => item.group))).map(group => <section key={group}><h3>{groupLabels[group] ?? group}</h3>{cards(items.filter(item => item.category === category && item.group === group))}</section>)}</section>)}
-          </>}
-        </div>
-      </motion.aside>
-      <nav className="library-rail" aria-label="画布工具栏">
-        <div className="library-nav">
-          {navigation.map(({ name, icon, divider }) => <div key={name} className={divider ? 'library-nav-divider' : undefined}>
-            <button type="button" aria-label={categoryLabels[name]} aria-expanded={isOpen && active === name} aria-controls="canvas-library-panel" onClick={() => choose(name)}>
-              <span className="library-icon"><HugeiconsIcon icon={icon} aria-hidden="true" /></span>
-              <span>{categoryLabels[name]}</span>
-            </button>
-          </div>)}
-        </div>
-        <div className="library-footer">
-          <button type="button" aria-label="帮助" aria-expanded={help} onClick={() => setHelp(value => !value)}>
-            <HugeiconsIcon icon={HelpCircleIcon} aria-hidden="true" />
-          </button>
-          <button type="button" aria-label={colorMode === 'dark' ? '切换浅色模式' : '切换深色模式'} onClick={onThemeChange}>
-            <HugeiconsIcon icon={colorMode === 'dark' ? Sun01Icon : Moon02Icon} aria-hidden="true" />
-          </button>
-        </div>
-      </nav>
-      {help && <div className="library-help"><strong>画布快捷键</strong><p>V <span>选择</span></p><p>H <span>平移</span></p><p>⌘ / Ctrl Z <span>撤销</span></p><p>Esc <span>关闭侧边栏</span></p><small>点击卡片，或将其拖入画布。</small></div>}
-    </div>
-    {!isOpen && <div className="library-workflow-title nodrag nopan">未命名</div>}
-  </>;
+
+  return <div className="canvas-sidebar-positioner nodrag nopan nowheel">
+    <nav className="canvas-sidebar" aria-label="画布工具栏" onKeyDown={event => {
+      if (event.key === 'Escape' && tooltip) {
+        setTooltip(null);
+        event.stopPropagation();
+      }
+    }}>
+      {dockItems.map(({ id, label, shortcut, divider }) => <Fragment key={id}>
+        {divider && <div className="canvas-sidebar-divider" aria-hidden="true" />}
+        <Button
+          ref={id === 'add' ? addTrigger : undefined}
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={`canvas-sidebar-button${id === 'add' ? ' canvas-sidebar-add' : ''}`}
+          aria-label={label}
+          aria-pressed={id === 'select' || id === 'hand' ? tool === id : undefined}
+          aria-keyshortcuts={shortcut}
+          aria-haspopup={id === 'add' ? 'dialog' : undefined}
+          aria-expanded={id === 'add' ? menuOpen : undefined}
+          aria-controls={id === 'add' && menuOpen ? menuId : undefined}
+          aria-describedby={tooltip === id ? `${tooltipId}-${id}` : undefined}
+          onPointerEnter={event => { if (event.pointerType !== 'touch' && !menuOpen) setTooltip(id); }}
+          onPointerLeave={() => dismissTooltip(id)}
+          onFocus={event => { if (event.currentTarget.matches(':focus-visible')) setTooltip(id); }}
+          onBlur={() => dismissTooltip(id)}
+          onClick={() => {
+            setTooltip(null);
+            if (id === 'add') onMenuOpenChange(!menuOpen);
+            if (id === 'select' || id === 'hand') onToolChange(id);
+          }}
+        >
+          <img src={`/canvas-sidebar/${id}.svg`} alt="" draggable={false} />
+          <span id={`${tooltipId}-${id}`} role="tooltip" className="canvas-sidebar-tooltip" data-visible={tooltip === id} aria-hidden={tooltip !== id}>
+            {label}{shortcut && <kbd>{shortcut}</kbd>}
+          </span>
+        </Button>
+      </Fragment>)}
+    </nav>
+    {menuOpen && <NodeAddMenu id={menuId} trigger={addTrigger} onDismiss={dismissMenu}
+      onChoose={id => { onAddNode(id); dismissMenu(); }} />}
+  </div>;
 }

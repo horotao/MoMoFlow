@@ -1,6 +1,10 @@
-import { NodeIcon } from './NodeIcon';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { flushSync } from 'react-dom';
+import { NodePort } from './NodePort';
+import { NodeFrame, NodeTitle } from './NodeFrame';
+import { NodeSettingsPortal } from '../components/NodeSettingsPortal';
+import { PreviewSwitch, SettingsSection, ParameterSlider } from '../components/ParameterControls';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Ellipsis, Eye, EyeOff } from 'lucide-react';
 import type { AppNode, ColorCorrectionNode as ColorNode } from './types';
 import { isColorCorrectionNode, isNodeLocked } from './types';
@@ -18,11 +22,11 @@ function ColorNumber({ value, control, disabled, onCommit }: {
 }) {
   const [text, setText] = useState(String(value));
   const cancelled = useRef(false);
-  useEffect(() => setText(String(value)), [value]);
+  useEffect(() => setText(String(value)), [value, disabled]);
   return <input type="number" aria-label={control.label} min={control.min} max={control.max} step={control.step}
     value={text} disabled={disabled} onChange={event => setText(event.target.value)}
     onBlur={() => {
-      if (!cancelled.current && text.trim() && Number.isFinite(Number(text))) {
+      if (!disabled && !cancelled.current && text.trim() && Number.isFinite(Number(text))) {
         const next = Math.min(control.max, Math.max(control.min, Number(text)));
         onCommit(Number((Math.round(next / control.step) * control.step).toFixed(2)));
       }
@@ -52,6 +56,7 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
   const [displayed, setDisplayed] = useState<{ image: HTMLImageElement; revision: string; draft: boolean }>();
   const [engine, setEngine] = useState<{ image: HTMLImageElement; renderer: ColorRenderer }>();
   const [original, setOriginal] = useState(false);
+  const [livePreview, setLivePreview] = useState(true);
   const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
   const [error, setError] = useState('');
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -61,7 +66,7 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
   const ready = Boolean(image);
   const output = imageOutput(getNode(id), 'result', nodes, edges)[0];
   const patch = (value: Partial<ColorNode['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
-  const cancelDraft = () => { if (draftRef.current) gesture.current++; if (dragging.current) cancelledGesture.current = true; dragging.current = false; draftRef.current = undefined; setDraft(undefined); };
+  const cancelDraft = useCallback(() => { if (draftRef.current) gesture.current++; if (dragging.current) cancelledGesture.current = true; dragging.current = false; draftRef.current = undefined; setDraft(undefined); colorLivePreviews.clear(id); }, [id]);
   const commitDraft = () => {
     const next = draftRef.current;
     cancelDraft();
@@ -78,7 +83,7 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
       .catch(() => { if (!cancelled) setError('无法读取图片，请检查图片是否允许跨域访问。'); });
     return () => { cancelled = true; };
   }, [input?.url]);
-  useEffect(() => { cancelDraft(); }, [revision, image, data.locked]);
+  useEffect(() => { cancelDraft(); }, [revision, image, data.locked, cancelDraft]);
   useEffect(() => internals(id), [id, width, height, internals]);
 
   const current = useRef({ image, revision, locked: data.locked });
@@ -98,7 +103,7 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
   }, [id, image]);
 
   useEffect(() => {
-    if (!image || engine?.image !== image || !inputId) return;
+    if (!image || engine?.image !== image || !inputId || (draft && !livePreview)) return;
     const epoch = gesture.current;
     const isCurrent = () => current.current.image === image && current.current.revision === revision
       && current.current.locked === data.locked && gesture.current === epoch;
@@ -129,15 +134,15 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
         }
       } finally { frame.bitmap?.close(); }
     }).catch(() => { if (isCurrent()) setError('无法处理调色图片，请重试或更换可读取的图片。'); });
-  }, [id, engine, image, settings, draft, revision, inputId, input?.url, data.locked, getNode, getNodes, getEdges, updateNodeData]);
+  }, [livePreview, id, engine, image, settings, draft, revision, inputId, input?.url, data.locked, getNode, getNodes, getEdges, updateNodeData]);
 
-  return <>
+  return <NodeFrame>
     <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="color-correction" size={18} />{renaming
+      <NodeTitle type="COLOR CORRECTION">{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '色彩校正'}</span>}</div>
+          onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return; if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
+        : <span>{data.label || '色彩校正'}</span>}</NodeTitle>
       <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '色彩校正'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
     </header>
     <div className="preview-image color-image nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
@@ -161,12 +166,18 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
         </div>
       </>}
     </div>
-    <div className="color-settings nodrag nopan nowheel" onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') cancelDraft(); }}>
-      {colorControls.map(control => <div className="color-setting" key={control.key}>
-        <label htmlFor={`${id}-${control.key}`}>{control.label}</label>
-        <input id={`${id}-${control.key}`} type="range" aria-label={control.label} min={control.min} max={control.max} step={control.step}
-          value={settings[control.key]} disabled={data.locked || !ready}
-          onPointerDown={event => { cancelledGesture.current = false; dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); }}
+    <NodeSettingsPortal id={id} onClose={cancelDraft} actions={<button type="button" disabled={data.locked || !ready} onClick={() => { cancelDraft(); patch({ settings: { ...defaultColorSettings } }); }}>重置</button>}>
+      <div className="color-settings" onKeyDown={event => { if (event.key === 'Escape') cancelDraft(); }}>
+        {colorControls.map(control => <ParameterSlider key={control.key} id={`${id}-${control.key}`} label={control.label}
+          min={control.min} max={control.max} step={control.step} value={settings[control.key]} disabled={data.locked || !ready}
+          onPointerDown={event => {
+            if (event.button !== 0) return;
+            const slider = event.currentTarget;
+            // Commit a focused number field before starting the new gesture.
+            if (document.activeElement !== slider) flushSync(() => slider.focus());
+            cancelledGesture.current = false; dragging.current = true; slider.setPointerCapture(event.pointerId);
+          }}
+          onKeyDown={event => { if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) cancelledGesture.current = false; }}
           onChange={event => {
             if (cancelledGesture.current) return;
             const next = { ...settings, [control.key]: Number(event.target.value) };
@@ -174,21 +185,17 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
             else patch({ settings: next });
           }}
           onPointerUp={commitDraft} onPointerCancel={() => { cancelDraft(); cancelledGesture.current = false; }}
-          onLostPointerCapture={() => { if (dragging.current) cancelDraft(); cancelledGesture.current = false; }} />
-        <ColorNumber control={control} value={settings[control.key]} disabled={Boolean(data.locked) || !ready}
-          onCommit={value => patch({ settings: { ...data.settings, [control.key]: value } })} />
-      </div>)}
-      <button className="color-reset" type="button" disabled={data.locked || !ready} onClick={() => { cancelDraft(); patch({ settings: { ...defaultColorSettings } }); }}>重置</button>
-    </div>
+          onLostPointerCapture={() => { if (dragging.current) cancelDraft(); cancelledGesture.current = false; }}
+          number={<ColorNumber control={control} value={settings[control.key]} disabled={Boolean(data.locked) || !ready}
+            onCommit={value => patch({ settings: { ...data.settings, [control.key]: value } })} />} />)}
+      </div>
+      <SettingsSection><PreviewSwitch checked={livePreview} disabled={data.locked} onChange={value => { cancelDraft(); setLivePreview(value); }} /></SettingsSection>
+    </NodeSettingsPortal>
     {[{ handle: 'file', label: '文件', output: false }, { handle: 'result', label: '结果', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
-          aria-label={`色彩校正${port.label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked} />
-      </div>;
+      return <NodePort key={port.handle} id={port.handle} direction={port.output ? 'source' : 'target'}
+        label={`色彩校正${port.label}`} connected={connected} isConnectable={isConnectable && !data.locked} />;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }

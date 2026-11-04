@@ -1,12 +1,13 @@
+import { NodePort } from './NodePort';
 import { useLayoutEffect, useRef, useState } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon, DragDropVerticalIcon, MoreHorizontalIcon, PlusSignIcon } from '@hugeicons/core-free-icons';
 import { isNodeLocked, isTextIteratorNode, type AppNode, type TextIteratorNode as IteratorNode } from './types';
 import { newTextIteratorItem, textIteratorLimit, textIteratorTextLimit, type TextIteratorItem } from './textIterator';
 import { IteratorWarning } from '../components/IteratorWarning';
 import { iteratorItems } from './textVariables';
-import { NodeIcon } from './NodeIcon';
+import { NodeFrame, NodeTitle } from './NodeFrame';
 import { TextNodeMenu } from './TextNodeMenu';
 import './TextIteratorNode.css';
 
@@ -41,18 +42,18 @@ export function TextIteratorNode({ id, data, isConnectable }: NodeProps<Iterator
     if (focus.current) { fields.current.get(focus.current)?.focus(); focus.current = undefined; }
     internals(id);
   }, [id, itemSignature, error, internals]);
-  return <>
+  return <NodeFrame kind="text">
     <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="text-iterator" size={20} />{renaming
+      <NodeTitle type="TEXT ITERATOR">{renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim() && !isNodeLocked(getNode(id))) updateNodeData(id, { label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return; if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '文本迭代'}</span>}</div>
+        : <span>{data.label || '文本迭代'}</span>}</NodeTitle>
       <div className="iterator-heading-actions"><span className="iterator-count" aria-label={`${items.length} / ${textIteratorLimit} 条文本`}>{items.length}/{textIteratorLimit}</span>
         <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '文本迭代'); setRenaming(true); }}><HugeiconsIcon icon={MoreHorizontalIcon} size={20} /></TextNodeMenu>
       </div>
     </header>
-    <div className="iterator-items nodrag nopan nowheel" aria-label="迭代文本列表">
+    <div className="node-frame-card iterator-card"><div className="iterator-items nodrag nopan nowheel" aria-label="迭代文本列表">
       {items.map((item, index) => <div key={item.id} className={`iterator-item${dropId === item.id ? ' is-drop-target' : ''}`}
         onDragOver={event => { if (!readOnly && dragged.current) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropId(item.id); } }}
         onDrop={event => { if (!readOnly && dragged.current) { event.preventDefault(); event.stopPropagation(); move(dragged.current, index); } dragged.current = undefined; setDropId(undefined); }}>
@@ -70,9 +71,8 @@ export function TextIteratorNode({ id, data, isConnectable }: NodeProps<Iterator
     </div>
     {connected && !error && <div className="iterator-input-note">由上游输入提供文本</div>}
     {error && <IteratorWarning message={error} />}
-    <span className="describer-port-label iterator-input-label">文本 / 数组</span>
-    <Handle type="target" position={Position.Left} id="input" aria-label="文本或数组输入" className={`describer-port iterator-input-port${connected ? ' is-connected' : ''}`} style={{ top: 30 }} isConnectable={isConnectable && !data.locked} />
-    <span className="describer-port-label output-label iterator-output-label">文本</span>
-    <Handle type="source" position={Position.Right} id="text" aria-label="迭代文本输出" className={`describer-port${edges.some(edge => edge.source === id) ? ' is-connected' : ''}`} style={{ top: 30 }} isConnectable={isConnectable && !data.locked} />
-  </>;
+    </div>
+    <NodePort id="input" direction="target" label="文本或数组输入" connected={connected} isConnectable={isConnectable && !data.locked} />
+    <NodePort id="text" direction="source" label="迭代文本输出" isConnectable={isConnectable && !data.locked} />
+  </NodeFrame>;
 }

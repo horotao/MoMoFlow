@@ -1,9 +1,5 @@
 .react-flow .react-flow__node-matte-grow-shrink { height: auto; gap: 20px; }
 .react-flow .react-flow__node-matte-grow-shrink.selected, .react-flow .react-flow__node-matte-grow-shrink:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-.react-flow__node-matte-grow-shrink .text-node-title { min-width: 0; gap: 10px; }
-.react-flow__node-matte-grow-shrink .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.react-flow__node-matte-grow-shrink .text-node-title > svg { flex-shrink: 0; }
-.react-flow__node-matte-grow-shrink:hover .describer-port-label, .react-flow__node-matte-grow-shrink.selected .describer-port-label { visibility: visible; }
 
 .matte-grow-shrink-settings .color-setting { grid-template-columns: auto 182px 50px; justify-content: start; gap: 8px; height: 24px; }
 .matte-grow-shrink-settings .color-setting input[type="number"] { width: 50px; height: 24px; padding: 0 8px; border: 0; border-radius: 5px; font-weight: 450; }

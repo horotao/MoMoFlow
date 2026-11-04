@@ -1,16 +1,14 @@
-import { NodeIcon } from './NodeIcon';
+import { NodePort } from './NodePort';
+import { ToolNodeFrame, ToolbarIcon } from './ToolNodeFrame';
 import { useEffect, useRef, useState } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis } from 'lucide-react';
+import { useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { isResizeNode, isNodeLocked, type AppNode, type ResizeNode as Resize } from './types';
 import { changeResizeDimension, resizeRevision, resizeSize, toggleResizeAspectRatio, validResizeSize } from './resize';
 import { imageOutput } from './sunburstRun';
 import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
-import { AspectRatioIcon } from './ResizeIcon';
 import { ResizeDimension } from './ResizeDimension';
-import { TextNodeMenu } from './TextNodeMenu';
 
 export function ResizeNode({ id, data, isConnectable }: NodeProps<Resize>) {
   const nodes = useNodes<AppNode>(), edges = useEdges();
@@ -22,7 +20,6 @@ export function ResizeNode({ id, data, isConnectable }: NodeProps<Resize>) {
   const revision = resizeRevision(data, inputId);
   const output = imageOutput(nodes.find(node => node.id === id), 'result', nodes, edges)[0];
   const [loaded, setLoaded] = useState<{ url: string; image: HTMLImageElement }>();
-  const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
   const [error, setError] = useState('');
   const canvas = useRef<HTMLCanvasElement>(null);
   const image = loaded?.url === inputUrl ? loaded?.image : undefined;
@@ -87,15 +84,23 @@ export function ResizeNode({ id, data, isConnectable }: NodeProps<Resize>) {
 
   useEffect(() => updateInternals(id), [id, width, height, updateInternals]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="resize" />{renaming
-        ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
-          onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '调整尺寸'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '调整尺寸'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
-    </header>
+  const toolbar = (
+    <div className="resize-controls nodrag nopan" onKeyDown={event => {
+      if (!((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z')) event.stopPropagation();
+    }}>
+      <ResizeDimension key={`width-${inputId}`} axis="width" value={width} disabled={data.locked || !image} onCommit={value => change('width', value)} />
+      <ResizeDimension key={`height-${inputId}`} axis="height" value={height} disabled={data.locked || !image} onCommit={value => change('height', value)} />
+      <button type="button" role="checkbox" aria-label="Lock aspect ratio" aria-checked={data.settings.lockAspectRatio}
+        title={data.settings.lockAspectRatio ? '锁定比例：宽高等比例调整' : '自由调整：分别设置宽高'} disabled={data.locked}
+        onClick={() => patch({ settings: toggleResizeAspectRatio(data.settings) })}>
+        <ToolbarIcon name="aspect" />
+      </button>
+      <button type="button" className="resize-reset" title="恢复原图尺寸" disabled={data.locked || !image}
+        onClick={() => { setError(''); patch({ settings: { lockAspectRatio: data.settings.lockAspectRatio } }); }}>Reset</button>
+    </div>
+  );
+  return <ToolNodeFrame id={id} label={data.label} defaultLabel="调整尺寸" type="RESIZE" locked={data.locked} toolbar={toolbar}>
+
     <div className="preview-image nodrag nopan" aria-busy={Boolean(input && !output && !error && !data.locked)} style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
       {image && <canvas ref={canvas} aria-label="Resize preview" />}
       {input && <div className="file-media-overlay">
@@ -106,28 +111,11 @@ export function ResizeNode({ id, data, isConnectable }: NodeProps<Resize>) {
         {width && height && <span className="file-media-resolution">{width} × {height}</span>}
       </div>}
     </div>
-    <div className="resize-controls nodrag nopan" onKeyDown={event => {
-      if (!((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z')) event.stopPropagation();
-    }}>
-      <ResizeDimension key={`width-${inputId}`} axis="width" value={width} disabled={data.locked || !image} onCommit={value => change('width', value)} />
-      <ResizeDimension key={`height-${inputId}`} axis="height" value={height} disabled={data.locked || !image} onCommit={value => change('height', value)} />
-      <button type="button" role="checkbox" aria-label="Lock aspect ratio" aria-checked={data.settings.lockAspectRatio}
-        title={data.settings.lockAspectRatio ? '锁定比例：宽高等比例调整' : '自由调整：分别设置宽高'} disabled={data.locked}
-        onClick={() => patch({ settings: toggleResizeAspectRatio(data.settings) })}>
-        <AspectRatioIcon locked={data.settings.lockAspectRatio} />
-      </button>
-      <button type="button" className="resize-reset" title="恢复原图尺寸" disabled={data.locked || !image}
-        onClick={() => { setError(''); patch({ settings: { lockAspectRatio: data.settings.lockAspectRatio } }); }}>Reset</button>
-    </div>
     {[{ handle: 'image', label: 'Input', output: false }, { handle: 'result', label: 'Output', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
-          aria-label={`Resize ${port.label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked} />
-      </div>;
+      return <NodePort key={port.handle} id={port.handle} direction={port.output ? 'source' : 'target'}
+        label={`Resize ${port.label}`} connected={connected} isConnectable={isConnectable && !data.locked} />;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </ToolNodeFrame>;
 }

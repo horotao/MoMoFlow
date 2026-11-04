@@ -1,10 +1,12 @@
+import { nodeConnectionOffset } from './nodes/nodeLayout';
+import { nodeEdgeStyle } from './nodes/nodeConnectionStyle';
 import { isImageIteratorNode } from './nodes/types';
 import { readImageIteratorData } from './nodes/imageIterator';
 import { readTextIteratorData } from './nodes/textIterator';
 import { restoreIdeogramData } from './nodes/ideogramClipboard';
 import { restoreMasksData } from './nodes/masksExtractor';
 import { restoreNanoBananaData } from './nodes/nanoBananaClipboard';
-import { outputColor, outputKind, routerFromOutput } from './nodes/router';
+import { routerFromOutput } from './nodes/router';
 import { restoreBlendData } from './nodes/blend';
 import { restoreCompareData } from './nodes/compare';
 import { restoreResizeData } from './nodes/resize';
@@ -21,11 +23,12 @@ import { isPainterNode, isNodeLocked } from './nodes/types';
 import { restorePainterData } from './nodes/painter';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasSidebar } from './components/CanvasSidebar';
+import { NodeAddMenu } from './components/NodeAddMenu';
 import { NodePortLabelMotion } from './components/NodePortLabelMotion';
 import { ConnectionMenu, type NodeMenuChoice } from './components/ConnectionMenu';
 import { canConnect, withoutReplacedInput } from './nodes/connectionRules';
 import { connectionChoices, choiceConnection, initializeConnectionParameter, type PendingConnection } from './nodes/connectionRecommendations';
-import { createLibraryNode, items } from './components/libraryCatalog';
+import { createLibraryNode } from './components/libraryCatalog';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
@@ -34,7 +37,6 @@ import {
   Background,
   Controls,
   ControlButton,
-  MiniMap,
   Panel,
   addEdge,
   useNodesState,
@@ -46,14 +48,14 @@ import {
 import { DescriberPanel } from './components/DescriberPanel';
 import { ModelTasksProvider } from './components/ModelTasksProvider';
 import { defaultInstructions } from './nodes/describer';
-import { CanvasDock, type CanvasTool } from './components/CanvasDock';
+import type { CanvasTool } from './components/CanvasDock';
 import { CanvasHistoryContext, useCanvasHistory } from './components/useCanvasHistory';
 import { initialNodes, nodeTypes } from './nodes';
 import { isDescriberNode, isImageGeneratorNode } from './nodes/types';
 import type { AppNode } from './nodes/types';
-import { isTextNode, textVariableCount, variableIndex } from './nodes/textVariables';
+import { isTextNode, variableIndex } from './nodes/textVariables';
 import { imagesFromDrop, isFileNode } from './nodes/fileAsset';
-import { fileOutputKind, filePortColors, isFileAsset } from './nodes/fileCollection';
+import { isFileAsset } from './nodes/fileCollection';
 import { cloneTextNode } from './nodes/cloneTextNode';
 import { defaultTextNodeText } from './nodes/defaults';
 import { initialEdges, edgeTypes } from './edges';
@@ -63,9 +65,8 @@ import { curveOptions } from './edges/curve';
 import { WorkflowStorage, type Workflow } from './persistence/workflowStorage';
 import { useWorkflowPersistence } from './persistence/useWorkflowPersistence';
 
-const defaultEdgeOptions = { type: 'default', pathOptions: curveOptions };
+const defaultEdgeOptions = { type: 'default', pathOptions: curveOptions, interactionWidth: 24 };
 type PendingNodeMenu = PendingConnection | Pick<PendingConnection, 'screen' | 'position'>;
-const creationChoices: NodeMenuChoice[] = items.filter(item => item.nodeType).map(item => ({ id: item.id, itemId: item.id }));
 
 export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | null }) {
   const [colorMode, setColorMode] = useState<'light' | 'dark'>(saved?.colorMode ?? 'dark');
@@ -82,7 +83,12 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
   const [tool, setTool] = useState<CanvasTool>('select');
   const [importError, setImportError] = useState('');
   const [pendingNodeMenu, setPendingNodeMenu] = useState<PendingNodeMenu | null>(null);
-  const dismissNodeMenu = useCallback(() => setPendingNodeMenu(null), []);
+  const [dockMenuOpen, setDockMenuOpen] = useState(false);
+  const dismissNodeMenu = useCallback(() => { setPendingNodeMenu(null); setDockMenuOpen(false); }, []);
+  const changeDockMenuOpen = useCallback((open: boolean) => {
+    setDockMenuOpen(open);
+    if (open) setPendingNodeMenu(null);
+  }, []);
   const restore = useCallback((snapshot: { nodes: AppNode[]; edges: typeof edges }) => {
     setNodes(snapshot.nodes);
     setEdges(snapshot.edges);
@@ -376,10 +382,8 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
     const connection = choiceConnection(pendingConnection, choice, node.id);
     if (!canConnect(connection, [...currentNodes, node], currentEdges, node.type === 'file' ? node.id : undefined)) return;
     // Place the new connecting port at the drop point, including reverse connections.
-    node.position = {
-      x: pendingConnection.position.x - (pendingConnection.direction === 'target' ? node.type === 'model-input' || node.type === 'router' ? 250 : 460 : 0),
-      y: pendingConnection.position.y - choice.portY,
-    };
+    const portOffset = nodeConnectionOffset(node, choice.handleId, pendingConnection.direction === 'source' ? 'target' : 'source');
+    node.position = { x: pendingConnection.position.x - portOffset.x, y: pendingConnection.position.y - portOffset.y };
     setNodes(current => [...current.map(item => {
       const deselected = { ...item, selected: false };
       return item.id === connection.target && isTextNode(item)
@@ -393,6 +397,14 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
   return (
     <CanvasHistoryContext.Provider value={history}><ReactFlow
       ref={canvasRef}
+      tabIndex={-1}
+      onPointerDownCapture={event => {
+        const target = event.target as HTMLElement;
+        // Keep canvas shortcuts reachable after dragging nodes or wiring ports.
+        // Portaled menus/editors and their text fields retain their own focus.
+        if (!event.currentTarget.contains(target) || target.closest('input,textarea,select,button,a,[contenteditable="true"],[role="button"],[role="combobox"],[role="slider"],[role="dialog"],[data-compositor-editor]')) return;
+        event.currentTarget.focus({ preventScroll: true });
+      }}
       minZoom={0.01}
       colorMode={colorMode}
       className={`canvas-tool-${tool}`}
@@ -409,30 +421,15 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         draggable: !node.data.locked && tool === 'select',
         deletable: !node.data.locked,
         connectable: !node.data.locked && tool === 'select',
-        style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
+        style: { ...node.style, height: undefined, minHeight: undefined },
       } : (isImageGeneratorNode(node) || isPainterNode(node) || node.type === 'masks-extractor' || node.type === 'crop' || node.type === 'color-correction' || node.type === 'matte-grow-shrink' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'blend' || node.type === 'compare' || node.type === 'resize' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview' || node.type === 'router' || node.type === 'text-iterator') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
-      edges={edges.map((edge) => {
-        const source = nodes.find((node) => node.id === edge.source);
-        const target = nodes.find((node) => node.id === edge.target);
-        if (source?.type === 'router' || target?.type === 'router') return {
-          ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
-          style: { ...edge.style, stroke: outputColor(outputKind(source, edge.sourceHandle, nodes, edges)) },
-        };
-        const fileSource = source && isFileNode(source) ? source : undefined;
-        const textConnection = (source?.type === 'color-palette' && edge.sourceHandle === 'text') || nodes.some((node) => (isTextNode(node) || node.type === 'text-iterator' || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
-        const generatedSource = source && (source.type === 'image-iterator' || isImageGeneratorNode(source) || source.type === 'masks-extractor' || source.type === 'painter' || source.type === 'crop' || source.type === 'color-correction' || source.type === 'matte-grow-shrink' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'rotate-flip' || source.type === 'blend' || source.type === 'compare' || source.type === 'resize' || source.type === 'compositor' || (source.type === 'color-palette' && edge.sourceHandle === 'image'));
-        const sunburstTarget = target && isImageGeneratorNode(target);
-        const portColor = source?.type === 'matte-grow-shrink' || target?.type === 'matte-grow-shrink' || ((source?.type === 'painter' || source?.type === 'masks-extractor') && edge.sourceHandle === 'mask') || (sunburstTarget && edge.targetHandle === 'mask') ? 'var(--sunburst-mask-port)'
-          : target?.type === 'image-describer' && /^image-\d+$/.test(edge.targetHandle ?? '') ? filePortColors.image
-          : (sunburstTarget && /^image-\d+$/.test(edge.targetHandle ?? '')) || generatedSource ? 'var(--sunburst-image-port)'
-          : fileSource ? filePortColors[fileOutputKind(fileSource.data)] : undefined;
-        return fileSource || textConnection || generatedSource ? {
-          ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
-          style: { ...edge.style, ...(portColor ? { stroke: portColor } : {}) },
-        } : edge;
-      })}
+      edges={edges.map(edge => ({
+        ...edge,
+        className: [...(edge.className ?? '').split(' ').filter(name => name && name !== 'text-variable-edge' && name !== 'node-design-edge'), 'node-design-edge'].join(' '),
+        style: nodeEdgeStyle(edge, nodes, edges),
+      }))}
       edgeTypes={edgeTypes}
       defaultEdgeOptions={defaultEdgeOptions}
       connectionLineComponent={ConnectionLine}
@@ -484,6 +481,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         if (!(event.target instanceof Element) || !event.target.classList.contains('react-flow__pane')) return;
         event.preventDefault();
         const screen = { x: event.clientX, y: event.clientY };
+        setDockMenuOpen(false);
         setPendingNodeMenu({ screen, position: screenToFlowPosition(screen) });
       }}
       onConnectStart={dismissNodeMenu}
@@ -510,24 +508,33 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       fitView={!saved}
     >
       <Background />
-      {pendingNodeMenu && <ConnectionMenu
+      {pendingNodeMenu && ('nodeId' in pendingNodeMenu ? <ConnectionMenu
         screen={pendingNodeMenu.screen}
-        mode={'nodeId' in pendingNodeMenu ? 'connect' : 'create'}
-        choices={'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes, edges) : creationChoices}
+        mode="connect"
+        choices={connectionChoices(pendingNodeMenu, nodes, edges)}
         onChoose={chooseNode}
         onDismiss={dismissNodeMenu}
-      />}
+      /> : <NodeAddMenu key={`${pendingNodeMenu.screen.x}:${pendingNodeMenu.screen.y}`}
+        id="canvas-node-add-menu" screen={pendingNodeMenu.screen}
+        onChoose={itemId => chooseNode({ id: itemId, itemId })} onDismiss={dismissNodeMenu}
+      />)}
       <Panel position="bottom-left" className="canvas-save-status" role={persistence.error ? 'alert' : 'status'}>
         <span>{persistence.error || persistence.status}</span>
         {persistence.error && <button type="button" onClick={persistence.retry}>重试保存</button>}
       </Panel>
-      <CanvasSidebar colorMode={colorMode} onThemeChange={() => setColorMode(mode => mode === 'dark' ? 'light' : 'dark')} />
+      <CanvasSidebar tool={tool} onToolChange={setTool} menuOpen={dockMenuOpen} onMenuOpenChange={changeDockMenuOpen} onAddNode={id => {
+        const bounds = canvasRef.current?.getBoundingClientRect();
+        if (!bounds) return;
+        const center = screenToFlowPosition({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 });
+        const node = createLibraryNode(id, { x: center.x - 230, y: center.y - 150 });
+        if (!node) return;
+        setPendingNodeMenu(null);
+        setNodes(current => [...current.map(item => ({ ...item, selected: false })), node]);
+      }} />
       <DescriberPanel />
       {importError && <Panel position="top-center" className="canvas-import-error" role="alert">
         <span>{importError}</span><button type="button" aria-label="Dismiss import error" onClick={() => setImportError('')}>×</button>
       </Panel>}
-      <CanvasDock tool={tool} onToolChange={setTool} colorMode={colorMode} {...history} />
-      <MiniMap />
       <Controls showInteractive={false}>
         <ControlButton title="添加 Image Describer" aria-label="添加 Image Describer" onClick={() => {
           const bounds = canvasRef.current?.getBoundingClientRect();
