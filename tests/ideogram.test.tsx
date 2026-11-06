@@ -1,3 +1,4 @@
+import { canvasHistoryShortcut } from './canvasShortcuts';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useNodes, useEdges, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
 import { Flow } from '../src/App';
@@ -116,9 +117,9 @@ async function run() {
   find('[data-id="ideogram"] [aria-label="更多选项"]').click(); await settle();
   [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(item => item.textContent?.includes('创建副本'))!.click(); await settle();
   check(api.getNodes().length === before + 1 && api.getNodes().at(-1)?.type === 'ideogram', 'Duplicate preserves node type and results');
-  find('[aria-label="撤销"]').click(); await settle(); check(api.getNodes().length === before, 'Undo removes the duplicate');
-  find('[aria-label="重做"]').click(); await settle(); check(api.getNodes().length === before + 1, 'Redo restores the duplicate');
-  find('[aria-label="撤销"]').click(); await settle();
+  canvasHistoryShortcut('undo'); await settle(); check(api.getNodes().length === before, 'Undo removes the duplicate');
+  canvasHistoryShortcut('redo'); await settle(); check(api.getNodes().length === before + 1, 'Redo restores the duplicate');
+  canvasHistoryShortcut('undo'); await settle();
   api.setNodes(current => current.map(node => ({ ...node, selected: node.id === 'ideogram' }))); await settle();
   mode = 'cancel'; runButton().click(); await until(() => requests.length === 3, 'Cancellable request starts');
   find('[aria-label="取消任务"]').click(); await until(() => cancelled, 'Cancellation reaches fetch signal');

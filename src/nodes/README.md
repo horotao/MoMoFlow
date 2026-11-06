@@ -37,7 +37,7 @@
 
 画布节点的默认标题使用中文，自定义名称与导入文件名保持原样；模型品牌名（如 GPT Image 2.5）保留英文。标题与重命名框使用相同默认文案，界面字体复用全局 `--font-ui`（英文 Inter、macOS 中文苹方、Windows 中文 Noto Sans SC）。
 
-侧边栏、画布右键创建与拖线推荐菜单共用 `libraryItemLabel` 显示名称；GPT Image 2.5 与 Nano Banana 的节点标题、设置面板和任务列表复用对应模型的名称常量，保持一致。菜单搜索同时匹配中文和原英文，端口说明仅翻译显示，不改变连接标识。
+侧边栏、画布右键创建与拖线推荐共用 `NodeAddMenu`，以 `libraryItemLabel` 为基础显示名称，Figma 菜单中的 Resize 显示为“调节尺寸”；GPT Image 2.5 与 Nano Banana 的节点标题、设置面板和任务列表复用对应模型的名称常量，保持一致。菜单搜索同时匹配中文和原英文，端口说明仅翻译显示，不改变连接标识。拖线入口仍由 `connectionRecommendations` 按兼容端口筛选，同一节点的多个端口保持独立选择身份；提交前再次校验。新增节点入口或调整分组时同步维护 `nodeMenuCatalog.ts`，创建数据仍由 `createLibraryNode()` 提供。
 
 侧边栏隐藏坐标记录（`position-logger`）和模型名称（`model-input`）入口，包括工具列表、搜索及快速访问；节点注册、已有节点和其他创建入口保持可用。
 
@@ -56,7 +56,7 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 | [types.ts](./types.ts)、[index.ts](./index.ts) | 节点数据类型、`AppNode` 联合类型、类型判断，以及组件注册 |
 | [defaults.ts](./defaults.ts)、[describer.ts](./describer.ts)、[sunburst.ts](./sunburst.ts) | 文本默认值、描述器配置、Sunburst 参数与校验；创建节点时由节点库等入口使用 |
 | [App.tsx](../App.tsx) | 画布状态、右键与拖线创建节点菜单、拖放和剪贴板入口，以及节点交互属性 |
-| [connectionRules.ts](./connectionRules.ts)、[connectionRecommendations.ts](./connectionRecommendations.ts)、[ConnectionMenu.tsx](../components/ConnectionMenu.tsx) | 共用连接校验、按端口类型推荐节点，以及右键和拖线共用的搜索菜单 |
+| [connectionRules.ts](./connectionRules.ts)、[connectionRecommendations.ts](./connectionRecommendations.ts)、[NodeAddMenu.tsx](../components/NodeAddMenu.tsx)、[nodeMenuCatalog.ts](../components/nodeMenuCatalog.ts) | 共用连接校验、按端口类型推荐节点，以及 Dock、右键和拖线共用的级联搜索菜单；`ConnectionMenu` 作为兼容导出入口 |
 | [TextPromptEditor.tsx](./TextPromptEditor.tsx)、[textDocument.ts](./textDocument.ts)、[textVariables.ts](./textVariables.ts) | 富文本编辑、文档转换、变量端口编号与上游文本解析；变量视图见 `PromptVariableView.tsx` |
 | [fileAsset.ts](./fileAsset.ts)、[fileCollection.ts](./fileCollection.ts)、[fileMedia.ts](./fileMedia.ts) | 文件导入、集合与输出类型、拆分文件、媒体预览及下载 |
 | [describerRun.ts](./describerRun.ts)、[sunburstRun.ts](./sunburstRun.ts) | 从画布解析输入、校验运行条件、建立任务输入快照；`imageOutput` 定义图片输出语义 |

@@ -20,7 +20,7 @@ import { restoreCropData } from './nodes/crop';
 import { isPainterNode, isNodeLocked } from './nodes/types';
 import { restorePainterData } from './nodes/painter';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
-import { CanvasSidebar } from './components/CanvasSidebar';
+import { CanvasSidebar, type CanvasTool } from './components/CanvasSidebar';
 import { NodePortLabelMotion } from './components/NodePortLabelMotion';
 import { ConnectionMenu, type NodeMenuChoice } from './components/ConnectionMenu';
 import { canConnect, withoutReplacedInput } from './nodes/connectionRules';
@@ -34,7 +34,6 @@ import {
   Background,
   Controls,
   ControlButton,
-  MiniMap,
   Panel,
   addEdge,
   useNodesState,
@@ -46,7 +45,6 @@ import {
 import { DescriberPanel } from './components/DescriberPanel';
 import { ModelTasksProvider } from './components/ModelTasksProvider';
 import { defaultInstructions } from './nodes/describer';
-import { CanvasDock, type CanvasTool } from './components/CanvasDock';
 import { CanvasHistoryContext, useCanvasHistory } from './components/useCanvasHistory';
 import { initialNodes, nodeTypes } from './nodes';
 import { isDescriberNode, isImageGeneratorNode } from './nodes/types';
@@ -64,8 +62,9 @@ import { WorkflowStorage, type Workflow } from './persistence/workflowStorage';
 import { useWorkflowPersistence } from './persistence/useWorkflowPersistence';
 
 const defaultEdgeOptions = { type: 'default', pathOptions: curveOptions };
-type PendingNodeMenu = PendingConnection | Pick<PendingConnection, 'screen' | 'position'>;
+type PendingNodeMenu = PendingConnection | (Pick<PendingConnection, 'screen' | 'position'> & { origin?: 'dock' });
 const creationChoices: NodeMenuChoice[] = items.filter(item => item.nodeType).map(item => ({ id: item.id, itemId: item.id }));
+const dockCreationChoices = creationChoices.filter(choice => !['position-logger', 'model-input'].includes(choice.itemId));
 
 export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | null }) {
   const [colorMode, setColorMode] = useState<'light' | 'dark'>(saved?.colorMode ?? 'dark');
@@ -82,7 +81,19 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
   const [tool, setTool] = useState<CanvasTool>('select');
   const [importError, setImportError] = useState('');
   const [pendingNodeMenu, setPendingNodeMenu] = useState<PendingNodeMenu | null>(null);
-  const dismissNodeMenu = useCallback(() => setPendingNodeMenu(null), []);
+  const [menuGeneration, setMenuGeneration] = useState(0);
+  const openNodeMenu = useCallback((menu: PendingNodeMenu) => {
+    setMenuGeneration(generation => generation + 1);
+    setPendingNodeMenu(menu);
+  }, []);
+  const addTrigger = useRef<HTMLButtonElement>(null);
+  const dismissNodeMenu = useCallback(() => {
+    if (document.activeElement?.closest('.node-add-menu')) {
+      const dock = pendingNodeMenu && 'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock';
+      (dock ? addTrigger.current : canvasRef.current)?.focus({ preventScroll: true });
+    }
+    setPendingNodeMenu(null);
+  }, [pendingNodeMenu]);
   const restore = useCallback((snapshot: { nodes: AppNode[]; edges: typeof edges }) => {
     setNodes(snapshot.nodes);
     setEdges(snapshot.edges);
@@ -344,13 +355,13 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       const dropTarget = document.elementFromPoint(pointer.clientX, pointer.clientY);
       if (!dropTarget?.classList.contains('react-flow__pane')) return;
 
-      setPendingNodeMenu({
+      openNodeMenu({
         nodeId: fromNode.id, handleId: fromHandle.id ?? null, direction: fromHandle.type,
         screen: { x: pointer.clientX, y: pointer.clientY },
         position: screenToFlowPosition({ x: pointer.clientX, y: pointer.clientY }),
       });
     },
-    [screenToFlowPosition],
+    [screenToFlowPosition, openNodeMenu],
   );
 
   const chooseNode = useCallback((selected: NodeMenuChoice) => {
@@ -393,6 +404,10 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
   return (
     <CanvasHistoryContext.Provider value={history}><ReactFlow
       ref={canvasRef}
+      tabIndex={0}
+      onPointerDownCapture={event => {
+        if ((event.target as HTMLElement).classList.contains('react-flow__pane')) canvasRef.current?.focus({ preventScroll: true });
+      }}
       minZoom={0.01}
       colorMode={colorMode}
       className={`canvas-tool-${tool}`}
@@ -484,7 +499,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         if (!(event.target instanceof Element) || !event.target.classList.contains('react-flow__pane')) return;
         event.preventDefault();
         const screen = { x: event.clientX, y: event.clientY };
-        setPendingNodeMenu({ screen, position: screenToFlowPosition(screen) });
+        openNodeMenu({ screen, position: screenToFlowPosition(screen) });
       }}
       onConnectStart={dismissNodeMenu}
       onMoveStart={dismissNodeMenu}
@@ -509,25 +524,38 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       onMoveEnd={(_event, next) => setViewport(next)}
       fitView={!saved}
     >
-      <Background />
+      <Background bgColor="#151515" color="#3f3f3f" />
       {pendingNodeMenu && <ConnectionMenu
+        key={menuGeneration}
         screen={pendingNodeMenu.screen}
+        trigger={'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock' ? addTrigger : undefined}
         mode={'nodeId' in pendingNodeMenu ? 'connect' : 'create'}
-        choices={'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes, edges) : creationChoices}
-        onChoose={chooseNode}
+        choices={'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes, edges)
+          : pendingNodeMenu.origin === 'dock' ? dockCreationChoices : creationChoices}
+        onChoose={choice => { chooseNode(choice); canvasRef.current?.focus({ preventScroll: true }); }}
         onDismiss={dismissNodeMenu}
       />}
-      <Panel position="bottom-left" className="canvas-save-status" role={persistence.error ? 'alert' : 'status'}>
-        <span>{persistence.error || persistence.status}</span>
-        {persistence.error && <button type="button" onClick={persistence.retry}>重试保存</button>}
-      </Panel>
-      <CanvasSidebar colorMode={colorMode} onThemeChange={() => setColorMode(mode => mode === 'dark' ? 'light' : 'dark')} />
+      {persistence.error && <Panel position="bottom-left" className="canvas-save-status" role="alert">
+        <span>{persistence.error}</span>
+        <button type="button" onClick={persistence.retry}>重试保存</button>
+      </Panel>}
+      <CanvasSidebar tool={tool} onToolChange={setTool} addTrigger={addTrigger}
+        menuOpen={Boolean(pendingNodeMenu && 'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock')}
+        onAddMenu={() => {
+          if (pendingNodeMenu && 'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock') {
+            setPendingNodeMenu(null);
+            return;
+          }
+          const anchor = addTrigger.current?.getBoundingClientRect();
+          const bounds = canvasRef.current?.getBoundingClientRect();
+          if (!anchor || !bounds) return;
+          openNodeMenu({ origin: 'dock', screen: { x: anchor.right + 12, y: anchor.top - 90 },
+            position: screenToFlowPosition({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }) });
+        }} />
       <DescriberPanel />
       {importError && <Panel position="top-center" className="canvas-import-error" role="alert">
         <span>{importError}</span><button type="button" aria-label="Dismiss import error" onClick={() => setImportError('')}>×</button>
       </Panel>}
-      <CanvasDock tool={tool} onToolChange={setTool} colorMode={colorMode} {...history} />
-      <MiniMap />
       <Controls showInteractive={false}>
         <ControlButton title="添加 Image Describer" aria-label="添加 Image Describer" onClick={() => {
           const bounds = canvasRef.current?.getBoundingClientRect();

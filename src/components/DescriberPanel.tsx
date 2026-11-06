@@ -64,7 +64,6 @@ export function DescriberPanel() {
   const [runs, setRuns] = useModelRuns();
   const [error, setError] = useState('');
   const tasksTrigger = useRef<HTMLButtonElement>(null);
-  const collapsedTasksTrigger = useRef<HTMLButtonElement>(null);
   const changeTasks = taskStore.update;
   const effective = (node: ImageDescriberNode, field: 'model' | 'instructions') => {
     const edge = edges.find((e) => e.target === node.id && e.targetHandle === field);
@@ -110,9 +109,6 @@ export function DescriberPanel() {
     </button>
   </div>;
   return <>
-    {!panelOpen && <aside className="describer-panel nodrag nopan nowheel" aria-label="任务" onKeyDown={event => event.stopPropagation()}>
-      {taskButton(collapsedTasksTrigger)}
-    </aside>}
     {/* Presence retains the last settings and full-height shell until the exit finishes. */}
     <AnimatePresence initial={false}>
       {panelOpen && <NodeSettingsSidebar key="node-settings" label={selectedPalette ? "Color palette settings" : selectedImage ? `${selectedImage.type === 'ideogram' ? ideogramName : selectedImage.type === 'nano-banana' ? nanoBananaName : sunburstName} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => { if (!(selectedPalette && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z' && !(e.target as HTMLElement).closest('input'))) e.stopPropagation(); }}>
@@ -157,7 +153,7 @@ export function DescriberPanel() {
         </>}
       </NodeSettingsSidebar>}
     </AnimatePresence>
-    {tasksOpen && <TaskManager tasks={tasks} trigger={panelOpen ? tasksTrigger : collapsedTasksTrigger} sidebarOpen={panelOpen}
+    {tasksOpen && <TaskManager tasks={tasks} trigger={tasksTrigger} sidebarOpen={panelOpen}
       onClose={() => setTasksOpen(false)} onChange={changeTasks}
       onRetry={(task) => {
         const node = getNodes().find((item) => item.id === task.nodeId);
