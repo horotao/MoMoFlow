@@ -2,11 +2,11 @@ import { useRef, useState, useEffect, type PointerEvent } from 'react';
 import { DescriberModelSelect } from '../components/DescriberModelSelect';
 import { defaultLevelsSettings, levelsChannels, levelsControls, levelsGammaPosition, levelsGammaAt, updateChannelLevels, type ChannelLevels, type LevelsChannel, type LevelsHistograms, type LevelsSettings } from './levels';
 
-const channelLabels: Record<LevelsChannel, string> = { RGB: 'RGB', R: '红色', G: '绿色', B: '蓝色' };
+const channelLabels: Record<LevelsChannel, string> = { RGB: 'RGB', R: '红', G: '绿', B: '蓝' };
 
 type Control = typeof levelsControls[number];
 function LevelsNumber({ control, value, disabled, onCommit }: { control: Control; value: number; disabled: boolean; onCommit: (value: number) => void }) {
-  const formatted = String(control.key === 'gamma' ? Number(value.toFixed(2)) : value);
+  const formatted = control.key === 'gamma' ? value.toFixed(2) : String(value);
   const [text, setText] = useState(formatted);
   const cancelled = useRef(false);
   useEffect(() => setText(formatted), [formatted]);
@@ -26,22 +26,24 @@ function LevelsHistogramView({ histogram, channel }: { histogram?: LevelsHistogr
   useEffect(() => {
     const context = canvas.current?.getContext('2d');
     if (!context) return;
-    context.clearRect(0, 0, 256, 58);
+    context.clearRect(0, 0, 400, 100);
     if (!histogram) return;
     const source = histogram.source[channel], adjusted = histogram.adjusted[channel];
     const peak = Math.max(...source, ...adjusted);
     if (!peak) return;
-    // Shared scale keeps before/after densities comparable. Keep the raster
-    // columns and eight-pixel headroom when the graph is enlarged on the canvas.
+    // Both distributions share one scale; the inset leaves room for the grid.
     for (const [bins, opacity] of [[source, .75], [adjusted, .25]] as const) {
       context.fillStyle = `rgba(255, 255, 255, ${opacity})`;
       bins.forEach((count, index) => {
-        const height = Math.round(count / peak * 50);
-        context.fillRect(index, 58 - height, 1, height);
+        const height = Math.round(count / peak * 100);
+        context.fillRect(index / 256 * 400, 100 - height, 1, height);
       });
     }
   }, [histogram, channel]);
-  return <div className="levels-histogram-plot"><canvas ref={canvas} width={256} height={58} role="img" aria-label={`${channelLabels[channel]}直方图`} /></div>;
+  return <div className="levels-histogram-plot">
+    <div className="levels-histogram-grid" aria-hidden="true">{[1, 2, 3].map(index => <span key={index} style={{ left: `${index * 25}%` }} />)}</div>
+    <canvas ref={canvas} width={400} height={100} role="img" aria-label={`${channelLabels[channel]}直方图`} />
+  </div>;
 }
 
 export function LevelsControls({ channel, settings, histogram, disabled, onChannel, onStart, onDraft, onCommit, onCancel, onSettings }: {
@@ -61,13 +63,14 @@ export function LevelsControls({ channel, settings, histogram, disabled, onChann
   const cancel = () => { active.current = undefined; onCancel(); };
   return <div className="levels-settings nodrag nopan nowheel" onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') cancel(); }}>
     <div className="levels-row levels-channel"><span>通道</span><div className="levels-channel-actions">
-      <DescriberModelSelect compact label="通道" menuLabel="色阶通道" choices={levelsChannels} labels={levelsChannels.map(value => channelLabels[value])} value={channel} disabled={disabled} onChange={value => onChannel(value as LevelsChannel)} />
-      <button className="color-reset" type="button" disabled={disabled} onClick={() => onSettings(structuredClone(defaultLevelsSettings))}>重置</button>
+      <DescriberModelSelect compact appearance="levels" label="通道" menuLabel="色阶通道" choices={levelsChannels} labels={levelsChannels.map(value => channelLabels[value])} value={channel} disabled={disabled} onChange={value => onChannel(value as LevelsChannel)} />
+      <button className="color-reset" type="button" disabled={disabled} onClick={() => onSettings(structuredClone(defaultLevelsSettings))} aria-label="重置色阶">Reset</button>
     </div></div>
-    <div className="levels-row levels-histogram"><span>直方图</span><LevelsHistogramView histogram={histogram} channel={channel} /></div>
+    <div className="levels-histogram-heading"><span>直方图</span><span>{channelLabels[channel]}</span></div>
+    <LevelsHistogramView histogram={histogram} channel={channel} />
     {(['输入色阶', '输出色阶'] as const).map((label, group) => {
       const controls = group === 0 ? levelsControls.slice(0, 3) : levelsControls.slice(3);
-      return <div className="levels-row levels-range-row" key={label}><span>{label}</span><div>
+      return <div className={`levels-range-row levels-range-${group === 0 ? 'input' : 'output'}`} key={label} role="group" aria-label={label}>
         <div className="levels-track" onPointerDown={event => {
           if (disabled || event.button !== 0) return;
           event.preventDefault();
@@ -91,11 +94,11 @@ export function LevelsControls({ channel, settings, histogram, disabled, onChann
               if (!delta && !['Home', 'End'].includes(event.key)) return;
               event.preventDefault(); event.stopPropagation();
               onSettings(updateChannelLevels(settings, channel, control.key, event.key === 'Home' ? control.min : event.key === 'End' ? control.max : values[control.key] + delta * (event.shiftKey ? 10 : 1)));
-            }} />)}
+            }}><img src={`/levels-node/thumb-${control.key === 'gamma' ? 'gray' : control.key.endsWith('Min') ? 'black' : 'white'}.svg`} width={12} height={11.7931} alt="" /></button>)}
         </div>
-        <div className="levels-numbers">{controls.map(control => <LevelsNumber key={`${channel}-${control.key}`} control={control} value={values[control.key]} disabled={disabled}
+        <div className="levels-numbers">{group === 1 && <span>输出色阶</span>}{controls.map(control => <LevelsNumber key={`${channel}-${control.key}`} control={control} value={values[control.key]} disabled={disabled}
           onCommit={value => onSettings(updateChannelLevels(settings, channel, control.key, value))} />)}</div>
-      </div></div>;
+      </div>;
     })}
   </div>;
 }

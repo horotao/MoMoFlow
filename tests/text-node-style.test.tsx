@@ -22,7 +22,7 @@ function Probe() {
 }
 const storage = new WorkflowStorage(`momoflow-text-style-qa-${crypto.randomUUID()}`);
 const root = createRoot(document.getElementById('root')!);
-const legacy = createLibraryNode('levels', { x: 900, y: 90 })!;
+const legacy = createLibraryNode('color-correction', { x: 900, y: 90 })!;
 legacy.id = 'legacy'; legacy.selected = false;
 const workflow: Workflow = {
   nodes: [

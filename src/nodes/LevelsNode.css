@@ -1,29 +1,48 @@
-.react-flow .react-flow__node-levels { height: auto; gap: 16px; }
-.react-flow .react-flow__node-levels.selected, .react-flow .react-flow__node-levels:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-.react-flow__node-levels .text-node-title { min-width: 0; gap: 10px; }
-.react-flow__node-levels .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.react-flow__node-levels .text-node-title > svg { flex-shrink: 0; }
-.react-flow__node-levels:hover .describer-port-label, .react-flow__node-levels.selected .describer-port-label { visibility: visible; }
-.levels-settings { display: flex; flex-direction: column; gap: 16px; width: 100%; font-size: 11px; }
-.levels-row { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 16px; align-items: start; }
-.levels-row > span { color: var(--text-node-secondary); line-height: 24px; }
+.levels-node-frame {
+  --node-radius: 24px;
+  --node-gap: 14px;
+  corner-shape: round;
+}
+.levels-title-icon { display: flex; align-items: flex-end; gap: 1.5px; width: 16px; height: 16px; box-sizing: border-box; padding: 2px; }
+.levels-title-icon > span { width: 1.5px; flex-shrink: 0; border-radius: .7px; background: var(--node-secondary); }
+.react-flow .levels-node-frame .levels-preview {
+  height: auto;
+  margin-bottom: 4px;
+  border-radius: 10px;
+  background: var(--node-inset) url('/levels-node/checkerboard.svg') 0 0 / 424px 280px;
+}
+.levels-settings { display: flex; flex-direction: column; width: 100%; height: 326px; font: 400 12px/18px var(--font-ui); }
+.levels-channel { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 16px; align-items: center; height: 30px; flex-shrink: 0; color: var(--node-secondary); }
 .levels-channel-actions { display: flex; align-items: center; justify-content: space-between; }
-.levels-channel .color-reset { margin: 0; padding: 0 8px; height: 24px; }
-.levels-channel .describer-model-trigger { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; width: 100px; height: 24px; min-height: 24px; padding: 0 0 0 8px; border: 1px solid var(--text-node-border); border-radius: 5px; background: var(--text-node-surface); color: var(--text-node-primary); font: inherit; line-height: 16px; cursor: pointer; }
-.levels-channel .describer-model-trigger:hover:not(:disabled) { background: var(--text-node-input); }
-.levels-channel .describer-model-trigger svg { width: 24px; height: 24px; }
-.levels-histogram > span { line-height: 16px; }
-.levels-histogram-plot { width: 100%; height: 80px; background: color-mix(in srgb, var(--text-node-primary) 5%, transparent); }
-.levels-histogram canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; filter: brightness(0); }
-.dark .levels-histogram canvas { filter: none; }
-.levels-track { position: relative; height: 16px; margin: 0 2px; touch-action: none; cursor: pointer; }
-.levels-track::before { content: ''; position: absolute; left: 0; right: 0; top: 7px; height: 2px; background: var(--text-node-border); }
-.levels-thumb { position: absolute; top: 3px; transform: translateX(-50%); width: 10px; height: 10px; padding: 0; border-radius: 50%; border: 1px solid #6b6b6b; cursor: ew-resize; background: #fff; touch-action: none; }
-.levels-thumb::after { content: ''; position: absolute; inset: -5px; border-radius: 50%; }
-.levels-thumb-inputMin, .levels-thumb-outputMin { background: #050505; }
-.levels-thumb-gamma { background: #969696; }
-.levels-numbers { display: flex; justify-content: space-between; margin-top: 4px; }
-.levels-numbers input { box-sizing: border-box; width: 50px; height: 24px; padding: 0 8px; border: 1px solid transparent; border-radius: 4px; background: var(--text-node-input); color: var(--text-node-primary); font: inherit; appearance: textfield; }
+.levels-channel .color-reset { margin: 0; padding: 0 4px; height: 28px; border: 0; background: transparent; color: var(--node-secondary); font: 400 11px/16px var(--font-ui); cursor: pointer; }
+.levels-channel .color-reset:hover:not(:disabled) { color: var(--node-primary); background: transparent; }
+.levels-channel .describer-model-trigger { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; width: 116px; height: 28px; min-height: 28px; padding: 0 10px; border: 0; border-radius: 5px; background: #2b2b2b; color: var(--node-primary); font: inherit; line-height: 18px; cursor: pointer; }
+.levels-channel .describer-model-trigger:hover:not(:disabled) { background: #303030; }
+.levels-channel-menu.describer-model-menu { box-sizing: border-box; padding: 8px; border: 0; border-radius: 12px; background: #282828; color: #fff; box-shadow: 0 4px 8px rgb(0 0 0 / 20%); font: 400 11px/16px 'Text Node Inter', 'Noto Sans SC Variable', sans-serif; }
+.levels-channel-menu.describer-model-menu [role='option'] { display: flex; align-items: center; gap: 0; box-sizing: border-box; min-height: 28px; height: 28px; padding: 0; border-radius: 5px; }
+.levels-channel-menu.describer-model-menu [role='option'][aria-selected='true'] { background: rgb(255 255 255 / 5%); }
+.levels-channel-menu.describer-model-menu [role='option']:is(:hover, .is-active) { background: rgb(255 255 255 / 8%); color: #fff; }
+.levels-channel-menu .describer-model-check { display: flex; justify-content: center; align-items: center; width: 27px; flex: 0 0 27px; }
+.levels-histogram-heading { display: flex; align-items: center; justify-content: space-between; height: 18px; margin-top: 17px; margin-bottom: 4px; color: var(--node-secondary); }
+.levels-histogram-heading > :last-child { padding-right: 4px; color: var(--node-muted); font-size: 10px; line-height: 12px; }
+.levels-histogram-plot { position: relative; flex-shrink: 0; width: 100%; height: 128px; border-radius: 9px; overflow: hidden; background: var(--node-inset); }
+.levels-histogram-plot canvas { position: absolute; top: 12px; left: 12px; display: block; width: calc(100% - 24px); height: 100px; }
+.levels-histogram-grid { position: absolute; inset: 12px 0 15px; }
+.levels-histogram-grid > span { position: absolute; top: 0; bottom: 0; width: 1px; background: rgb(255 255 255 / 5%); }
+.levels-histogram-grid::before { content: ''; position: absolute; inset: 0 12px 1px; background: repeating-linear-gradient(to bottom, transparent 0 24px, rgb(255 255 255 / 4%) 24px 25px); border-bottom: 1px solid rgb(255 255 255 / 20%); }
+.levels-range-row { flex-shrink: 0; }
+.levels-track { position: relative; height: 17px; touch-action: none; cursor: pointer; }
+.levels-range-input .levels-track { margin: 0 12px; }
+.levels-range-output { margin-top: 18px; }
+.levels-range-output .levels-track { height: 24px; }
+.levels-range-output .levels-track::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 6px; border-radius: 3px; background: linear-gradient(to right, #0d0d0d, #f2f2f2); }
+.levels-thumb { position: absolute; top: .91px; transform: translateX(-50%); display: flex; align-items: flex-start; width: 12px; height: 12.71px; padding: 0; border: 0; background: transparent; cursor: ew-resize; touch-action: none; }
+.levels-range-output .levels-thumb { top: 6.91px; }
+.levels-thumb::after { content: ''; position: absolute; inset: -5px; }
+.levels-numbers { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+.levels-range-output .levels-numbers { justify-content: center; gap: 12px; margin-top: 6px; padding-left: 20px; }
+.levels-range-output .levels-numbers > span { margin-right: 10px; color: var(--node-primary); }
+.levels-numbers input { box-sizing: border-box; width: 56px; height: 26px; padding: 0 8px; border: 0; border-radius: 6px; background: #303030; color: var(--node-secondary); font: 400 11px/22px var(--font-ui); appearance: textfield; }
 .levels-numbers input::-webkit-inner-spin-button, .levels-numbers input::-webkit-outer-spin-button { appearance: none; margin: 0; }
 .levels-settings :disabled { opacity: .4; cursor: default; }
-.levels-settings :focus-visible { outline: 1px solid var(--text-node-border-selected); outline-offset: 2px; }
+.levels-settings :focus-visible { outline: 1px solid var(--node-selected-border); outline-offset: 2px; }

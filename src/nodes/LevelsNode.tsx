@@ -1,7 +1,6 @@
-import { NodeIcon } from './NodeIcon';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Eye, EyeOff } from 'lucide-react';
+import { Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { Eye, EyeOff } from 'lucide-react';
 import type { AppNode, LevelsNode as Levels } from './types';
 import { isLevelsNode, isNodeLocked } from './types';
 import { levelsRevision, type LevelsSettings, type LevelsHistograms } from './levels';
@@ -13,6 +12,9 @@ import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
 import { LevelsControls } from './LevelsControls';
 import { TextNodeMenu } from './TextNodeMenu';
+import { NodeFrame, NodeHeader } from './shared/NodeFrame';
+import { NodePort } from './shared/NodePort';
+import './shared/mediaNodeStyle.css';
 
 export function LevelsNode({ id, data, isConnectable }: NodeProps<Levels>) {
   const nodes = useNodes<AppNode>(), edges = useEdges();
@@ -125,16 +127,14 @@ export function LevelsNode({ id, data, isConnectable }: NodeProps<Levels>) {
     }).catch(() => { if (isCurrent()) setError('无法处理色阶图片，请重试或更换可读取的图片。'); });
   }, [id, engine, image, settings, draft, revision, inputId, input?.url, data.locked, getNode, getNodes, getEdges, updateNodeData]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="levels" size={18} />{renaming
+  return <NodeFrame className="media-node-frame levels-node-frame">
+    <NodeHeader icon={<span className="levels-title-icon" aria-hidden="true">{[5, 9, 7, 12].map((height, index) => <span key={index} style={{ height }} />)}</span>} title={renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '色阶'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '色阶'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
-    </header>
-    <div className="preview-image color-image nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
+          onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return; if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
+        : <span>{data.label || '色阶'}</span>}
+      actions={<TextNodeMenu appearance="shared" id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '色阶'); setRenaming(true); }}><img src="/node-style/more.svg" width={18} height={18} alt="" /></TextNodeMenu>} />
+    <div className="preview-image levels-preview nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '424 / 280' }}>
       {ready && <>
         <canvas ref={canvas} aria-label="色阶预览" style={{ visibility: original ? 'hidden' : undefined }} />
         {original && <img src={input!.url} alt="原图" draggable={false} />}
@@ -165,15 +165,16 @@ export function LevelsNode({ id, data, isConnectable }: NodeProps<Levels>) {
       }}
       onCommit={commitDraft} onCancel={cancelDraft}
       onSettings={next => { cancelDraft(); patch({ settings: next }); }} />
-    {[{ handle: 'image', label: '输入', output: false }, { handle: 'result', label: '输出', output: true }].map(port => {
+    {[{ handle: 'image', label: 'Image', output: false }, { handle: 'result', label: 'Result', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
-          aria-label={`色阶${port.label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked} />
+      return <div className="media-port-image" key={port.handle}>
+        <NodePort label={port.label} id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left}
+          isConnectable={isConnectable && !data.locked}>
+          <img src="/image-node/port-image.svg" width={32} height={32} alt="" />
+          {connected && <span className="media-port-dot" />}
+        </NodePort>
       </div>;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }

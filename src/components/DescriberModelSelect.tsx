@@ -7,8 +7,9 @@ import { FluidHoverHighlight } from './fluid-hover-highlight';
 
 const noSeparators: readonly number[] = [];
 
-function SelectOption({ id, index, selected, active, separator, label, registerItem, onPointerMove, onChoose }: {
+function SelectOption({ id, index, selected, active, separator, label, checkIcon, registerItem, onPointerMove, onChoose }: {
   id: string; index: number; selected: boolean; active: boolean; separator: boolean; label: string;
+  checkIcon?: string;
   registerItem?: UseFluidHoverReturn['registerItem']; onPointerMove?: () => void; onChoose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -16,11 +17,12 @@ function SelectOption({ id, index, selected, active, separator, label, registerI
   return <div ref={ref} id={id} role="option" aria-selected={selected}
     className={`${active ? 'is-active' : ''}${separator ? ' has-separator' : ''}`}
     onPointerMove={onPointerMove} onMouseDown={event => event.preventDefault()} onClick={onChoose}>
-    <span className="describer-model-check">{selected && <DescriberIcon name="check" />}</span>{label}
+    <span className="describer-model-check">{selected && (checkIcon ? <img src={checkIcon} width={10.25} height={7.25} alt="" /> : <DescriberIcon name="check" />)}</span>{label}
   </div>;
 }
 
-export function DescriberModelSelect({ value, disabled, onChange, choices = describerModels, node = false, compact = false, fluidHover = false, label = 'Model', labels, includeCurrentValue = true, menuLabel, separators = noSeparators }: {
+export function DescriberModelSelect({ value, disabled, onChange, choices = describerModels, node = false, compact = false, appearance = 'default', fluidHover = false, label = 'Model', labels, includeCurrentValue = true, menuLabel, separators = noSeparators }: {
+  appearance?: 'default' | 'levels';
   separators?: readonly number[]; value: string; choices?: readonly string[]; node?: boolean; compact?: boolean; fluidHover?: boolean; label?: string; labels?: string[]; disabled?: boolean; includeCurrentValue?: boolean; menuLabel?: string; onChange: (model: string) => void;
 }) {
   const id = useId();
@@ -47,6 +49,13 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
     const height = Math.min(node || compact ? options.length * 24 + separators.length * 16 + 16 : 410, window.innerHeight - 24, rect.top - 12 + (options.length - index) * 24 + 8);
     const top = Math.max(12, Math.min(rect.top - index * 24 - separators.filter(n => n <= index).length * 16 - 8, window.innerHeight - height - 12));
     activate(index);
+    if (appearance === 'levels') {
+      const height = options.length * 28 + 16;
+      const width = Math.min(Math.max(rect.width, trigger.current!.offsetWidth), window.innerWidth - 16);
+      setPlacement({ width, left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
+        top: rect.bottom + 4 + height <= window.innerHeight - 8 ? rect.bottom + 4 : Math.max(8, rect.top - height - 4), height });
+      return;
+    }
     if (compact) {
       // The portal keeps screen-sized text while the canvas scales its trigger.
       // Preserve the unscaled control width so zooming out cannot clip options.
@@ -58,9 +67,9 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
   };
   useLayoutEffect(() => {
     if (!placement || !list.current || !trigger.current) return;
-    list.current.scrollTop = Math.max(0, options.indexOf(value) * 24 + separators.filter(n => n <= options.indexOf(value)).length * 16 - (trigger.current.getBoundingClientRect().top - placement.top - 8));
+    if (appearance !== 'levels') list.current.scrollTop = Math.max(0, options.indexOf(value) * 24 + separators.filter(n => n <= options.indexOf(value)).length * 16 - (trigger.current.getBoundingClientRect().top - placement.top - 8));
     list.current.focus();
-  }, [placement, value, options, separators]);
+  }, [placement, value, options, separators, appearance]);
   useEffect(() => {
     if (!placement) return;
     const dismiss = (event: PointerEvent) => {
@@ -74,8 +83,8 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
   return <>
     <button id={node || compact ? id + "-trigger" : "describer-model"} ref={trigger} role="combobox" aria-label={label} aria-haspopup="listbox" aria-expanded={Boolean(placement)} aria-controls={placement ? id : undefined} disabled={disabled} className="describer-model-trigger nodrag nopan" onClick={() => placement ? close() : open()} onKeyDown={(e) => {
       if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) { e.preventDefault(); open(); }
-    }}><span>{labels?.[choices.indexOf(value)] ?? (value || 'Select an option')}</span><DescriberIcon name="chevron" /></button>
-    {placement && !disabled && createPortal(<div ref={list} id={id} role="listbox" aria-label={menuLabel ?? (compact || label !== 'Model' ? label : "Models")} aria-activedescendant={options[activeIndex] !== undefined ? `${id}-${activeIndex}` : undefined} tabIndex={-1} className={`describer-model-menu nodrag nopan nowheel${fluidHover ? ' describer-model-menu-fluid' : ''}`} style={placement}
+    }}><span>{labels?.[choices.indexOf(value)] ?? (value || 'Select an option')}</span>{appearance === 'levels' ? <img src="/levels-node/chevron.svg" width={12} height={12} alt="" /> : <DescriberIcon name="chevron" />}</button>
+    {placement && !disabled && createPortal(<div ref={list} id={id} role="listbox" aria-label={menuLabel ?? (compact || label !== 'Model' ? label : "Models")} aria-activedescendant={options[activeIndex] !== undefined ? `${id}-${activeIndex}` : undefined} tabIndex={-1} className={`describer-model-menu nodrag nopan nowheel${fluidHover ? ' describer-model-menu-fluid' : ''}${appearance === 'levels' ? ' levels-channel-menu' : ''}`} style={placement}
       {...(fluidHover ? hover.handlers : {})}
       onMouseMove={fluidHover ? event => {
         pointer.current = { x: event.clientX, y: event.clientY };
@@ -110,7 +119,7 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
     }}>
       {fluidHover && <FluidHoverHighlight hover={hover} className="describer-model-hover" />}
       {options.map((model, index) => <SelectOption key={model} id={`${id}-${index}`} index={index}
-        selected={model === value} active={index === activeIndex} separator={separators.includes(index)}
+        selected={model === value} active={index === activeIndex} checkIcon={appearance === 'levels' ? '/levels-node/check.svg' : undefined} separator={separators.includes(index)}
         label={labels?.[choices.indexOf(model)] ?? model} registerItem={fluidHover ? hover.registerItem : undefined}
         onPointerMove={fluidHover ? undefined : () => setActive(index)} onChoose={() => { onChange(model); close(); }} />)}
     </div>, document.body)}
