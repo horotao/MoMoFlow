@@ -94,6 +94,7 @@ async function run() {
   check(!sub(), 'Hover does not open a submenu before 220ms');
   await wait(150);
   check(expanded('editing') && Boolean(sub()), 'Hover opens after 220ms');
+  await Promise.all(sub()!.getAnimations().map(animation => animation.finished.catch(() => {})));
   const editIcons = Array.from(sub()!.querySelectorAll<HTMLImageElement>('.node-add-menu-icon img'));
   await Promise.all(editIcons.map(img => img.decode()));
   check(editIcons.length === 10 && editIcons.every(img => img.naturalWidth === 18 && img.getBoundingClientRect().width === 18 && img.getBoundingClientRect().height === 18), 'All ten Figma editing icons retain their local asset and original geometry');
@@ -241,6 +242,8 @@ async function run() {
     pane.dispatchEvent(event('mousedown', 2));
     pane.dispatchEvent(event('mouseup', 0));
     await settle();
+    // Geometry assertions below describe the settled menu, not an entry frame.
+    await Promise.all(main().getAnimations().map(animation => animation.finished.catch(() => {})));
   };
   await open();
   await context(420, 90);

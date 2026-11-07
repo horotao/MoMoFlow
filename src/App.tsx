@@ -65,7 +65,7 @@ import { WorkflowStorage, type Workflow } from './persistence/workflowStorage';
 import { useWorkflowPersistence } from './persistence/useWorkflowPersistence';
 
 const defaultEdgeOptions = { type: 'default', pathOptions: curveOptions };
-type PendingNodeMenu = PendingConnection | (Pick<PendingConnection, 'screen' | 'position'> & { origin?: 'dock' });
+type PendingNodeMenu = PendingConnection | (Pick<PendingConnection, 'screen' | 'position'> & { origin?: 'dock'; keyboard?: boolean });
 const creationChoices: NodeMenuChoice[] = items.filter(item => item.nodeType).map(item => ({ id: item.id, itemId: item.id }));
 const dockCreationChoices = creationChoices.filter(choice => !['position-logger', 'model-input'].includes(choice.itemId));
 
@@ -541,6 +541,8 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       {pendingNodeMenu && <ConnectionMenu
         key={menuGeneration}
         screen={pendingNodeMenu.screen}
+        animateEntrance={!('nodeId' in pendingNodeMenu)}
+        instantEntrance={!('nodeId' in pendingNodeMenu) && pendingNodeMenu.keyboard}
         trigger={'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock' ? addTrigger : undefined}
         mode={'nodeId' in pendingNodeMenu ? 'connect' : 'create'}
         choices={'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes, edges)
@@ -554,7 +556,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       </Panel>}
       <CanvasSidebar tool={tool} onToolChange={setTool} addTrigger={addTrigger}
         menuOpen={Boolean(pendingNodeMenu && 'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock')}
-        onAddMenu={() => {
+        onAddMenu={keyboard => {
           if (pendingNodeMenu && 'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock') {
             setPendingNodeMenu(null);
             return;
@@ -562,7 +564,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
           const anchor = addTrigger.current?.getBoundingClientRect();
           const bounds = canvasRef.current?.getBoundingClientRect();
           if (!anchor || !bounds) return;
-          openNodeMenu({ origin: 'dock', screen: { x: anchor.right + 12, y: anchor.top - 90 },
+          openNodeMenu({ origin: 'dock', keyboard, screen: { x: anchor.right + 12, y: anchor.top - 90 },
             position: screenToFlowPosition({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }) });
         }} />
       <DescriberPanel />

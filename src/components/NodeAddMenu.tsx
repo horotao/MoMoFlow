@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react';
+import { spring } from '../lib/springs';
 import { ArrowLeft, X } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { useFluidHover, useRegisterFluidHoverItem, type UseFluidHoverReturn } from '../hooks/use-fluid-hover';
@@ -12,6 +13,8 @@ import './NodeAddMenu.css';
 
 type Props = {
   id?: string;
+  animateEntrance?: boolean;
+  instantEntrance?: boolean;
   mode?: 'create' | 'connect';
   choices?: NodeMenuChoice[];
   trigger?: RefObject<HTMLButtonElement>;
@@ -19,8 +22,9 @@ type Props = {
   onChoose: (choice: NodeMenuChoice) => void;
   onDismiss: () => void;
 };
-type Placement = { left: number; top: number; overlaid?: boolean };
+type Placement = { left: number; top: number; overlaid?: boolean; transformOrigin?: string };
 type MenuRowData = { entry: NodeMenuEntry; rowId: string; hasSubmenu: boolean; available: boolean };
+const menuMotionStyle = { '--node-menu-duration': `${spring.moderate.duration}s` } as CSSProperties;
 
 function MenuIcon({ entry }: { entry: NodeMenuEntry }) {
   return <span className="node-add-menu-icon" aria-hidden="true">
@@ -42,7 +46,7 @@ function MenuRow({ row, index, hover, child, category, menuId, onSelect }: {
     aria-expanded={hasSubmenu ? category === entry.id : undefined}
     aria-controls={hasSubmenu && category === entry.id ? `${menuId}-submenu` : undefined}
     title={!available ? `${entry.label}（尚未接入）` : entry.choice?.detail ? `${entry.label} · ${entry.choice.detail}` : undefined}
-    onFocus={() => hover.setActiveIndex(available ? index : null)}
+    onFocus={() => hover.setActiveIndex(index)}
     onClick={event => { if (available) onSelect(row, event.detail === 0); }}>
     <MenuIcon entry={entry} /><span className="node-add-menu-label">{entry.label}</span>
     {hasSubmenu && <img className="node-add-menu-chevron" src="/canvas-menu/arrow-right01.svg" alt="" draggable={false} />}
@@ -53,13 +57,14 @@ function MenuList({ groups, child, category, highlightedRow, menuId, categoryAva
   menuId: string; categoryAvailable: (id: string) => boolean; onSelect: (row: MenuRowData, keyboard: boolean) => void;
 }) {
   const root = useRef<HTMLDivElement>(null);
-  const hover = useFluidHover(root, { axis: 'y', gapClick: false, isItemDisabled: element => element.getAttribute('aria-disabled') === 'true' });
+  // Availability gates activation, while every visible row can receive hover feedback.
+  const hover = useFluidHover(root, { axis: 'y', gapClick: false });
   const rows = groups.flatMap((group, groupIndex) => group.entries.map(entry => ({
     entry, rowId: isNodeMenuCategory(entry.id) ? entry.id : `${groupIndex}-${entry.id}`,
     hasSubmenu: isNodeMenuCategory(entry.id) && categoryAvailable(entry.id),
     available: Boolean(entry.choice) || isNodeMenuCategory(entry.id) && categoryAvailable(entry.id),
   })));
-  const index = rows.findIndex(row => row.rowId === highlightedRow && row.available);
+  const index = rows.findIndex(row => row.rowId === highlightedRow);
   const { setActiveIndex } = hover;
   useEffect(() => { if (!child) setActiveIndex(index < 0 ? null : index); }, [child, index, setActiveIndex]);
   let rowIndex = 0;
@@ -82,12 +87,13 @@ function focusButton(button?: HTMLButtonElement) {
   button?.focus({ preventScroll: true });
   button?.scrollIntoView({ block: 'nearest' });
 }
-export function NodeAddMenu({ id = 'canvas-node-menu', screen, trigger, mode = 'create', choices, onChoose, onDismiss }: Props) {
+export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, instantEntrance = false, screen, trigger, mode = 'create', choices, onChoose, onDismiss }: Props) {
   const main = useRef<HTMLDivElement>(null);
   const submenu = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
   const focusSubmenu = useRef(false);
   const [query, setQuery] = useState('');
+  const [keyboardInteraction, setKeyboardInteraction] = useState(instantEntrance);
   const [position, setPosition] = useState<Placement>({ left: screen.x, top: screen.y });
   const [subPosition, setSubPosition] = useState<Placement>({ left: screen.x, top: screen.y });
   const { activeRow, highlightedRow, activate, cancelHover } = useCascadeMenu({ main, submenu, trigger, onDismiss });
@@ -105,29 +111,42 @@ export function NodeAddMenu({ id = 'canvas-node-menu', screen, trigger, mode = '
   useLayoutEffect(() => { search.current?.focus({ preventScroll: true }); }, []);
   useLayoutEffect(() => {
     const place = () => {
-      const menu = main.current?.getBoundingClientRect();
+      const menu = main.current;
       if (!menu) return;
+      const anchor = trigger?.current?.getBoundingClientRect();
+      const left = Math.max(8, Math.min(screen.x, window.innerWidth - menu.offsetWidth - 8));
+      const top = Math.max(8, Math.min(screen.y, window.innerHeight - menu.offsetHeight - 8));
       setPosition({
-        left: Math.max(8, Math.min(screen.x, window.innerWidth - menu.width - 8)),
-        top: Math.max(8, Math.min(screen.y, window.innerHeight - menu.height - 8)),
+        left, top,
+        transformOrigin: anchor
+          ? `${anchor.right - left}px ${anchor.top + anchor.height / 2 - top}px`
+          : `${Math.max(0, screen.x - left)}px ${Math.max(0, screen.y - top)}px`,
       });
     };
     place();
     window.addEventListener('resize', place);
     return () => window.removeEventListener('resize', place);
-  }, [screen]);
+  }, [screen, trigger]);
   useLayoutEffect(() => {
     if (!category) return;
     const place = () => {
       const bounds = main.current?.getBoundingClientRect();
       const row = main.current?.querySelector(`[data-main-row="${category}"]`)?.getBoundingClientRect();
-      const child = submenu.current?.getBoundingClientRect();
+      const child = submenu.current;
       if (!bounds || !row || !child) return;
-      const fitsRight = bounds.right + 8 + child.width <= window.innerWidth - 8;
-      const fitsLeft = bounds.left - 8 - child.width >= 8;
+      // Placement uses the final layout, even if a category is clicked during entry.
+      const width = main.current!.offsetWidth;
+      const scale = bounds.height / main.current!.offsetHeight;
+      const rowTop = position.top + (row.top - bounds.top) / scale;
+      const right = position.left + width;
+      const fitsRight = right + 8 + child.offsetWidth <= window.innerWidth - 8;
+      const fitsLeft = position.left - 8 - child.offsetWidth >= 8;
+      const top = Math.max(8, Math.min(rowTop - 8, window.innerHeight - child.offsetHeight - 8));
+      const originY = Math.max(0, Math.min(rowTop + row.height / scale / 2 - top, child.offsetHeight));
       setSubPosition({
-        left: fitsRight ? bounds.right + 8 : fitsLeft ? bounds.left - child.width - 8 : bounds.left,
-        top: Math.max(8, Math.min(row.top - 8, window.innerHeight - child.height - 8)),
+        left: fitsRight ? right + 8 : fitsLeft ? position.left - child.offsetWidth - 8 : position.left,
+        top,
+        transformOrigin: `${fitsLeft && !fitsRight ? child.offsetWidth : 0}px ${originY}px`,
         overlaid: !fitsRight && !fitsLeft,
       });
       if (!fitsRight && !fitsLeft && !submenu.current?.contains(document.activeElement)) focusButton(menuButtons(submenu.current)[0]);
@@ -144,6 +163,7 @@ export function NodeAddMenu({ id = 'canvas-node-menu', screen, trigger, mode = '
   const select = (row: MenuRowData, keyboard: boolean) => {
     if (!row.available) return;
     if (row.hasSubmenu) {
+      setKeyboardInteraction(keyboard);
       focusSubmenu.current = keyboard;
       activate(row.entry.id);
       if (category === row.entry.id && keyboard) { focusButton(menuButtons(submenu.current)[0]); focusSubmenu.current = false; }
@@ -152,6 +172,7 @@ export function NodeAddMenu({ id = 'canvas-node-menu', screen, trigger, mode = '
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>, child: boolean) => {
     event.stopPropagation();
     if (event.nativeEvent.isComposing) return;
+    setKeyboardInteraction(true);
     cancelHover();
     const fromSearch = event.target === search.current;
     const buttons = menuButtons(child ? submenu.current : main.current);
@@ -186,8 +207,11 @@ export function NodeAddMenu({ id = 'canvas-node-menu', screen, trigger, mode = '
   };
   return <>
     <div ref={main} id={id} className={`node-add-menu${mode === 'connect' ? ' connection-menu' : ''} nodrag nopan nowheel`}
-      style={position} role="dialog" aria-label={mode === 'connect' ? '推荐节点' : '添加节点'}
+      data-animate-entrance={animateEntrance && !instantEntrance || undefined}
+      style={{ ...position, ...menuMotionStyle }} role="dialog" aria-label={mode === 'connect' ? '推荐节点' : '添加节点'}
       onKeyDown={event => onKeyDown(event, false)}
+      onPointerMoveCapture={() => setKeyboardInteraction(false)}
+      onPointerDownCapture={() => setKeyboardInteraction(false)}
       onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }}
       onPointerDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}>
       <div className="node-add-menu-search">
@@ -204,7 +228,9 @@ export function NodeAddMenu({ id = 'canvas-node-menu', screen, trigger, mode = '
       </div>
     </div>
     {category && <div ref={submenu} id={`${id}-submenu`} className="node-add-menu node-add-menu-submenu nodrag nopan nowheel"
-      style={{ left: subPosition.left, top: subPosition.top }} role="menu" aria-label={category === 'editing' ? '图像编辑节点' : '辅助工具节点'}
+      data-animate-entrance={animateEntrance && !keyboardInteraction || undefined}
+      style={{ left: subPosition.left, top: subPosition.top, transformOrigin: subPosition.transformOrigin, ...menuMotionStyle }}
+      role="menu" aria-label={category === 'editing' ? '图像编辑节点' : '辅助工具节点'}
       onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }}
       onKeyDown={event => onKeyDown(event, true)} onPointerDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}>
       {subPosition.overlaid && <button type="button" className="node-add-menu-back" onClick={back}><ArrowLeft size={14} />返回</button>}

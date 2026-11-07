@@ -47,5 +47,23 @@
 .node-add-menu-icon { display: grid; place-items: center; flex: 0 0 20px; height: 20px; }
 .node-add-menu-icon img, .node-add-menu-chevron { display: block; max-width: none; flex-shrink: 0; pointer-events: none; }
 .node-add-menu-submenu { z-index: 1101; height: 411px; }
+.node-add-menu[data-animate-entrance] {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity var(--node-menu-duration) var(--ease-out), transform var(--node-menu-duration) var(--ease-out);
+}
+@starting-style {
+  .node-add-menu[data-animate-entrance] {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .node-add-menu[data-animate-entrance] { transform: none; transition-property: opacity; }
+  @starting-style {
+    .node-add-menu[data-animate-entrance] { transform: none; }
+  }
+}
 .node-add-menu-empty { padding: 16px 8px; color: var(--dock-menu-content-secondary); text-align: center; }
 .node-add-menu-back { display: flex; align-items: center; gap: 8px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }

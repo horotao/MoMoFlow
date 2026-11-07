@@ -18,7 +18,7 @@ type Props = {
   onToolChange: (tool: CanvasTool) => void;
   addTrigger: RefObject<HTMLButtonElement>;
   menuOpen: boolean;
-  onAddMenu: () => void;
+  onAddMenu: (keyboard: boolean) => void;
 };
 export function CanvasSidebar({ tool, onToolChange, addTrigger, menuOpen, onAddMenu }: Props) {
   const tooltipId = useId();
@@ -33,8 +33,8 @@ export function CanvasSidebar({ tool, onToolChange, addTrigger, menuOpen, onAddM
           aria-expanded={id === 'add' ? menuOpen : undefined}
           aria-controls={id === 'add' && menuOpen ? 'canvas-node-menu' : undefined}
           aria-describedby={`${tooltipId}-${id}`}
-          onClick={() => {
-            if (id === 'add') onAddMenu();
+          onClick={event => {
+            if (id === 'add') onAddMenu(event.detail === 0);
             if (id === 'select' || id === 'hand') onToolChange(id);
           }}>
           <img src={`/canvas-menu/${asset}.svg`} alt="" draggable={false} />
