@@ -1,7 +1,8 @@
 import type { Edge, EdgeTypes } from '@xyflow/react';
+import { MagneticEdge } from './MagneticEdge';
 
 export const initialEdges: Edge[] = [];
 
 export const edgeTypes = {
-  // Add your custom edge types here!
+  default: MagneticEdge,
 } satisfies EdgeTypes;

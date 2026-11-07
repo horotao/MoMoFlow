@@ -26,7 +26,7 @@ import { ConnectionMenu, type NodeMenuChoice } from './components/ConnectionMenu
 import { canConnect, withoutReplacedInput } from './nodes/connectionRules';
 import { connectionChoices, choiceConnection, initializeConnectionParameter, type PendingConnection } from './nodes/connectionRecommendations';
 import { createLibraryNode, items } from './components/libraryCatalog';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -57,6 +57,9 @@ import { defaultTextNodeText } from './nodes/defaults';
 import { initialEdges, edgeTypes } from './edges';
 import { ConnectionLine } from './edges/ConnectionLine';
 import { curveOptions } from './edges/curve';
+import { ConnectionEffectsContext, useConnectionEffects } from './edges/connectionEffects';
+import { ConnectionEffectsLayer } from './edges/ConnectionEffectsLayer';
+import { magneticDefaults } from './edges/magneticTypes';
 
 import { WorkflowStorage, type Workflow } from './persistence/workflowStorage';
 import { useWorkflowPersistence } from './persistence/useWorkflowPersistence';
@@ -78,6 +81,9 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
   const workflow = useMemo(() => ({ nodes, edges, viewport, colorMode }), [nodes, edges, viewport, colorMode]);
   const persistence = useWorkflowPersistence(storage, workflow);
   const { screenToFlowPosition, getNodes, getEdges } = useReactFlow<AppNode>();
+  const { value: connectionEffects, start: startConnectionEffects, clear: clearConnectionEffects,
+    connected: playConnectionEffects, cancelled: connectionCancelled, connectionRadius,
+    startClick: startClickConnection, end: endConnectionGesture, withinRadius: withinConnectionRadius } = useConnectionEffects();
   const [tool, setTool] = useState<CanvasTool>('select');
   const [importError, setImportError] = useState('');
   const [pendingNodeMenu, setPendingNodeMenu] = useState<PendingNodeMenu | null>(null);
@@ -95,9 +101,10 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
     setPendingNodeMenu(null);
   }, [pendingNodeMenu]);
   const restore = useCallback((snapshot: { nodes: AppNode[]; edges: typeof edges }) => {
+    clearConnectionEffects();
     setNodes(snapshot.nodes);
     setEdges(snapshot.edges);
-  }, [setNodes, setEdges]);
+  }, [setNodes, setEdges, clearConnectionEffects]);
   const history = useCanvasHistory(nodes, edges, restore);
   useLayoutEffect(() => { storage.releaseRestoredAssets(); }, [storage]);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -330,21 +337,24 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
   }, [screenToFlowPosition, setNodes]);
   const onConnect: OnConnect = useCallback(
     (connection) => {
-      if (!canConnect(connection, getNodes(), getEdges())) return;
-      setEdges((edges) => addEdge(connection, withoutReplacedInput(connection, getNodes(), edges)));
+      if (connectionCancelled.current || !withinConnectionRadius(connection) || !canConnect(connection, getNodes(), getEdges())) return;
+      const edge = addEdge(connection, [])[0];
+      playConnectionEffects(edge, withoutReplacedInput(connection, getNodes(), getEdges()));
+      setEdges((edges) => addEdge(edge, withoutReplacedInput(connection, getNodes(), edges)));
       setNodes((currentNodes) => currentNodes.map((node) =>
         node.id === connection.target && isTextNode(node)
           ? { ...node, data: { ...node.data, variableCount: Math.max(node.data.variableCount ?? 0, variableIndex(connection.targetHandle) + 2) } }
           : node,
       ));
     },
-    [setEdges, setNodes, getNodes, getEdges]
+    [setEdges, setNodes, getNodes, getEdges, playConnectionEffects, connectionCancelled, withinConnectionRadius]
   );
 
   const onConnectEnd: OnConnectEnd = useCallback(
     (event, connectionState) => {
+      endConnectionGesture();
       const { fromNode, fromHandle, isValid } = connectionState;
-      if (isValid || !fromNode || !fromHandle || event.type === 'touchcancel') {
+      if (connectionCancelled.current || isValid || !fromNode || !fromHandle || event.type === 'touchcancel') {
         return;
       }
 
@@ -361,7 +371,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         position: screenToFlowPosition({ x: pointer.clientX, y: pointer.clientY }),
       });
     },
-    [screenToFlowPosition, openNodeMenu],
+    [screenToFlowPosition, openNodeMenu, connectionCancelled, endConnectionGesture],
   );
 
   const chooseNode = useCallback((selected: NodeMenuChoice) => {
@@ -402,7 +412,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
   }, [pendingNodeMenu, getNodes, getEdges, setNodes, setEdges]);
 
   return (
-    <CanvasHistoryContext.Provider value={history}><ReactFlow
+    <CanvasHistoryContext.Provider value={history}><ConnectionEffectsContext.Provider value={connectionEffects}><ReactFlow
       ref={canvasRef}
       tabIndex={0}
       onPointerDownCapture={event => {
@@ -410,7 +420,8 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       }}
       minZoom={0.01}
       colorMode={colorMode}
-      className={`canvas-tool-${tool}`}
+      className={`canvas-tool-${tool} canvas-magnetic-connections`}
+      style={{ '--magnetic-line-width': `${magneticDefaults.lineWidth}px` } as CSSProperties}
       panOnDrag={tool === 'hand' ? [0, 1, 2] : [1, 2]}
       selectionOnDrag={tool === 'select'}
       nodesDraggable={tool === 'select'}
@@ -451,8 +462,9 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       edgeTypes={edgeTypes}
       defaultEdgeOptions={defaultEdgeOptions}
       connectionLineComponent={ConnectionLine}
+      connectionRadius={connectionRadius}
       onEdgesChange={onEdgesChange}
-      isValidConnection={(connection) => canConnect(connection, getNodes(), getEdges())}
+      isValidConnection={(connection) => withinConnectionRadius(connection) && canConnect(connection, getNodes(), getEdges())}
       onDragOver={(event) => {
         const types = event.dataTransfer.types;
         const internal = types.includes('application/x-momoflow-asset') || types.includes('application/x-momoflow-library');
@@ -501,7 +513,8 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         const screen = { x: event.clientX, y: event.clientY };
         openNodeMenu({ screen, position: screenToFlowPosition(screen) });
       }}
-      onConnectStart={dismissNodeMenu}
+      onConnectStart={(event, params) => { startConnectionEffects(event, params); dismissNodeMenu(); }}
+      onClickConnectStart={() => { startClickConnection(); dismissNodeMenu(); }}
       onMoveStart={dismissNodeMenu}
       onConnect={onConnect}
       onConnectEnd={onConnectEnd}
@@ -579,7 +592,8 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         </ControlButton>
       </Controls>
       <NodePortLabelMotion />
-    </ReactFlow></CanvasHistoryContext.Provider>
+      <ConnectionEffectsLayer />
+    </ReactFlow></ConnectionEffectsContext.Provider></CanvasHistoryContext.Provider>
   );
 }
 

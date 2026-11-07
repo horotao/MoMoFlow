@@ -83,7 +83,7 @@ find<HTMLButtonElement>('#run').onclick = async () => {
     await drag(handle('new-image', 'source'), handle('preview', 'target'));
     check(sourceOf('preview', 'file') === 'new-image' && api.getEdges().length === 3, 'New image replaces old edge');
     check(sourceOf('branch', 'input') === 'old-image', 'Other branches survive');
-    await until(() => find<HTMLImageElement>('[data-id="preview"] img').alt === 'blue.png', 'Preview displays new image');
+    await until(() => (document.querySelector<HTMLImageElement>('[data-id="preview"] img[alt="blue.png"]')?.naturalWidth ?? 0) > 0, 'Preview displays new image');
     pass('Occupied image input replaced; preview updates; other branch preserved');
     canvasHistoryShortcut('undo'); await settle(); check(sourceOf('preview', 'file') === 'old-image', 'One-step undo restores original edge');
     canvasHistoryShortcut('redo'); await settle(); check(sourceOf('preview', 'file') === 'new-image', 'Redo restores replacement');
