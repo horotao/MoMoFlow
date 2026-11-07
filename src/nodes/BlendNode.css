@@ -1,29 +1,35 @@
-.react-flow .react-flow__node-blend { height: auto; min-height: 184px; gap: 16px; }
-.react-flow .react-flow__node-blend.selected, .react-flow .react-flow__node-blend:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-.react-flow__node-blend .text-node-title { min-width: 0; gap: 8px; }
-.react-flow__node-blend .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.react-flow__node-blend .text-node-title > svg { flex-shrink: 0; }
-.react-flow__node-blend:hover .describer-port-label, .react-flow__node-blend.selected .describer-port-label { visibility: visible; }
-.blend-controls { width: 100%; display: flex; align-items: center; gap: 32px; height: 24px; font-size: 11px; }
-.blend-mode, .blend-opacity { display: flex; align-items: center; gap: 8px; }
-.blend-mode { flex-shrink: 0; }
+/* Blend opts in to the shared media node frame and controls. */
+.react-flow .react-flow__node-blend:has(> .node-frame) { min-height: 0; }
+.blend-node-frame { --node-padding: 16px; }
+.blend-node-frame > :is(.node-header, .blend-preview, .blend-controls) { width: 424px; }
+.blend-node-frame .node-title { gap: 6px; }
+.blend-node-frame .node-title-icon { flex-basis: 18px; width: 18px; height: 18px; }
+.blend-node-frame .text-node-rename { width: 100%; min-width: 0; height: 24px; font: inherit; }
+.blend-node-frame .blend-preview { border-radius: var(--node-inset-radius); corner-shape: superellipse(1.25); background: var(--node-inset) url('/blend-node/checkerboard.svg') 0 0 / 424px 424px; }
+.blend-node-frame .blend-preview > canvas { object-fit: fill; }
+.blend-controls { width: 100%; display: flex; align-items: center; gap: 16px; height: 28px; color: var(--node-secondary); font: 400 11px/22px var(--font-ui); }
+.blend-mode { display: flex; align-items: center; justify-content: space-between; width: 174px; flex: 0 0 174px; font-size: 12px; line-height: 18px; }
 .blend-controls span { white-space: nowrap; }
-.blend-opacity { flex: 1; min-width: 0; }
-.blend-mode .describer-model-trigger { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; width: 120px; height: 24px; min-height: 24px; padding: 0 0 0 8px; border: 1px solid var(--text-node-border); border-radius: 5px; background: var(--text-node-surface); color: var(--text-node-primary); font: inherit; font-weight: 450; line-height: 16px; text-align: left; cursor: pointer; }
-.blend-mode .describer-model-trigger svg { width: 24px; height: 24px; flex-shrink: 0; }
-.blend-mode .describer-model-trigger:hover:not(:disabled), .blend-mode .describer-model-trigger[aria-expanded="true"] { background: var(--text-node-input); }
-.blend-opacity input[type="text"] { box-sizing: border-box; width: 60px; flex: 0 0 60px; height: 24px; border: 1px solid transparent; border-radius: 5px; padding: 0 8px; background: var(--text-node-input); color: inherit; font: inherit; }
-.blend-opacity input[type="range"] { appearance: none; background: transparent; width: 120px; flex: 1; min-width: 0; height: 24px; margin: 0; cursor: pointer; touch-action: none; }
-.blend-opacity input[type="range"]::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: linear-gradient(to right, var(--text-node-primary) var(--blend-opacity), var(--text-node-input) var(--blend-opacity)); box-shadow: inset 0 0 0 1px var(--text-node-border); }
-.blend-opacity input[type="range"]::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; margin-top: -2px; border-radius: 50%; background: var(--text-node-surface); border: 3px solid var(--text-node-primary); box-shadow: 0 0 0 1px var(--text-node-border); }
-.blend-opacity input[type="range"]::-moz-range-track { height: 8px; border-radius: 4px; background: var(--text-node-input); }
-.blend-opacity input[type="range"]::-moz-range-progress { height: 8px; border-radius: 4px; background: var(--text-node-primary); }
-.blend-opacity input[type="range"]::-moz-range-thumb { width: 6px; height: 6px; border-radius: 50%; background: var(--text-node-surface); border: 3px solid var(--text-node-primary); }
+.blend-opacity { display: grid; grid-template-columns: 44px 110px 56px; align-items: center; gap: 12px; width: 234px; }
+.blend-mode .describer-model-trigger { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; width: 134px; height: 28px; min-height: 28px; padding: 0 10px; border: 0; border-radius: 5px; background: #2b2b2b; color: var(--node-primary); font: inherit; text-align: left; cursor: pointer; }
+.blend-mode .describer-model-trigger > img { flex: 0 0 12px; }
+.blend-mode .describer-model-trigger:hover:not(:disabled), .blend-mode .describer-model-trigger[aria-expanded='true'] { background: #303030; }
+.blend-opacity input[type='text'] { box-sizing: border-box; width: 56px; height: 26px; border: 1px solid transparent; border-radius: 6px; padding: 0 7px; background: #303030; color: inherit; font: inherit; }
+.blend-opacity .node-range-input { width: 110px; min-width: 0; }
 .blend-controls :disabled { opacity: .4; cursor: default; }
-.blend-controls input:focus-visible, .blend-controls button:focus-visible { outline: 1px solid var(--text-node-border-selected); outline-offset: 2px; }
+.blend-controls input:focus-visible, .blend-controls button:focus-visible { outline: 1px solid var(--node-selected-border); outline-offset: 2px; }
 .describer-model-menu > .has-separator { margin-top: 16px; position: relative; }
 .describer-model-menu > .has-separator::before { content: ''; position: absolute; height: 1px; top: -8px; left: -8px; right: -8px; background: #ffffff14; pointer-events: none; }
 
 .describer-model-menu > .has-separator::before { background: #00000014; }
 .dark .describer-model-menu > .has-separator::before { background: #ffffff14; }
-.react-flow__node-blend .preview-image > canvas { object-fit: fill; }
+
+.blend-mode-menu.describer-model-menu.describer-model-menu-fluid { padding: 8px; border-radius: 12px; background: #282828; color: #fff; box-shadow: 0 4px 16px rgb(0 0 0 / 20%); font: 400 11px/16px 'Text Node Inter', 'Noto Sans SC Variable', sans-serif; letter-spacing: 0; scrollbar-width: thin; scrollbar-color: #555 transparent; }
+.blend-mode-menu.describer-model-menu::-webkit-scrollbar { display: block; width: 4px; }
+.blend-mode-menu::-webkit-scrollbar-thumb { border-radius: 4px; background: #555; }
+.blend-mode-menu.describer-model-menu [role='option'] { box-sizing: border-box; height: 28px; padding: 0 6px; gap: 6px; cursor: pointer; }
+.blend-mode-menu.describer-model-menu.describer-model-menu-fluid [role='option'][aria-selected='true'] { background: rgb(255 255 255 / 5%); }
+.blend-mode-menu .describer-model-check { display: flex; align-items: center; justify-content: flex-start; flex: 0 0 14px; width: 14px; }
+.blend-mode-menu.describer-model-menu > .has-separator { margin-top: 9px; }
+.blend-mode-menu.describer-model-menu > .has-separator::before { top: -5px; left: 0; right: 0; background: rgb(255 255 255 / 10%); }
+.blend-mode-menu .describer-model-hover { border-radius: 5px; background: rgb(255 255 255 / 8%); }

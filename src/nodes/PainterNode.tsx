@@ -14,6 +14,7 @@ import { PainterColorPicker } from './PainterColorPicker';
 import { painterLivePreviews } from './painterLivePreview';
 import { NodeFrame, NodeHeader } from './shared/NodeFrame';
 import { NodePort } from './shared/NodePort';
+import { NodeRangeInput } from './shared/NodeRangeInput';
 import { PainterShapeSelect } from './PainterShapeSelect';
 import './shared/mediaNodeStyle.css';
 import './PainterNode.css';
@@ -21,7 +22,7 @@ import './PainterNode.css';
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 function Slider({ label, value, min = 0, max = 100, onChange, percent = false }: { label: string; value: number; min?: number; max?: number; onChange: (value: number) => void; percent?: boolean }) {
-  return <label className="painter-field"><span>{label}</span><input aria-label={`${label}滑块`} type="range" min={min} max={max} value={value} style={{ background: `linear-gradient(to right, var(--painter-slider-fill) ${(value - min) / (max - min) * 100}%, var(--painter-slider-track) ${(value - min) / (max - min) * 100}%)` }} onChange={e => onChange(Number(e.target.value))} /><input aria-label={label} type="number" min={min} max={max} value={value} onChange={e => onChange(clamp(Number(e.target.value), min, max))} /><span className="painter-unit">{percent ? '%' : ''}</span></label>;
+  return <label className="painter-field"><span>{label}</span><NodeRangeInput aria-label={`${label}滑块`} min={min} max={max} value={value} onChange={e => onChange(Number(e.target.value))} /><input aria-label={label} type="number" min={min} max={max} value={value} onChange={e => onChange(clamp(Number(e.target.value), min, max))} /><span className="painter-unit">{percent ? '%' : ''}</span></label>;
 }
 function ColorField({ label, color, opacity, disabled, onColor, onOpacity }: { label: string; color: string; opacity: number; disabled?: boolean; onColor: (value: string) => void; onOpacity: (value: number) => void }) {
   const [draft, setDraft] = useState(color.slice(1));

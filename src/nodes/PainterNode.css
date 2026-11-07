@@ -43,9 +43,6 @@
 .painter-field input:not([type='range']):not([type='color']) { box-sizing: border-box; border: 0; background: var(--painter-control); color: inherit; border-radius: 6px; width: 100%; min-width: 0; height: 26px; padding: 0 8px; font: inherit; line-height: 22px; }
 .painter-field input[type='number'] { appearance: textfield; padding-right: 16px; }
 .painter-controls input::-webkit-inner-spin-button, .painter-controls input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.painter-field input[type='range'] { appearance: none; width: calc(100% - 4px); height: 5px; margin: 0; border-radius: 72px; cursor: ew-resize; }
-.painter-field input[type='range']::-webkit-slider-thumb { appearance: none; height: 16px; width: 16px; border: 0; border-radius: 50%; background: #fff; }
-.painter-field input[type='range']::-moz-range-thumb { height: 16px; width: 16px; border: 0; border-radius: 50%; background: #fff; }
 .painter-unit { position: absolute; right: 7px; top: 3px; pointer-events: none; }
 .painter-color .painter-unit { top: 2px; }
 .painter-color-value { display: flex; align-items: center; gap: 8px; min-width: 0; }

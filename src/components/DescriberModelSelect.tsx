@@ -22,7 +22,7 @@ function SelectOption({ id, index, selected, active, separator, label, checkIcon
 }
 
 export function DescriberModelSelect({ value, disabled, onChange, choices = describerModels, node = false, compact = false, appearance = 'default', fluidHover = false, label = 'Model', labels, includeCurrentValue = true, menuLabel, separators = noSeparators }: {
-  appearance?: 'default' | 'levels';
+  appearance?: 'default' | 'levels' | 'blend';
   separators?: readonly number[]; value: string; choices?: readonly string[]; node?: boolean; compact?: boolean; fluidHover?: boolean; label?: string; labels?: string[]; disabled?: boolean; includeCurrentValue?: boolean; menuLabel?: string; onChange: (model: string) => void;
 }) {
   const id = useId();
@@ -49,6 +49,14 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
     const height = Math.min(node || compact ? options.length * 24 + separators.length * 16 + 16 : 410, window.innerHeight - 24, rect.top - 12 + (options.length - index) * 24 + 8);
     const top = Math.max(12, Math.min(rect.top - index * 24 - separators.filter(n => n <= index).length * 16 - 8, window.innerHeight - height - 12));
     activate(index);
+    if (appearance === 'blend') {
+      const height = Math.min(options.length * 28 + separators.length * 9 + 16, 320, window.innerHeight - 24);
+      const width = Math.min(176, window.innerWidth - 24);
+      const top = rect.bottom + 4 + height <= window.innerHeight - 12 ? rect.bottom + 4 : rect.top - height - 4;
+      setPlacement({ width, height, left: Math.max(12, Math.min(rect.left, window.innerWidth - width - 12)),
+        top: Math.max(12, Math.min(top, window.innerHeight - height - 12)) });
+      return;
+    }
     if (appearance === 'levels') {
       const height = options.length * 28 + 16;
       const width = Math.min(Math.max(rect.width, trigger.current!.offsetWidth), window.innerWidth - 16);
@@ -67,7 +75,11 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
   };
   useLayoutEffect(() => {
     if (!placement || !list.current || !trigger.current) return;
-    if (appearance !== 'levels') list.current.scrollTop = Math.max(0, options.indexOf(value) * 24 + separators.filter(n => n <= options.indexOf(value)).length * 16 - (trigger.current.getBoundingClientRect().top - placement.top - 8));
+    if (appearance === 'blend') {
+      const index = Math.max(0, options.indexOf(value));
+      const offset = index * 28 + separators.filter(n => n <= index).length * 9;
+      list.current.scrollTop = Math.max(0, offset - (placement.height - 28) / 2);
+    } else if (appearance !== 'levels') list.current.scrollTop = Math.max(0, options.indexOf(value) * 24 + separators.filter(n => n <= options.indexOf(value)).length * 16 - (trigger.current.getBoundingClientRect().top - placement.top - 8));
     list.current.focus();
   }, [placement, value, options, separators, appearance]);
   useEffect(() => {
@@ -83,8 +95,8 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
   return <>
     <button id={node || compact ? id + "-trigger" : "describer-model"} ref={trigger} role="combobox" aria-label={label} aria-haspopup="listbox" aria-expanded={Boolean(placement)} aria-controls={placement ? id : undefined} disabled={disabled} className="describer-model-trigger nodrag nopan" onClick={() => placement ? close() : open()} onKeyDown={(e) => {
       if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) { e.preventDefault(); open(); }
-    }}><span>{labels?.[choices.indexOf(value)] ?? (value || 'Select an option')}</span>{appearance === 'levels' ? <img src="/levels-node/chevron.svg" width={12} height={12} alt="" /> : <DescriberIcon name="chevron" />}</button>
-    {placement && !disabled && createPortal(<div ref={list} id={id} role="listbox" aria-label={menuLabel ?? (compact || label !== 'Model' ? label : "Models")} aria-activedescendant={options[activeIndex] !== undefined ? `${id}-${activeIndex}` : undefined} tabIndex={-1} className={`describer-model-menu nodrag nopan nowheel${fluidHover ? ' describer-model-menu-fluid' : ''}${appearance === 'levels' ? ' levels-channel-menu' : ''}`} style={placement}
+    }}><span>{labels?.[choices.indexOf(value)] ?? (value || 'Select an option')}</span>{appearance === 'levels' || appearance === 'blend' ? <img src={`/${appearance === 'blend' ? 'blend-node' : 'levels-node'}/chevron.svg`} width={12} height={12} alt="" /> : <DescriberIcon name="chevron" />}</button>
+    {placement && !disabled && createPortal(<div ref={list} id={id} role="listbox" aria-label={menuLabel ?? (compact || label !== 'Model' ? label : "Models")} aria-activedescendant={options[activeIndex] !== undefined ? `${id}-${activeIndex}` : undefined} tabIndex={-1} className={`describer-model-menu nodrag nopan nowheel${fluidHover ? ' describer-model-menu-fluid' : ''}${appearance === 'levels' ? ' levels-channel-menu' : ''}${appearance === 'blend' ? ' blend-mode-menu' : ''}`} style={placement}
       {...(fluidHover ? hover.handlers : {})}
       onMouseMove={fluidHover ? event => {
         pointer.current = { x: event.clientX, y: event.clientY };
@@ -119,7 +131,7 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
     }}>
       {fluidHover && <FluidHoverHighlight hover={hover} className="describer-model-hover" />}
       {options.map((model, index) => <SelectOption key={model} id={`${id}-${index}`} index={index}
-        selected={model === value} active={index === activeIndex} checkIcon={appearance === 'levels' ? '/levels-node/check.svg' : undefined} separator={separators.includes(index)}
+        selected={model === value} active={index === activeIndex} checkIcon={appearance === 'levels' || appearance === 'blend' ? '/levels-node/check.svg' : undefined} separator={separators.includes(index)}
         label={labels?.[choices.indexOf(model)] ?? model} registerItem={fluidHover ? hover.registerItem : undefined}
         onPointerMove={fluidHover ? undefined : () => setActive(index)} onChoose={() => { onChange(model); close(); }} />)}
     </div>, document.body)}

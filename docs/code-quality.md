@@ -64,6 +64,7 @@ CI 使用完整 Git 历史，PR 以目标分支基点、推送以事件的前一
 | Color palette 编辑器 | `/tests/color-palette-picker.html` |
 | Color palette 原生拖动 | `/tests/color-palette-native-drag.html`，需真实鼠标与不同缩放验证 |
 | Resize 尺寸、透明区域、比例与持久化 | `/tests/resize.html` |
+| Figma 混合节点、紧凑滑块与可滚动模式菜单 | `/tests/blend-node-style.html`；沿用 React 浏览器验收页，无新增框架或依赖。启动 `npm run dev` 后访问，使用独立数据库，自动核对尺寸、18 种模式分组、末项键盘选择、菜单边界、百分比输入和共享锁定菜单；类型检查纳入 `npm run check`。`/tests/blend.html` 另验 Worker / PNG、4K、历史、连接和持久化；拖动、真实滑块与缩放需实际指针复验 |
 | Masks Extractor 选区、预览复用、PNG、4K、原图比例、取消、撤销及持久化 | `/tests/masks-extractor.html`；默认受控分割，不下载模型；覆盖重新计算后的焦点、从图片和控制区按 Escape 取消，以及迟到结果隔离；页面按钮可单独验证真实 SlimSAM / WebGPU，并测量悬停后连续添加的调用次数、耗时、蒙版摘要及 4K 导出帧间隔 |
 | Ideogram 4.5 参数、异步查询、结果、取消、失败和持久化 | `/tests/ideogram.html`；隔离数据库、模拟模型响应，无真实调用 |
 | Ideogram 4.5 编辑、参考图、Mask 转换、Compare 透传/快照和尺寸约束 | `/tests/ideogram-edit.html`；隔离数据库、模拟模型响应，无真实调用 |

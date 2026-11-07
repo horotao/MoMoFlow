@@ -1,7 +1,5 @@
-import { NodeIcon } from './NodeIcon';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis } from 'lucide-react';
+import { Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { isBlendNode, isNodeLocked, type AppNode, type BlendNode as Blend } from './types';
 import { blendRevision, type BlendSettings } from './blend';
 import { BlendRenderer } from './blendRender';
@@ -9,6 +7,10 @@ import { BlendControls } from './BlendControls';
 import { blendInputs, imageOutput } from './sunburstRun';
 import { assetResources } from './assetResources';
 import { TextNodeMenu } from './TextNodeMenu';
+import { NodeFrame, NodeHeader } from './shared/NodeFrame';
+import { NodePort } from './shared/NodePort';
+import './shared/mediaNodeStyle.css';
+import './BlendNode.css';
 
 export function BlendNode({ id, data, isConnectable }: NodeProps<Blend>) {
   const nodes = useNodes<AppNode>(), edges = useEdges();
@@ -90,28 +92,28 @@ export function BlendNode({ id, data, isConnectable }: NodeProps<Blend>) {
   }, [id, current, settings, draft, revision, sourceKey, data.locked, output, back?.url, front?.url, getNode, getNodes, getEdges, updateNodeData]);
   useEffect(() => updateInternals(id), [id, current?.width, current?.height, updateInternals]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="blend" />{renaming
+  return <NodeFrame className="media-node-frame blend-node-frame">
+    <NodeHeader icon={<img src="/blend-node/blend.svg" width={18} height={18} alt="" />} title={renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '混合'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '混合'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
-    </header>
-    <div className="preview-image nodrag nopan" aria-busy={Boolean((back || front) && !output && !error && !data.locked)} style={{ aspectRatio: current ? `${current.width} / ${current.height}` : '1' }}>
+          onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return; if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
+        : <span>{data.label || '混合'}</span>}
+      actions={<TextNodeMenu appearance="shared" id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '混合'); setRenaming(true); }}><img src="/node-style/more.svg" width={18} height={18} alt="" /></TextNodeMenu>} />
+    <div className="preview-image blend-preview nodrag nopan" aria-busy={Boolean((back || front) && !output && !error && !data.locked)} style={{ aspectRatio: current ? `${current.width} / ${current.height}` : '1' }}>
       <canvas ref={canvas} aria-label="Blend preview" style={{ visibility: painted === sourceKey && current ? 'visible' : 'hidden' }} />
     </div>
     <BlendControls settings={settings} disabled={Boolean(data.locked)} onDraft={setDraft} onCommit={commit} onCancel={cancel} />
-    {[{ handle: 'back', label: 'Back', top: 89 }, { handle: 'front', label: 'Front', top: 149 }, { handle: 'result', label: 'Result', top: 89 }].map(port => {
+    {[{ handle: 'back', label: 'Back*', top: 89 }, { handle: 'front', label: 'Front*', top: 151 }, { handle: 'result', label: 'Result', top: 89 }].map(port => {
       const output = port.handle === 'result';
       const connected = edges.some(edge => output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-image${output ? ' output-label' : ''}`} style={{ top: port.top - 28 }}>{port.label}</span>
-        <Handle id={port.handle} type={output ? 'source' : 'target'} position={output ? Position.Right : Position.Left} style={{ top: port.top }} aria-label={`Blend ${port.label}`}
-          className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`} isConnectable={isConnectable && !data.locked} />
+      return <div className="media-port-image" key={port.handle}>
+        <NodePort label={port.label} id={port.handle} top={port.top} type={output ? 'source' : 'target'} position={output ? Position.Right : Position.Left}
+          isConnectable={isConnectable && !data.locked}>
+          <img src="/image-node/port-image.svg" width={32} height={32} alt="" />
+          {connected && <span className="media-port-dot" />}
+        </NodePort>
       </div>;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }
