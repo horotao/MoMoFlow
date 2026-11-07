@@ -1,0 +1,22 @@
+.react-flow .text-node-frame .text-node-content { width: 100%; height: auto; min-height: 287px; flex: 1 0 auto; border-radius: var(--node-inset-radius); corner-shape: superellipse(1.25); background: var(--node-inset); }
+.react-flow .text-node-frame .text-node-content:focus-within { box-shadow: inset 0 0 0 1px var(--node-selected-border); }
+.react-flow .text-node-frame .text-node-editor-host,
+.react-flow .text-node-frame .text-node-editor-content { height: auto; }
+.react-flow .text-node-frame .text-node-editor { height: auto; min-height: 287px; max-height: 518px; padding: 16px; color: var(--node-primary); font: 400 12px/22px var(--font-ui); }
+.react-flow .text-node-frame .text-node-suggestion { line-height: 22px; white-space: normal; }
+.react-flow .text-node-frame .text-node-suggestion kbd { background: var(--node-selected-border); }
+.react-flow .text-node-frame .text-node-footer { position: relative; z-index: 3; height: 24px; color: var(--node-secondary); font: 400 12px/22px var(--font-ui); }
+.react-flow .text-node-frame .text-node-add { width: 120px; height: 24px; color: var(--node-secondary); }
+.react-flow .text-node-frame .text-node-add:hover:not(:disabled) { color: var(--node-primary); }
+.text-node-add-icon { position: relative; display: block; width: 24px; height: 24px; flex: 0 0 24px; }
+.text-node-add-icon img { position: absolute; top: 6px; left: 6px; }
+.react-flow .text-node-frame .text-node-variable { display: inline-block; padding: 0 4px; border-radius: 4px; background: var(--node-variable-chip); line-height: 22px; vertical-align: baseline; }
+.react-flow .text-node-frame .text-node-rename { box-sizing: border-box; width: 100%; min-width: 0; height: 24px; font: inherit; }
+.react-flow .text-node-frame .node-display { gap: 8px; font: 400 11px/22px var(--font-ui); }
+.react-flow .text-node-frame .text-node-display-trigger { justify-content: space-between; box-sizing: border-box; width: 154px; height: 24px; padding: 0 8px; border: 0; border-radius: 5px; background: var(--node-menu); color: var(--node-primary); font: inherit; }
+.node-display-menu { top: calc(100% + 6px); right: 2px; width: 152px; box-shadow: 0 4px 16px var(--node-shadow); }
+.node-display-menu.is-above { top: auto; bottom: calc(100% + 6px); }
+.node-display-menu .node-menu-item { justify-content: flex-start; height: 28px; padding: 0 6px; gap: 6px; border-radius: 5px; line-height: 22px; }
+.node-display-menu .node-menu-item[aria-selected="true"] { background: var(--node-selected-row); }
+.node-display-menu .node-menu-hover { border-radius: 5px; background: var(--node-hover); }
+.node-menu-check { flex: 0 0 14px; width: 14px; line-height: 16px; }

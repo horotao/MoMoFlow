@@ -1,5 +1,6 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type { TextDisplayMode } from './types';
+import { NodeMenu } from './shared/NodeMenu';
 
 const options: { value: TextDisplayMode; label: string }[] = [
   { value: 'source-value', label: '变量名+值' },
@@ -7,10 +8,12 @@ const options: { value: TextDisplayMode; label: string }[] = [
   { value: 'source', label: '变量名' },
 ];
 
-export function TextDisplaySelect({ value, onChange, children }: {
+export function TextDisplaySelect({ value, onChange, children, appearance = 'default', disabled = false }: {
   value: TextDisplayMode;
   onChange: (value: TextDisplayMode) => void;
   children: ReactNode;
+  appearance?: 'default' | 'shared';
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [above, setAbove] = useState(false);
@@ -30,6 +33,20 @@ export function TextDisplaySelect({ value, onChange, children }: {
     return () => document.removeEventListener('pointerdown', dismiss);
   }, [open, selected]);
 
+  useLayoutEffect(() => {
+    if (!open || appearance !== 'shared') return;
+    const place = () => {
+      const button = trigger.current?.getBoundingClientRect();
+      const menu = root.current?.querySelector('[role="listbox"]')?.getBoundingClientRect();
+      if (!button || !menu) return;
+      const gap = button.height / 4;
+      setAbove(window.innerHeight - button.bottom < menu.height + gap + 8 && button.top >= menu.height + gap);
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [open, appearance]);
+
   const show = () => {
     const rect = trigger.current?.getBoundingClientRect();
     setAbove(Boolean(rect && window.innerHeight - rect.bottom < 130));
@@ -37,7 +54,7 @@ export function TextDisplaySelect({ value, onChange, children }: {
   };
 
   return (
-    <div ref={root} className="text-node-display nodrag nopan nowheel"
+    <div ref={root} className={`text-node-display${appearance === 'shared' ? ' node-display' : ''} nodrag nopan nowheel`}
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
       }}
@@ -51,6 +68,7 @@ export function TextDisplaySelect({ value, onChange, children }: {
       }}>
       <span>显示</span>
       <button ref={trigger} className="text-node-button text-node-display-trigger" type="button"
+        disabled={disabled}
         aria-label={`显示：${options[selected].label}`} aria-haspopup="listbox"
         aria-expanded={open} aria-controls={open ? listId : undefined}
         onClick={() => open ? setOpen(false) : show()}
@@ -62,7 +80,15 @@ export function TextDisplaySelect({ value, onChange, children }: {
         }}>
         <span>{options[selected].label}</span>{children}
       </button>
-      {open && <div id={listId} role="listbox" aria-label="变量显示方式"
+      {open && appearance === 'shared' && <NodeMenu id={listId} kind="listbox" label="变量显示方式"
+        options={options.map(option => ({ action: option.value, label: option.label }))} selectedAction={value}
+        className={`node-display-menu${above ? ' is-above' : ''}`}
+        onChoose={action => {
+          const option = options.find(option => option.value === action);
+          if (option) onChange(option.value);
+          setOpen(false); trigger.current?.focus();
+        }} />}
+      {open && appearance === 'default' && <div id={listId} role="listbox" aria-label="变量显示方式"
         className={`text-node-display-menu${above ? ' text-node-display-menu-above' : ''}`}>
         {options.map((option, index) => (
           <button key={option.value} ref={(element) => { items.current[index] = element; }}

@@ -45,6 +45,10 @@
 
 节点标题与侧栏卡片共用 [nodeIcons.ts](./nodeIcons.ts) 中的共享图标映射（通用节点使用 Hugeicons Stroke Rounded）；标题通过 [NodeIcon.tsx](./NodeIcon.tsx) 渲染并保留各节点原有尺寸。修改节点图标时更新共享映射，避免两处显示不一致。Nano Banana 与 Ideogram 4.5 使用 [modelBrandIcons.ts](./modelBrandIcons.ts) 中从 Weavy 对应模型卡片同步的原始 SVG 路径；Nano Banana 保留品牌紫色，Ideogram 随主题文字颜色变化，节点库、标题与设置面板共用同一图标。Router 仍根据输入内容切换文本、图片 / 蒙版、视频、音频、3D 或文件图标，未连接时使用路由图标。
 
+新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：外框、标题栏、颜色和尺寸变量按节点逐个接入；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。当前只有 Text 使用新版外框；其他节点保留原样。新版外框内按 Figma 使用 Inter / Noto Sans SC，字体作用域不扩散到原有节点。Text 的标题、更多、加号、下拉箭头与端口使用 `public/node-style/` 中的 Figma 原始 SVG，作为本轮设计还原的例外；不改动节点库现有图标。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
+
+`/tests/text-node-style.html` 是独立的 Text 样式与交互验收入口，使用真实画布与隔离存储，不调用模型、不读写用户工作流；检查尺寸、资源、编辑、变量三种显示、菜单、锁定和主题。先运行 `npm run dev`，再在浏览器打开该页面；浏览器验收不由 `npm test` 执行，类型检查包含在 `npm run check` 中。
+
 Compositor 文本、形状及钢笔交互与验证入口见 [合成编辑器文档](../../docs/compositor.md)。锚点在不同缩放下保持固定命中区，可越界调整及插入曲线点；交互草稿按帧更新，提交仍复用工作流历史与持久化。
 
 Compositor 输出解析在每次读取中按节点与输出端口复用校验结果，环路检查独立跟踪当前路径；缓存不跨编辑、撤销或恢复复用。`compositorResolution.test.ts` 随 `npm test` 检查共享上游、输出端口区分、失效和环路；浏览器验证页同时运行 Enter 键回归。

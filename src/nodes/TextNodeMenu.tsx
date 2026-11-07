@@ -15,9 +15,11 @@ import { isFileNode } from './fileAsset';
 import { cloneTextNode } from './cloneTextNode';
 import { isTextNode } from './textVariables';
 import type { AppNode } from './types';
+import { NodeOptionsMenu } from './shared/NodeOptionsMenu';
 
-export function TextNodeMenu({ id, locked, onRename, onClear, children }: {
+export function TextNodeMenu({ id, locked, onRename, onClear, children, appearance = 'default' }: {
   id: string; locked: boolean; onRename: () => void; onClear?: () => void; children: ReactNode;
+  appearance?: 'default' | 'shared';
 }) {
   const { getNode, getNodes, getEdges, setNodes, updateNodeData, deleteElements } = useReactFlow<AppNode>();
   const [open, setOpen] = useState(false);
@@ -32,7 +34,7 @@ export function TextNodeMenu({ id, locked, onRename, onClear, children }: {
 
   const act = async (action: string) => {
     const node = getNode(id);
-    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'nano-banana' && node.type !== 'ideogram' && node.type !== 'masks-extractor' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop' && node.type !== 'color-correction' && node.type !== 'matte-grow-shrink' && node.type !== 'blur' && node.type !== 'levels' && node.type !== 'invert' && node.type !== 'rotate-flip' && node.type !== 'blend' && node.type !== 'compare' && node.type !== 'resize' && node.type !== 'compositor' && node.type !== 'color-palette' && node.type !== 'router' && node.type !== 'text-iterator' && node.type !== 'image-iterator')) return;
+    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'nano-banana' && node.type !== 'ideogram' && node.type !== 'masks-extractor' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop' && node.type !== 'color-correction' && node.type !== 'matte-grow-shrink' && node.type !== 'blur' && node.type !== 'levels' && node.type !== 'invert' && node.type !== 'rotate-flip' && node.type !== 'blend' && node.type !== 'compare' && node.type !== 'resize' && node.type !== 'compositor' && node.type !== 'color-palette' && node.type !== 'router' && node.type !== 'text-iterator' && node.type !== 'image-iterator')) return false;
     setError('');
     let writingClipboard = false;
     try {
@@ -60,9 +62,11 @@ export function TextNodeMenu({ id, locked, onRename, onClear, children }: {
       else if (action === 'rename') onRename();
       else if (action === 'lock') updateNodeData(id, { locked: !locked });
       setOpen(false);
-      if (action !== 'rename') trigger.current?.focus();
+      if (appearance === 'default' && action !== 'rename') trigger.current?.focus();
+      return true;
     } catch (error) {
       setError(writingClipboard ? '无法写入剪贴板，节点已保留。请允许剪贴板访问后重试。' : error instanceof Error ? error.message : '无法完成操作，节点已保留。');
+      return false;
     }
   };
   const actionRef = useRef(act);
@@ -95,8 +99,8 @@ export function TextNodeMenu({ id, locked, onRename, onClear, children }: {
   const options = [
     ...(onClear ? [{ action: 'clear', label: '清空', disabled: locked }] : []),
     { action: 'save', label: '保存节点', disabled: true },
-    { action: 'duplicate', label: '创建副本', shortcut: `${modifier}d` },
-    { action: 'cut', label: '剪切', shortcut: `${modifier}x`, disabled: locked },
+    { action: 'duplicate', label: '创建副本', shortcut: `${modifier}d`, shortcutKey: 'd' },
+    { action: 'cut', label: '剪切', shortcut: `${modifier}x`, shortcutKey: 'x', disabled: locked },
     { action: 'rename', label: '重命名', disabled: locked },
     { action: 'lock', label: locked ? '解锁' : '锁定' },
     { action: 'delete', label: '删除', disabled: locked },
@@ -106,6 +110,9 @@ export function TextNodeMenu({ id, locked, onRename, onClear, children }: {
     setPlacement({ above: rect.bottom + 180 * zoom > window.innerHeight, left: rect.left + 150 * zoom > window.innerWidth });
     setOpen(true);
   };
+  if (appearance === 'shared') return <NodeOptionsMenu
+    options={options.map(option => ({ ...option, separatorBefore: option.action === 'delete' }))}
+    onChoose={act} error={error}>{children}</NodeOptionsMenu>;
   return <div ref={root} className="text-node-menu-root nodrag nopan nowheel"
     onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}
     onKeyDown={(event) => {

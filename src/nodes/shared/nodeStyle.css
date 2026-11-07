@@ -1,0 +1,109 @@
+/* Figma MoMoFlow node foundations. Scoped to opt-in frames during migration. */
+.node-frame {
+  --font-ui: 'Text Node Inter', 'Noto Sans SC Variable', sans-serif;
+  --node-width: 454px;
+  --node-radius: 28px;
+  --node-inset-radius: 14px;
+  --node-padding: 14px;
+  --node-gap: 14px;
+  --node-surface: #fff;
+  --node-inset: #f3f3f5;
+  --node-menu: #fff;
+  --node-border: #dcdce1;
+  --node-selected-border: #b6b4bb;
+  --node-divider: #dedee2;
+  --node-primary: #29292e;
+  --node-secondary: #60606b;
+  --node-muted: #767680;
+  --node-disabled: #a2a2aa;
+  --node-selected-row: rgb(0 0 0 / 5%);
+  --node-hover: rgb(0 0 0 / 8%);
+  --node-port-color: #b34bd1;
+  --node-variable-chip: #eddbf5;
+  --node-shadow: rgb(0 0 0 / 20%);
+  --text-node-surface: var(--node-surface);
+  --text-node-input: var(--node-inset);
+  --text-node-border: var(--node-border);
+  --text-node-border-selected: var(--node-selected-border);
+  --text-node-primary: var(--node-primary);
+  --text-node-secondary: var(--node-secondary);
+  --text-node-placeholder: var(--node-muted);
+  --text-node-port: var(--node-port-color);
+  --text-node-variable-chip: var(--node-variable-chip);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  box-sizing: border-box;
+  width: var(--node-width);
+  padding: var(--node-padding);
+  gap: var(--node-gap);
+  border: 1px solid var(--node-border);
+  border-radius: var(--node-radius);
+  corner-shape: superellipse(1.25);
+  background: var(--node-surface);
+  color: var(--node-primary);
+  font: 400 13px/22px var(--font-ui);
+  text-align: left;
+  isolation: isolate;
+}
+.dark .node-frame {
+  --node-surface: #222;
+  --node-inset: #191919;
+  --node-menu: #282828;
+  --node-border: #2d2d2d;
+  --node-selected-border: #525252;
+  --node-divider: #373737;
+  --node-primary: #fff;
+  --node-secondary: #b3b3b3;
+  --node-muted: #808080;
+  --node-disabled: #636363;
+  --node-selected-row: rgb(255 255 255 / 5%);
+  --node-hover: rgb(255 255 255 / 8%);
+  --node-port-color: #e28cf8;
+  --node-variable-chip: #503c55;
+}
+.react-flow .react-flow__node:has(> .node-frame) {
+  width: max-content;
+  height: auto;
+  padding: 0;
+  gap: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.react-flow .react-flow__node.selected > .node-frame { border-color: var(--node-selected-border); }
+.react-flow .react-flow__node:has(> .node-frame [role="menu"], > .node-frame [role="listbox"]) { z-index: 1002 !important; }
+.node-header { position: relative; z-index: 4; display: flex; align-items: center; justify-content: space-between; width: 100%; height: 26px; flex-shrink: 0; gap: 12px; }
+.node-title { display: flex; align-items: center; gap: 4px; min-width: 0; color: var(--node-secondary); }
+.node-title-icon { display: flex; align-items: center; justify-content: center; flex: 0 0 16px; width: 16px; height: 16px; }
+.node-title-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node-title-label:has(input) { flex: 1; overflow: visible; }
+.node-title:has(input) { flex: 1; }
+.node-frame img { max-width: none; flex-shrink: 0; pointer-events: none; }
+.node-frame .node-monochrome { filter: brightness(0); }
+.dark .node-frame .node-monochrome { filter: none; }
+.node-options { position: relative; flex: 0 0 24px; }
+.node-options-trigger { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 3px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
+.node-options-trigger:hover, .node-options-trigger[aria-expanded="true"] { background: var(--node-divider); }
+.node-options-trigger:focus-visible { outline: 1px solid var(--node-selected-border); outline-offset: 2px; }
+.node-menu { position: absolute; z-index: 10; box-sizing: border-box; width: 150px; padding: 8px; border-radius: 12px; background: var(--node-menu); color: var(--node-primary); box-shadow: 0 4px 12px var(--node-shadow); overflow: hidden; }
+.node-menu-item { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; width: 100%; height: 24px; padding: 0 8px; border: 0; border-radius: 4px; background: transparent; color: inherit; font: 400 11px/16px var(--font-ui); text-align: left; cursor: pointer; }
+.node-menu-item:focus-visible { outline: none; }
+.node-menu-item:disabled { color: var(--node-disabled); cursor: default; }
+.node-menu-shortcut { color: var(--node-secondary); }
+.node-menu-hover { z-index: 0; border-radius: 4px; background: var(--node-divider); }
+.node-menu-separator { position: relative; height: 17px; margin: 0 -8px; }
+.node-menu-separator::after { content: ''; position: absolute; top: 8px; left: 0; right: 0; height: 1px; background: var(--node-divider); }
+.node-options-menu { top: calc(100% + 4px); left: 0; }
+.node-options-menu.is-left { right: 0; left: auto; }
+.node-options-menu.is-above { top: auto; bottom: calc(100% + 4px); }
+.node-options-error { position: absolute; top: 30px; right: 0; z-index: 11; width: 220px; padding: 10px; border-radius: 8px; background: var(--node-menu); box-shadow: 0 4px 12px var(--node-shadow); font-size: 11px; }
+.react-flow .node-frame .node-port { position: absolute; width: 32px; height: 32px; min-width: 32px; min-height: 32px; padding: 0; border: 0; background: transparent; border-radius: 50%; box-shadow: none; }
+.react-flow .node-frame .node-port.react-flow__handle-left { left: -2px; }
+.react-flow .node-frame .node-port.react-flow__handle-right { right: -2px; }
+.node-port.is-type-error::after { content: ''; position: absolute; inset: 5px; border: 2px solid #e85555; border-radius: 50%; pointer-events: none; }
+.react-flow .node-frame .node-port-label { color: var(--node-port-color); font: 400 11px/16px var(--font-ui); }
+.node-port-label-input { right: calc(100% + 28px); }
+.node-port-label-output { left: calc(100% + 31px); }

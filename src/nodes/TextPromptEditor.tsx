@@ -104,7 +104,7 @@ export function TextPromptEditor({ id, data, handles, editorRef }: {
     onKeyDown={(event) => event.stopPropagation()}>
     <EditorContent editor={editor} className="text-node-editor-content" />
     <div className="text-node-suggestion" aria-hidden="true">
-      {suggestedTextNodeText}<kbd>Tab</kbd>
+      {suggestedTextNodeText.replace(/\n/g, '')}<kbd>Tab</kbd>
     </div>
   </div>;
 }
