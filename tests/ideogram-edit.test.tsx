@@ -105,7 +105,8 @@ async function run() {
   runButton().click(); await until(() => read().data.results?.length === 1, 'Edit result appears');
   check(requests.length === 1 && requests[0].image === original && (requests[0].referenceImages as string[])[0] === original, 'Edit submits original and references once to the edit route');
   check(requests[0].editSize === '1536*1024' && !('resolution' in requests[0]) && !('enablePromptExpansion' in requests[0]), 'Edit omits generation-only parameters');
-  check(document.querySelector('.task-name')?.textContent?.includes('Edit'), 'Task manager identifies editing');
+  check(document.querySelector('.task-name')?.textContent?.includes('Ideogram 4.5')
+    && document.querySelector('.task-main')?.getAttribute('title')?.endsWith('/edit'), 'Task manager identifies the Ideogram edit route');
   find('[aria-label="关闭任务面板"]').click(); await settle();
   api.addEdges([{ id: 'mask', source: 'mask', sourceHandle: 'file', target: 'ideogram', targetHandle: 'mask' }]); await settle();
   check(find<HTMLButtonElement>('[aria-label="编辑尺寸"]').disabled && read().data.editSize === '1536*1024', 'Mask locks source dimensions and retains saved custom size');

@@ -71,7 +71,7 @@ async function run() {
   const root = createRoot(document.getElementById('root')!);
   root.render(<ReactFlowProvider><Flow storage={storage} saved={workflow} /><Probe /></ReactFlowProvider>);
   await until(() => Boolean(document.querySelector('[aria-label="Ideogram 4.5 设置"]')), 'Node and settings mount');
-  check(find('[data-id="ideogram"] .text-node-title').textContent?.includes('Ideogram 4.5'), 'Dedicated model title and settings');
+  check(find('[data-id="ideogram"] .node-title-label').textContent?.includes('Ideogram 4.5'), 'Dedicated model title and settings');
   check(document.querySelectorAll('[data-id="ideogram"] [data-handleid="mask"], [data-id="ideogram"] [data-handleid="image-0"]').length === 2, 'Optional original image and mask ports are available');
   check(find('.sunburst-provider').textContent?.includes('WaveSpeed'), 'Correct provider label');
   find('[aria-label="分辨率"]').click(); await settle();
@@ -108,11 +108,11 @@ async function run() {
   check(requests[1].quality === 'high' && requests[1].enablePromptExpansion === false, 'Quality and expansion selection reach the API');
   await until(() => Boolean(document.querySelector<HTMLImageElement>('.preview-image img')?.naturalWidth), 'Downstream preview resolves');
   find('[aria-label="关闭任务面板"]').click(); await settle();
-  find('[data-id="ideogram"] [aria-label="Previous result"]').click(); await settle();
+  find('[data-id="ideogram"] [aria-label="上一张"]').click(); await settle();
   check(imageOutput(read(), 'result')[0]?.id === read().data.activeResultId, 'Selected result is the downstream output');
-  find('[data-id="ideogram"] [aria-label="Single"]').click(); await settle();
-  check(document.querySelectorAll('[data-id="ideogram"] .file-node-tile').length === 4, 'Gallery retains all generated results');
-  find('[data-id="ideogram"] [aria-label="All"]').click(); await settle();
+  find('[data-id="ideogram"] [aria-label="图片画廊"]').click(); await settle();
+  check(document.querySelectorAll('[data-id="ideogram"] .node-image-tile').length === 4, 'Gallery retains all generated results');
+  find('[data-id="ideogram"] [aria-label="返回单张展示"]').click(); await settle();
   const before = api.getNodes().length;
   find('[data-id="ideogram"] [aria-label="更多选项"]').click(); await settle();
   [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(item => item.textContent?.includes('创建副本'))!.click(); await settle();

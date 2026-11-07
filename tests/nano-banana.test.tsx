@@ -72,7 +72,7 @@ async function run() {
   const root = createRoot(document.getElementById('root')!);
   root.render(<ReactFlowProvider><Flow storage={storage} saved={workflow} /><Probe /></ReactFlowProvider>);
   await until(() => Boolean(document.querySelector('[aria-label="Nano Banana 设置"]')), 'Node and settings mount');
-  check(find('[data-id="banana"] .text-node-title').textContent?.includes('Nano Banana'), 'Dedicated model title and settings');
+  check(find('[data-id="banana"] .node-title-label').textContent?.includes('Nano Banana'), 'Dedicated model title and settings');
   check(!document.querySelector('[data-id="banana"] [data-handleid="mask"]'), 'Only Gemini input ports, without OpenAI mask');
   find('[aria-label="分辨率"]').click(); await settle();
   const select = (text: string) => {
@@ -114,11 +114,11 @@ async function run() {
   check([...context.getImageData(2, 2, 1, 1).data].every(value => value >= 250), 'JPEG conversion fills transparent pixels with white');
   await until(() => Boolean(document.querySelector<HTMLImageElement>('.preview-image img')?.naturalWidth), 'Downstream preview resolves');
   find('[aria-label="关闭任务面板"]').click(); await settle();
-  find('[data-id="banana"] [aria-label="Previous result"]').click(); await settle();
+  find('[data-id="banana"] [aria-label="上一张"]').click(); await settle();
   check(imageOutput(read(), 'result')[0]?.id === read().data.activeResultId, 'Selected result is the downstream output');
-  find('[data-id="banana"] [aria-label="Single"]').click(); await settle();
-  check(document.querySelectorAll('[data-id="banana"] .file-node-tile').length === 4, 'Gallery retains all generated results');
-  find('[data-id="banana"] [aria-label="All"]').click(); await settle();
+  find('[data-id="banana"] [aria-label="图片画廊"]').click(); await settle();
+  check(document.querySelectorAll('[data-id="banana"] .node-image-tile').length === 4, 'Gallery retains all generated results');
+  find('[data-id="banana"] [aria-label="返回单张展示"]').click(); await settle();
   const before = api.getNodes().length;
   find('[data-id="banana"] [aria-label="更多选项"]').click(); await settle();
   [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find(item => item.textContent?.includes('创建副本'))!.click(); await settle();
