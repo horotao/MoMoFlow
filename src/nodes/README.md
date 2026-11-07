@@ -161,6 +161,8 @@ Color correction 位于 Tools → Editing，也出现在图片输入/输出的�
 
 数据与像素算法见 [colorCorrection.ts](./colorCorrection.ts)，预览/导出见 [colorCorrectionRender.ts](./colorCorrectionRender.ts)，实时帧见 [colorCorrectionLivePreview.ts](./colorCorrectionLivePreview.ts)。`colorCorrection.test.ts` 随 `npm test` 验证七项调节方向、默认像素与透明通道、输出失效、连线、剪贴板及素材映射。
 
+节点复用新版共享外框、标题栏、更多菜单、图片端口和 `NodeRangeInput` 滑块。启动 `npm run dev` 后打开 `/tests/color-correction-node-style.html`，通过隔离画布验证空状态、七项调节、撤销重做、取消、重置、原图对比、输出像素与原尺寸、锁定及下游预览；该页不调用模型，浏览器验收不属于 `npm test`。
+
 ## Levels 色阶约定
 
 Levels 位于 Tools → Editing 和图片连线推荐菜单。Input（`image`）接收上游图片，集合使用第一张；Output（`result`）输出原尺寸 PNG，可连接所有现有图片处理节点、Preview、Sunburst 和 Image Describer。全部计算在本地浏览器完成。

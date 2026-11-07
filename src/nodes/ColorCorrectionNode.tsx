@@ -1,7 +1,7 @@
 import { NodeIcon } from './NodeIcon';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Eye, EyeOff } from 'lucide-react';
+import { Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { Eye, EyeOff } from 'lucide-react';
 import type { AppNode, ColorCorrectionNode as ColorNode } from './types';
 import { isColorCorrectionNode, isNodeLocked } from './types';
 import { colorControls, colorRevision, defaultColorSettings, type ColorSettings } from './colorCorrection';
@@ -12,6 +12,11 @@ import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
 import { TextNodeMenu } from './TextNodeMenu';
+import { NodeFrame, NodeHeader } from './shared/NodeFrame';
+import { NodePort } from './shared/NodePort';
+import { NodeRangeInput } from './shared/NodeRangeInput';
+import './shared/mediaNodeStyle.css';
+import './ColorCorrectionNode.css';
 
 function ColorNumber({ value, control, disabled, onCommit }: {
   value: number; control: typeof colorControls[number]; disabled: boolean; onCommit: (value: number) => void;
@@ -131,16 +136,14 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
     }).catch(() => { if (isCurrent()) setError('无法处理调色图片，请重试或更换可读取的图片。'); });
   }, [id, engine, image, settings, draft, revision, inputId, input?.url, data.locked, getNode, getNodes, getEdges, updateNodeData]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="color-correction" size={18} />{renaming
+  return <NodeFrame className="media-node-frame color-node-frame">
+    <NodeHeader icon={<NodeIcon nodeType="color-correction" size={16} />} title={renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '色彩校正'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '色彩校正'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
-    </header>
-    <div className="preview-image color-image nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
+          onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return; if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
+        : <span>{data.label || '色彩校正'}</span>}
+      actions={<TextNodeMenu appearance="shared" id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '色彩校正'); setRenaming(true); }}><img src="/node-style/more.svg" width={18} height={18} alt="" /></TextNodeMenu>} />
+    <div className="preview-image color-image nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '424 / 280' }}>
       {ready && <>
         <canvas ref={canvas} aria-label="色彩校正预览" style={{ visibility: original ? 'hidden' : undefined }} />
         {original && <img src={input!.url} alt="原图" draggable={false} />}
@@ -164,7 +167,7 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
     <div className="color-settings nodrag nopan nowheel" onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') cancelDraft(); }}>
       {colorControls.map(control => <div className="color-setting" key={control.key}>
         <label htmlFor={`${id}-${control.key}`}>{control.label}</label>
-        <input id={`${id}-${control.key}`} type="range" aria-label={control.label} min={control.min} max={control.max} step={control.step}
+        <NodeRangeInput id={`${id}-${control.key}`} aria-label={control.label} min={control.min} max={control.max} step={control.step}
           value={settings[control.key]} disabled={data.locked || !ready}
           onPointerDown={event => { cancelledGesture.current = false; dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); }}
           onChange={event => {
@@ -178,17 +181,18 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
         <ColorNumber control={control} value={settings[control.key]} disabled={Boolean(data.locked) || !ready}
           onCommit={value => patch({ settings: { ...data.settings, [control.key]: value } })} />
       </div>)}
-      <button className="color-reset" type="button" disabled={data.locked || !ready} onClick={() => { cancelDraft(); patch({ settings: { ...defaultColorSettings } }); }}>重置</button>
+      <button className="color-reset" type="button" aria-label="重置色彩校正" disabled={data.locked || !ready} onClick={() => { cancelDraft(); patch({ settings: { ...defaultColorSettings } }); }}>重置</button>
     </div>
     {[{ handle: 'file', label: '文件', output: false }, { handle: 'result', label: '结果', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
-          aria-label={`色彩校正${port.label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked} />
+      return <div className="media-port-image" key={port.handle}>
+        <NodePort label={`${port.label}${!port.output ? '*' : ''}`} id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left}
+          isConnectable={isConnectable && !data.locked}>
+          <img src="/image-node/port-image.svg" width={32} height={32} alt="" />
+          {connected && <span className="media-port-dot" />}
+        </NodePort>
       </div>;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }
