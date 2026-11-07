@@ -1,0 +1,25 @@
+.helper-node-frame { --node-width: 250px; }
+.react-flow .helper-node-frame .text-node-rename { box-sizing: border-box; width: 100%; min-width: 0; height: 24px; font: inherit; }
+.helper-node-frame .node-port img { width: 32px; height: 32px; }
+.react-flow .model-input-frame .node-port-label-input { color: #f3ffe3; }
+.react-flow .model-input-frame .describer-model-trigger {
+  box-sizing: border-box;
+  width: 100%;
+  height: 30px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--node-menu);
+  color: var(--node-primary);
+  font: 400 12px/22px var(--font-ui);
+}
+.model-input-frame .describer-model-trigger > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.model-input-frame .describer-model-trigger > svg { flex-shrink: 0; }
+.react-flow .model-input-frame .describer-model-trigger:hover:not(:disabled) { background: var(--node-divider); }
+.model-input-frame .describer-model-trigger:focus-visible { outline: 1px solid var(--node-selected-border); outline-offset: 2px; }
+.model-input-frame .describer-model-trigger:disabled { opacity: .4; cursor: default; }
+.helper-node-coordinates { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 10px 12px; border-radius: var(--node-inset-radius); background: var(--node-inset); font: 400 12px/22px var(--font-ui); font-variant-numeric: tabular-nums; }
+.helper-node-coordinates > div { display: flex; justify-content: space-between; gap: 12px; }
+.helper-node-coordinates dt { color: var(--node-secondary); }
+.helper-node-coordinates dd { margin: 0; }

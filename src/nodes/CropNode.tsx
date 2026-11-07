@@ -1,7 +1,7 @@
 import { NodeIcon } from './NodeIcon';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, LockKeyhole, UnlockKeyhole } from 'lucide-react';
+import { Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { LockKeyhole, UnlockKeyhole } from 'lucide-react';
 import { DescriberModelSelect } from '../components/DescriberModelSelect';
 import type { AppNode, CropNode as CropNodeType, FileAsset } from './types';
 import { isCropNode, isNodeLocked } from './types';
@@ -10,6 +10,11 @@ import { imageOutput } from './sunburstRun';
 import { assetResources } from './assetResources';
 import { cropLivePreviews } from './cropLivePreview';
 import { TextNodeMenu } from './TextNodeMenu';
+import { NodeFrame, NodeHeader } from './shared/NodeFrame';
+import { NodePort } from './shared/NodePort';
+import './shared/mediaNodeStyle.css';
+import './LevelsNode.css';
+import './CropNode.css';
 
 function renderCrop(image: HTMLImageElement, rect: CropRect, maxEdge = Infinity) {
   const pixels = cropPixels(rect, image.naturalWidth, image.naturalHeight);
@@ -110,22 +115,20 @@ export function CropNode({ id, data, isConnectable }: NodeProps<CropNodeType>) {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
   const label = cropRatioLabel(rect, width, height, data.aspectLocked);
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="crop" size={18} />{renaming
+  return <NodeFrame className="media-node-frame crop-node-frame">
+    <NodeHeader icon={<NodeIcon nodeType="crop" size={16} />} title={renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '裁剪'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '裁剪'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
-    </header>
+          onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return; if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
+        : <span>{data.label || '裁剪'}</span>}
+      actions={<TextNodeMenu appearance="shared" id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '裁剪'); setRenaming(true); }}><img src="/node-style/more.svg" width={18} height={18} alt="" /></TextNodeMenu>} />
     <div className={`crop-surface nodrag nopan nowheel${enabled ? '' : ' is-passive'}`} ref={surface} style={{ aspectRatio: input ? `${width} / ${height}` : '1' }}
       tabIndex={0} aria-label="图片裁剪区域" onPointerMove={move} onPointerUp={finish} onPointerCancel={clearGesture} onLostPointerCapture={() => { if (gesture.current) clearGesture(); }}
       onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); clearGesture(); } }}>
-      {image && <><img src={input!.url} alt="裁剪原图" draggable={false} />
+      {image && <><div className="crop-image"><img src={input!.url} alt="裁剪原图" draggable={false} />
         <svg className="crop-shade" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true">
           <path fillRule="evenodd" d={`M0 0H1V1H0Z M${rect.x} ${rect.y}h${rect.width}v${rect.height}h${-rect.width}Z`} />
-        </svg>
+        </svg></div>
         <div className="crop-selection" aria-label="移动裁剪选区" style={{ left: `${rect.x * 100}%`, top: `${rect.y * 100}%`, width: `${rect.width * 100}%`, height: `${rect.height * 100}%` }} onPointerDown={event => start(event, 'move')}>
           <div className="crop-grid"><i /><i /><i /><i /></div>
           {(['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'] as const).map(handle => <div key={handle} className={`crop-handle crop-handle-${handle}`} aria-label={`调整裁剪选区${{ nw: '左上角', n: '上边', ne: '右上角', e: '右边', se: '右下角', s: '下边', sw: '左下角', w: '左边' }[handle]}`} onPointerDown={event => start(event, handle)} />)}
@@ -133,7 +136,7 @@ export function CropNode({ id, data, isConnectable }: NodeProps<CropNodeType>) {
     </div>
     <div className="crop-settings nodrag nopan nowheel" onKeyDown={event => event.stopPropagation()}>
       <div className="crop-setting-row"><span>宽高比</span><div className="crop-ratio">
-        <DescriberModelSelect compact label="宽高比" menuLabel="预设宽高比" value={label} choices={cropRatios} includeCurrentValue={false} disabled={!enabled}
+        <DescriberModelSelect compact appearance="levels" fluidHover label="宽高比" menuLabel="预设宽高比" value={label} choices={cropRatios} includeCurrentValue={false} disabled={!enabled}
           onChange={ratio => { const [w, h] = ratio.split(':').map(Number); patch({ rect: fitCropRatio(fullCrop, w / h, width, height), aspectLocked: true }); }} />
       </div><button className="crop-reset" type="button" disabled={!enabled} onClick={() => patch({ rect: { ...fullCrop }, aspectLocked: false })}>重置</button></div>
       <div className="crop-setting-row"><span>尺寸</span><div className="crop-dimensions">
@@ -145,10 +148,14 @@ export function CropNode({ id, data, isConnectable }: NodeProps<CropNodeType>) {
     </div>
     {[{ handle: 'image', label: '输入', output: false }, { handle: 'result', label: '输出', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}><span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && <span className="crop-required">*</span>}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }} aria-label={`裁剪${port.label}`}
-          className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`} isConnectable={isConnectable && !data.locked} /></div>;
+      return <div className="media-port-image" key={port.handle}>
+        <NodePort label={`${port.label}${!port.output ? '*' : ''}`} id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left}
+          isConnectable={isConnectable && !data.locked}>
+          <img src="/image-node/port-image.svg" width={32} height={32} alt="" />
+          {connected && <span className="media-port-dot" />}
+        </NodePort>
+      </div>;
     })}
     {error && <div role="alert" className="crop-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }

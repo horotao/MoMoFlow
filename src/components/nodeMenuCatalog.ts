@@ -41,9 +41,8 @@ export const nodeMenuCategories: Record<NodeMenuCategory, NodeMenuGroup[]> = {
   ],
   helpers: [
     group('输入与预览', ['file', 'preview', 'compare']),
-    group('文本与参数', ['text', 'image-describer', 'model-input']),
+    group('文本', ['text', 'image-describer']),
     group('流程与批量', ['router', 'text-iterator', 'image-iterator']),
-    group('调试', ['position-logger']),
   ],
 };
 export const nodeMenuGroups: NodeMenuGroup[] = [
@@ -65,7 +64,7 @@ export const nodeMenuGroups: NodeMenuGroup[] = [
     { id: 'table', label: '表格', asset: 'table' },
   ] },
 ];
-export const searchableNodeMenuEntries = items.filter(item => item.nodeType).map(item => node(item.id));
+export const searchableNodeMenuEntries = items.filter(item => item.nodeType && !['model-input', 'position-logger'].includes(item.id)).map(item => node(item.id));
 export const isNodeMenuCategory = (id: string | null): id is NodeMenuCategory => id === 'editing' || id === 'helpers';
 
 const portLabels: Record<string, string> = {

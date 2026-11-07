@@ -3,36 +3,26 @@ import { sourceSignature } from './executionGraph';
 import { ideogramFieldLabels } from './ideogram';
 import { nanoBananaFieldLabels } from './nanoBanana';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Handle, Position, useEdges, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { LockKeyhole, Maximize2, Ellipsis } from 'lucide-react';
+import { Position, useEdges, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { LockKeyhole, Maximize2 } from 'lucide-react';
 import type { AppNode, ImageDescriberNode as Describer, ModelInputNode as ModelInput } from './types';
 import { sunburstFieldLabels } from './sunburst';
 import { DescriberModelSelect } from '../components/DescriberModelSelect';
 import { isNodeLocked } from './types';
 import { TextNodeMenu } from './TextNodeMenu';
-import { NodeIcon } from './NodeIcon';
 import { DescriberPreview } from '../components/DescriberPreview';
 import { ModelRunButton } from '../components/ModelRunButton';
 import { NodeFrame, NodeHeader } from './shared/NodeFrame';
 import { NodePort } from './shared/NodePort';
+import { HelperNodeFrame } from './shared/HelperNodeFrame';
 import './TextNode.css';
 import './shared/mediaNodeStyle.css';
 import './ImageDescriberNode.css';
 
 const parameterTitles = { editQuality: '编辑质量', editPrecision: '编辑精度', editSize: '编辑尺寸', resolution: '分辨率', enablePromptExpansion: '提示词扩展', aspectRatio: '宽高比', imageSize: '分辨率', quality: '画质', background: '背景', size: '宽高比', outputFormat: '输出格式' };
 
-function NodeHeading({ id, label, fallback, locked, model = false }: { id: string; label?: string; fallback: string; locked?: boolean; model?: boolean }) {
-  const { updateNodeData: rawUpdateNodeData, getNode } = useReactFlow<AppNode>();
-  const updateNodeData: typeof rawUpdateNodeData = (nodeId, patch, options) => {
-    if (isNodeLocked(getNode(nodeId))) return;
-    rawUpdateNodeData(nodeId, patch, options);
-  };
-  const [renaming, setRenaming] = useState(false);
-  const [draft, setDraft] = useState('');
-  return <header className="text-node-header"><div className="text-node-title"><NodeIcon nodeType={model ? 'model-input' : 'image-describer'} />{renaming ? <input autoFocus className="text-node-rename nodrag nopan" aria-label="节点名称" value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={() => { if (draft.trim()) updateNodeData(id, { label: draft.trim() }); setRenaming(false); }} onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setRenaming(false); }} /> : <span>{label || fallback}</span>}</div><TextNodeMenu id={id} locked={Boolean(locked)} onRename={() => { setDraft(label || fallback); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu></header>;
-}
-
 export function ModelInputNode({ id, data, isConnectable }: NodeProps<ModelInput>) {
+  const edges = useEdges();
   const { updateNodeData: rawUpdateNodeData, getNode } = useReactFlow<AppNode>();
   const updateNodeData: typeof rawUpdateNodeData = (nodeId, patch, options) => {
     if (isNodeLocked(getNode(nodeId))) return;
@@ -40,11 +30,15 @@ export function ModelInputNode({ id, data, isConnectable }: NodeProps<ModelInput
   };
   const defaultTitle = data.parameter ? parameterTitles[data.parameter] : '模型名称';
   const label = data.parameter && data.label === ({ ...sunburstFieldLabels, ...nanoBananaFieldLabels, ...ideogramFieldLabels })[data.parameter] ? defaultTitle : data.label;
-  return <><NodeHeading id={id} label={label} locked={data.locked} fallback={defaultTitle} model />
-    <DescriberModelSelect node label={data.parameter ? ({ ...sunburstFieldLabels, ...nanoBananaFieldLabels, ...ideogramFieldLabels })[data.parameter] : 'Model'} disabled={data.locked} value={data.model} choices={data.options} onChange={(model) => updateNodeData(id, { model })} />
-    <span className="describer-port-label model-options-label">Options</span><Handle id="options" type="target" position={Position.Left} className="describer-port model-options-port" style={{ top: 30 }} aria-label="Options input" title="Options · List input (not available yet)" isConnectable={false} />
-    <span className="describer-port-label output-label model-text-label">Text</span><Handle type="source" position={Position.Right} className="describer-port" style={{ top: 30 }} aria-label="Text output" isConnectable={isConnectable} />
-  </>;
+  return <HelperNodeFrame id={id} nodeType="model-input" label={label || defaultTitle} locked={data.locked}>
+    <DescriberModelSelect node fluidHover label={data.parameter ? ({ ...sunburstFieldLabels, ...nanoBananaFieldLabels, ...ideogramFieldLabels })[data.parameter] : 'Model'} disabled={data.locked} value={data.model} choices={data.options} onChange={(model) => updateNodeData(id, { model })} />
+    <NodePort id="options" label="Options" type="target" position={Position.Left} top={28} title="Options · List input (not available yet)" isConnectable={false}>
+      <img src="/image-node/port-file.svg" alt="" />
+    </NodePort>
+    <NodePort label="Text" type="source" position={Position.Right} top={28} isConnectable={isConnectable}>
+      <img src={`/node-style/port-text${edges.some(edge => edge.source === id) ? '-connected' : ''}.svg`} alt="" />
+    </NodePort>
+  </HelperNodeFrame>;
 }
 
 export function ImageDescriberNode({ id, data, isConnectable }: NodeProps<Describer>) {

@@ -5,7 +5,7 @@
 .blend-node-frame .node-title { gap: 6px; }
 .blend-node-frame .node-title-icon { flex-basis: 18px; width: 18px; height: 18px; }
 .blend-node-frame .text-node-rename { width: 100%; min-width: 0; height: 24px; font: inherit; }
-.blend-node-frame .blend-preview { border-radius: var(--node-inset-radius); corner-shape: superellipse(1.25); background: var(--node-inset) url('/blend-node/checkerboard.svg') 0 0 / 424px 424px; }
+.react-flow .blend-node-frame .blend-preview { border-radius: var(--node-inset-radius); corner-shape: superellipse(1.25); background: var(--node-inset) url('/blend-node/checkerboard.svg') 0 0 / 424px 424px; }
 .blend-node-frame .blend-preview > canvas { object-fit: fill; }
 .blend-controls { width: 100%; display: flex; align-items: center; gap: 16px; height: 28px; color: var(--node-secondary); font: 400 11px/22px var(--font-ui); }
 .blend-mode { display: flex; align-items: center; justify-content: space-between; width: 174px; flex: 0 0 174px; font-size: 12px; line-height: 18px; }

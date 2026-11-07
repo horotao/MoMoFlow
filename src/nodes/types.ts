@@ -27,7 +27,7 @@ export const isImageIteratorNode = (node: AppNode | undefined): node is ImageIte
 export type TextIteratorNode = Node<TextIteratorData, 'text-iterator'>;
 export const isTextIteratorNode = (node: AppNode | undefined): node is TextIteratorNode => node?.type === 'text-iterator' && 'items' in node.data;
 
-export type PositionLoggerNode = Node<{ label: string }, 'position-logger'>;
+export type PositionLoggerNode = Node<{ label: string; locked?: boolean }, 'position-logger'>;
 export type TextDisplayMode = 'source-value' | 'value' | 'source';
 export type TextNode = Node<{ text: string; label?: string; locked?: boolean; content?: JSONContent; variableCount?: number; displayMode?: TextDisplayMode }, 'text'>;
 export type FileAsset = {

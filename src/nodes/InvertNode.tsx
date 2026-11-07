@@ -1,7 +1,7 @@
 import { NodeIcon } from './NodeIcon';
 import { useEffect, useState } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Eye, EyeOff } from 'lucide-react';
+import { Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { Eye, EyeOff } from 'lucide-react';
 import { isInvertNode, isNodeLocked, type AppNode, type InvertNode as Invert } from './types';
 import { imageOutput } from './sunburstRun';
 import { invertPixels, invertRevision } from './invert';
@@ -9,6 +9,11 @@ import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
 import { TextNodeMenu } from './TextNodeMenu';
+import { NodeFrame, NodeHeader } from './shared/NodeFrame';
+import { NodePort } from './shared/NodePort';
+import './shared/mediaNodeStyle.css';
+import './PreviewNode.css';
+import './InvertNode.css';
 
 export function InvertNode({ id, data, isConnectable }: NodeProps<Invert>) {
   const nodes = useNodes<AppNode>(), edges = useEdges();
@@ -65,15 +70,13 @@ export function InvertNode({ id, data, isConnectable }: NodeProps<Invert>) {
 
   useEffect(() => updateInternals(id), [id, width, height, updateInternals]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="invert" />{renaming
+  return <NodeFrame className="media-node-frame preview-node-frame invert-node-frame">
+    <NodeHeader icon={<NodeIcon nodeType="invert" size={16} />} title={renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '反相'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '反相'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
-    </header>
+          onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return; if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
+        : <span>{data.label || '反相'}</span>}
+      actions={<TextNodeMenu appearance="shared" id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '反相'); setRenaming(true); }}><img src="/node-style/more.svg" width={18} height={18} alt="" /></TextNodeMenu>} />
     <div className="preview-image nodrag nopan" aria-busy={Boolean(input && !output && !error && !data.locked)} style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
       {input && <>
         {(original || output) && <img src={original ? input.url : output?.url} alt={original ? 'Original image' : 'Inverted image'} draggable={false} />}
@@ -92,13 +95,14 @@ export function InvertNode({ id, data, isConnectable }: NodeProps<Invert>) {
     </div>
     {[{ handle: 'image', label: 'Input', output: false }, { handle: 'result', label: 'Output', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
-          aria-label={`Invert ${port.label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked} />
+      return <div className="media-port-image" key={port.handle}>
+        <NodePort label={`${port.label}${!port.output ? '*' : ''}`} id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left}
+          isConnectable={isConnectable && !data.locked}>
+          <img src="/image-node/port-image.svg" width={32} height={32} alt="" />
+          {connected && <span className="media-port-dot" />}
+        </NodePort>
       </div>;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }

@@ -67,9 +67,10 @@ async function run() {
   check(getComputedStyle(main()).borderRadius === '16px', 'Menu has 16px continuous-corner fallback');
   check(main().querySelector('.node-add-menu-row')!.getBoundingClientRect().height === 36, 'Rows retain the Figma 36px height');
   const ids = searchableNodeMenuEntries.map(entry => entry.nodeId).sort();
-  check(JSON.stringify(ids) === JSON.stringify(Object.keys(nodeTypes).sort()), 'Every registered node is searchable');
+  check(JSON.stringify(ids) === JSON.stringify(Object.keys(nodeTypes).filter(id => !['model-input', 'position-logger'].includes(id)).sort()), 'Public nodes are searchable; model-input and position-logger stay hidden');
   const categorized = Object.values(nodeMenuCategories).flatMap(groups => groups.flatMap(group => group.entries.map(entry => entry.id)));
   check(new Set(categorized).size === categorized.length && ids.every(id => ['sunburst', 'ideogram', 'nano-banana'].includes(id!) || categorized.includes(id!)), 'Every non-model node has one tool category');
+  check(!categorized.some(id => ['model-input', 'position-logger'].includes(id)), 'Hidden helper nodes have no add-menu category');
   const dock = find('.canvas-sidebar').getBoundingClientRect();
   check(dock.width === 50 && dock.height === 338, 'Dock matches the Figma 50 × 338 geometry');
   check(document.querySelectorAll('.canvas-sidebar-button').length === 6, 'Dock retains all six design slots');

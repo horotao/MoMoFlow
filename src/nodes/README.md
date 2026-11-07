@@ -39,7 +39,7 @@
 
 侧边栏、画布右键创建与拖线推荐共用 `NodeAddMenu`，以 `libraryItemLabel` 为基础显示名称，Figma 菜单中的 Resize 显示为“调节尺寸”；GPT Image 2.5 与 Nano Banana 的节点标题、设置面板和任务列表复用对应模型的名称常量，保持一致。菜单搜索同时匹配中文和原英文，端口说明仅翻译显示，不改变连接标识。拖线入口仍由 `connectionRecommendations` 按兼容端口筛选，同一节点的多个端口保持独立选择身份；提交前再次校验。新增节点入口或调整分组时同步维护 `nodeMenuCatalog.ts`，创建数据仍由 `createLibraryNode()` 提供。
 
-侧边栏隐藏坐标记录（`position-logger`）和模型名称（`model-input`）入口，包括工具列表、搜索及快速访问；节点注册、已有节点和其他创建入口保持可用。
+侧边栏、Dock 与画布右键添加菜单隐藏坐标记录（`position-logger`）和模型名称（`model-input`）入口，包括分类列表、搜索及快速访问；节点注册、已有节点与 `createLibraryNode()` 保持可用。两个节点复用 250px 宽的新版共享外框、标题、更多菜单与端口；坐标记录分行显示 X / Y 并随拖动更新，模型名称保留参数选项及不可连接的 `options` 输入。
 
 节点库的名称、分类和创建数据在 [libraryCatalog.ts](../components/libraryCatalog.ts) 中维护。只有提供 `nodeType` 的条目才能通过 `createLibraryNode` 创建节点；目录中的展示卡片不等于已实现的节点，不应为占位卡片生成替代节点。
 
@@ -48,6 +48,8 @@
 应用仅支持深色模式；不再提供浅色切换、制作或验收。历史画布中的浅色设置读取时按深色处理，重新保存时写入深色设置，节点、连线和素材内容不变。图片操作按钮为 24×24px、8px 圆角，默认透明，悬停背景按 Figma 使用 10% 白色（`rgba(255,255,255,0.1)`）。
 
 新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：外框、标题栏、颜色和尺寸变量按节点逐个接入；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、图像描述、绘图、GPT Image 2.5、Nano Banana、Ideogram 4.5 和文件导入使用新版外框；三个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。三个图片模型直接共用 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代沿用原有外观。新版外框内按 Figma 使用 Inter / Noto Sans SC，字体作用域不扩散到原有节点。图像描述复用 Text 的外框、标题栏、更多菜单和文本内容区样式，宽 454px、内边距 14px，空状态高 403px；底部提供添加图片输入与运行模型，进度和取消复用图片模型的 `ModelRunButton`。Text 与图像描述的标题、更多、加号、运行、下拉箭头与文本端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。三个图片模型的运行按钮使用本地 DM Mono 字体、固定 98px 宽度，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
+
+反相、裁剪和模糊也使用新版共享外框、标题、更多菜单与图片端口，宽 456px、图片区域宽 424px。反相沿用预览节点的图片样式；裁剪保留选区与外侧拖动手柄，图片和遮罩单独裁切圆角；模糊复用色彩校正的参数行和 `NodeRangeInput` 滑条，类型与裁剪比例复用已有下拉菜单。图片处理、端口 ID 和保存数据不变。
 
 `/tests/media-node-style.html` 是 GPT、Nano Banana、Ideogram 与文件导入的独立浏览器验收入口，使用 React、真实 React Flow 及浏览器断言，覆盖外框尺寸、真实图片比例、双图/四图瀑布流、全屏、等宽进度与取消。运行 `npm run dev` 后打开该页面；仅使用本地 Figma 示例素材，不读取用户画布或调用模型，类型检查包含在 `npm run check` 中。
 
