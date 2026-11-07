@@ -1,46 +1,58 @@
-.react-flow .react-flow__node-painter { height: auto; gap: 16px; }
-.react-flow .react-flow__node-painter.selected, .react-flow .react-flow__node-painter:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-.react-flow .react-flow__node-painter:hover:not(.selected) { border-color: #888; }
-.react-flow__node-painter .text-node-title { color: var(--text-node-primary); gap: 10px; min-width: 0; }
-.react-flow__node-painter .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.react-flow__node-painter:hover .describer-port-label, .react-flow__node-painter.selected .describer-port-label { visibility: visible; }
-.painter-preview { flex-shrink: 0; width: 100%; position: relative; overflow: hidden; border-radius: 8px; background: repeating-conic-gradient(#aaa 0% 25%, #ccc 0% 50%) 0 / 16px 16px; }
+.painter-node-frame {
+  --node-padding: 16px;
+  --painter-control: #303030;
+  --painter-slider-fill: #dedede;
+  --painter-slider-track: #5b5b5b;
+}
+.painter-node-frame > .node-header,
+.painter-node-frame > .painter-preview,
+.painter-node-frame > .painter-controls { width: 424px; }
+.painter-node-frame .node-title { gap: 6px; }
+.painter-node-frame .node-title-icon { flex-basis: 18px; width: 18px; height: 18px; }
+.painter-node-frame .text-node-rename { width: 100%; min-width: 0; height: 24px; font: inherit; }
+.painter-preview { flex-shrink: 0; width: 100%; position: relative; overflow: hidden; border-radius: var(--node-inset-radius); corner-shape: superellipse(1.25); background: var(--node-inset) url('/painter-node/checkerboard.svg') 0 0 / 424px 424px; }
 .painter-preview canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; outline: none; }
 .painter-preview[data-tool='brush'] canvas { cursor: url('/cursors/painter-brush.svg') 0 24, auto; }
 .painter-preview[data-tool='eraser'] canvas { cursor: url('/cursors/painter-eraser.svg') 0 24, auto; }
 .painter-preview.is-passive canvas { cursor: default; }
 .painter-cursor { position: absolute; border: 1px solid white; box-shadow: 0 0 0 1px #333; transform: translate(-50%, -50%); border-radius: 50%; pointer-events: none; }
-.painter-preview-info { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .15s; color: #fff; font-size: 10px; text-shadow: 0 1px 3px #222; }
+.painter-preview-info { position: absolute; inset: 0; pointer-events: none; opacity: 0; color: #fff; font-size: 11px; text-shadow: 0 1px 3px #222; }
 .painter-preview:hover .painter-preview-info, .painter-preview:focus-within .painter-preview-info { opacity: 1; }
 .painter-preview-info > span { position: absolute; bottom: 12px; left: 14px; }
-.painter-preview-info button { position: absolute; right: 8px; top: 8px; pointer-events: auto; background: #2226; color: white; border: 0; border-radius: 4px; padding: 5px; }
-.painter-controls { margin: -8px 0 0; padding: 0; border: 0; min-width: 0; width: 100%; }
-.painter-controls button { display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 4px; background: transparent; color: inherit; padding: 4px; font: inherit; cursor: pointer; }
+.painter-preview-info button { position: absolute; right: 8px; top: 8px; width: 24px; height: 24px; display: grid; place-items: center; pointer-events: auto; background: #2226; color: white; border: 0; border-radius: 8px; padding: 0; cursor: pointer; }
+.painter-controls { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; border: 0; min-width: 0; width: 100%; color: var(--node-secondary); font: 400 11px/22px var(--font-ui); }
+.painter-controls button { position: relative; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 8px; background: transparent; color: inherit; padding: 0; font: inherit; cursor: pointer; }
 .painter-controls button:disabled { opacity: .4; cursor: default; }
-.painter-controls button:focus-visible { outline: 1px solid var(--text-node-secondary); }
-.painter-toolbar { display: flex; align-items: center; justify-content: space-between; min-height: 32px; margin-bottom: 12px; }
+.painter-controls button:focus-visible { outline: 1px solid var(--node-secondary); outline-offset: 1px; }
+.painter-toolbar { display: flex; align-items: center; justify-content: space-between; height: 32px; }
 .painter-toolbar [role='toolbar'], .painter-shapes { display: flex; align-items: center; gap: 4px; }
-.painter-toolbar button { width: 24px; height: 24px; }
-.painter-toolbar button:hover { background: var(--text-node-input); }
-.painter-toolbar button[aria-pressed='true'] { background: var(--text-node-primary); color: var(--text-node-surface); }
-.painter-toolbar .painter-reset { width: auto; padding: 4px 8px; font-size: 11px; }
-.painter-shapes { position: relative; gap: 0; }
-.painter-toolbar .painter-shapes-trigger { width: 14px; }
-.painter-shapes-menu { position: absolute; bottom: calc(100% + 10px); left: 20px; min-width: 120px; background: #1f1f1f; color: white; border: 1px solid #444; border-radius: 12px; padding: 8px; box-shadow: 0 4px 14px #0003; z-index: 10; }
-.painter-shapes-menu button { width: 100%; justify-content: flex-start; gap: 8px; font-size: 11px; white-space: nowrap; }
-.painter-shapes-menu button:hover { background: #3b3b3b; }
-.painter-fields { display: flex; flex-direction: column; gap: 8px; }
-.painter-field { display: grid; grid-template-columns: 88px minmax(0, 1fr) 50px; align-items: center; gap: 8px; position: relative; font-size: 11px; line-height: 24px; }
-.painter-field input:not([type='range']):not([type='color']) { border: 0; background: var(--text-node-input); color: inherit; border-radius: 4px; width: 100%; min-width: 0; height: 24px; padding: 0 8px; font: inherit; line-height: 24px; }
-.painter-field input[type='number'] { appearance: textfield; padding-right: 14px !important; }
+.painter-toolbar button { width: 28px; height: 28px; flex-shrink: 0; }
+.painter-toolbar button[aria-pressed='true'] { background: rgb(255 255 255 / 10%); color: var(--node-primary); }
+.painter-toolbar button:hover:not(:disabled) { color: var(--node-primary); }
+.painter-toolbar .painter-reset { width: 32px; font-size: 11px; }
+.painter-shapes { position: relative; }
+.painter-shapes-menu.node-menu { top: 34px; left: 0; bottom: auto; width: 152px; padding: 7px; border: 1px solid #383838; border-radius: 12px; background: var(--node-surface); color: var(--node-secondary); }
+.painter-shapes-menu.node-menu.is-above { top: auto; bottom: 34px; }
+.painter-shapes-menu .node-menu-item { position: relative; justify-content: flex-start; gap: 8px; width: 136px; height: 32px; padding: 0 8px; border-radius: 6px; font: 400 12px/22px var(--font-ui); }
+.painter-shapes-menu .node-menu-label { flex: 1; text-align: left; }
+.painter-shapes-menu .node-menu-item[aria-checked='true'] { color: var(--node-primary); }
+.painter-shapes-menu .node-menu-hover { border-radius: 6px; background: rgb(255 255 255 / 10%); }
+.painter-fields { display: flex; flex-direction: column; gap: 10px; }
+.painter-field { display: grid; grid-template-columns: 88px minmax(0, 1fr) 56px; align-items: center; gap: 8px; position: relative; height: 28px; font: inherit; }
+.painter-field.painter-color { height: 26px; }
+.painter-field input:not([type='range']):not([type='color']) { box-sizing: border-box; border: 0; background: var(--painter-control); color: inherit; border-radius: 6px; width: 100%; min-width: 0; height: 26px; padding: 0 8px; font: inherit; line-height: 22px; }
+.painter-field input[type='number'] { appearance: textfield; padding-right: 16px; }
 .painter-controls input::-webkit-inner-spin-button, .painter-controls input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.painter-field input[type='range'] { appearance: none; width: 100%; height: 2px; margin: 0; background: var(--text-node-secondary); accent-color: var(--text-node-primary); }
-.painter-field input[type='range']::-webkit-slider-thumb { appearance: none; height: 8px; width: 8px; border-radius: 50%; background: var(--text-node-primary); cursor: ew-resize; }
-.painter-unit { position: absolute; right: 5px; top: 0; pointer-events: none; }
+.painter-field input[type='range'] { appearance: none; width: calc(100% - 4px); height: 5px; margin: 0; border-radius: 72px; cursor: ew-resize; }
+.painter-field input[type='range']::-webkit-slider-thumb { appearance: none; height: 16px; width: 16px; border: 0; border-radius: 50%; background: #fff; }
+.painter-field input[type='range']::-moz-range-thumb { height: 16px; width: 16px; border: 0; border-radius: 50%; background: #fff; }
+.painter-unit { position: absolute; right: 7px; top: 3px; pointer-events: none; }
+.painter-color .painter-unit { top: 2px; }
 .painter-color-value { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.painter-controls .painter-color-swatch { padding: 0; width: 20px; height: 20px; flex-shrink: 0; border: 1px solid var(--text-node-border); border-radius: 4px; background: repeating-conic-gradient(#aaa 0% 25%, #ddd 0% 50%) 0 / 8px 8px; overflow: hidden; cursor: pointer; }
+.painter-controls .painter-color-swatch { padding: 0; width: 24px; height: 24px; flex-shrink: 0; border: 0; border-radius: 6px; background: repeating-conic-gradient(#5b5b5b 0% 25%, #b3b3b3 0% 50%) 0 / 8px 8px; overflow: hidden; cursor: pointer; }
 .painter-color-swatch > span { width: 100%; height: 100%; }
-.painter-color-swatch[aria-expanded='true'] { outline: 1px solid var(--text-node-secondary); outline-offset: 2px; }
+.painter-color-swatch[aria-expanded='true'] { outline: 1px solid var(--node-secondary); outline-offset: 2px; }
+.painter-error { font-size: 11px; color: #e89b8c; }
 .painter-color-popover { --picker-surface: #fff; --picker-input: #f3f3f5; --picker-border: #dcdce1; --picker-text: #29292e; position: fixed; z-index: 1000; box-sizing: border-box; width: 272px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow: auto; padding: 15px; border: 1px solid var(--picker-border); border-radius: 12px; background: var(--picker-surface); color: var(--picker-text); box-shadow: 0 8px 24px #0004, 0 2px 6px #0002; font: 11px var(--font-ui); outline: none; }
 .dark .painter-color-popover { --picker-surface: #2c2c2c; --picker-input: #383838; --picker-border: #444; --picker-text: #fff; }
 .painter-color-area { position: relative; width: 100%; aspect-ratio: 1; border-radius: 4px; background-image: linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent); touch-action: none; cursor: crosshair; box-shadow: inset 0 0 0 1px #ffffff12; }
@@ -62,9 +74,3 @@
 .painter-color-accessible { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .painter-color-accessible:focus-within { position: static; width: auto; height: auto; clip-path: none; margin-top: 12px; }
 .painter-color-accessible label { display: flex; justify-content: space-between; align-items: center; }
-.painter-dimensions { display: flex; align-items: center; gap: 8px; font-size: 11px; }
-.painter-dimensions > span { flex: 1; }
-.painter-dimensions label { display: flex; align-items: center; width: 78px; border: 1px solid var(--text-node-border); border-radius: 4px; height: 24px; padding-left: 6px; color: var(--text-node-secondary); }
-.painter-dimensions input { min-width: 0; width: 100%; background: transparent; border: 0; color: inherit; font: inherit; padding-left: 4px; }
-.painter-dimensions input:disabled { opacity: .6; }
-.painter-error { font-size: 11px; color: #e89b8c; }

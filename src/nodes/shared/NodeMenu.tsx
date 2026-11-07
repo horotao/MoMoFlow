@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, type KeyboardEvent } from 'react';
+import { Fragment, useEffect, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import { useFluidHover, useRegisterFluidHoverItem, type UseFluidHoverReturn } from '../../hooks/use-fluid-hover';
 import { FluidHoverHighlight } from '../../components/fluid-hover-highlight';
 
@@ -9,37 +9,43 @@ export type NodeMenuOption = {
   shortcutKey?: string;
   disabled?: boolean;
   separatorBefore?: boolean;
+  icon?: ReactNode;
 };
 
-function MenuItem({ option, index, kind, selected, hover, onChoose }: {
+function MenuItem({ option, index, kind, selected, selectedIndicator, hover, onChoose }: {
   option: NodeMenuOption;
   index: number;
-  kind: 'menu' | 'listbox';
+  kind: 'menu' | 'listbox' | 'radio';
   selected: boolean;
+  selectedIndicator?: ReactNode;
   hover: UseFluidHoverReturn;
   onChoose: (action: string) => void;
 }) {
   const ref = useRef<HTMLButtonElement>(null);
   useRegisterFluidHoverItem(hover.registerItem, index, ref);
-  return <button ref={ref} type="button" role={kind === 'menu' ? 'menuitem' : 'option'}
+  return <button ref={ref} type="button" role={kind === 'radio' ? 'menuitemradio' : kind === 'menu' ? 'menuitem' : 'option'}
+    aria-checked={kind === 'radio' ? selected : undefined}
     aria-selected={kind === 'listbox' ? selected : undefined} disabled={option.disabled} tabIndex={-1}
     className="node-menu-item" data-action={option.action}
     onFocus={event => { if (event.currentTarget.matches(':focus-visible')) hover.setActiveIndex(index); }}
     onClick={() => onChoose(option.action)}>
     {kind === 'listbox' && <span className="node-menu-check" aria-hidden="true">{selected ? '✓' : ''}</span>}
+    {option.icon}
     <span className="node-menu-label">{option.label}</span>
+    {selected && selectedIndicator}
     {option.shortcut && <span className="node-menu-shortcut">{option.shortcut}</span>}
   </button>;
 }
 
 /** Shared popup content for node actions and compact option lists. */
-export function NodeMenu({ id, label, options, onChoose, selectedAction, kind = 'menu', className = '' }: {
+export function NodeMenu({ id, label, options, onChoose, selectedAction, selectedIndicator, kind = 'menu', className = '' }: {
   id: string;
   label: string;
   options: NodeMenuOption[];
   onChoose: (action: string) => void;
   selectedAction?: string;
-  kind?: 'menu' | 'listbox';
+  selectedIndicator?: ReactNode;
+  kind?: 'menu' | 'listbox' | 'radio';
   className?: string;
 }) {
   const root = useRef<HTMLDivElement>(null);
@@ -58,12 +64,13 @@ export function NodeMenu({ id, label, options, onChoose, selectedAction, kind = 
       : (index + (event.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length;
     items[next]?.focus({ preventScroll: true });
   };
-  return <div ref={root} id={id} role={kind} aria-label={label}
+  return <div ref={root} id={id} role={kind === 'radio' ? 'menu' : kind} aria-label={label}
     className={`node-menu node-menu-${kind} ${className}`} {...hover.handlers} onKeyDown={onKeyDown}>
     <FluidHoverHighlight hover={hover} className="node-menu-hover" />
     {options.map((option, index) => <Fragment key={option.action}>
       {option.separatorBefore && <div className="node-menu-separator" role="separator" />}
       <MenuItem option={option} index={index} kind={kind} selected={option.action === selectedAction}
+        selectedIndicator={selectedIndicator}
         hover={hover} onChoose={onChoose} />
     </Fragment>)}
   </div>;

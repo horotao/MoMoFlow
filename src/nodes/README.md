@@ -47,7 +47,7 @@
 
 应用仅支持深色模式；不再提供浅色切换、制作或验收。历史画布中的浅色设置读取时按深色处理，重新保存时写入深色设置，节点、连线和素材内容不变。图片操作按钮为 24×24px、8px 圆角，默认透明，悬停背景按 Figma 使用 10% 白色（`rgba(255,255,255,0.1)`）。
 
-新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：外框、标题栏、颜色和尺寸变量按节点逐个接入；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、图像描述、GPT Image 2.5、Nano Banana、Ideogram 4.5 和文件导入使用新版外框；三个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。三个图片模型直接共用 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代沿用原有外观。新版外框内按 Figma 使用 Inter / Noto Sans SC，字体作用域不扩散到原有节点。图像描述复用 Text 的外框、标题栏、更多菜单和文本内容区样式，宽 454px、内边距 14px，空状态高 403px；底部提供添加图片输入与运行模型，进度和取消复用图片模型的 `ModelRunButton`。Text 与图像描述的标题、更多、加号、运行、下拉箭头与文本端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。三个图片模型的运行按钮使用本地 DM Mono 字体、固定 98px 宽度，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
+新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：外框、标题栏、颜色和尺寸变量按节点逐个接入；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、图像描述、绘图、GPT Image 2.5、Nano Banana、Ideogram 4.5 和文件导入使用新版外框；三个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。三个图片模型直接共用 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代沿用原有外观。新版外框内按 Figma 使用 Inter / Noto Sans SC，字体作用域不扩散到原有节点。图像描述复用 Text 的外框、标题栏、更多菜单和文本内容区样式，宽 454px、内边距 14px，空状态高 403px；底部提供添加图片输入与运行模型，进度和取消复用图片模型的 `ModelRunButton`。Text 与图像描述的标题、更多、加号、运行、下拉箭头与文本端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。三个图片模型的运行按钮使用本地 DM Mono 字体、固定 98px 宽度，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
 
 `/tests/media-node-style.html` 是 GPT、Nano Banana、Ideogram 与文件导入的独立浏览器验收入口，使用 React、真实 React Flow 及浏览器断言，覆盖外框尺寸、真实图片比例、双图/四图瀑布流、全屏、等宽进度与取消。运行 `npm run dev` 后打开该页面；仅使用本地 Figma 示例素材，不读取用户画布或调用模型，类型检查包含在 `npm run check` 中。
 
@@ -209,11 +209,15 @@ Crop 位于 Tools → Editing，也出现在图片连接的推荐菜单中。Inp
 
 ## Painter 绘制约定
 
-Painter 在浏览器本地绘制，不运行模型或消耗额度。工具包含画布、画笔、形状和橡皮擦；形状提供矩形、椭圆、三角形、星形。画笔支持颜色、透明度、大小和硬度，橡皮擦拥有独立参数；“重置”清除绘制层，保留底图和画布设置，可撤销。画布可设置背景色、透明度和尺寸（1–8192），连接图片后尺寸由原图决定并禁用编辑。
+Painter 在浏览器本地绘制，不运行模型或消耗额度。外框、标题、更多菜单和端口复用新版共享组件；默认宽 456px、高 656px，绘图区为 424×424px，随实际图片比例调整。底部工具栏仅保留画笔、形状、形状下拉和橡皮擦，移除画板按钮及其参数区；形状提供矩形、圆形、三角形、星形，选择后同步工具栏图标。画笔支持颜色、透明度、大小和硬度，橡皮擦拥有独立参数；“重置”清除绘制层，保留底图和已有画布设置，可撤销。新建节点默认为 1024×1024 的透明背景，已有节点保存的背景、透明度与尺寸不改写；连接图片后按原图尺寸绘制。
+
+颜色面板由 `PainterColorPicker.tsx` / `PainterColorPicker.css` 提供，使用独立样式作用域，不改变色板节点现有选色器。面板宽 280px、高 356px，支持连续拖动饱和度 / 明度、色相、透明度、HEX 和七个预设颜色，与底部颜色参数同步；支持关闭按钮、Escape、外部点击和锁定关闭。形状菜单复用 `NodeMenu` 的键盘导航与共用悬停高亮，图标来自 `public/painter-node/` 的 Figma 原始 SVG。
 
 笔画使用归一化坐标保存；预览、Result、黑白 Mask 和供 Sunburst 使用的透明 Mask 由同一绘制层生成，橡皮擦只移除绘制内容。白色 Mask 表示绘制区域，与笔画颜色无关；连接到 Sunburst 的 Mask 输入时使用对应的透明 PNG，保持现有 API 的透明区域编辑语义。输入缺失、导出未完成或上游变化时不可使用旧输出。源图片必须允许浏览器跨域读取。
 
 每笔绘制在松开指针后提交一次，指针取消或 Escape 放弃当前笔画。派生输出更新不增加撤销步骤，笔画和重置可通过画布撤销/重做。交互预览最长边限制为 1024 像素，导出仍使用原图完整尺寸。复制或剪切时保留底图快照，副本无需原来的连线也能继续编辑。笔画及输出素材随画布保存到 IndexedDB；素材收集、复制、锁定与恢复使用现有机制。绘制渲染位于 `painterRender.ts`，数据与剪贴板校验位于 `painter.ts`；`painter.test.ts` 验证端口、失效输出、透明 Mask 转换和素材映射，随 `npm test` 运行。
+
+`/tests/painter-node-style.html` 使用现有 React / React Flow 浏览器测试方式（入口 `painter-node-style.test.tsx`），验证外框、工具和颜色面板、参数同步、形状图标、真实 PNG / Mask 像素、重置撤销重做、锁定和保存。运行 `npm run dev` 后打开；使用隔离 IndexedDB，不读写用户画布或调用模型，类型检查包含在 `npm run check` 中。拖动绘制、连续选色、缩放和连线另用真实指针验收。
 
 ## 模型运行约定
 

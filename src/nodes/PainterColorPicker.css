@@ -1,0 +1,32 @@
+/* Figma picker is opt-in; ColorPalettePicker keeps its existing appearance. */
+.painter-color-popover.painter-design-picker,
+.dark .painter-color-popover.painter-design-picker {
+  --picker-surface: #222;
+  --picker-input: #303030;
+  --picker-border: #383838;
+  --picker-text: #b3b3b3;
+  --font-ui: 'Text Node Inter', 'Noto Sans SC Variable', sans-serif;
+  width: 280px;
+  padding: 7px 11px 11px;
+  border-radius: 16px;
+  corner-shape: superellipse(1.25);
+  box-shadow: 0 8px 24px #0004;
+  font: 400 11px/22px var(--font-ui);
+}
+.painter-picker-header { display: flex; align-items: center; justify-content: space-between; height: 24px; margin-bottom: 8px; }
+.painter-picker-header button { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
+.painter-design-picker button:focus-visible { outline: 1px solid var(--picker-text); outline-offset: 2px; }
+.painter-design-picker .painter-color-area { height: 180px; aspect-ratio: auto; border-radius: 8px; overflow: hidden; box-shadow: none; }
+.painter-design-picker .painter-color-thumb { width: 18px; height: 18px; border: 0; background: url('/painter-node/color-thumb.svg') center / 18px 18px no-repeat; box-shadow: none; }
+.painter-design-picker .painter-color-sliders { gap: 16px; padding: 16px 0; }
+.painter-design-picker .painter-color-sliders input { border-radius: 4px; }
+.painter-design-picker .painter-color-sliders input::-webkit-slider-thumb { width: 18px; height: 18px; border: 0; background: url('/painter-node/color-thumb.svg') center / 18px 18px no-repeat; box-shadow: none; }
+.painter-design-picker .painter-color-sliders input::-moz-range-thumb { width: 18px; height: 18px; border: 0; background: url('/painter-node/color-thumb.svg') center / 18px 18px no-repeat; box-shadow: none; }
+.painter-design-picker .painter-alpha-track { border-radius: 4px; background: repeating-conic-gradient(#5b5b5b 0% 25%, #b3b3b3 0% 50%) 0 / 8px 8px; }
+.painter-design-picker .painter-color-numbers { grid-template-columns: 52px minmax(0, 1fr) 56px; }
+.painter-design-picker .painter-color-numbers > span { display: flex; align-items: center; box-sizing: border-box; height: 28px; padding-left: 9px; border-radius: 6px; background: var(--picker-input); opacity: 1; }
+.painter-design-picker .painter-color-numbers input { height: 28px; border: 0; border-radius: 6px; }
+.painter-design-picker .painter-color-numbers > input { padding: 0 10px; }
+.painter-design-picker .painter-color-numbers label > span { top: 3px; }
+.painter-picker-presets { display: flex; gap: 12px; margin-top: 8px; }
+.painter-picker-presets button { width: 24px; height: 24px; flex-shrink: 0; padding: 0; border: 0; border-radius: 6px; cursor: pointer; }

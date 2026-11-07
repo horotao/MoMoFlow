@@ -2,9 +2,12 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type PointerEvent 
 import { createPortal } from 'react-dom';
 import { useViewport } from '@xyflow/react';
 import { colorFromHex as fromHex, colorToHex as toHex } from './colorPicker';
+import './PainterColorPicker.css';
 
-export function PainterColorPicker({ label, color, opacity, onColor, onOpacity }: {
-  label: string; color: string; opacity: number;
+const presets = ['#ffffff', '#222222', '#f87171', '#fbbf24', '#4ade80', '#60a5fa', '#c084fc'];
+
+export function PainterColorPicker({ label, color, opacity, disabled, onColor, onOpacity }: {
+  label: string; color: string; opacity: number; disabled?: boolean;
   onColor: (value: string) => void; onOpacity: (value: number) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -16,6 +19,7 @@ export function PainterColorPicker({ label, color, opacity, onColor, onOpacity }
   const emitted = useRef(color);
   const dialogId = useId();
   const viewport = useViewport();
+  useEffect(() => { if (disabled) setOpen(false); }, [disabled]);
 
   useEffect(() => {
     setHex(color.slice(1));
@@ -67,21 +71,24 @@ export function PainterColorPicker({ label, color, opacity, onColor, onOpacity }
   const close = () => { setOpen(false); trigger.current?.focus(); };
 
   return <>
-    <button ref={trigger} type="button" className="painter-color-swatch" aria-label={`${label}选择器`}
+    <button ref={trigger} type="button" disabled={disabled} className="painter-color-swatch" aria-label={`${label}选择器`}
       aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? dialogId : undefined}
       onClick={() => setOpen(value => !value)}>
       <span style={{ background: color, opacity }} />
     </button>
-    {open && createPortal(<div ref={panel} id={dialogId} role="dialog" aria-label={`${label}选择器`} tabIndex={-1}
-      className="painter-color-popover nodrag nopan nowheel" style={position}
+    {open && !disabled && createPortal(<div ref={panel} id={dialogId} role="dialog" aria-label={`${label}选择器`} tabIndex={-1}
+      className="painter-color-popover painter-design-picker nodrag nopan nowheel" style={position}
       onPointerDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}
       onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); close(); } }}
       onBlur={event => { if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget) && event.relatedTarget !== trigger.current) setOpen(false); }}>
+      <header className="painter-picker-header"><span>{label}</span>
+        <button type="button" aria-label="关闭颜色面板" onClick={close}><img src="/painter-node/close.svg" width={16} height={16} alt="" /></button>
+      </header>
       <div className="painter-color-area" style={{ backgroundColor: `hsl(${hsv.h} 100% 50%)` }}
         onPointerDown={event => { if (event.button !== 0) return; event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); pick(event); }}
         onPointerMove={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) pick(event); }}
         onPointerUp={event => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); }}>
-        <span className="painter-color-thumb" style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, background: color }} />
+        <span className="painter-color-thumb" style={{ left: `clamp(9px, ${hsv.s * 100}%, calc(100% - 9px))`, top: `clamp(9px, ${(1 - hsv.v) * 100}%, calc(100% - 9px))` }} />
       </div>
       <div className="painter-color-sliders">
         <input className="painter-hue" type="range" aria-label="色相" min="0" max="360" step="1" value={hsv.h} onChange={event => change({ ...hsv, h: Number(event.target.value) })} />
@@ -100,6 +107,10 @@ export function PainterColorPicker({ label, color, opacity, onColor, onOpacity }
           }} onBlur={() => setHex(color.slice(1))} />
         <label><input aria-label="颜色选择器不透明度" type="number" min="0" max="100" value={Math.round(opacity * 100)}
           onChange={event => onOpacity(Math.max(0, Math.min(100, Number(event.target.value))) / 100)} /><span>%</span></label>
+      </div>
+      <div className="painter-picker-presets" aria-label="预设颜色">
+        {presets.map(value => <button key={value} type="button" aria-label={`使用颜色 ${value.toUpperCase()}`} aria-pressed={color.toLowerCase() === value}
+          style={{ backgroundColor: value }} onClick={() => { const next = fromHex(value); change({ ...next, h: next.s ? next.h : hsv.h }); }} />)}
       </div>
       <div className="painter-color-accessible">
         <label>饱和度<input type="range" min="0" max="100" value={hsv.s * 100} onChange={event => change({ ...hsv, s: Number(event.target.value) / 100 })} /></label>

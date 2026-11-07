@@ -1,7 +1,7 @@
 import { isFileAsset } from './fileCollection.ts';
 import type { FileAsset } from './types';
 
-export type PainterTool = 'canvas' | 'brush' | 'shape' | 'eraser';
+export type PainterTool = 'brush' | 'shape' | 'eraser';
 export type PainterShape = 'rectangle' | 'ellipse' | 'triangle' | 'star';
 export type PaintPoint = { x: number; y: number };
 export type PaintStroke = {
@@ -20,7 +20,7 @@ export type PainterData = {
   outputRevision?: string;
 };
 export const defaultPainterData: PainterData = {
-  width: 1024, height: 1024, background: '#000000', backgroundOpacity: 1, strokes: [],
+  width: 1024, height: 1024, background: '#000000', backgroundOpacity: 0, strokes: [],
 };
 export function painterRevision(data: PainterData, inputId = ''): string {
   return JSON.stringify([inputId, data.width, data.height, data.background, data.backgroundOpacity, data.strokes]);

@@ -63,6 +63,7 @@ test('clipboard validates strokes and dimensions and drops stale derived outputs
   assert.equal(restored.result, undefined);
   assert.equal(restored.outputRevision, undefined);
   assert.equal(restored.locked, false);
+  assert.equal(restorePainterData({ ...painter.data, background: '#123456', backgroundOpacity: 1 })?.backgroundOpacity, 1);
   assert.equal(restorePainterData({ ...painter.data, width: Infinity }), undefined);
   assert.equal(restorePainterData({ ...painter.data, strokes: [{ tool: 'brush', points: [{ x: NaN, y: 0 }] }] }), undefined);
 });
