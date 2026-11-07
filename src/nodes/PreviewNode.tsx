@@ -1,4 +1,3 @@
-import { NodeIcon } from './NodeIcon';
 import { matteGrowShrinkLivePreviews } from './matteGrowShrinkLivePreview';
 import { resolveOutputSource } from './router';
 import { levelsLivePreviews } from './levelsLivePreview';
@@ -6,8 +5,7 @@ import { blurLivePreviews } from './blurLivePreview';
 import { colorLivePreviews } from './colorCorrectionLivePreview';
 import { cropLivePreviews } from './cropLivePreview';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis } from 'lucide-react';
+import { Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import type { AppNode, PreviewNode as Preview } from './types';
 import { isNodeLocked } from './types';
 import { previewImages } from './preview';
@@ -16,6 +14,9 @@ import { FileIcon } from './FileIcon';
 import { FileGallery } from './FileGallery';
 import { downloadAsset } from './fileMedia';
 import { painterLivePreviews } from './painterLivePreview';
+import { NodeFrame, NodeHeader } from './shared/NodeFrame';
+import { NodePort } from './shared/NodePort';
+import './shared/mediaNodeStyle.css';
 
 export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
   const nodes = useNodes<AppNode>(), edges = useEdges();
@@ -78,15 +79,15 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
   useEffect(() => internals(id), [id, aspectRatio, internals]);
   useEffect(() => { if (!activeUrl) setFullscreen(false); setError(''); }, [activeUrl]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="preview" size={18} />{renaming
+  return <NodeFrame className="media-node-frame preview-node-frame">
+    <NodeHeader icon={<img src="/preview-node/preview.svg" width={16} height={16} alt="" draggable={false} />} title={renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name}
           onChange={event => setName(event.target.value)} onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '预览'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '预览'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
-    </header>
+        : <span>{data.label || '预览'}</span>}
+      actions={<TextNodeMenu id={id} appearance="shared" locked={Boolean(data.locked)} onRename={() => { setName(data.label || '预览'); setRenaming(true); }}>
+        <img src="/node-style/more.svg" width={18} height={18} alt="" draggable={false} />
+      </TextNodeMenu>} />
     <div className={`preview-image${active || live || cropLive || colorLive || levelsLive || matteLive || blurLive ? ' has-image' : ''}`} style={{ aspectRatio }}>
       {live || cropLive || colorLive || levelsLive || matteLive || blurLive || (active && active.url !== failedUrl) ? <>
         {live || cropLive || colorLive || levelsLive || matteLive || blurLive ? <canvas ref={liveCanvas} aria-label={matteLive ? 'Live Matte Grow / Shrink preview' : levelsLive ? 'Live Levels preview' : blurLive ? 'Live Blur preview' : colorLive ? 'Live Color correction preview' : cropLive ? 'Live Crop preview' : `Live Painter ${origin?.handle === 'mask' ? 'Mask' : 'Result'} preview`} data-drawing={Boolean(cropLive || colorLive || levelsLive || matteLive || blurLive) || live?.drawing}
@@ -106,10 +107,13 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
         </div>
       </> : active && <div className="preview-empty" role="status"><span>Image unavailable</span></div>}
     </div>
-    <span className="describer-port-label preview-port-label" style={{ top: 61 }}>File</span>
-    <Handle id="file" type="target" position={Position.Left} className={`describer-port preview-port${connected ? ' is-connected' : ''}`}
-      style={{ top: 89 }} aria-label="Preview image input" isConnectable={isConnectable} />
+    <div className="media-port-file">
+      <NodePort id="file" label="File" type="target" position={Position.Left} isConnectable={isConnectable}>
+        <img src="/image-node/port-file.svg" width={32} height={32} alt="" draggable={false} />
+        {connected && <span className="media-port-dot" />}
+      </NodePort>
+    </div>
     {fullscreen && active && <FileGallery assets={assets.map(asset => measured?.url === asset.url ? { ...asset, width: measured.width, height: measured.height } : asset)} activeId={viewId} onSelect={setViewId} onClose={() => setFullscreen(false)} />}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }

@@ -73,7 +73,7 @@ async function size(width: number, height: number, checkTransparency = true) {
   await until(() => output()?.width === width && output()?.height === height, `Expected output ${width} × ${height}`);
   const img = new Image(); img.src = output().url; await img.decode();
   assert(img.naturalWidth === width && img.naturalHeight === height, 'PNG dimensions must match output');
-  await until(() => { const preview = document.querySelector<HTMLImageElement>('.react-flow__node-preview img'); return !!preview?.complete && preview.naturalWidth === width && preview.naturalHeight === height; }, 'Downstream Preview must display the same PNG');
+  await until(() => { const preview = document.querySelector<HTMLImageElement>('.react-flow__node-preview .preview-image > img'); return !!preview?.complete && preview.naturalWidth === width && preview.naturalHeight === height; }, 'Downstream Preview must display the same PNG');
   const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; const context = canvas.getContext('2d')!; context.drawImage(img, 0, 0);
   if (checkTransparency) assert(context.getImageData(0, 0, 1, 1).data[3] === 0, 'Transparent corner must survive resizing');
 }

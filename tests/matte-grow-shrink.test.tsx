@@ -77,7 +77,7 @@ async function verify(size: number, width = 640, height = 480) {
   let count = 0;
   for (let i = 0; i < pixels.length; i += 4) { if (pixels[i] === 255) count++; assert(pixels[i + 3] === 255, 'Opaque mask'); }
   assert(count === (width / 2 + 2 * size) * (height / 2 + 2 * size), `Correct white area: ${count}`);
-  await until(() => document.querySelector<HTMLImageElement>('.react-flow__node-preview img')?.src === output().url, 'Preview uses final PNG');
+  await until(() => document.querySelector<HTMLImageElement>('.react-flow__node-preview .preview-image > img')?.src === output().url, 'Preview uses final PNG');
 }
 function key(element: HTMLElement, value: string, options: KeyboardEventInit = {}) { element.dispatchEvent(new KeyboardEvent('keydown', { key: value, bubbles: true, cancelable: true, ...options })); }
 async function edit(text: string, end: string | null = 'Enter') {
