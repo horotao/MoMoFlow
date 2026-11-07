@@ -1,13 +1,16 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { LockKeyhole } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Cancel01Icon, DragDropVerticalIcon, MoreHorizontalIcon, PlusSignIcon } from '@hugeicons/core-free-icons';
+import { Cancel01Icon, DragDropVerticalIcon, PlusSignIcon } from '@hugeicons/core-free-icons';
 import { isNodeLocked, isTextIteratorNode, type AppNode, type TextIteratorNode as IteratorNode } from './types';
 import { newTextIteratorItem, textIteratorLimit, textIteratorTextLimit, type TextIteratorItem } from './textIterator';
 import { IteratorWarning } from '../components/IteratorWarning';
 import { iteratorItems } from './textVariables';
 import { NodeIcon } from './NodeIcon';
 import { TextNodeMenu } from './TextNodeMenu';
+import { NodeFrame, NodeHeader } from './shared/NodeFrame';
+import { NodePort } from './shared/NodePort';
 import './TextIteratorNode.css';
 
 export function TextIteratorNode({ id, data, isConnectable }: NodeProps<IteratorNode>) {
@@ -41,21 +44,21 @@ export function TextIteratorNode({ id, data, isConnectable }: NodeProps<Iterator
     if (focus.current) { fields.current.get(focus.current)?.focus(); focus.current = undefined; }
     internals(id);
   }, [id, itemSignature, error, internals]);
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="text-iterator" size={20} />{renaming
+  return <NodeFrame className="text-iterator-frame">
+    <NodeHeader icon={<NodeIcon nodeType="text-iterator" size={16} />} title={renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim() && !isNodeLocked(getNode(id))) updateNodeData(id, { label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return; if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '文本迭代'}</span>}</div>
-      <div className="iterator-heading-actions"><span className="iterator-count" aria-label={`${items.length} / ${textIteratorLimit} 条文本`}>{items.length}/{textIteratorLimit}</span>
-        <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '文本迭代'); setRenaming(true); }}><HugeiconsIcon icon={MoreHorizontalIcon} size={20} /></TextNodeMenu>
-      </div>
-    </header>
+        : <span>{data.label || '文本迭代'}</span>}
+      status={data.locked && <LockKeyhole size={12} aria-label="已锁定" />}
+      actions={<div className="iterator-heading-actions"><span className="iterator-count" aria-label={`${items.length} / ${textIteratorLimit} 条文本`}>{items.length}/{textIteratorLimit}</span>
+        <TextNodeMenu id={id} appearance="shared" locked={Boolean(data.locked)} onRename={() => { setName(data.label || '文本迭代'); setRenaming(true); }}><img src="/node-style/more.svg" alt="" className="node-monochrome" /></TextNodeMenu>
+      </div>} />
     <div className="iterator-items nodrag nopan nowheel" aria-label="迭代文本列表">
       {items.map((item, index) => <div key={item.id} className={`iterator-item${dropId === item.id ? ' is-drop-target' : ''}`}
         onDragOver={event => { if (!readOnly && dragged.current) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setDropId(item.id); } }}
         onDrop={event => { if (!readOnly && dragged.current) { event.preventDefault(); event.stopPropagation(); move(dragged.current, index); } dragged.current = undefined; setDropId(undefined); }}>
+        <span className="iterator-item-index" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
         {!readOnly && <button className="iterator-grip" type="button" draggable aria-label={`移动第 ${index + 1} 条文本`} title="拖动排序，或使用上下方向键"
           onDragStart={event => { event.stopPropagation(); dragged.current = item.id; event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-momoflow-text-iterator', item.id); }}
           onDragEnd={() => { dragged.current = undefined; setDropId(undefined); }}
@@ -66,13 +69,15 @@ export function TextIteratorNode({ id, data, isConnectable }: NodeProps<Iterator
           onKeyDown={event => event.stopPropagation()} />
         {!readOnly && <button className="iterator-remove" type="button" aria-label={`删除第 ${index + 1} 条文本`} onClick={() => patch(items.filter(value => value.id !== item.id))}><HugeiconsIcon icon={Cancel01Icon} size={14} /></button>}
       </div>)}
-      {!connected && <button className="text-node-button iterator-add" type="button" disabled={data.locked || items.length >= textIteratorLimit} onClick={() => { const item = newTextIteratorItem(); focus.current = item.id; patch([...items, item]); }}><HugeiconsIcon icon={PlusSignIcon} size={18} />添加条目</button>}
     </div>
+    {!connected && <button className="text-node-button iterator-add nodrag nopan" type="button" disabled={data.locked || items.length >= textIteratorLimit} onClick={() => { const item = newTextIteratorItem(); focus.current = item.id; patch([...items, item]); }}><HugeiconsIcon icon={PlusSignIcon} size={16} />添加条目</button>}
     {connected && !error && <div className="iterator-input-note">由上游输入提供文本</div>}
     {error && <IteratorWarning message={error} />}
-    <span className="describer-port-label iterator-input-label">文本 / 数组</span>
-    <Handle type="target" position={Position.Left} id="input" aria-label="文本或数组输入" className={`describer-port iterator-input-port${connected ? ' is-connected' : ''}`} style={{ top: 30 }} isConnectable={isConnectable && !data.locked} />
-    <span className="describer-port-label output-label iterator-output-label">文本</span>
-    <Handle type="source" position={Position.Right} id="text" aria-label="迭代文本输出" className={`describer-port${edges.some(edge => edge.source === id) ? ' is-connected' : ''}`} style={{ top: 30 }} isConnectable={isConnectable && !data.locked} />
-  </>;
+    <div className="iterator-input"><NodePort type="target" position={Position.Left} id="input" label="文本 / 数组" top={89} isConnectable={isConnectable && !data.locked}>
+      <img src="/image-node/port-file.svg" width={32} height={32} alt="" />{connected && <span className="iterator-port-dot" />}
+    </NodePort></div>
+    <NodePort type="source" position={Position.Right} id="text" label="文本" top={89} isConnectable={isConnectable && !data.locked}>
+      <img src={`/node-style/port-text${edges.some(edge => edge.source === id) ? '-connected' : ''}.svg`} width={32} height={32} alt="" />
+    </NodePort>
+  </NodeFrame>;
 }

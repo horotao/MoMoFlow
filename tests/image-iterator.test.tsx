@@ -61,7 +61,7 @@ function render(saved: Workflow) {
   root.render(<ReactFlowProvider key={++version}><ModelTasksProvider><Flow storage={storage} saved={saved} /><Probe /></ModelTasksProvider></ReactFlowProvider>);
 }
 const settle = () => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-async function until(check: () => boolean, message: string) { for (let index = 0; index < 220; index++) { if (check()) return; await settle(); } throw new Error(message); }
+async function until(check: () => boolean | Promise<boolean>, message: string) { for (let index = 0; index < 220; index++) { if (await check()) return; await settle(); } throw new Error(message); }
 function find<T extends HTMLElement = HTMLElement>(selector: string): T { const element = document.querySelector<T>(selector); if (!element) throw new Error(`Missing ${selector}`); return element; }
 function check(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
 const selector = '[data-id="iterator"]';
@@ -90,7 +90,7 @@ async function run() {
   const green = await sample('m-green.png', '#76a087', 200);
   await storage.load(); render(workflow);
   await until(() => !!document.querySelector(`${selector} .file-node-upload`), 'Nodes mount'); await settle();
-  check(getComputedStyle(find(selector)).width === '460px', 'Node width');
+  check(getComputedStyle(find(selector)).width === '456px', 'Node width');
   check(find(`${selector} .file-node-title`).textContent === '图片迭代', 'Chinese title');
   check(find<HTMLInputElement>(`${selector} input[type="file"]`).multiple, 'Multi-image picker');
   check(find<HTMLInputElement>(`${selector} input[type="file"]`).accept.includes('.png') && !find<HTMLInputElement>(`${selector} input[type="file"]`).accept.includes('.mp4'), 'Image-only picker');
@@ -177,7 +177,7 @@ async function run() {
   const model = api.getNode('model'); check(model && isImageGeneratorNode(model) && model.data.results?.length === 9, 'All successful images accumulated');
   pass('3 张 × 2 次 = 6 个目标任务、结果追加且保留图片来源');
 
-  await until(() => document.body.textContent?.includes('已保存到此浏览器') === true, 'Autosave');
+  await until(async () => { const saved = await storage.load(); return Boolean(saved?.nodes.some(node => isImageIteratorNode(node) && node.data.assets?.length === 3 && node.data.orderBy === 'name') && saved.edges.length === api.getEdges().length); }, 'Autosave writes the current iterator and connections');
   const saved = await storage.load(); check(saved, 'Saved workflow');
   render(saved); await until(() => !!document.querySelector(`${selector} .file-node-tile`), 'Restored'); await settle();
   check(iterator().data.assets?.length === 3 && iterator().data.orderBy === 'name', 'Restored collection and sorting');

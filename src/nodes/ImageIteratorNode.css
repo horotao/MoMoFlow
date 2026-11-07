@@ -1,0 +1,22 @@
+.image-iterator-frame .image-iterator-heading-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.image-iterator-frame .image-iterator-count { color: var(--node-muted); font-size: 11px; line-height: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.image-iterator-frame .node-title-icon > svg { width: 16px; height: 16px; }
+.image-iterator-frame .file-node-title { font: inherit; }
+.image-iterator-frame .file-node-rename { box-sizing: border-box; width: 100%; min-width: 0; height: 24px; border: 0; font: inherit; }
+.image-iterator-frame .file-node-grid { padding: 8px; border: 0; max-height: 640px; }
+.image-iterator-frame .file-node-tile::before { background: rgb(0 0 0 / 30%); }
+.image-iterator-frame .file-node-tile::after { border: 0; border-radius: inherit; }
+.image-iterator-frame .file-node-tile.is-active::before { background: transparent; }
+.image-iterator-frame .file-node-tile.is-active::after { border: 1.5px solid var(--node-selected-border); }
+.image-iterator-frame .file-node-tile:focus-visible { outline: 1.5px solid var(--node-selected-border); outline-offset: -2px; }
+.image-iterator-frame .file-media-overlay { font: 400 12px/22px var(--font-ui); }
+.image-iterator-frame .file-media-overlay::before,
+.image-iterator-frame .file-media-overlay::after { filter: none; transform: none; }
+.image-iterator-frame .file-media-overlay::before { height: 96px; background: linear-gradient(rgb(0 0 0 / 65%), transparent); }
+.image-iterator-frame .file-media-overlay::after { height: 80px; background: linear-gradient(transparent, rgb(0 0 0 / 65%)); }
+.image-iterator-frame .file-media-top { top: 12px; left: 12px; right: 12px; }
+.image-iterator-frame .is-grid .file-media-top { top: 20px; left: 20px; right: 20px; }
+.image-iterator-frame .file-media-navigation,
+.image-iterator-frame .file-media-tools { gap: 4px; }
+.image-iterator-frame .file-media-overlay .file-icon-button { width: 24px; height: 24px; padding: 0; border-radius: 8px; }
+.image-iterator-frame .file-media-resolution { left: 14px; bottom: 10px; }

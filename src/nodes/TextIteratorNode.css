@@ -1,34 +1,28 @@
-.react-flow .react-flow__node.react-flow__node-text-iterator { height: auto; min-height: 112px; display: flex; flex-direction: column; align-items: stretch; }
-.react-flow .react-flow__node-text-iterator.selected, .react-flow .react-flow__node-text-iterator:focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-.react-flow__node-text-iterator .text-node-title { min-width: 0; gap: 8px; font-size: 14px; line-height: 20px; }
-.react-flow__node-text-iterator .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.react-flow__node-text-iterator .text-node-title > svg { flex-shrink: 0; }
-.react-flow__node-text-iterator.selected .text-node-title { color: var(--text-node-primary); }
-.iterator-heading-actions { display: flex; align-items: center; gap: 12px; }
-.iterator-count { color: var(--text-node-secondary); font-size: 12px; white-space: nowrap; }
-.iterator-items { display: flex; flex-direction: column; gap: 6px; }
-.iterator-item { position: relative; }
-.iterator-item textarea { display: block; width: 100%; min-height: 32px; max-height: 180px; padding: 5px 28px 5px 8px; resize: none; overflow-y: auto; border: 1px solid transparent; border-radius: 5px; background: var(--text-node-input); color: var(--text-node-primary); font: inherit; font-size: 12px; line-height: 20px; }
-.iterator-item textarea::placeholder { color: var(--text-node-placeholder); }
-.iterator-item textarea:focus { outline: none; border-color: var(--text-node-border-selected); }
-.iterator-grip, .iterator-remove { position: absolute; display: flex; align-items: center; justify-content: center; top: 4px; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--text-node-secondary); opacity: 0; }
-.iterator-grip { left: -17px; width: 16px; cursor: grab; }
-.iterator-remove { right: 4px; cursor: pointer; }
-.iterator-item:hover .iterator-grip, .iterator-item:hover .iterator-remove, .iterator-item:focus-within .iterator-grip, .iterator-item:focus-within .iterator-remove { opacity: 1; }
-.iterator-remove:hover { background: var(--text-node-surface); color: var(--text-node-primary); }
-.iterator-item.is-drop-target::before { content: ''; position: absolute; top: -4px; left: 0; right: 0; height: 2px; background: var(--text-node-port); }
-.text-node-button.iterator-add { align-self: flex-start; gap: 6px; height: 32px; margin-top: 4px; padding: 6px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; }
-.iterator-add:hover:not(:disabled) { background: var(--text-node-input); }
-.iterator-add:active:not(:disabled) { background: var(--text-node-border); }
-.iterator-add:disabled { opacity: .4; cursor: default; }
-.iterator-input-note { font-size: 11px; line-height: 16px; color: var(--text-node-secondary); }
-.react-flow__node-text-iterator:hover .describer-port-label, .react-flow__node-text-iterator.selected .describer-port-label { visibility: visible; }
-.react-flow .react-flow__node-text-iterator .iterator-input-label, .react-flow .react-flow__node-text-iterator .iterator-output-label { top: 2px; }
-.react-flow .react-flow__node-text-iterator .iterator-input-port { border-color: #7c965a; }
-.react-flow.dark .react-flow__node-text-iterator .iterator-input-port { border-color: #f3ffe3; }
-.react-flow .react-flow__node-text-iterator .iterator-input-label { color: #7c965a; }
-.react-flow.dark .react-flow__node-text-iterator .iterator-input-label { color: #f3ffe3; }
-.react-flow .iterator-input-port.is-connected::after { background: #7c965a; }
-.react-flow.dark .iterator-input-port.is-connected::after { background: #f3ffe3; }
+.text-iterator-frame { min-height: 144px; }
+.text-iterator-frame .iterator-heading-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.text-iterator-frame .iterator-count { color: var(--node-muted); font-size: 11px; line-height: 16px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.react-flow .text-iterator-frame .text-node-rename { width: 100%; min-width: 0; height: 24px; font: inherit; }
+.text-iterator-frame .iterator-items { display: flex; flex-direction: column; gap: 8px; max-height: 520px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--node-divider) transparent; }
+.text-iterator-frame .iterator-items:empty { display: none; }
+.text-iterator-frame .iterator-item { position: relative; flex-shrink: 0; }
+.text-iterator-frame .iterator-item textarea { display: block; box-sizing: border-box; width: 100%; min-height: 44px; max-height: 180px; padding: 10px 34px 10px 38px; resize: none; overflow-y: auto; border: 1px solid transparent; border-radius: var(--node-inset-radius); corner-shape: superellipse(1.25); background: var(--node-inset); color: var(--node-primary); font: 400 12px/22px var(--font-ui); scrollbar-width: thin; }
+.text-iterator-frame .iterator-item textarea::placeholder { color: var(--node-muted); }
+.text-iterator-frame .iterator-item textarea:focus { outline: none; border-color: var(--node-selected-border); }
+.text-iterator-frame .iterator-item-index { position: absolute; left: 12px; top: 12px; color: var(--node-muted); font-size: 10px; line-height: 20px; font-variant-numeric: tabular-nums; pointer-events: none; }
+.text-iterator-frame .iterator-grip,
+.text-iterator-frame .iterator-remove { position: absolute; display: flex; align-items: center; justify-content: center; top: 10px; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px; background: var(--node-inset); color: var(--node-secondary); opacity: 0; }
+.text-iterator-frame .iterator-grip { left: 8px; cursor: grab; }
+.text-iterator-frame .iterator-grip:active { cursor: grabbing; }
+.text-iterator-frame .iterator-remove { right: 8px; cursor: pointer; }
+.text-iterator-frame .iterator-item:is(:hover, :focus-within) :is(.iterator-grip, .iterator-remove) { opacity: 1; }
+.text-iterator-frame :is(.iterator-grip, .iterator-remove):hover { color: var(--node-primary); }
+.text-iterator-frame :is(.iterator-grip, .iterator-remove):focus-visible { outline: 1px solid var(--node-selected-border); outline-offset: 1px; }
+.text-iterator-frame .iterator-item.is-drop-target::before { content: ''; position: absolute; top: -5px; left: 8px; right: 8px; height: 2px; background: var(--node-port-color); }
+.react-flow .text-iterator-frame .iterator-add { align-self: flex-start; gap: 8px; height: 24px; margin: 0; padding: 0 4px; color: var(--node-secondary); font: 400 12px/22px var(--font-ui); cursor: pointer; }
+.react-flow .text-iterator-frame .iterator-add:hover:not(:disabled) { color: var(--node-primary); background: transparent; }
+.text-iterator-frame .iterator-add:disabled { opacity: .4; cursor: default; }
+.text-iterator-frame .iterator-input-note { padding: 0 4px; color: var(--node-muted); font-size: 11px; line-height: 16px; }
+.text-iterator-frame .iterator-input { display: contents; --node-port-color: #f3ffe3; }
+.text-iterator-frame .iterator-port-dot { position: absolute; inset: 13px; border-radius: 50%; background: var(--node-port-color); pointer-events: none; }
 .text-iteration-summary { display: flex; width: 100%; justify-content: space-between; gap: 16px; color: var(--text-node-secondary, var(--panel-muted)); font-size: 12px; }
-@media (hover: none) { .iterator-grip, .iterator-remove { opacity: 1; } }
+@media (hover: none) { .text-iterator-frame :is(.iterator-grip, .iterator-remove) { opacity: 1; } }

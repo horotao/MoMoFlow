@@ -50,7 +50,7 @@ function render(saved: Workflow) {
   root.render(<ReactFlowProvider key={++version}><ModelTasksProvider><Flow storage={storage} saved={saved} /><Probe /></ModelTasksProvider></ReactFlowProvider>);
 }
 const settle = () => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-async function until(check: () => boolean, message: string) { for (let i = 0; i < 180; i++) { if (check()) return; await settle(); } throw new Error(message); }
+async function until(check: () => boolean | Promise<boolean>, message: string) { for (let i = 0; i < 180; i++) { if (await check()) return; await settle(); } throw new Error(message); }
 function find<T extends HTMLElement = HTMLElement>(selector: string): T { const element = document.querySelector<T>(selector); if (!element) throw new Error(`Missing ${selector}`); return element; }
 const iteratorSelector = '[data-id="iterator"]';
 function iterator() { const node = api.getNode('iterator'); if (!isTextIteratorNode(node)) throw new Error('Iterator missing'); return node; }
@@ -73,12 +73,12 @@ async function menu(action: string) {
 async function run() {
   await storage.load(); render(workflow);
   await until(() => Boolean(document.querySelector(`${iteratorSelector} textarea`)), 'Nodes mount'); await settle();
-  check(getComputedStyle(find(iteratorSelector)).width === '460px', 'Reference node width');
+  check(getComputedStyle(find(iteratorSelector)).width === '454px', 'Reference node width');
   check(parseFloat(getComputedStyle(find(iteratorSelector)).height) < 260, 'Compact height overrides shared Prompt height');
   check(parseFloat(getComputedStyle(find(`${iteratorSelector} textarea`)).width) > 400, 'Entries fill available width');
   check(find(`${iteratorSelector} .iterator-count`).textContent === '3/50', 'Counter');
   check(document.querySelectorAll(`${iteratorSelector} textarea`).length === 3, 'Three separate entries');
-  pass('460px 节点、3/50 计数、独立文本输入与双端口');
+  pass('454px 共享样式节点、3/50 计数、独立文本输入与双端口');
 
   const selector = `${iteratorSelector} textarea[aria-label="第 1 条文本"]`;
   find(selector).dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
@@ -153,7 +153,7 @@ async function run() {
   for (const text of ['[', '["文本", 42]', JSON.stringify(Array(51).fill('文本'))]) {
     api.updateNodeData('invalid-input', { text }); await settle();
     await menu('创建副本');
-    const error = find(`${iteratorSelector} .text-node-menu-error`).textContent;
+    const error = find(`${iteratorSelector} .node-options-error`).textContent;
     check(error && !error.includes('剪贴板') && api.getNodes().length === 3, 'Invalid snapshot reports input error and preserves nodes');
     await menu('重命名');
     const rename = find<HTMLInputElement>(`${iteratorSelector} [aria-label="节点名称"]`);
@@ -217,7 +217,7 @@ async function run() {
   for (const summary of document.querySelectorAll('.text-iteration-summary')) check(summary.textContent?.includes('3 个任务') && !summary.textContent.includes('每条 2 次'), 'Reducing repeats updates both summaries');
   pass('运行次数共享：3 条 × 2 次显示 6 个任务，切换选择后节点入口仍提交 6 次（模拟）');
 
-  await until(() => document.body.textContent?.includes('已保存到此浏览器') === true, 'Autosave');
+  await until(async () => { const saved = await storage.load(); return Boolean(saved?.nodes.some(node => isTextIteratorNode(node) && JSON.stringify(node.data.items) === JSON.stringify(iterator().data.items)) && saved.edges.length === api.getEdges().length); }, 'Autosave writes the current iterator and connections');
   const saved = await storage.load(); check(saved && saved.nodes.some(node => isTextIteratorNode(node) && node.data.items.length === 3), 'Persisted entries');
   check(saved.edges.some(edge => edge.source === 'iterator' && edge.sourceHandle === 'text'), 'Persisted connection');
   render(saved); await until(() => !!document.querySelector(`${iteratorSelector} textarea`), 'Restored node'); await settle();

@@ -64,8 +64,8 @@ async function run() {
   await until(() => Boolean(document.querySelector('.react-flow__node-router')) && Boolean(document.querySelector<HTMLImageElement>('.preview-image img')?.naturalWidth), 'Router and image preview mount');
   const read = (id: string) => resolveTextValue(id, api.getNodes(), api.getEdges()).trim();
   check(read('consumer') === 'A red balloon above the mountains' && read('consumer-2') === read('consumer'), 'Text fans out to both consumers');
-  const style = getComputedStyle(find('[data-id="router"]'));
-  check(style.width === '250px' && style.height === '62px' && style.borderRadius === '16px', 'Compact dimensions: 250 × 62 / shared node radius 16');
+  const style = getComputedStyle(find('[data-id="router"] .node-frame'));
+  check(style.width === '250px' && style.height === '56px' && style.borderRadius === '28px', 'Compact dimensions: 250 × 56 / shared node radius 28');
   const handle = find('[data-id="router"] .react-flow__handle-left').getBoundingClientRect(), bounds = find('[data-id="router"]').getBoundingClientRect();
   check(Math.abs(handle.left + handle.width / 2 - bounds.left) <= 1, 'Input port is centered on the node border');
   check(imageOutput(api.getNode('image-router'), 'output', api.getNodes(), api.getEdges())[0]?.id === source.id, 'Original image identity and dimensions are retained');
