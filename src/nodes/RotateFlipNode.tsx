@@ -1,15 +1,17 @@
-import { NodeIcon } from './NodeIcon';
 import { useEffect, useRef, useState } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis } from 'lucide-react';
+import { Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { FlipHorizontalIcon, FlipVerticalIcon, Rotate01Icon } from '@hugeicons/core-free-icons';
 import { isRotateFlipNode, isNodeLocked, type AppNode, type RotateFlipNode as RotateFlip } from './types';
 import { changeRotateFlip, rotateFlipRevision, rotateFlipTransform, type RotateFlipAction } from './rotateFlip';
 import { imageOutput } from './sunburstRun';
 import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
-import { FlipIcon, RotateFlipIcon } from './RotateFlipIcon';
 import { TextNodeMenu } from './TextNodeMenu';
+import { NodeFrame, NodeHeader } from './shared/NodeFrame';
+import { NodePort } from './shared/NodePort';
+import './shared/mediaNodeStyle.css';
 
 export function RotateFlipNode({ id, data, isConnectable }: NodeProps<RotateFlip>) {
   const nodes = useNodes<AppNode>(), edges = useEdges();
@@ -82,16 +84,14 @@ export function RotateFlipNode({ id, data, isConnectable }: NodeProps<RotateFlip
 
   useEffect(() => updateInternals(id), [id, width, height, updateInternals]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="rotate-flip" />{renaming
+  return <NodeFrame className="media-node-frame rotate-flip-node-frame">
+    <NodeHeader icon={<HugeiconsIcon icon={Rotate01Icon} size={18} />} title={renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
-          onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '旋转与翻转'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '旋转与翻转'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
-    </header>
-    <div className="preview-image nodrag nopan" aria-busy={Boolean(input && !output && !error && !data.locked)} style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
+          onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return; if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
+        : <span>{data.label || '旋转与翻转'}</span>}
+      actions={<TextNodeMenu appearance="shared" id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '旋转与翻转'); setRenaming(true); }}><img src="/node-style/more.svg" width={18} height={18} alt="" /></TextNodeMenu>} />
+    <div className="preview-image rotate-flip-preview nodrag nopan" aria-busy={Boolean(input && !output && !error && !data.locked)} style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
       {image && <canvas ref={canvas} aria-label="Rotate and flip preview" />}
       {input && <div className="file-media-overlay">
         <div className="file-media-top rotate-flip-media-top">
@@ -104,20 +104,21 @@ export function RotateFlipNode({ id, data, isConnectable }: NodeProps<RotateFlip
     <div className="rotate-flip-controls nodrag nopan" onKeyDown={event => {
       if (!((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z')) event.stopPropagation();
     }}>
-      <button type="button" aria-label="Rotate 90° clockwise" title="顺时针旋转 90°" disabled={data.locked} onClick={() => change('rotate')}><RotateFlipIcon /></button>
-      <button type="button" aria-label="Flip horizontal" title="水平镜像翻转" aria-pressed={data.settings.flipHorizontal} disabled={data.locked} onClick={() => change('horizontal')}><FlipIcon /></button>
-      <button type="button" aria-label="Flip vertical" title="垂直镜像翻转" aria-pressed={data.settings.flipVertical} disabled={data.locked} onClick={() => change('vertical')}><FlipIcon vertical /></button>
+      <button type="button" aria-label="Rotate 90° clockwise" title="顺时针旋转 90°" disabled={data.locked} onClick={() => change('rotate')}><HugeiconsIcon icon={Rotate01Icon} size={16} /></button>
+      <button type="button" aria-label="Flip horizontal" title="水平镜像翻转" aria-pressed={data.settings.flipHorizontal} disabled={data.locked} onClick={() => change('horizontal')}><HugeiconsIcon icon={FlipHorizontalIcon} size={16} /></button>
+      <button type="button" aria-label="Flip vertical" title="垂直镜像翻转" aria-pressed={data.settings.flipVertical} disabled={data.locked} onClick={() => change('vertical')}><HugeiconsIcon icon={FlipVerticalIcon} size={16} /></button>
       <button type="button" className="rotate-flip-reset" title="重置旋转与翻转" disabled={data.locked} onClick={() => change('reset')}>Reset</button>
     </div>
     {[{ handle: 'image', label: 'Input', output: false }, { handle: 'result', label: 'Result', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
-          aria-label={`Rotate and flip ${port.label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked} />
+      return <div className="media-port-image" key={port.handle}>
+        <NodePort label={`${port.label}${port.output ? '' : '*'}`} id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left}
+          isConnectable={isConnectable && !data.locked}>
+          <img src="/image-node/port-image.svg" width={32} height={32} alt="" />
+          {connected && <span className="media-port-dot" />}
+        </NodePort>
       </div>;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }
