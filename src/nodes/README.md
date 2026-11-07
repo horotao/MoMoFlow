@@ -47,7 +47,7 @@
 
 应用仅支持深色模式；不再提供浅色切换、制作或验收。历史画布中的浅色设置读取时按深色处理，重新保存时写入深色设置，节点、连线和素材内容不变。图片操作按钮为 24×24px、8px 圆角，默认透明，悬停背景按 Figma 使用 10% 白色（`rgba(255,255,255,0.1)`）。
 
-新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：外框、标题栏、颜色和尺寸变量按节点逐个接入；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、GPT Image 2.5、Nano Banana、Ideogram 4.5 和文件导入使用新版外框；三个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。三个图片模型直接共用 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代沿用原有外观。新版外框内按 Figma 使用 Inter / Noto Sans SC，字体作用域不扩散到原有节点。Text 的标题、更多、加号、下拉箭头与端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。三个图片模型的运行按钮使用本地 DM Mono 字体、固定 98px 宽度，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
+新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：外框、标题栏、颜色和尺寸变量按节点逐个接入；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、图像描述、GPT Image 2.5、Nano Banana、Ideogram 4.5 和文件导入使用新版外框；三个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。三个图片模型直接共用 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代沿用原有外观。新版外框内按 Figma 使用 Inter / Noto Sans SC，字体作用域不扩散到原有节点。图像描述复用 Text 的外框、标题栏、更多菜单和文本内容区样式，宽 454px、内边距 14px，空状态高 403px；底部提供添加图片输入与运行模型，进度和取消复用图片模型的 `ModelRunButton`。Text 与图像描述的标题、更多、加号、运行、下拉箭头与文本端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。三个图片模型的运行按钮使用本地 DM Mono 字体、固定 98px 宽度，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
 
 `/tests/media-node-style.html` 是 GPT、Nano Banana、Ideogram 与文件导入的独立浏览器验收入口，使用 React、真实 React Flow 及浏览器断言，覆盖外框尺寸、真实图片比例、双图/四图瀑布流、全屏、等宽进度与取消。运行 `npm run dev` 后打开该页面；仅使用本地 Figma 示例素材，不读取用户画布或调用模型，类型检查包含在 `npm run check` 中。
 
@@ -92,7 +92,7 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 - Sunburst 外部参数切回本地时独立校验当前字段，其他字段的错误不会丢弃有效值；当前字段无效时保留原本地值，运行前仍执行完整参数校验。已记录的旧 ZenMux 生成结果在复用比较时兼容缺少 `provider` 的请求签名；仅兼容这一处差异，渠道、提示词、尺寸、图片及输出身份变化仍使结果失效，锁定节点也遵守此规则。`workflowExecution.test.ts` 随 `npm test` 覆盖旧/新签名复用与失效；`/tests/sunburst-provider.html` 覆盖 xhigh/max 跨渠道后 2K/4K 切回本地、撤销/重做及无效尺寸回退。
 - 从 Sunburst 暴露的参数输入反向选择 Model Name 时，复用 `sunburstParameterData`，按目标参数的当前本地值初始化名称、值和选项（保留自定义尺寸）；普通模型名称节点仍使用原默认值。
 - 对支持锁定的节点，数据更新、拖动、删除、连线和运行入口都需考虑 `locked`，异步结果写回前再次检查。节点内的编辑与点击控件按交互需要使用 `nodrag`、`nopan`、`nowheel`，避免与画布手势冲突。
-- Sunburst 和 Image Describer 运行时将运行按钮替换为 Weavy 样式的 32px 进度框：启动状态、每秒一圈的圆环、百分比与取消按钮。现有接口没有进度回传，百分比明确标注为预估，平滑趋近 95% 后等待真实响应；只有成功响应和结果写回后才完成。节点取消操作停止该节点的运行与排队任务，不影响其他节点；任务面板仍可单独取消一项。运行结束或失败后恢复运行按钮，失败详情保留在任务列表。减少动态效果时圆环改为 4 秒四步旋转。
+- Sunburst 和 Image Describer 运行时共用 98×32px、13px 圆角的进度框：启动状态、0.84 秒一圈的圆环、百分比与悬停 / 聚焦可见的取消按钮。现有接口没有进度回传，百分比明确标注为预估，平滑趋近 95% 后等待真实响应；只有成功响应和结果写回后才完成。节点取消操作停止该节点的运行与排队任务，不影响其他节点；任务面板仍可单独取消一项。运行结束或失败后恢复运行按钮，失败详情保留在任务列表。减少动态效果时圆环改为 4 秒四步旋转。
 - `taskQueue.test.ts` 随 `npm test` 验证预估进度不提前完成、不倒退、不推进终态；`/tests/model-run-progress.html` 使用真实节点、调度与本地受控响应验证动画、完成、失败、并发取消隔离和迟到结果保护，不调用真实模型，不读写用户工作流。
 
 ## Text Iterator 文本迭代约定

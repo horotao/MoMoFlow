@@ -111,7 +111,7 @@ async function run() {
   const progress = find(`${nodeSelector('image')} .model-run-progress`);
   check(getComputedStyle(progress).height === '32px' && getComputedStyle(progress).minWidth === '98px' && getComputedStyle(progress).borderRadius === '13px', 'GPT progress frame matches 98 × 32 and 13px corners');
   const descriptionProgress = find(`${nodeSelector('description')} .model-run-progress`);
-  check(getComputedStyle(descriptionProgress).minWidth === '120px' && getComputedStyle(descriptionProgress).borderRadius === '8px', 'Description node retains its existing progress frame');
+  check(getComputedStyle(descriptionProgress).minWidth === '98px' && getComputedStyle(descriptionProgress).height === '32px' && getComputedStyle(descriptionProgress).borderRadius === '13px', 'Description node reuses the image model progress frame');
   check(Number(find(`${nodeSelector('image')} [role="progressbar"]`).getAttribute('aria-valuenow')) === nodeTask('image')?.progress, 'Node percentage matches shared task progress');
   check(document.querySelectorAll('.task-progress').length === 2, 'Task list shows both percentages and progress tracks');
   check(!canUndo, 'Progress does not create canvas undo entries');

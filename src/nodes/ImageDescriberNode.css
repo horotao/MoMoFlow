@@ -1,0 +1,36 @@
+.image-describer-frame {
+  --node-width: 454px;
+  --node-padding: 14px;
+}
+
+.react-flow .image-describer-frame .describer-output textarea {
+  box-sizing: border-box;
+  padding: 16px;
+  color: var(--node-primary);
+  font: 400 12px/22px var(--font-ui);
+}
+
+.react-flow .image-describer-frame .text-node-footer { height: 32px; }
+.react-flow .image-describer-frame .text-node-footer button { gap: 4px; transition: none; }
+.react-flow .image-describer-frame .text-node-footer .describer-add {
+  justify-content: flex-start;
+  width: 140px;
+  margin: 0;
+  padding: 0;
+  color: var(--node-secondary);
+}
+.react-flow .image-describer-frame .text-node-footer .describer-add:hover:not(:disabled) { background: transparent; color: var(--node-primary); }
+.react-flow .image-describer-frame .text-node-footer .describer-run {
+  justify-content: center;
+  flex-shrink: 0;
+  width: 98px;
+  padding: 0;
+  border: 0;
+  border-radius: 13px;
+  corner-shape: superellipse(1.25);
+  background: var(--node-primary);
+  color: var(--node-disabled);
+  font: inherit;
+}
+.react-flow .image-describer-frame .text-node-footer .describer-run:hover:not(:disabled) { background: var(--node-primary); color: var(--node-surface); }
+.react-flow .image-describer-frame .text-node-footer button:focus-visible { outline: 1px solid var(--node-selected-border); outline-offset: 2px; }
