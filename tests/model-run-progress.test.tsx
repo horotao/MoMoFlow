@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, addEdge, useNodesState, useEdgesState, type Edge } from '@xyflow/react';
 import { CanvasHistoryContext, useCanvasHistory } from '../src/components/useCanvasHistory';
@@ -60,14 +60,13 @@ function advance() { store.update(all => all.map(task => task.state === 'Running
 function Harness() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [dark, setDark] = useState(true);
   const restore = useCallback((snapshot: { nodes: AppNode[]; edges: Edge[] }) => { setNodes(snapshot.nodes); setEdges(snapshot.edges); }, [setNodes, setEdges]);
   const history = useCanvasHistory(nodes, edges, restore);
   const tasks = useModelTasks();
   store = useModelTaskStore(); nodesNow = nodes; canUndo = history.canUndo; replaceNodes = setNodes;
   return <CanvasHistoryContext.Provider value={history}>
-    <div className="qa-toolbar"><button onClick={start}>演示运行</button><button onClick={advance}>推进预估进度</button><button onClick={() => requests.filter(request => !request.settled).forEach(request => respond(request))}>模拟完成</button><button onClick={() => { document.documentElement.classList.toggle('dark', !dark); setDark(!dark); }}>切换主题</button><span>本地模拟 · {tasks.filter(isActiveTask).length} 个活动任务</span></div>
-    <div className="qa-canvas"><ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={connection => setEdges(all => addEdge(connection, all))} fitView fitViewOptions={{ padding: .15 }} colorMode={dark ? 'dark' : 'light'}>
+    <div className="qa-toolbar"><button onClick={start}>演示运行</button><button onClick={advance}>推进预估进度</button><button onClick={() => requests.filter(request => !request.settled).forEach(request => respond(request))}>模拟完成</button><span>本地模拟 · {tasks.filter(isActiveTask).length} 个活动任务</span></div>
+    <div className="qa-canvas"><ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={connection => setEdges(all => addEdge(connection, all))} fitView fitViewOptions={{ padding: .15 }} colorMode="dark">
       <Background /><Controls /><MiniMap /><DescriberPanel />
     </ReactFlow></div>
   </CanvasHistoryContext.Provider>;
@@ -96,7 +95,8 @@ async function run() {
   const check = (value: unknown, message: string) => { assert(value, message); checks.push(message); };
   find('.sunburst-run').click();
   await until(() => Boolean(document.querySelector(`${nodeSelector('image')} [aria-busy="true"]`)), 'Starting state missing');
-  check(Boolean(find(`${nodeSelector('image')} .model-run-progress`).textContent?.match(/Starting|等待上游/)), 'Starting replaces Run Model');
+  check(Boolean(find(`${nodeSelector('image')} .model-run-progress`).textContent?.match(/\d+%|等待上游/))
+    && !document.querySelector(`${nodeSelector('image')} .sunburst-run`), 'Starting displays fixed-width progress in place of Run Model');
   await until(() => requests.length === 1, 'Image request not scheduled');
   find('.describer-run').click();
   await until(() => requests.length === 2, 'Description did not start concurrently');
@@ -106,10 +106,12 @@ async function run() {
   check(requests.length === 2, 'Running nodes cannot submit duplicate requests');
   const spinner = find(`${nodeSelector('image')} .model-run-spinner`);
   const style = getComputedStyle(spinner);
-  check(style.animationDuration === (matchMedia('(prefers-reduced-motion: reduce)').matches ? '4s' : '1s'), 'Spinner uses the reference animation duration');
+  check(style.animationDuration === (matchMedia('(prefers-reduced-motion: reduce)').matches ? '4s' : '0.84s'), 'GPT spinner uses the Figma animation duration');
   check(style.animationTimingFunction === (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'steps(4)' : 'linear'), 'Spinner respects reduced motion');
   const progress = find(`${nodeSelector('image')} .model-run-progress`);
-  check(getComputedStyle(progress).height === '32px' && getComputedStyle(progress).minWidth === '120px' && getComputedStyle(progress).borderRadius === '8px', 'Progress frame matches 120 × 32 and 8px corners');
+  check(getComputedStyle(progress).height === '32px' && getComputedStyle(progress).minWidth === '98px' && getComputedStyle(progress).borderRadius === '13px', 'GPT progress frame matches 98 × 32 and 13px corners');
+  const descriptionProgress = find(`${nodeSelector('description')} .model-run-progress`);
+  check(getComputedStyle(descriptionProgress).minWidth === '120px' && getComputedStyle(descriptionProgress).borderRadius === '8px', 'Description node retains its existing progress frame');
   check(Number(find(`${nodeSelector('image')} [role="progressbar"]`).getAttribute('aria-valuenow')) === nodeTask('image')?.progress, 'Node percentage matches shared task progress');
   check(document.querySelectorAll('.task-progress').length === 2, 'Task list shows both percentages and progress tracks');
   check(!canUndo, 'Progress does not create canvas undo entries');

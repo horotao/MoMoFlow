@@ -6,20 +6,20 @@
   --node-inset-radius: 14px;
   --node-padding: 14px;
   --node-gap: 14px;
-  --node-surface: #fff;
-  --node-inset: #f3f3f5;
-  --node-menu: #fff;
-  --node-border: #dcdce1;
-  --node-selected-border: #b6b4bb;
-  --node-divider: #dedee2;
-  --node-primary: #29292e;
-  --node-secondary: #60606b;
-  --node-muted: #767680;
-  --node-disabled: #a2a2aa;
-  --node-selected-row: rgb(0 0 0 / 5%);
-  --node-hover: rgb(0 0 0 / 8%);
-  --node-port-color: #b34bd1;
-  --node-variable-chip: #eddbf5;
+  --node-surface: #222;
+  --node-inset: #191919;
+  --node-menu: #282828;
+  --node-border: #2d2d2d;
+  --node-selected-border: #525252;
+  --node-divider: #373737;
+  --node-primary: #fff;
+  --node-secondary: #b3b3b3;
+  --node-muted: #808080;
+  --node-disabled: #636363;
+  --node-selected-row: rgb(255 255 255 / 5%);
+  --node-hover: rgb(255 255 255 / 8%);
+  --node-port-color: #e28cf8;
+  --node-variable-chip: #503c55;
   --node-shadow: rgb(0 0 0 / 20%);
   --text-node-surface: var(--node-surface);
   --text-node-input: var(--node-inset);
@@ -47,22 +47,6 @@
   text-align: left;
   isolation: isolate;
 }
-.dark .node-frame {
-  --node-surface: #222;
-  --node-inset: #191919;
-  --node-menu: #282828;
-  --node-border: #2d2d2d;
-  --node-selected-border: #525252;
-  --node-divider: #373737;
-  --node-primary: #fff;
-  --node-secondary: #b3b3b3;
-  --node-muted: #808080;
-  --node-disabled: #636363;
-  --node-selected-row: rgb(255 255 255 / 5%);
-  --node-hover: rgb(255 255 255 / 8%);
-  --node-port-color: #e28cf8;
-  --node-variable-chip: #503c55;
-}
 .react-flow .react-flow__node:has(> .node-frame) {
   width: max-content;
   height: auto;
@@ -82,8 +66,6 @@
 .node-title-label:has(input) { flex: 1; overflow: visible; }
 .node-title:has(input) { flex: 1; }
 .node-frame img { max-width: none; flex-shrink: 0; pointer-events: none; }
-.node-frame .node-monochrome { filter: brightness(0); }
-.dark .node-frame .node-monochrome { filter: none; }
 .node-options { position: relative; flex: 0 0 24px; }
 .node-options-trigger { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 3px; border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
 .node-options-trigger:hover, .node-options-trigger[aria-expanded="true"] { background: var(--node-divider); }

@@ -24,6 +24,8 @@ test('snapshot retains rich text, locked nodes, geometry and parameters without 
   assert.equal(saved.nodes[0].measured, undefined);
   assert.equal(workflow.nodes[0].selected, true);
   assert.deepEqual(saved.viewport, workflow.viewport);
+  assert.equal(saved.colorMode, 'dark');
+  assert.equal(workflow.colorMode, 'light');
   assert.equal(saved.edges[0].targetHandle, 'prompt');
   assert.equal(saved.edges[0].selected, undefined);
 });

@@ -183,12 +183,9 @@ async function run() {
   check(prompt().data.label === '', 'Undo data edit');
   canvasHistoryShortcut('redo'); await settle();
   check(prompt().data.label === '可撤销的标题', 'Redo data edit');
-  find('[aria-label="切换至浅色模式"]').click(); await settle();
-  check(getComputedStyle(frame).backgroundColor === 'rgb(255, 255, 255)', 'Light theme remains usable');
-  find('[aria-label="切换至深色模式"]').click(); await settle();
   api.updateNodeData('prompt', { label: '' });
   api.setNodes(nodes => nodes.map(node => ({ ...node, selected: false }))); await settle();
-  pass('长文本增长/滚动、编辑不移动画布、撤销/重做、浅色主题兼容');
+  pass('长文本增长/滚动、编辑不移动画布、撤销/重做');
   results.dataset.result = 'passed';
   results.textContent += `\n${checks.length} groups passed. Ready for pointer acceptance.`;
 }

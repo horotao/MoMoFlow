@@ -87,10 +87,6 @@ async function run() {
   api.updateNodeData('router', { label: 'Shared prompt', locked: true }); await settle();
   check(!api.getNode('router')?.draggable && !api.getNode('router')?.connectable && !api.getNode('router')?.deletable, 'Lock disables dragging, connecting and deletion');
   api.updateNodeData('router', { locked: false }); await settle();
-  find<HTMLButtonElement>('[aria-label="切换至浅色模式"]').click(); await settle();
-  check(getComputedStyle(find('[data-id="router"]')).backgroundColor === 'rgb(255, 255, 255)', 'Light theme uses the shared white surface');
-  check(getComputedStyle(find('.react-flow__edge[data-id="consumer"] .react-flow__edge-path')).stroke === 'rgb(179, 75, 209)', 'Routed text edges follow the light theme');
-  find<HTMLButtonElement>('[aria-label="切换至深色模式"]').click(); await settle();
   const saved = { ...workflow, nodes: api.getNodes(), edges: api.getEdges() };
   await storage.save(saved);
   const reader = new WorkflowStorage(db), restored = await reader.load();

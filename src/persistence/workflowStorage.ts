@@ -11,6 +11,7 @@ export type Workflow = {
   nodes: AppNode[];
   edges: Edge[];
   viewport: Viewport;
+  // Accept legacy snapshots; the app only displays and saves dark mode.
   colorMode: 'light' | 'dark';
 };
 type StoredWorkflow = Workflow & { version: 1; revision?: string };
@@ -19,7 +20,7 @@ const documentKey = 'current';
 // Drop React Flow's temporary interaction/measurement state, retain node content.
 export function workflowSnapshot(workflow: Workflow): StoredWorkflow {
   return {
-    ...workflow, version: 1,
+    ...workflow, version: 1, colorMode: 'dark',
     nodes: workflow.nodes.map(node => ({
       ...node, selected: undefined, dragging: undefined, measured: undefined, resizing: undefined,
     })),
@@ -135,7 +136,7 @@ export class WorkflowStorage {
       }
       return { ...asset, url };
     });
-    return { ...saved, nodes };
+    return { ...saved, nodes, colorMode: 'dark' };
   }
 
   // The caller serializes saves. Assets and graph commit in the same transaction.

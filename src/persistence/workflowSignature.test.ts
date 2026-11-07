@@ -37,9 +37,12 @@ test('actual text, graph, geometry, parameters, asset and viewport edits still d
     { ...baseline, nodes: [] },
     { ...baseline, viewport: { x: 10, y: 0, zoom: 1 } },
     { ...baseline, viewport: { x: 0, y: 0, zoom: 0.75 } },
-    { ...baseline, colorMode: 'light' },
     { ...baseline, nodes: [...baseline.nodes, { id: 'file', type: 'file', position: { x: 0, y: 0 }, data: { assets: [{ id: 'a', name: 'a.png', kind: 'image', url: 'blob:a' }] } }] },
   ];
   for (const edit of edits) assert.notEqual(workflowSignature(edit), workflowSignature(baseline));
   assert.equal(workflowSignature(structuredClone(baseline)), workflowSignature(baseline));
+});
+
+test('legacy light mode normalizes without dirtying restored content', () => {
+  assert.equal(workflowSignature({ ...baseline, colorMode: 'light' }), workflowSignature(baseline));
 });

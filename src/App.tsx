@@ -67,11 +67,11 @@ const creationChoices: NodeMenuChoice[] = items.filter(item => item.nodeType).ma
 const dockCreationChoices = creationChoices.filter(choice => !['position-logger', 'model-input'].includes(choice.itemId));
 
 export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | null }) {
-  const [colorMode, setColorMode] = useState<'light' | 'dark'>(saved?.colorMode ?? 'dark');
+  const colorMode = 'dark' as const;
   const [viewport, setViewport] = useState(saved?.viewport ?? { x: 0, y: 0, zoom: 1 });
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', colorMode === 'dark');
-  }, [colorMode]);
+    document.documentElement.classList.add('dark');
+  }, []);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(saved?.nodes ?? initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(saved?.edges ?? initialEdges);
@@ -575,23 +575,6 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         <ControlButton onClick={addTextNode} title="添加文本节点" aria-label="添加文本节点">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 4h16v3h-6.5v13h-3V7H4z" />
-          </svg>
-        </ControlButton>
-        <ControlButton
-          className="color-mode-toggle"
-          onClick={() => setColorMode((mode) => mode === 'light' ? 'dark' : 'light')}
-          title={colorMode === 'light' ? '切换至深色模式' : '切换至浅色模式'}
-          aria-label={colorMode === 'light' ? '切换至深色模式' : '切换至浅色模式'}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            {colorMode === 'light' ? (
-              <path d="M20.9 13.1A9 9 0 0 1 10.9 3.1a9 9 0 1 0 10 10Z" />
-            ) : (
-              <>
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
-              </>
-            )}
           </svg>
         </ControlButton>
       </Controls>

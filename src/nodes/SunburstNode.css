@@ -32,7 +32,7 @@
 .react-flow .sunburst-port-mask.is-connected::after { background: #e4ff97; }
 .react-flow .sunburst-port-image:hover, .react-flow .sunburst-port-image.connectingto { background: #97ffcd; }
 .react-flow .sunburst-port-mask:hover, .react-flow .sunburst-port-mask.connectingto { background: #e4ff97; }
-.react-flow:not(.dark) .sunburst-label-image { color: #23754d; }.react-flow:not(.dark) .sunburst-label-mask { color: #677d23; }
+
 .sunburst-settings h2 { display: flex; align-items: center; gap: 8px; min-height: 24px; margin-bottom: 16px; }
 .sunburst-settings h2 svg { flex-shrink: 0; }
 .sunburst-settings h2 span { font-size: 11px; line-height: 16px; }
@@ -48,11 +48,8 @@
 .sunburst-provider { height: 40px; flex-shrink: 0; padding: 0 16px; display: flex; align-items: center; gap: 6px; color: var(--panel-text); }
 .sunburst-provider > span:last-child { margin-left: auto; color: var(--panel-muted); font-size: 10px; }
 
-.react-flow:not(.dark) .sunburst-label-prompt { color: #9135b0; }
-.react-flow:not(.dark) .sunburst-port-prompt { background: #b34bd1; border-color: #b34bd1; }
 .sunburst-settings .describer-model-trigger:hover { background: var(--panel-input); }
 .sunburst-settings .describer-model-trigger[aria-expanded="true"] { border-color: var(--panel-muted); }
-.react-flow:not(.dark) .sunburst-label-parameter { color: #9135b0; }
 
 .sunburst-size-control { flex: 1; min-width: 0; width: 100%; }
 .sunburst-size-control > .describer-model-trigger { width: 100%; }

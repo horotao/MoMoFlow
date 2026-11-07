@@ -7,7 +7,7 @@ import { defaultCompositorDocument } from '../src/nodes/compositor';
 import { defaultPainterData } from '../src/nodes/painter';
 import { encodeMask } from '../src/nodes/masksExtractor';
 import { imageOutput } from '../src/nodes/sunburstRun';
-import { useCallback, useLayoutEffect, useState } from 'react';
+import { useCallback, useLayoutEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, useNodesState, useEdgesState, addEdge, type Edge, type ReactFlowInstance } from '@xyflow/react';
 import { nodeTypes } from '../src/nodes';
@@ -70,12 +70,11 @@ let flow: ReactFlowInstance<AppNode>;
 let undo: () => void;
 function Harness() {
   const [nodes, updateNodes, onNodesChange] = useNodesState(initialNodes), [edges, updateEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [mode, setMode] = useState<'dark' | 'light'>('dark');
   const restore = useCallback((value: { nodes: AppNode[]; edges: Edge[] }) => { updateNodes(value.nodes); updateEdges(value.edges); }, [updateNodes, updateEdges]);
   const history = useCanvasHistory(nodes, edges, restore);
   store = useModelTaskStore(); setNodes = updateNodes; setEdges = updateEdges; undo = history.undo;
   useLayoutEffect(() => { graph = { nodes, edges }; }, [nodes, edges]);
-  return <CanvasHistoryContext.Provider value={history}><button id="theme" onClick={() => { const next = mode === 'dark' ? 'light' : 'dark'; document.documentElement.classList.toggle('dark', next === 'dark'); setMode(next); }}>切换主题</button><ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={connection => updateEdges(all => addEdge(connection, all))} onInit={instance => { flow = instance; }} colorMode={mode} fitView><Background /><Controls /><MiniMap /><DescriberPanel /></ReactFlow></CanvasHistoryContext.Provider>;
+  return <CanvasHistoryContext.Provider value={history}><ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={connection => updateEdges(all => addEdge(connection, all))} onInit={instance => { flow = instance; }} colorMode="dark" fitView><Background /><Controls /><MiniMap /><DescriberPanel /></ReactFlow></CanvasHistoryContext.Provider>;
 }
 const checks: string[] = [];
 function assert(value: unknown, message: string): asserts value { if (!value) throw new Error(message); }
@@ -222,7 +221,6 @@ async function run() {
   setNodes(all => all.map(node => node.id === 'g' ? { ...node, position: { x: node.position.x + 40, y: node.position.y + 20 } } : node)); await settle();
   check(target().position.x === savedGraph.nodes.find(node => node.id === 'g')!.position.x + 40, 'Moving nodes updates coordinates without losing results');
   await flow.zoomTo(.5); check(Math.abs(flow.getZoom() - .5) < .01 && Boolean(document.querySelector('.react-flow__minimap')), 'Zoom controls and minimap remain available');
-  document.getElementById('theme')!.click(); await settle(); check(Boolean(document.querySelector('.react-flow.light')), 'Light theme renders workflow controls');
   await flow.fitView({ padding: .15 });
   document.getElementById('results')!.textContent = `PASS (${checks.length}) · No real model calls\n${checks.join('\n')}`; document.getElementById('results')!.dataset.result = 'passed';
 }

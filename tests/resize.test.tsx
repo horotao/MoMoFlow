@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, addEdge, useNodesState, useEdgesState, type Edge } from '@xyflow/react';
 import { CanvasHistoryContext, useCanvasHistory } from '../src/components/useCanvasHistory';
@@ -46,14 +46,13 @@ function Harness({ source }: { source: FileAsset }) {
     { id: 'preview', type: 'preview', position: { x: 1180, y: 40 }, data: {} },
   ]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  const [colorMode, setColorMode] = useState<'dark' | 'light'>('dark');
   nodesNow = nodes; edgesNow = edges; replaceNodes = setNodes; replaceEdges = setEdges;
   const restore = useCallback((value: { nodes: AppNode[]; edges: Edge[] }) => { setNodes(value.nodes); setEdges(value.edges); }, [setNodes, setEdges]);
   const history = useCanvasHistory(nodes, edges, restore);
   const output = imageOutput(nodes.find(node => node.id === 'resize'), 'result', nodes, edges)[0];
   return <CanvasHistoryContext.Provider value={history}>
-    <div className="qa-toolbar"><button data-test="undo" disabled={!history.canUndo} onClick={history.undo}>Undo</button><button data-test="redo" disabled={!history.canRedo} onClick={history.redo}>Redo</button><button onClick={() => { setColorMode(colorMode === 'dark' ? 'light' : 'dark'); document.documentElement.classList.toggle('dark'); }}>Theme</button></div>
-    <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} colorMode={colorMode}
+    <div className="qa-toolbar"><button data-test="undo" disabled={!history.canUndo} onClick={history.undo}>Undo</button><button data-test="redo" disabled={!history.canRedo} onClick={history.redo}>Redo</button></div>
+    <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} colorMode="dark"
       defaultViewport={{ x: 25, y: 10, zoom: .58 }} minZoom={.2} onConnect={connection => setEdges(current => addEdge(connection, current))}
       isValidConnection={connection => canConnect(connection, nodes, edges)}
       onKeyDown={event => {

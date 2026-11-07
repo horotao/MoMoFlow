@@ -12,6 +12,10 @@ import { FileIcon } from './FileIcon';
 import { FileActionMenu } from './FileActionMenu';
 import { FileGallery } from './FileGallery';
 import { TextNodeMenu } from './TextNodeMenu';
+import { NodePort } from './shared/NodePort';
+import { NodeFrame } from './shared/NodeFrame';
+import { NodeImagePreview } from './shared/NodeImagePreview';
+import './shared/mediaNodeStyle.css';
 import type { AppNode, FileAsset, ImageIteratorNode as ImageIteratorNodeType, FileNode as FileNodeType } from './types';
 
 const isCollection = (node: AppNode | undefined): node is FileNodeType | ImageIteratorNodeType => Boolean(node && (isFileNode(node) || isImageIteratorNode(node)));
@@ -134,7 +138,7 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
     {item.kind === '3d' && <div className="file-node-file"><Box size={48} strokeWidth={1} /><span>{item.name}</span><small>3D file · Preview unavailable</small></div>}
     {failedAssets.includes(item.id) && <div className="file-node-preview-error" role="status">Preview unavailable. Check the file format or link.</div>}
   </>;
-  return <>
+  const content = <>
     <header className="file-node-header">
       <NodeIcon nodeType={iterator ? 'image-iterator' : 'file'} />
       {renaming ? <input autoFocus className="file-node-rename nodrag nopan" aria-label="File node name"
@@ -144,13 +148,13 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
           if (event.key === 'Enter') event.currentTarget.blur();
           if (event.key === 'Escape') setRenaming(false);
         }} /> : <span className="file-node-title" title={nodeTitle}>{nodeTitle}</span>}
-      <TextNodeMenu id={id} locked={locked} onRename={() => { setTitle(nodeTitle); setRenaming(true); }} onClear={iterator ? () => {
+      <TextNodeMenu appearance={iterator ? 'default' : 'shared'} id={id} locked={locked} onRename={() => { setTitle(nodeTitle); setRenaming(true); }} onClear={iterator ? () => {
         const current = getNode(id);
         if (!isImageIteratorNode(current) || current.data.locked) return;
         importVersion.current++; importPending.current = false; setBusy(false); setError('');
         updateNodeData(id, { asset: undefined, assets: [], activeAssetId: undefined });
       } : undefined}>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+        {!iterator ? <img src="/node-style/more.svg" width={18} height={18} alt="" className="node-monochrome" /> : <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>}
       </TextNodeMenu>
     </header>
     <div ref={media} tabIndex={iterator ? 0 : undefined} className={`file-node-media nodrag nopan nowheel${asset ? ' has-assets' : ''}${grid ? ' is-grid' : ''}${dragging ? ' is-dragging' : ''}`}
@@ -160,8 +164,11 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
       onDragLeave={(event) => { if (!event.dataTransfer.types.includes('Files')) return; event.preventDefault(); event.stopPropagation(); if (--dragDepth.current <= 0) { dragDepth.current = 0; setDragging(false); } }}
       onDrop={(event) => { if (!event.dataTransfer.types.includes('Files')) return; event.preventDefault(); event.stopPropagation(); dragDepth.current = 0; setDragging(false); void importFiles(event.dataTransfer.files); }}>
       {!asset ? <button type="button" className="file-node-upload" disabled={locked || busy} onClick={() => input.current?.click()}>
-        <Upload size={24} strokeWidth={1.4} /><span>{iterator ? busy ? '正在读取图片…' : '拖放图片或点击上传' : busy ? 'Loading files…' : 'Drag & drop or click to upload'}</span>
-      </button> : <>
+        {iterator ? <Upload size={24} strokeWidth={1.4} /> : <img src="/image-node/upload.svg" width={24} height={24} alt="" />}<span>{iterator ? busy ? '正在读取图片…' : '拖放图片或点击上传' : busy ? '正在读取文件…' : '拖放文件或点击上传'}</span>{!iterator && <small>图片 · 视频 · 音频 · 3D</small>}
+      </button> : !iterator ? <NodeImagePreview nodeId={id} assets={assets} active={asset} grid={grid} orderBy={data.orderBy} locked={locked}
+        onSelect={select} onGridChange={() => updateNodeData(id, { viewMode: grid ? 'single' : 'all' })}
+        onOrderChange={orderBy => updateNodeData(id, { orderBy })} onFullscreen={assetId => { select(assetId); setGallery(true); }}
+        onDownload={runDownload} renderMedia={preview} /> : <>
         {grid ? <div className="file-node-grid" aria-label="Images">
           {[0, 1].map((column) => <div className="file-node-grid-column" key={column}>{assets.filter((_, index) => index % 2 === column).map((item) => <div key={item.id}
             className={`file-node-tile${item.id === asset.id ? ' is-active' : ''}`} data-asset-id={item.id} role="button" tabIndex={0} aria-label={`Select ${item.name}`} aria-pressed={item.id === asset.id}
@@ -212,17 +219,20 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
       { label: '设为封面', disabled: locked, action: () => select(contextAsset.id) },
       { label: '复制图片', action: () => { void copyAssetImage(contextAsset).catch(error => setError(error instanceof Error ? error.message : '复制图片失败。')); } },
     ]} />}
-    {asset ? <button type="button" className="file-node-add nodrag nopan" disabled={locked || busy || (iterator && assets.length >= imageIteratorLimit)} onClick={() => input.current?.click()}>{iterator ? busy ? '正在读取图片…' : '+ 添加更多图片' : busy ? 'Loading files…' : `+ Add more ${kind === 'image' ? 'images' : 'files'}`}</button> : <form className="file-node-link nodrag nopan" onSubmit={(event) => { event.preventDefault(); void importLink(); }}>
-      <input aria-label={iterator ? '粘贴图片链接' : 'Paste a file link'} placeholder={iterator ? '粘贴图片链接' : 'Paste a file link'} value={link} disabled={locked || busy}
+    {asset ? <button type="button" className="file-node-add nodrag nopan" disabled={locked || busy || (iterator && assets.length >= imageIteratorLimit)} onClick={() => input.current?.click()}>{iterator ? busy ? '正在读取图片…' : '+ 添加更多图片' : busy ? '正在读取文件…' : `+ 添加更多${kind === 'image' ? '图片' : '文件'}`}</button> : <form className="file-node-link nodrag nopan" onSubmit={(event) => { event.preventDefault(); void importLink(); }}>
+      <input aria-label={iterator ? '粘贴图片链接' : '粘贴文件链接'} placeholder={iterator ? '粘贴图片链接' : '粘贴文件链接'} value={link} disabled={locked || busy}
         onChange={(event) => { setLink(event.target.value); setError(''); }} onKeyDown={(event) => event.stopPropagation()} />
     </form>}
     {error && <div className="file-node-error nodrag" role="alert">{error}</div>}
     <input ref={input} type="file" className="file-node-input" accept={iterator ? imageIteratorAccept : fileAccept} multiple tabIndex={-1} aria-label={iterator ? '选择图片' : 'Choose files'} disabled={locked || busy}
       onChange={(event) => { if (event.target.files) void importFiles(event.target.files); event.target.value = ''; }} />
-    <Handle id="file" type="source" position={Position.Right} isConnectable={isConnectable && !locked} aria-label={`${kind === 'image' ? 'Image' : 'File'} output`}
+    {!iterator && (kind === 'image' || kind === 'file') ? <div className={`media-port-${kind}`}><NodePort id="file" label={kind === 'image' ? 'Image' : 'File'} type="source" position={Position.Right} isConnectable={isConnectable && !locked}>
+      <img src={`/image-node/port-${kind}.svg`} width={32} height={32} alt="" />{connected && <span className="media-port-dot" />}
+    </NodePort></div> : <Handle id="file" type="source" position={Position.Right} isConnectable={isConnectable && !locked} aria-label={`${kind === 'image' ? 'Image' : 'File'} output`}
       style={{ '--file-port': filePortColors[kind] } as CSSProperties} className={`file-node-port${connected ? ' is-connected' : ''}`}>
-      <span className="file-node-port-label">File</span>
-    </Handle>
+      <span className="file-node-port-label">{kind === 'image' ? 'Image' : 'File'}</span>
+    </Handle>}
     {gallery && asset && <FileGallery assets={assets} activeId={asset.id} onSelect={select} onClose={() => setGallery(false)} />}
   </>;
+  return iterator ? content : <NodeFrame className="media-node-frame file-node-frame">{content}</NodeFrame>;
 }
