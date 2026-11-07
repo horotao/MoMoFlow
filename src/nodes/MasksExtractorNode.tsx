@@ -1,7 +1,8 @@
-import { NodeIcon } from './NodeIcon';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { CursorAddSelection02Icon } from '@hugeicons/core-free-icons';
 import { useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Download, RotateCcw } from 'lucide-react';
+import { Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { Download } from 'lucide-react';
 import { isMasksExtractorNode, isNodeLocked, type AppNode, type MasksExtractorNode as MasksNode, type FileAsset } from './types';
 import { imageOutput } from './sunburstRun';
 import { combineMasks, decodeMask, encodeMask, maskOperation, maskPoint, masksRevision, type MaskBitmap, type MaskOperation, type MaskPoint } from './masksExtractor';
@@ -11,6 +12,9 @@ import { maskCanvas, renderMasks } from './masksRender';
 import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
 import { TextNodeMenu } from './TextNodeMenu';
+import { NodeFrame, NodeHeader } from './shared/NodeFrame';
+import { NodePort } from './shared/NodePort';
+import './shared/mediaNodeStyle.css';
 import './MasksExtractorNode.css';
 
 export function MasksExtractorNode({ id, data, isConnectable }: NodeProps<MasksNode>) {
@@ -131,15 +135,15 @@ export function MasksExtractorNode({ id, data, isConnectable }: NodeProps<MasksN
     : progress?.stage === 'loading' ? '正在加载分割模型…'
       : progress?.stage === 'encoding' ? '正在分析图片…' : '正在生成蒙版…';
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="masks-extractor" />{renaming
+  return <NodeFrame className="media-node-frame masks-node-frame">
+    <NodeHeader icon={<HugeiconsIcon icon={CursorAddSelection02Icon} size={16} aria-hidden="true" />} title={renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '蒙版提取'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '蒙版提取'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
-    </header>
+        : <span>{data.label || '蒙版提取'}</span>}
+      actions={<TextNodeMenu id={id} appearance="shared" locked={Boolean(data.locked)} onRename={() => { setName(data.label || '蒙版提取'); setRenaming(true); }}>
+        <img src="/node-style/more.svg" width={18} height={18} alt="" draggable={false} />
+      </TextNodeMenu>} />
     <div className="masks-preview nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }} aria-busy={busy} onKeyDown={cancelOnEscape}>
       <canvas ref={canvas} aria-label="点击图片选择物体" aria-disabled={!sourceImage || Boolean(data.locked)} tabIndex={input ? 0 : -1}
         onPointerDown={event => {
@@ -176,21 +180,21 @@ export function MasksExtractorNode({ id, data, isConnectable }: NodeProps<MasksN
           title={['点击替换选区', 'Shift + 点击添加选区', 'Alt + Shift + 点击减去选区'][index]} onClick={() => setMode(value)}>{['选择', '添加', '减去'][index]}</button>)}
       </div>
       <div className="masks-actions">
-        <button type="button" aria-label="清空选区" title="清空选区" disabled={!selection || Boolean(data.locked)} onClick={() => { cancel(); patch({ selection: undefined, mask: undefined, result: undefined, outputRevision: undefined }); }}><RotateCcw size={14} /></button>
+        <button type="button" aria-label="清空选区" title="清空选区" disabled={!selection || Boolean(data.locked)} onClick={() => { cancel(); patch({ selection: undefined, mask: undefined, result: undefined, outputRevision: undefined }); }}>清空</button>
         <button className="masks-recalculate" type="button" disabled={!input || !(lastPoint.current || selection?.point) || busy || Boolean(data.locked)} title="重新分析上次点击的区域，保留选区加减方式"
           onClick={() => { if (lastPoint.current) { canvas.current?.focus(); void run(lastPoint.current, lastOperation.current, false, true); } }}>重新计算蒙版</button>
       </div>
     </div>
-    {input && !selection && !busy && !error && <div className="masks-hint">点击选择 · Shift 添加 · Alt+Shift 减去</div>}
     {error && <div role="alert" className="preview-error masks-error">{error}</div>}
-    {[{ handle: 'image', label: 'Image', output: false, top: 89 }, { handle: 'result', label: 'Image With Alpha', output: true, top: 89 }, { handle: 'mask', label: 'Mask', output: true, top: 149 }].map(port => {
+    {[{ handle: 'image', label: 'Image', output: false, top: 87 }, { handle: 'result', label: 'Image With Alpha', output: true, top: 87 }, { handle: 'mask', label: 'Mask', output: true, top: 147 }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-${port.handle === 'mask' ? 'mask' : 'image'}${port.output ? ' output-label' : ''}`} style={{ top: port.top - 28 }}>{port.label}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: port.top }}
-          aria-label={`Masks Extractor ${port.label}`} className={`describer-port sunburst-port-${port.handle === 'mask' ? 'mask' : 'image'}${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked} />
+      return <div className={`media-port-${port.handle === 'mask' ? 'mask' : 'image'}`} key={port.handle}>
+        <NodePort id={port.handle} label={port.label} top={port.top} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left}
+          isConnectable={isConnectable && !data.locked}>
+          <img src={`/image-node/port-${port.handle === 'mask' ? 'mask' : 'image'}.svg`} width={32} height={32} alt="" draggable={false} />
+          {connected && <span className="media-port-dot" />}
+        </NodePort>
       </div>;
     })}
-  </>;
+  </NodeFrame>;
 }
