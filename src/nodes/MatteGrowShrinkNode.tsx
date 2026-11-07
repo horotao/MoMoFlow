@@ -1,8 +1,7 @@
-import { NodeIcon } from './NodeIcon';
-import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis, Eye, EyeOff } from 'lucide-react';
+import { Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { Eye, EyeOff, LockKeyhole } from 'lucide-react';
 import type { AppNode, MatteGrowShrinkNode as MatteGrowShrink } from './types';
 import { isMatteGrowShrinkNode, isNodeLocked } from './types';
 import { matteGrowShrinkControls, matteGrowShrinkRevision, type MatteGrowShrinkSettings } from './matteGrowShrink';
@@ -14,6 +13,12 @@ import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
 import { TextNodeMenu } from './TextNodeMenu';
 import { CanvasHistoryContext } from '../components/useCanvasHistory';
+import { NodeFrame, NodeHeader } from './shared/NodeFrame';
+import { NodePort } from './shared/NodePort';
+import { NodeRangeInput } from './shared/NodeRangeInput';
+import './shared/mediaNodeStyle.css';
+import './PainterNode.css';
+import './MatteGrowShrinkNode.css';
 
 function MatteGrowShrinkNumber({ value, control, disabled, onCommit }: {
   value: number; control: typeof matteGrowShrinkControls[number]; disabled: boolean; onCommit: (value: number) => void;
@@ -62,8 +67,6 @@ export function MatteGrowShrinkNode({ id, data, isConnectable }: NodeProps<Matte
   const image = loaded?.url === input?.url ? loaded?.image : undefined;
   const width = image?.naturalWidth ?? input?.width, height = image?.naturalHeight ?? input?.height;
   const settings = draft ?? data.settings;
-  const progress = (settings.size - matteGrowShrinkControls[0].min)
-    / (matteGrowShrinkControls[0].max - matteGrowShrinkControls[0].min);
   const ready = Boolean(image);
   const output = imageOutput(getNode(id), 'result', nodes, edges)[0];
   const patch = (value: Partial<MatteGrowShrink['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
@@ -155,16 +158,15 @@ export function MatteGrowShrinkNode({ id, data, isConnectable }: NodeProps<Matte
     }).catch(() => { if (isCurrent()) setError('无法处理蒙版扩张 / 收缩图片，请重试或更换可读取的图片。'); });
   }, [id, engine, image, settings, draft, revision, inputId, input?.url, data.locked, getNode, getNodes, getEdges, updateNodeData]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="matte-grow-shrink" size={18} />{renaming
+  return <NodeFrame className="media-node-frame painter-node-frame matte-grow-shrink-node-frame">
+    <NodeHeader icon={<img src="/matte-node/expand.svg" width={18} height={18} alt="" />} title={renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '蒙版扩张 / 收缩'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '蒙版扩张 / 收缩'); setRenaming(true); }}><Ellipsis size={18} /></TextNodeMenu>
-    </header>
-    <div className="preview-image color-image nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
+        : <span>{data.label || '蒙版扩张 / 收缩'}</span>}
+      status={data.locked && <LockKeyhole size={12} aria-label="已锁定" />}
+      actions={<TextNodeMenu appearance="shared" id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '蒙版扩张 / 收缩'); setRenaming(true); }}><img src="/node-style/more.svg" width={18} height={18} alt="" /></TextNodeMenu>} />
+    <div className="preview-image matte-grow-shrink-preview nodrag nopan" style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
       {ready && <>
         <canvas ref={canvas} aria-label="Matte Grow / Shrink preview" style={{ visibility: original ? 'hidden' : undefined }} />
         {original && <img src={input!.url} alt="Original mask" draggable={false} />}
@@ -185,12 +187,11 @@ export function MatteGrowShrinkNode({ id, data, isConnectable }: NodeProps<Matte
         </div>
       </>}
     </div>
-    <div className="color-settings matte-grow-shrink-settings nodrag nopan nowheel" onKeyDown={event => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') return; event.stopPropagation(); if (event.key === 'Escape') cancelDraft(); }}>
-      {matteGrowShrinkControls.map(control => <div className="color-setting" key={control.key}>
+    <div className="painter-controls matte-grow-shrink-settings nodrag nopan nowheel" onKeyDown={event => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') return; event.stopPropagation(); if (event.key === 'Escape') cancelDraft(); }}>
+      {matteGrowShrinkControls.map(control => <div className="painter-field" key={control.key}>
         <label htmlFor={`${id}-${control.key}`}>{control.label}</label>
-        <input id={`${id}-${control.key}`} type="range" aria-label={control.label} min={control.min} max={control.max} step={control.step}
+        <NodeRangeInput id={`${id}-${control.key}`} aria-label={control.label} min={control.min} max={control.max} step={control.step}
           value={settings[control.key]} disabled={data.locked}
-          style={{ '--matte-fill': `calc(${progress * 100}% + ${6 - progress * 12}px)` } as CSSProperties}
           onPointerDown={event => {
             if (event.button !== 0) return;
             // Finish a focused number field's blur commit before starting this drag.
@@ -219,13 +220,14 @@ export function MatteGrowShrinkNode({ id, data, isConnectable }: NodeProps<Matte
     </div>
     {[{ handle: 'image', label: 'Input', output: false }, { handle: 'result', label: 'Output', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-mask${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
-          aria-label={`Matte Grow / Shrink ${port.label}`} className={`describer-port sunburst-port-mask${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked} />
+      return <div className="media-port-mask" key={port.handle}>
+        <NodePort label={`${port.label}${port.output ? '' : '*'}`} id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} top={88}
+          isConnectable={isConnectable && !data.locked}>
+          <img src="/image-node/port-mask.svg" width={32} height={32} alt="" />
+          {connected && <span className="media-port-dot" />}
+        </NodePort>
       </div>;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }

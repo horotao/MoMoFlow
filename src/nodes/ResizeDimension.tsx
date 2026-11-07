@@ -7,7 +7,7 @@ export function ResizeDimension({ axis, value, disabled, onCommit }: {
   const [draft, setDraft] = useState(initial);
   const cancelled = useRef(false);
   useEffect(() => { setDraft(initial); }, [initial]);
-  return <label className="resize-dimension">
+  return <label className={`resize-dimension resize-dimension-${axis}`}>
     <span>{axis === 'width' ? 'W' : 'H'}</span>
     <input aria-label={axis === 'width' ? 'Width' : 'Height'} inputMode="numeric" autoComplete="off" value={draft} placeholder="—" disabled={disabled}
       onFocus={() => { cancelled.current = false; }}

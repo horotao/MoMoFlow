@@ -1,16 +1,18 @@
-import { NodeIcon } from './NodeIcon';
 import { useEffect, useRef, useState } from 'react';
-import { Handle, Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Ellipsis } from 'lucide-react';
+import { Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { LockOpen } from 'lucide-react';
 import { isResizeNode, isNodeLocked, type AppNode, type ResizeNode as Resize } from './types';
 import { changeResizeDimension, resizeRevision, resizeSize, toggleResizeAspectRatio, validResizeSize } from './resize';
 import { imageOutput } from './sunburstRun';
 import { assetResources } from './assetResources';
 import { downloadAsset } from './fileMedia';
 import { FileIcon } from './FileIcon';
-import { AspectRatioIcon } from './ResizeIcon';
 import { ResizeDimension } from './ResizeDimension';
 import { TextNodeMenu } from './TextNodeMenu';
+import { NodeFrame, NodeHeader } from './shared/NodeFrame';
+import { NodePort } from './shared/NodePort';
+import './shared/mediaNodeStyle.css';
+import './ResizeNode.css';
 
 export function ResizeNode({ id, data, isConnectable }: NodeProps<Resize>) {
   const nodes = useNodes<AppNode>(), edges = useEdges();
@@ -87,16 +89,14 @@ export function ResizeNode({ id, data, isConnectable }: NodeProps<Resize>) {
 
   useEffect(() => updateInternals(id), [id, width, height, updateInternals]);
 
-  return <>
-    <header className="text-node-header">
-      <div className="text-node-title"><NodeIcon nodeType="resize" />{renaming
+  return <NodeFrame className="media-node-frame resize-node-frame">
+    <NodeHeader icon={<img src="/resize-node/resize.svg" width={16} height={16} alt="" />} title={renaming
         ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
           onBlur={() => { if (name.trim()) patch({ label: name.trim() }); setRenaming(false); }}
           onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-        : <span>{data.label || '调整尺寸'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '调整尺寸'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
-    </header>
-    <div className="preview-image nodrag nopan" aria-busy={Boolean(input && !output && !error && !data.locked)} style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
+        : <span>{data.label || '调整尺寸'}</span>}
+      actions={<TextNodeMenu appearance="shared" id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '调整尺寸'); setRenaming(true); }}><img src="/node-style/more.svg" width={18} height={18} alt="" /></TextNodeMenu>} />
+    <div className="preview-image resize-preview nodrag nopan" aria-busy={Boolean(input && !output && !error && !data.locked)} style={{ aspectRatio: width && height ? `${width} / ${height}` : '1' }}>
       {image && <canvas ref={canvas} aria-label="Resize preview" />}
       {input && <div className="file-media-overlay">
         <div className="file-media-top resize-media-top">
@@ -106,28 +106,29 @@ export function ResizeNode({ id, data, isConnectable }: NodeProps<Resize>) {
         {width && height && <span className="file-media-resolution">{width} × {height}</span>}
       </div>}
     </div>
-    <div className="resize-controls nodrag nopan" onKeyDown={event => {
-      if (!((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z')) event.stopPropagation();
+    <div className={`resize-controls nodrag nopan${data.locked ? ' is-locked' : ''}`} onKeyDown={event => {
+      if (event.key !== 'Escape' && !((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z')) event.stopPropagation();
     }}>
       <ResizeDimension key={`width-${inputId}`} axis="width" value={width} disabled={data.locked || !image} onCommit={value => change('width', value)} />
       <ResizeDimension key={`height-${inputId}`} axis="height" value={height} disabled={data.locked || !image} onCommit={value => change('height', value)} />
-      <button type="button" role="checkbox" aria-label="Lock aspect ratio" aria-checked={data.settings.lockAspectRatio}
+      <button type="button" className="resize-aspect-lock" role="checkbox" aria-label="Lock aspect ratio" aria-checked={data.settings.lockAspectRatio}
         title={data.settings.lockAspectRatio ? '锁定比例：宽高等比例调整' : '自由调整：分别设置宽高'} disabled={data.locked}
         onClick={() => patch({ settings: toggleResizeAspectRatio(data.settings) })}>
-        <AspectRatioIcon locked={data.settings.lockAspectRatio} />
+        {data.settings.lockAspectRatio ? <img src="/resize-node/lock.svg" width={14} height={14} alt="" /> : <LockOpen size={14} aria-hidden="true" />}
       </button>
       <button type="button" className="resize-reset" title="恢复原图尺寸" disabled={data.locked || !image}
         onClick={() => { setError(''); patch({ settings: { lockAspectRatio: data.settings.lockAspectRatio } }); }}>Reset</button>
     </div>
-    {[{ handle: 'image', label: 'Input', output: false }, { handle: 'result', label: 'Output', output: true }].map(port => {
+    {[{ handle: 'image', label: 'Image', output: false }, { handle: 'result', label: 'Result', output: true }].map(port => {
       const connected = edges.some(edge => port.output ? edge.source === id && edge.sourceHandle === port.handle : edge.target === id && edge.targetHandle === port.handle);
-      return <div className="describer-port-wrapper" key={port.handle}>
-        <span className={`describer-port-label sunburst-label-image${port.output ? ' output-label' : ''}`} style={{ top: 61 }}>{port.label}{!port.output && '*'}</span>
-        <Handle id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} style={{ top: 89 }}
-          aria-label={`Resize ${port.label}`} className={`describer-port sunburst-port-image${connected ? ' is-connected' : ''}`}
-          isConnectable={isConnectable && !data.locked} />
+      return <div className="media-port-image" key={port.handle}>
+        <NodePort label={port.label} id={port.handle} type={port.output ? 'source' : 'target'} position={port.output ? Position.Right : Position.Left} top={88}
+          isConnectable={isConnectable && !data.locked}>
+          <img src="/image-node/port-image.svg" width={32} height={32} alt="" />
+          {connected && <span className="media-port-dot" />}
+        </NodePort>
       </div>;
     })}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }
