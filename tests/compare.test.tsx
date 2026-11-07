@@ -118,8 +118,23 @@ async function run() {
   replaceNodes(nodesNow.map(item => item.id === 'file1' ? { ...item, data: { assets: [wide] } } as AppNode : item)); await settle();
   await until(() => Array.from(document.querySelectorAll<HTMLImageElement>('.compare-image img')).some(img => img.naturalWidth === 3840), '4K replacement loads');
   check(imageOutput(node(), 'output-1', nodesNow, edgesNow)[0]?.width === 3840 && imageOutput(node(), 'output-2', nodesNow, edgesNow)[0]?.height === 1376, 'Mismatched ratios preserve independent native outputs');
+  const panorama = await sample(1600, 100);
+  replaceNodes(nodesNow.map(item => item.id === 'file1' ? { ...item, data: { assets: [panorama] } } as AppNode : item)); await settle();
+  await until(() => Array.from(document.querySelectorAll<HTMLImageElement>('.compare-image img')).some(img => img.naturalWidth === 1600 && img.naturalHeight === 100), 'Panoramic replacement loads');
+  for (const mode of ['slider', 'toggle'] as const) {
+    await patch({ mode });
+    const frame = find('.compare-node-frame').getBoundingClientRect();
+    const ports = Array.from(document.querySelectorAll<HTMLElement>('.compare-node-frame .react-flow__handle'));
+    check(ports.length === 4 && ports.every(port => {
+      const bounds = port.getBoundingClientRect();
+      return bounds.top >= frame.top && bounds.bottom <= frame.bottom;
+    }), `${mode}: panoramic images keep all four ports inside the node height`);
+    const preview = find('.compare-image').getBoundingClientRect();
+    check(Math.abs(preview.width / preview.height - 16) < .01, `${mode}: panoramic previews retain the input aspect ratio`);
+  }
+  await patch({ mode: 'slider' });
   replaceNodes(nodesNow.map(item => item.id === 'file1' ? { ...item, data: { assets: [first] } } as AppNode : item)); await settle();
-  check(getComputedStyle(find('.compare-layer')).backgroundImage.includes('conic'), 'Transparent previews preserve checkerboard');
+  check(getComputedStyle(find('.compare-layer')).backgroundImage.includes('/compare-node/checkerboard.svg'), 'Transparent previews preserve checkerboard');
   find('#results').dataset.result = 'passed'; find('#results').textContent = `${checks.length} checks passed — Slider / Toggle, history, storage, 4K, connections, locks and transparency.`;
 }
 void run().catch(error => { find('#results').dataset.result = 'failed'; find('#results').textContent = String(error); console.error(error); });
