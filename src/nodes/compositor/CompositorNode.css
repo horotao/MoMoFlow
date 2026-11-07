@@ -1,0 +1,31 @@
+/* Node-only Figma appearance. The full-screen editor keeps Compositor.css. */
+.compositor-node-frame { --node-padding: 16px; corner-shape: round; }
+.compositor-node-frame > :is(.node-header, .compositor-node-body, .compositor-node-footer) { width: 424px; }
+.compositor-node-frame .node-title { gap: 6px; }
+.compositor-node-frame .node-title-icon { flex-basis: 18px; width: 18px; height: 18px; }
+.compositor-node-frame .text-node-rename { box-sizing: border-box; width: 100%; min-width: 0; height: 24px; font: inherit; }
+.compositor-node-frame .node-options-menu { top: calc(100% + 6px); right: 0; left: auto; }
+.compositor-node-frame .node-options-menu.is-above { top: auto; bottom: calc(100% + 6px); }
+.compositor-icon { display: flex; align-items: center; justify-content: center; flex: 0 0 16px; width: 16px; height: 16px; }
+/* Keep the original 24px SVG dimensions; scale within each design slot. */
+.compositor-icon > img { transform: scale(calc(16 / 24)); }
+.compositor-title-icon { flex-basis: 18px; width: 18px; height: 18px; }
+.compositor-title-icon > img { transform: scale(.75); }
+.compositor-node-body { display: flex; align-items: flex-start; }
+.compositor-node-preview { position: relative; width: 100%; height: auto; overflow: hidden; border: 0; border-radius: var(--node-inset-radius); background: var(--node-inset) url('/compositor-node/checkerboard.svg') 0 0 / 424px 424px; }
+/* Match the document ratio without adding checkerboard slivers to its output. */
+.compositor-node-preview > canvas { display: block; width: 100%; height: 100%; }
+.compositor-node-size { position: absolute; bottom: 12px; left: 16px; z-index: 1; color: #fff; font: 500 9px/14px var(--font-ui); }
+.compositor-node-overlay > button { pointer-events: none; }
+.compositor-node-preview:is(:hover, :has(:focus-visible)) > .compositor-node-overlay { opacity: 1; }
+.compositor-node-preview:is(:hover, :has(:focus-visible)) > .compositor-node-overlay > button { pointer-events: auto; }
+.compositor-node-footer { display: flex; align-items: center; justify-content: space-between; height: 28px; gap: 12px; }
+.compositor-node-footer > button { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; height: 28px; padding: 0; gap: 6px; border: 0; border-radius: 6px; background: transparent; color: var(--node-secondary); font: 400 11px/16px var(--font-ui); white-space: nowrap; cursor: pointer; }
+.compositor-node-footer > .compositor-add { width: 110px; }
+.compositor-node-footer > .compositor-edit { width: 72px; background: #303030; }
+.compositor-node-footer > button:hover:not(:disabled) { background: var(--node-divider); }
+.compositor-node-footer > button:focus-visible { outline: 1px solid var(--node-selected-border); outline-offset: 2px; }
+.compositor-node-footer > button:disabled { opacity: .4; cursor: default; }
+.compositor-download { position: absolute; top: 8px; right: 8px; z-index: 1; border-radius: 5px; }
+.compositor-download:hover:not(:disabled) { background: #ffffff0d; }
+.compositor-download:disabled { opacity: .4; cursor: default; background: transparent; }

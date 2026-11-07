@@ -171,3 +171,8 @@ Enter 在画布焦点下编辑文本/路径或结束钢笔；按钮、输入框�
 - 保存该状态并完整刷新后，文档、七层结构、隐藏参数、唯一的新路径、PNG 字节和原尺寸 RGBA 均一致。PNG SHA-256 为 `f4ad53cdb57bb889cbc5fad9929478974c34b6f666e87f1dac426ca04cd9a92c`，RGBA SHA-256 为 `13d2fe81679e022387fdf787ad2e9d261f62b2fb10db3f7e7668f55f64000e57`。
 
 验收仅写入独立的交互测试数据库，未操作用户工作流或调用模型服务。
+
+
+### 节点外观验收
+
+`tests/compositor-node-style.html` 使用项目已有的 React 浏览器验收方式。运行 `npm run dev` 后打开 `/tests/compositor-node-style.html`，页面自动验证共享外框与端口、更多菜单层级和锁定、动态添加图层、多层节点高度、横图比例、原尺寸 PNG 像素及 Edit 打开和关闭。该页面使用独立的 QA 数据库，不调用模型；`npm test` 不运行此浏览器页面。节点外观位于 `CompositorNode.css`，Edit 编辑器样式仍位于 `Compositor.css`。

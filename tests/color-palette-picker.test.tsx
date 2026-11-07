@@ -143,6 +143,29 @@ async function run() {
     await travel('redo'); await travel('redo'); assert(committed === '#654321', 'Sequential redo failed');
   });
   for (const zoom of [0.53, 1, 1.5]) {
+    await check(`Two-column drop targets at ${zoom * 100}% distinguish the right cell and insertion edge`, async () => {
+      const list = find('.palette-canvas .palette-color-list');
+      const rows = [...list.querySelectorAll<HTMLElement>('.palette-color-row')];
+      const order = () => [...list.querySelectorAll('.palette-hex-label')].map(el => el.textContent).join(',');
+      const original = `${initial},#FFFFFF,#000000`;
+      const drop = async (source: HTMLElement, after: boolean) => {
+        const rect = rows[1].getBoundingClientRect();
+        const point = { clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height * (after ? .8 : .2) };
+        const transfer = new DataTransfer();
+        const dispatch = (target: HTMLElement, type: string) => target.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: transfer, ...point }));
+        dispatch(source, 'dragstart'); dispatch(list, 'dragover'); await settle();
+        const line = find('.palette-canvas .palette-drop-line').getBoundingClientRect();
+        assert(Math.abs(line.left - rect.left) < 1 && Math.abs(line.width - rect.width) < 1, 'Insertion line did not follow the right cell');
+        assert(order() === original, 'Hover changed order before drop');
+        dispatch(list, 'drop'); dispatch(source, 'dragend'); await settle();
+      };
+      await drop(rows[0], true);
+      assert(order() === `#FFFFFF,${initial},#000000`, 'Lower half did not insert after the right cell');
+      await travel('undo'); assert(order() === original, 'Cross-column drag did not undo in one step');
+      await drop(rows[2], false);
+      assert(order() === `${initial},#000000,#FFFFFF`, 'Upper half did not insert before the right cell');
+      await travel('undo'); assert(order() === original, 'Second cross-column drag did not undo in one step');
+    }, zoom, true);
     await check(`Synthetic drag at ${zoom * 100}% supplies a loaded image and preserves cancellation/history/sidebar`, async () => {
       const source = find('.palette-canvas .palette-color-row');
       const list = find('.palette-canvas .palette-color-list');

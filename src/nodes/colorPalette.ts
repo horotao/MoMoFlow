@@ -6,6 +6,10 @@ export const paletteSize = 1024;
 export type PaletteColor = { id: string; hex: string };
 export type ColorPaletteData = { label?: string; locked?: boolean; colors: PaletteColor[]; result?: FileAsset; outputRevision?: string };
 
+export function defaultPaletteColors(): PaletteColor[] {
+  return ['#4ADE80', '#FBBF24', '#60A5FA', '#C084FC', '#222222'].map(hex => ({ id: crypto.randomUUID(), hex }));
+}
+
 export function paletteDocument(data: ColorPaletteData) {
   return { label: data.label, locked: data.locked, colors: data.colors };
 }

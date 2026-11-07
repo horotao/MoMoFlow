@@ -4,6 +4,7 @@ import { ReactFlow, ReactFlowProvider, useNodesState, type Edge } from '@xyflow/
 import { CanvasHistoryContext, useCanvasHistory } from '../src/components/useCanvasHistory';
 import { DescriberPanel } from '../src/components/DescriberPanel';
 import { ColorPaletteNode } from '../src/nodes/ColorPaletteNode';
+import { defaultPaletteColors } from '../src/nodes/colorPalette';
 import type { AppNode, ColorPaletteNode as PaletteNode } from '../src/nodes/types';
 import '@xyflow/react/dist/style.css';
 import '../src/index.css';
@@ -54,7 +55,7 @@ document.addEventListener('keydown', event => {
   const output = document.getElementById('last-key');
   if (output) output.textContent = `keydown: ${event.key}, trusted=${event.isTrusted}, target=${(event.target as Element).tagName}`;
 }, true);
-const initial = ['#FFFFFF', '#FF0000', '#FF00F2', '#FFB300', '#000000'];
+const initial = defaultPaletteColors().map(color => color.hex);
 const edges: Edge[] = [];
 const nodeTypes = { 'color-palette': ColorPaletteNode };
 function Canvas({ zoom }: { zoom: number }) {

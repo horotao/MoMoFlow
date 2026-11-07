@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
-import { CirclePlus } from 'lucide-react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { DragDropVerticalIcon } from '@hugeicons/core-free-icons';
 import { useReactFlow } from '@xyflow/react';
 import { isColorPaletteNode, type AppNode, type ColorPaletteNode } from './types';
-import { insertPaletteColor, movePaletteColor, paletteInk, paletteLimit, type PaletteColor } from './colorPalette';
+import { insertPaletteColor, movePaletteColor, paletteLimit, type PaletteColor } from './colorPalette';
 import { normalizeHexColor } from './colorPicker';
 import { ColorPalettePicker } from './ColorPalettePicker';
 
@@ -36,7 +37,7 @@ export function ColorPaletteColors({ node, inline = false }: { node: Pick<ColorP
     image.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=';
     return image;
   });
-  const [drag, setDrag] = useState<{ id: string; before: PaletteColor[]; slot: number | null; line: number }>();
+  const [drag, setDrag] = useState<{ id: string; before: PaletteColor[]; slot: number | null; line: number; left?: number; width?: number }>();
   const dragging = useRef<typeof drag>();
   const colors = node.data.colors;
   const activeDrag = drag?.before === colors && !node.data.locked ? drag : undefined;
@@ -63,6 +64,24 @@ export function ColorPaletteColors({ node, inline = false }: { node: Pick<ColorP
     const rows = [...element.querySelectorAll<HTMLElement>('.palette-color-row')];
     const inside = x >= box.left - (inline ? 0 : 16) && x <= box.right + (inline ? 0 : 16)
       && y >= box.top - 8 && y <= box.bottom + 8;
+    if (inline) {
+      // Pick a grid cell using both axes; its upper/lower half selects the
+      // insertion edge. Offsets stay in flow coordinates at every canvas zoom.
+      const row = rows.reduce<HTMLElement | undefined>((nearest, candidate) => {
+        const distance = (item: HTMLElement) => {
+          const rect = item.getBoundingClientRect();
+          return (x - rect.left - rect.width / 2) ** 2 + (y - rect.top - rect.height / 2) ** 2;
+        };
+        return !nearest || distance(candidate) < distance(nearest) ? candidate : nearest;
+      }, undefined);
+      if (!row) return;
+      const rect = row.getBoundingClientRect();
+      const after = y >= rect.top + rect.height / 2 || x > rect.right;
+      const slot = inside ? rows.indexOf(row) + (after ? 1 : 0) : null;
+      const next = { ...value, slot, line: row.offsetTop + (after ? row.offsetHeight + 3 : -3), left: row.offsetLeft, width: row.offsetWidth };
+      dragging.current = next; setDrag(next);
+      return;
+    }
     const nextRow = rows.findIndex(row => y < row.getBoundingClientRect().top + row.getBoundingClientRect().height / 2);
     const slot = inside ? (nextRow === -1 ? rows.length : nextRow) : null;
     const row = rows[slot ?? 0];
@@ -80,7 +99,6 @@ export function ColorPaletteColors({ node, inline = false }: { node: Pick<ColorP
   };
   return <div className={`${inline ? 'palette-canvas nodrag nopan' : 'palette-settings-colors'}${activeDrag ? ' is-sorting' : ''}`} onClick={inline ? select : undefined}
     onKeyDown={event => { if (event.key === 'Escape' && dragging.current) { event.stopPropagation(); cancel(); } }}>
-    {!colors.length && inline && <button type="button" className="palette-empty" disabled={locked} onClick={select}>Select color</button>}
     <div ref={list} className="palette-color-list"
       onDragOver={event => {
         if (!dragging.current) return;
@@ -95,7 +113,6 @@ export function ColorPaletteColors({ node, inline = false }: { node: Pick<ColorP
         event.preventDefault(); event.stopPropagation(); move(event.clientX, event.clientY); finish();
       }}>
       {colors.map((color, index) => <div key={color.id} className={`palette-color-row${activeDrag?.id === color.id ? ' is-dragging' : ''}`}
-        style={inline ? { color: paletteInk(color.hex) } : undefined}
         draggable={!locked && colors.length > 1}
         onDragStart={event => {
           if (locked || (event.target as HTMLElement).closest('input, .palette-remove')) { event.preventDefault(); return; }
@@ -124,18 +141,17 @@ export function ColorPaletteColors({ node, inline = false }: { node: Pick<ColorP
             if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
             event.preventDefault(); event.stopPropagation();
             patch(movePaletteColor(colors, color.id, event.key === 'Home' ? 0 : event.key === 'End' ? colors.length - 1 : index + (event.key === 'ArrowUp' ? -1 : 1)));
-          }}><PaletteReorderIcon /></button>
+          }}>{inline ? <HugeiconsIcon icon={DragDropVerticalIcon} size={14} /> : <PaletteReorderIcon />}</button>
         <ColorPalettePicker inline={inline} color={color.hex} disabled={locked} onChange={hex => edit(color.id, hex)} />
         {inline ? <span className="palette-hex-label">{color.hex}</span>
           : <HexField index={index} hex={color.hex} disabled={locked} onChange={hex => edit(color.id, hex)} />}
         <button type="button" className="palette-remove" disabled={locked} aria-label={`Remove color ${color.hex}`}
-          onClick={() => patch(colors.filter(item => item.id !== color.id))}><PaletteRemoveIcon /></button>
+          onClick={() => patch(colors.filter(item => item.id !== color.id))}>{inline ? <img src="/painter-node/close.svg" width={16} height={16} alt="" /> : <PaletteRemoveIcon />}</button>
       </div>)}
-      {activeDrag && activeDrag.slot !== null && <div className="palette-drop-line" style={{ top: activeDrag.line }} />}
+      {inline && colors.length < paletteLimit && <button type="button" className="palette-grid-add" disabled={locked} aria-label="Add color"
+        onClick={() => add(colors.length)}><span><img src="/palette-node/add.svg" width={24} height={24} alt="" /></span></button>}
+      {activeDrag && activeDrag.slot !== null && <div className="palette-drop-line" style={{ top: activeDrag.line, left: activeDrag.left, width: activeDrag.width }} />}
     </div>
-    {inline && colors.length > 0 && colors.length < paletteLimit && !locked && !drag && Array.from({ length: colors.length + 1 }, (_, index) =>
-      <button type="button" key={index} className="palette-insert" aria-label={`Insert color ${index + 1}`}
-        style={{ top: `${index / colors.length * 100}%` }} onClick={() => add(index)}><CirclePlus size={24} /></button>)}
     {!inline && <button type="button" className="palette-add" disabled={locked || colors.length >= paletteLimit} onClick={() => add(colors.length)}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 6.5v11M6.5 12h11" stroke="currentColor" strokeWidth="1" strokeLinecap="round" /></svg>Add color</button>}
   </div>;
 }

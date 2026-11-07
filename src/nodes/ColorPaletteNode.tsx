@@ -1,15 +1,21 @@
-import { NodeIcon } from './NodeIcon';
 import { useEffect, useState } from 'react';
-import { Handle, Position, useEdges, useReactFlow, type NodeProps } from '@xyflow/react';
-import { Ellipsis } from 'lucide-react';
+import { Position, useEdges, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { isColorPaletteNode, type AppNode, type ColorPaletteNode as PaletteNode } from './types';
-import { paletteBands, paletteRevision, paletteSize } from './colorPalette';
+import { paletteBands, paletteLimit, paletteRevision, paletteSize } from './colorPalette';
 import { assetResources } from './assetResources';
 import { TextNodeMenu } from './TextNodeMenu';
 import { ColorPaletteColors } from './ColorPaletteColors';
+import { NodeFrame, NodeHeader } from './shared/NodeFrame';
+import { NodePort } from './shared/NodePort';
+import './shared/mediaNodeStyle.css';
 
 export function ColorPaletteNode({ id, data, isConnectable }: NodeProps<PaletteNode>) {
   const edges = useEdges();
+  const updateInternals = useUpdateNodeInternals();
+  const rows = Math.ceil((data.colors.length + (data.colors.length < paletteLimit ? 1 : 0)) / 2);
+  const height = 74 + rows * 32 + Math.max(0, rows - 1) * 6;
+  const portCenter = height / 2 - 1; // Absolute positions start inside the frame's border.
+  useEffect(() => updateInternals(id), [id, height, updateInternals]);
   const { getNode, updateNodeData } = useReactFlow<AppNode>();
   const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -32,21 +38,21 @@ export function ColorPaletteNode({ id, data, isConnectable }: NodeProps<PaletteN
     }, 'image/png');
     return () => { cancelled = true; };
   }, [id, data.colors, data.locked, revision, getNode, updateNodeData]);
-  return <>
-    <header className="text-node-header"><div className="text-node-title"><NodeIcon nodeType="color-palette" />{renaming
+  return <NodeFrame className="media-node-frame palette-node-frame">
+    <NodeHeader icon={<span className="palette-title-icon"><img src="/palette-node/palette.svg" width={24} height={24} alt="" /></span>} title={renaming
       ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name} onChange={event => setName(event.target.value)}
         onBlur={() => { const current = getNode(id); if (name.trim() && isColorPaletteNode(current) && !current.data.locked) updateNodeData(id, { label: name.trim() }); setRenaming(false); }}
-        onKeyDown={event => { event.stopPropagation(); if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
-      : <span>{data.label || '调色板'}</span>}</div>
-      <TextNodeMenu id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '调色板'); setRenaming(true); }}><Ellipsis size={24} /></TextNodeMenu>
-    </header>
+        onKeyDown={event => { event.stopPropagation(); if (event.nativeEvent.isComposing) return; if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setRenaming(false); }} />
+      : <span>{data.label || '调色板'}</span>}
+      actions={<TextNodeMenu appearance="shared" id={id} locked={Boolean(data.locked)} onRename={() => { setName(data.label || '调色板'); setRenaming(true); }}><img src="/node-style/more.svg" width={18} height={18} alt="" /></TextNodeMenu>} />
     <ColorPaletteColors node={{ id, data }} inline />
-    {[{ id: 'image', label: 'Image', top: 89 }, { id: 'text', label: 'Text', top: 149 }].map(port => <div className="describer-port-wrapper" key={port.id}>
-      <span className={`describer-port-label output-label ${port.id === 'image' ? 'sunburst-label-image' : ''}`} style={{ top: port.top - 28 }}>{port.label}</span>
-      <Handle type="source" position={Position.Right} id={port.id} style={{ top: port.top }} aria-label={`Color palette ${port.label}`}
-        className={`describer-port ${port.id === 'image' ? 'sunburst-port-image' : ''}${edges.some(edge => edge.source === id && edge.sourceHandle === port.id) ? ' is-connected' : ''}`}
-        isConnectable={isConnectable && !data.locked} />
+    {[{ id: 'image', label: 'Image', top: portCenter - 31 }, { id: 'text', label: 'Text', top: portCenter + 31 }].map(port => <div className={`palette-port palette-port-${port.id}`} key={port.id}>
+      <NodePort label={port.label} top={port.top} type="source" position={Position.Right} id={port.id}
+        isConnectable={isConnectable && !data.locked}>
+        <img src={`/palette-node/port-${port.id}.svg`} width={32} height={32} alt="" />
+        {edges.some(edge => edge.source === id && edge.sourceHandle === port.id) && <span className="media-port-dot" />}
+      </NodePort>
     </div>)}
     {error && <div role="alert" className="preview-error">{error}</div>}
-  </>;
+  </NodeFrame>;
 }
