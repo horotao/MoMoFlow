@@ -1,9 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react';
+import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type RefObject } from 'react';
 import { spring } from '../lib/springs';
 import { ArrowLeft, X } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { useFluidHover, useRegisterFluidHoverItem, type UseFluidHoverReturn } from '../hooks/use-fluid-hover';
-import { FluidHoverHighlight } from './fluid-hover-highlight';
 import {
   isNodeMenuCategory, nodeMenuCategories, nodeMenuGroups, searchableNodeMenuEntries, resolveMenuGroups,
   type NodeMenuEntry, type NodeMenuGroup, type NodeMenuChoice,
@@ -32,51 +30,37 @@ function MenuIcon({ entry }: { entry: NodeMenuEntry }) {
       : entry.icon && <HugeiconsIcon icon={entry.icon} size={18} strokeWidth={1} />}
   </span>;
 }
-function MenuRow({ row, index, hover, child, category, menuId, onSelect }: {
-  row: MenuRowData; index: number; hover: UseFluidHoverReturn; child: boolean;
+function MenuRow({ row, highlighted, child, category, menuId, onSelect }: {
+  row: MenuRowData; highlighted: boolean; child: boolean;
   category: string | null; menuId: string; onSelect: (row: MenuRowData, keyboard: boolean) => void;
 }) {
-  const ref = useRef<HTMLButtonElement>(null);
-  useRegisterFluidHoverItem(hover.registerItem, index, ref);
   const { entry, rowId, hasSubmenu, available } = row;
-  return <button ref={ref} type="button" role="menuitem" tabIndex={-1}
+  return <button type="button" role="menuitem" tabIndex={-1}
     className="node-add-menu-row" data-main-row={child ? undefined : rowId}
+    data-highlighted={highlighted || undefined}
     data-node-id={entry.nodeId} data-choice-id={entry.choice?.id}
     aria-disabled={!available || undefined} aria-haspopup={hasSubmenu ? 'menu' : undefined}
     aria-expanded={hasSubmenu ? category === entry.id : undefined}
     aria-controls={hasSubmenu && category === entry.id ? `${menuId}-submenu` : undefined}
     title={!available ? `${entry.label}（尚未接入）` : entry.choice?.detail ? `${entry.label} · ${entry.choice.detail}` : undefined}
-    onFocus={() => hover.setActiveIndex(index)}
     onClick={event => { if (available) onSelect(row, event.detail === 0); }}>
     <MenuIcon entry={entry} /><span className="node-add-menu-label">{entry.label}</span>
     {hasSubmenu && <img className="node-add-menu-chevron" src="/canvas-menu/arrow-right01.svg" alt="" draggable={false} />}
   </button>;
 }
-function MenuList({ groups, child, category, highlightedRow, menuId, categoryAvailable, onSelect }: {
+function MenuList({ groups, child, category, highlightedRow, keyboardInteraction, menuId, categoryAvailable, onSelect }: {
   groups: NodeMenuGroup[]; child: boolean; category: string | null; highlightedRow: string | null;
+  keyboardInteraction: boolean;
   menuId: string; categoryAvailable: (id: string) => boolean; onSelect: (row: MenuRowData, keyboard: boolean) => void;
 }) {
-  const root = useRef<HTMLDivElement>(null);
-  // Availability gates activation, while every visible row can receive hover feedback.
-  const hover = useFluidHover(root, { axis: 'y', gapClick: false });
-  const rows = groups.flatMap((group, groupIndex) => group.entries.map(entry => ({
-    entry, rowId: isNodeMenuCategory(entry.id) ? entry.id : `${groupIndex}-${entry.id}`,
-    hasSubmenu: isNodeMenuCategory(entry.id) && categoryAvailable(entry.id),
-    available: Boolean(entry.choice) || isNodeMenuCategory(entry.id) && categoryAvailable(entry.id),
-  })));
-  const index = rows.findIndex(row => row.rowId === highlightedRow);
-  const { setActiveIndex } = hover;
-  useEffect(() => { if (!child) setActiveIndex(index < 0 ? null : index); }, [child, index, setActiveIndex]);
-  let rowIndex = 0;
-  return <div ref={root} className="node-add-menu-list" {...hover.handlers}
-    onMouseMove={child ? hover.handlers.onMouseMove : undefined}
-    onMouseLeave={child ? hover.handlers.onMouseLeave : undefined}>
-    <FluidHoverHighlight hover={hover} className="node-add-menu-hover" />
+  return <div className="node-add-menu-list" data-keyboard={keyboardInteraction || undefined}>
     {groups.map((group, groupIndex) => <div key={group.label ?? groupIndex} role="group" aria-label={group.label}>
       {group.label && <div className="node-add-menu-heading" aria-hidden="true">{group.label}</div>}
       {group.entries.map(entry => {
-        const index = rowIndex++;
-        return <MenuRow key={entry.id} row={rows[index]} index={index} hover={hover} child={child}
+        const rowId = isNodeMenuCategory(entry.id) ? entry.id : `${groupIndex}-${entry.id}`;
+        const hasSubmenu = isNodeMenuCategory(entry.id) && categoryAvailable(entry.id);
+        const row = { entry, rowId, hasSubmenu, available: Boolean(entry.choice) || hasSubmenu };
+        return <MenuRow key={entry.id} row={row} highlighted={!child && rowId === highlightedRow} child={child}
           category={category} menuId={menuId} onSelect={onSelect} />;
       })}
     </div>)}
@@ -221,7 +205,7 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
         {query && <button type="button" aria-label="清空搜索" onClick={() => { setQuery(''); activate(null); search.current?.focus(); }}><X size={14} /></button>}
       </div>
       <div className="node-add-menu-scroll" role="menu" aria-label={mode === 'connect' ? '可连接节点' : '节点'} onScroll={() => activate(null)}>
-        <MenuList groups={groups} child={false} category={category} highlightedRow={highlightedRow}
+        <MenuList groups={groups} child={false} category={category} highlightedRow={highlightedRow} keyboardInteraction={keyboardInteraction}
           menuId={id} categoryAvailable={categoryAvailable} onSelect={select} />
         {term && matches.length === 0 && <div className="node-add-menu-empty" role="status">没有匹配的节点</div>}
         {!term && mode === 'connect' && choices?.length === 0 && <div className="node-add-menu-empty" role="status">暂无可连接的节点</div>}
@@ -231,10 +215,12 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
       data-animate-entrance={animateEntrance && !keyboardInteraction || undefined}
       style={{ left: subPosition.left, top: subPosition.top, transformOrigin: subPosition.transformOrigin, ...menuMotionStyle }}
       role="menu" aria-label={category === 'editing' ? '图像编辑节点' : '辅助工具节点'}
+      onPointerMoveCapture={() => setKeyboardInteraction(false)}
+      onPointerDownCapture={() => setKeyboardInteraction(false)}
       onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }}
       onKeyDown={event => onKeyDown(event, true)} onPointerDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}>
       {subPosition.overlaid && <button type="button" className="node-add-menu-back" onClick={back}><ArrowLeft size={14} />返回</button>}
-      <div className="node-add-menu-scroll"><MenuList groups={categories[category]} child category={category} highlightedRow={null}
+      <div className="node-add-menu-scroll"><MenuList groups={categories[category]} child category={category} highlightedRow={null} keyboardInteraction={keyboardInteraction}
         menuId={id} categoryAvailable={categoryAvailable} onSelect={select} /></div>
     </div>}
   </>;
