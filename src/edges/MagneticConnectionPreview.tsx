@@ -3,7 +3,7 @@ import { getBezierPath, useViewport, type ConnectionLineComponentProps } from '@
 import { motion, useReducedMotion, useSpring, useTransform } from 'motion/react';
 import { magneticOutline } from './magneticGeometry';
 import { cableSpring } from './magneticDynamics';
-import { magneticSizeScale } from './magneticSizing';
+import { magneticSizeScale, magneticTipRadius } from './magneticSizing';
 import type { ConnectionVisualSnapshot, MagneticSettings } from './magneticTypes';
 
 type Props = ConnectionLineComponentProps & {
@@ -44,6 +44,6 @@ export function MagneticConnectionPreview({ fromX, fromY, toX, toY, fromPosition
   return <g ref={group} className={`magnetic-preview ${className}`} data-snapped={snapped} style={{ color }}>
     {snapped && settings.enabled && settings.field && <motion.path className="magnetic-field" d={outline} fill="currentColor" fillOpacity={0.11} stroke="currentColor" strokeOpacity={0.45} strokeWidth={1} vectorEffect="non-scaling-stroke" />}
     <motion.path className="react-flow__connection-path magnetic-wire" d={path} fill="none" style={{ stroke: 'currentColor' }} vectorEffect="non-scaling-stroke" />
-    <motion.circle className="cable-tip" cx={x} cy={y} r={6.5 * sizeScale} fill="currentColor" />
+    <motion.circle className="cable-tip" cx={x} cy={y} r={magneticTipRadius * sizeScale} fill="currentColor" />
   </g>;
 }

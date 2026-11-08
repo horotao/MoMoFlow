@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useViewport } from '@xyflow/react';
 import { animate, motion, useMotionValue, useReducedMotion, useTransform } from 'motion/react';
 import { magneticOutline } from './magneticGeometry';
-import { magneticSizeScale } from './magneticSizing';
+import { magneticSizeScale, magneticTipRadius } from './magneticSizing';
 import type { PortFeedbackEvent } from './magneticTypes';
 import './magneticEffects.css';
 
@@ -18,7 +18,7 @@ export function PortAbsorption({ snapshot }: { snapshot: NonNullable<PortFeedbac
   }, [progress, reduced]);
   const x = useTransform(progress, value => snapshot.x * (1 - value));
   const y = useTransform(progress, value => snapshot.y * (1 - value));
-  const radius = useTransform(progress, value => 6.5 * (1 - value));
+  const radius = useTransform(progress, value => magneticTipRadius * (1 - value));
   const opacity = useTransform(progress, [0, 0.65, 1], [1, 1, 0]);
   const outline = useTransform(progress, value => magneticOutline(
     { x: 0, y: 0 }, { x: snapshot.x * (1 - value), y: snapshot.y * (1 - value) },

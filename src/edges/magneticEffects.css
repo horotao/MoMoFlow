@@ -1,5 +1,5 @@
 .react-flow.canvas-magnetic-connections .magnetic-wire {
-  stroke-width: var(--magnetic-line-width, 1.5px);
+  stroke-width: var(--magnetic-line-width, 2px);
 }
 .react-flow.canvas-magnetic-connections .magnetic-preview .react-flow__connection-path { stroke: currentColor; }
 .react-flow.canvas-magnetic-connections .react-flow__connectionline { z-index: 1001; pointer-events: none; overflow: visible; }

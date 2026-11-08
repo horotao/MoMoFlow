@@ -97,7 +97,7 @@ run.onclick = async () => {
     let point = await drag(port('a', 'source'), port('consumer', 'target', 'variable-2'));
     check(document.querySelector('.magnetic-preview[data-snapped="true"] .magnetic-field'), 'Production ports magnetically attract before direct contact');
     check(document.querySelectorAll('.magnetic-preview circle').length === 1, 'Preview has one tip and no duplicate port outline');
-    check(getComputedStyle(document.querySelector('.magnetic-preview .magnetic-wire')!).strokeWidth === '1.5px', 'Production preview uses the approved line width');
+    check(getComputedStyle(document.querySelector('.magnetic-preview .magnetic-wire')!).strokeWidth === '2px', 'Production preview uses the approved line width');
     await release(point);
     const fresh = api.getEdges().find(edge => edge.target === 'consumer' && edge.targetHandle === 'variable-2')!;
     check(fresh.source === 'a' && api.getEdges().length === 3, 'Magnetic release replaces only the intended input');
@@ -148,7 +148,7 @@ run.onclick = async () => {
       check(outside && document.querySelector('.magnetic-preview[data-snapped="true"]'), `${zoom * 100}% zoom uses the smaller capture area below 100% and caps it above`);
       const tip = document.querySelector<SVGCircleElement>('.magnetic-preview .cable-tip')!.getBoundingClientRect();
       const field = document.querySelector<SVGPathElement>('.magnetic-field')!.getBoundingClientRect();
-      check(Math.abs(tip.width - 13 * screenScale) < 0.2 && field.width > 64 * screenScale && field.width < 95 * screenScale,
+      check(Math.abs(tip.width - 9 * screenScale) < 0.2 && field.width > 64 * screenScale && field.width < 95 * screenScale,
         `${zoom * 100}% zoom keeps both metaball lobes proportional to the capture area`);
       await release(point);
       const absorption = document.querySelector<SVGCircleElement>('.absorbing-tip')?.getBoundingClientRect();

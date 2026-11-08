@@ -2,7 +2,7 @@ import type { XYPosition } from '@xyflow/react';
 import type { MotionValue } from 'motion/react';
 
 export const magneticDefaults = {
-  radius: 86, speed: 380, rigidity: 50, lineWidth: 1.5,
+  radius: 86, speed: 380, rigidity: 50, lineWidth: 2,
   bounceStrength: 100, bounceRange: 100, rippleFeather: 1, rippleSpeed: 1,
   field: true, enabled: true,
 };
