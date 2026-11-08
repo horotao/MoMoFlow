@@ -1,4 +1,5 @@
 import type { XYPosition } from '@xyflow/react';
+import type { MotionValue } from 'motion/react';
 
 export const magneticDefaults = {
   radius: 86, speed: 380, rigidity: 50, lineWidth: 1.5,
@@ -16,4 +17,9 @@ export type PortFeedbackEvent = {
   id: string; nodeId: string; handleId: string | null; direction: 'source' | 'target'; edgeId: string;
   color: string; feather: number; duration: number; delay: number; expiresAt: number;
   absorption?: AbsorptionSnapshot & { field: boolean };
+};
+export type NodeEntranceEvent = {
+  id: string; nodeId: string; edgeId: string | null; direction: 'source' | 'target'; handleId: string | null;
+  color: string; scale: MotionValue<number>; opacity: MotionValue<number>; origin: MotionValue<string>;
+  played: boolean; finished: boolean; expiresAt: number;
 };

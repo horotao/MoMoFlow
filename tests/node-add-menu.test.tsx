@@ -45,6 +45,26 @@ const input = async (value: string) => {
 };
 const open = async () => { find<HTMLButtonElement>('.canvas-sidebar-add').click(); await settle(); };
 const expanded = (id: string) => category(id).getAttribute('aria-expanded') === 'true';
+async function checkEntrance(id: string, label: string) {
+  const frame = find(`[data-id="${id}"] .node-frame`);
+  const box = frame.getBoundingClientRect();
+  const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  const samples: { scale: number; drift: number }[] = [];
+  const started = performance.now();
+  while (performance.now() - started < 400) {
+    const current = frame.getBoundingClientRect();
+    if (Number(getComputedStyle(frame).opacity) > 0.03) samples.push({
+      scale: new DOMMatrixReadOnly(getComputedStyle(frame).transform).a,
+      drift: Math.hypot(current.x + current.width / 2 - center.x, current.y + current.height / 2 - center.y),
+    });
+    await settle();
+  }
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  check(samples.length > 0 && (reduced ? samples.every(item => item.scale === 1) : samples.some(item => item.scale < 0.999))
+    && samples.every(item => item.drift < 0.4), `${label} enters about its center with scale or reduced-motion fade`);
+  check(!frame.hasAttribute('data-node-entrance') && Number(getComputedStyle(frame).opacity) === 1
+    && api.getEdges().length === 0 && !document.querySelector('.port-ripple, .port-absorption'), `${label} settles without creating edges or port feedback`);
+}
 
 async function run() {
   const database = `momoflow-node-menu-qa-${crypto.randomUUID()}`;
@@ -213,11 +233,13 @@ async function run() {
     const created = api.getNodes().at(-1);
     check(api.getNodes().length === 1 && created?.type === entry.nodeId && created?.selected, `Creates ${entry.nodeId} through the dock`);
     check(!document.querySelector('.node-add-menu'), `Choosing ${entry.nodeId} dismisses the menu`);
+    if (['text', 'router', 'file', 'sunburst'].includes(entry.nodeId!)) await checkEntrance(created!.id, `Dock ${entry.nodeId}`);
     canvasHistoryShortcut('undo'); await settle();
     check(api.getNodes().length === 0, `Undo removes ${entry.nodeId} in one step`);
   }
   canvasHistoryShortcut('redo'); await settle();
   check(api.getNodes().length === 1, 'Redo restores menu-created nodes');
+  check(!document.querySelector('[data-node-entrance], .port-ripple'), 'Redo does not replay menu node entrance');
   await storage.save({ nodes: api.getNodes(), edges: [], colorMode: 'dark', viewport: api.getViewport() });
   const reader = new WorkflowStorage(database);
   const restored = await reader.load();
@@ -262,6 +284,7 @@ async function run() {
   await input('resize'); find<HTMLButtonElement>('.node-add-menu [data-node-id="resize"]').click(); await settle();
   const contextNode = api.getNodes().at(-1);
   check(contextNode?.type === 'resize' && contextNode.position.x === expected.x && contextNode.position.y === expected.y, 'Context-created nodes preserve the exact flow position under zoom');
+  await checkEntrance(contextNode!.id, 'Canvas context menu');
   canvasHistoryShortcut('undo'); await settle();
   check(api.getNodes().length === count, 'Context creation is one undo step');
   await context(innerWidth - 10, innerHeight - 10);

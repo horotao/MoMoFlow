@@ -1,13 +1,15 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { useStoreApi, type Edge } from '@xyflow/react';
-import { magneticDefaults, type CableImpact, type CableRelease, type ConnectionVisualSnapshot, type PortFeedbackEvent } from './magneticTypes';
+import { motionValue } from 'motion/react';
+import { magneticDefaults, type CableImpact, type CableRelease, type ConnectionVisualSnapshot, type NodeEntranceEvent, type PortFeedbackEvent } from './magneticTypes';
 import { useConnectionGesture } from './useConnectionGesture';
+import { spring } from '../lib/springs';
 
 type EdgeFeedback = { release?: CableRelease; impact?: CableImpact; expiresAt: number };
-type FeedbackState = { animations: Map<string, EdgeFeedback>; ports: PortFeedbackEvent[] };
-type EffectsContext = FeedbackState & { visual: MutableRefObject<(() => ConnectionVisualSnapshot) | null> };
-const emptyFeedback = (): FeedbackState => ({ animations: new Map(), ports: [] });
-export const ConnectionEffectsContext = createContext<EffectsContext>({ ...emptyFeedback(), visual: { current: null } });
+type FeedbackState = { animations: Map<string, EdgeFeedback>; ports: PortFeedbackEvent[]; entrances: Map<string, NodeEntranceEvent> };
+type EffectsContext = FeedbackState & { visual: MutableRefObject<(() => ConnectionVisualSnapshot) | null>; reveal: (event: NodeEntranceEvent) => void };
+const emptyFeedback = (): FeedbackState => ({ animations: new Map(), ports: [], entrances: new Map() });
+export const ConnectionEffectsContext = createContext<EffectsContext>({ ...emptyFeedback(), visual: { current: null }, reveal: () => {} });
 
 // Transient feedback lives outside graph data, persistence, history and execution.
 export function useConnectionEffects() {
@@ -17,11 +19,12 @@ export function useConnectionEffects() {
   const visual = useRef<(() => ConnectionVisualSnapshot) | null>(null);
   const [state, setState] = useState(emptyFeedback);
   useEffect(() => {
-    const expiries = [...state.animations.values()].map(item => item.expiresAt).concat(state.ports.map(item => item.expiresAt));
+    const expiries = [...state.animations.values(), ...state.entrances.values(), ...state.ports].map(item => item.expiresAt);
     if (!expiries.length) return;
     const timeout = window.setTimeout(() => setState(current => {
       const now = performance.now();
-      return { animations: new Map([...current.animations].filter(([, item]) => item.expiresAt > now)), ports: current.ports.filter(item => item.expiresAt > now) };
+      return { animations: new Map([...current.animations].filter(([, item]) => item.expiresAt > now)), ports: current.ports.filter(item => item.expiresAt > now),
+        entrances: new Map([...current.entrances].filter(([, item]) => item.expiresAt > now)) };
     }), Math.max(1, Math.ceil(Math.min(...expiries) - performance.now())));
     return () => window.clearTimeout(timeout);
   }, [state]);
@@ -53,10 +56,36 @@ export function useConnectionEffects() {
       const animations = new Map([...current.animations].filter(([key]) => retained.has(key)));
       for (const item of retainedEdges) animations.set(item.id, { ...animations.get(item.id), impact, expiresAt: now + 4000 });
       animations.set(edge.id, { release, expiresAt: now + 4000 });
-      return { animations, ports: [...current.ports.filter(item => retained.has(item.edgeId)
+      return { ...current, animations, ports: [...current.ports.filter(item => retained.has(item.edgeId)
         && !(item.nodeId === port.nodeId && item.handleId === port.handleId && item.direction === port.direction)), port] };
     });
   }, [store, cancelled]);
-  const value = useMemo(() => ({ ...state, visual }), [state]);
-  return { ...gesture, value, clear, connected };
+  const created = useCallback((edge: Edge | null, nodeId: string, direction: 'source' | 'target' = 'target', color = '') => {
+    const event: NodeEntranceEvent = {
+      id: crypto.randomUUID(), edgeId: edge?.id ?? null, nodeId, direction, color,
+      handleId: (direction === 'source' ? edge?.sourceHandle : edge?.targetHandle) ?? null,
+      scale: motionValue(1), opacity: motionValue(0), origin: motionValue('0px 0px'),
+      played: false, finished: false, expiresAt: performance.now() + 4000,
+    };
+    setState(current => ({ ...current, entrances: new Map(current.entrances).set(nodeId, event) }));
+  }, []);
+  const reveal = useCallback((event: NodeEntranceEvent) => {
+    const edgeId = event.edgeId;
+    if (!edgeId) return;
+    const graph = store.getState();
+    if (!graph.edgeLookup.has(edgeId)) return;
+    const now = performance.now(), settings = magneticDefaults;
+    event.expiresAt = now + 4000;
+    const release: CableRelease = { id: event.id, velocity: 500 * settings.bounceStrength / 100, reverse: event.direction === 'source',
+      speed: settings.speed, rigidity: settings.rigidity, range: settings.bounceRange };
+    const port: PortFeedbackEvent = { id: event.id, edgeId, nodeId: event.nodeId, direction: event.direction, handleId: event.handleId,
+      color: event.color, feather: settings.rippleFeather, duration: 0.52 / settings.rippleSpeed, delay: spring.fast.duration,
+      expiresAt: now + (0.52 / settings.rippleSpeed + spring.fast.duration) * 1000 + 80 };
+    setState(current => current.entrances.get(event.nodeId) !== event ? current : {
+      ...current, animations: new Map(current.animations).set(edgeId, { release, expiresAt: now + 4000 }),
+      ports: [...current.ports, port],
+    });
+  }, [store]);
+  const value = useMemo(() => ({ ...state, visual, reveal }), [state, reveal]);
+  return { ...gesture, value, clear, connected, created };
 }

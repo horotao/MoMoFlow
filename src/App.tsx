@@ -40,6 +40,7 @@ import {
   useEdgesState,
   type OnConnect,
   type OnConnectEnd,
+  type Edge,
 } from '@xyflow/react';
 
 import { DescriberPanel } from './components/DescriberPanel';
@@ -54,6 +55,7 @@ import { imagesFromDrop, isFileNode } from './nodes/fileAsset';
 import { fileOutputKind, filePortColors, isFileAsset } from './nodes/fileCollection';
 import { cloneTextNode } from './nodes/cloneTextNode';
 import { defaultTextNodeText } from './nodes/defaults';
+import { documentText, initialTextDocument } from './nodes/textDocument';
 import { initialEdges, edgeTypes } from './edges';
 import { ConnectionLine } from './edges/ConnectionLine';
 import { curveOptions } from './edges/curve';
@@ -82,7 +84,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
   const persistence = useWorkflowPersistence(storage, workflow);
   const { screenToFlowPosition, getNodes, getEdges } = useReactFlow<AppNode>();
   const { value: connectionEffects, start: startConnectionEffects, clear: clearConnectionEffects,
-    connected: playConnectionEffects, cancelled: connectionCancelled, connectionRadius,
+    connected: playConnectionEffects, created: playNodeEntrance, cancelled: connectionCancelled, connectionRadius,
     startClick: startClickConnection, end: endConnectionGesture, withinRadius: withinConnectionRadius } = useConnectionEffects();
   const [tool, setTool] = useState<CanvasTool>('select');
   const [importError, setImportError] = useState('');
@@ -378,7 +380,10 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
     if (!pendingNodeMenu) return;
     if (!('nodeId' in pendingNodeMenu)) {
       const node = createLibraryNode(selected.itemId, pendingNodeMenu.position);
-      if (node) setNodes(current => [...current.map(item => ({ ...item, selected: false })), node]);
+      if (node) {
+        playNodeEntrance(null, node.id);
+        setNodes(current => [...current.map(item => ({ ...item, selected: false })), node]);
+      }
       setPendingNodeMenu(null);
       return;
     }
@@ -396,20 +401,29 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
     if (choice.exposed && isDescriberNode(node)) node.data.exposed = [choice.exposed];
     const connection = choiceConnection(pendingConnection, choice, node.id);
     if (!canConnect(connection, [...currentNodes, node], currentEdges, node.type === 'file' ? node.id : undefined)) return;
+    // Initialize the editor's connected document in the same graph transaction;
+    // its mount must not add a second undo step after node creation.
+    if (isTextNode(node)) {
+      node.data.content = initialTextDocument(node.data.text, connection.target === node.id && connection.targetHandle ? [connection.targetHandle] : [], node.id);
+      node.data.text = documentText(node.data.content);
+    }
     // Place the new connecting port at the drop point, including reverse connections.
     node.position = {
       x: pendingConnection.position.x - (pendingConnection.direction === 'target' ? node.type === 'model-input' || node.type === 'router' ? 250 : 460 : 0),
       y: pendingConnection.position.y - choice.portY,
     };
+    const edge: Edge = { ...connection, id: `edge-${crypto.randomUUID()}` };
+    const color = outputColor(outputKind([...currentNodes, node].find(item => item.id === connection.source), connection.sourceHandle, [...currentNodes, node], currentEdges));
+    playNodeEntrance(edge, node.id, pendingConnection.direction === 'source' ? 'target' : 'source', color);
     setNodes(current => [...current.map(item => {
       const deselected = { ...item, selected: false };
       return item.id === connection.target && isTextNode(item)
         ? { ...item, selected: false, data: { ...item.data, variableCount: Math.max(item.data.variableCount ?? 0, variableIndex(connection.targetHandle) + 2) } }
         : deselected;
     }), node]);
-    setEdges(current => addEdge({ ...connection, id: `edge-${crypto.randomUUID()}` }, withoutReplacedInput(connection, currentNodes, current)));
+    setEdges(current => addEdge(edge, withoutReplacedInput(connection, currentNodes, current)));
     setPendingNodeMenu(null);
-  }, [pendingNodeMenu, getNodes, getEdges, setNodes, setEdges]);
+  }, [pendingNodeMenu, getNodes, getEdges, setNodes, setEdges, playNodeEntrance]);
 
   return (
     <CanvasHistoryContext.Provider value={history}><ConnectionEffectsContext.Provider value={connectionEffects}><ReactFlow

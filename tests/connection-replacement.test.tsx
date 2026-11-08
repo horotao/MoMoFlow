@@ -124,6 +124,49 @@ find<HTMLButtonElement>('#run').onclick = async () => {
     render(saved); await settle();
     check(sourceOf('preview', 'file') === 'new-image' && sourceOf('consumer', 'variable-1') === 'new-text', 'Remount restores replaced connections');
     pass('IndexedDB save/load and remount preserve replacements');
+    for (const reverse of [false, true]) {
+      render({
+        nodes: [
+          { id: 'source', type: 'text', position: { x: 40, y: 150 }, data: { text: '入口动画回归' } },
+          { id: 'target', type: 'text', position: { x: 1150, y: 150 }, data: { text: '', variableCount: 2 } },
+        ],
+        edges: [{ id: 'existing', source: 'source', target: 'target', targetHandle: 'variable-1' }],
+        colorMode: 'dark', viewport: { x: 70, y: 80, zoom: 0.75 },
+      });
+      await until(() => !!document.querySelector('[data-id="source"] .react-flow__handle.source'), 'Entrance fixture mount');
+      await new Promise<void>(resolve => setTimeout(resolve, 100));
+      await drag(handle(reverse ? 'target' : 'source', reverse ? 'target' : 'source'), { x: innerWidth * 0.52, y: innerHeight * 0.65 });
+      await until(() => !!document.querySelector('.node-add-menu input'), 'Creation menu');
+      const search = find<HTMLInputElement>('.node-add-menu input');
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'text');
+      search.dispatchEvent(new Event('input', { bubbles: true })); await settle();
+      find<HTMLButtonElement>('.node-add-menu [data-node-id="text"]').click();
+      await until(() => api.getNodes().length === 3, 'Created node');
+      const created = api.getNodes().find(node => !['source', 'target'].includes(node.id))!;
+      const edge = api.getEdges().find(item => item.source === created.id || item.target === created.id)!;
+      await until(() => !!document.querySelector(`.react-flow__edge[data-id="${edge.id}"] .magnetic-cable`), 'Entrance cable');
+      const frame = find(`[data-id="${created.id}"] .node-frame`);
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const samples: { scale: number; pinError: number }[] = [];
+      const started = performance.now();
+      while (performance.now() - started < 400) {
+        const path = document.querySelector<SVGPathElement>(`.react-flow__edge[data-id="${edge.id}"] .magnetic-cable`)!;
+        const scale = new DOMMatrixReadOnly(getComputedStyle(frame).transform).a;
+        const port = handle(created.id, reverse ? 'source' : 'target').getBoundingClientRect();
+        const pin = path.getPointAtLength(reverse ? 0 : path.getTotalLength()).matrixTransform(path.getScreenCTM()!);
+        if (Number(getComputedStyle(frame).opacity) > 0.03) samples.push({ scale, pinError: Math.hypot(pin.x - (reverse ? port.right : port.left), pin.y - port.y - port.height / 2) });
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      }
+      check(samples.length > 0 && samples.every(item => item.pinError < 0.4), 'Creation keeps the visible cable pinned to its animated port');
+      check(reduced ? samples.every(item => item.scale === 1) : samples.some(item => item.scale < 0.999), 'Creation scales gently or fades in with reduced motion');
+      check(!frame.hasAttribute('data-node-entrance') && new DOMMatrixReadOnly(getComputedStyle(frame).transform).a === 1, 'Creation settles and clears its temporary marker');
+      check(api.getEdges().length === (reverse ? 1 : 2), 'Creation preserves branches or replaces the occupied reverse input');
+      canvasHistoryShortcut('undo'); await settle();
+      check(api.getNodes().length === 2 && api.getEdges()[0]?.id === 'existing', 'Creation and its connection undo together in one step');
+      canvasHistoryShortcut('redo'); await settle();
+      check(!!api.getNode(created.id) && !document.querySelector('[data-node-entrance], .port-ripple'), 'Redo restores creation without replaying visual feedback');
+      pass(`${reverse ? 'Reverse' : 'Forward'} creation: anchored scale/fade, pinned cable, cleanup and atomic history`);
+    }
     results.dataset.result = 'passed';
   } catch (error) { results.dataset.result = 'failed'; results.textContent += `\nFAIL ${error instanceof Error ? error.stack : String(error)}`; }
 };

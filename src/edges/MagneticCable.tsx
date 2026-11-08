@@ -1,21 +1,23 @@
 import { useEffect, useRef } from 'react';
 import { EdgeText, getBezierPath, type EdgeProps } from '@xyflow/react';
-import { animate, motion, useMotionValue, useReducedMotion, useTransform } from 'motion/react';
+import { animate, motion, useMotionValue, useReducedMotion, useTransform, type MotionValue } from 'motion/react';
 import { bouncingCable, nearbyCable, type CableDisturbance } from './magneticGeometry';
 import { cableSpring } from './magneticDynamics';
 import type { CableImpact, CableRelease } from './magneticTypes';
 
 type Props = EdgeProps & {
   release?: CableRelease; impact?: CableImpact; enabled?: boolean; curvature?: number; selectedStroke?: string;
+  entrance?: { direction: 'source' | 'target'; scale: MotionValue<number>; radius: number };
 };
 
 export function MagneticCable({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, style, selected,
   markerStart, markerEnd, interactionWidth = 18, release, impact, enabled = true, curvature = 0.42, selectedStroke,
-  label, labelStyle, labelShowBg, labelBgStyle, labelBgPadding, labelBgBorderRadius,
+  label, labelStyle, labelShowBg, labelBgStyle, labelBgPadding, labelBgBorderRadius, entrance,
 }: Props) {
   const reduced = Boolean(useReducedMotion());
   const bend = useMotionValue(0);
   const neighborBend = useMotionValue(0);
+  const restScale = useMotionValue(1);
   const disturbance = useRef<CableDisturbance>();
   const played = useRef<string>();
   const playedImpact = useRef<string>();
@@ -58,8 +60,15 @@ export function MagneticCable({ sourceX, sourceY, targetX, targetY, sourcePositi
   }, [impact, enabled, reduced, neighborBend, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, curvature]);
   const source = { x: sourceX, y: sourceY }, target = { x: targetX, y: targetY };
   const options = { sourcePosition, targetPosition, curvature };
-  const path = useTransform([bend, neighborBend], () => bouncingCable(source, target, bend.get(), release?.reverse, release?.range,
-    disturbance.current ? { shape: disturbance.current, bend: neighborBend.get() } : undefined, options));
+  const path = useTransform([bend, neighborBend, entrance?.scale ?? restScale], () => {
+    const delta = entrance && !reduced ? (entrance.scale.get() - 1) * entrance.radius : 0;
+    return bouncingCable(
+      { x: source.x + (entrance?.direction === 'source' ? delta : 0), y: source.y },
+      { x: target.x - (entrance?.direction === 'target' ? delta : 0), y: target.y },
+      bend.get(), release?.reverse, release?.range,
+      disturbance.current ? { shape: disturbance.current, bend: neighborBend.get() } : undefined, options,
+    );
+  });
   const [, labelX, labelY] = getBezierPath({ sourceX, sourceY, targetX, targetY, ...options });
   return <>
     <path className="react-flow__edge-interaction" d={bouncingCable(source, target, 0, false, 100, undefined, options)} fill="none" stroke="transparent" strokeWidth={interactionWidth} />

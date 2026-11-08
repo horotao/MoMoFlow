@@ -39,6 +39,8 @@
 
 侧边栏、画布右键创建与拖线推荐共用 `NodeAddMenu`，以 `libraryItemLabel` 为基础显示名称，Figma 菜单中的 Resize 显示为“调节尺寸”；GPT Image 2.5 与 Nano Banana 的节点标题、设置面板和任务列表复用对应模型的名称常量，保持一致。菜单搜索同时匹配中文和原英文，端口说明仅翻译显示，不改变连接标识。拖线入口仍由 `connectionRecommendations` 按兼容端口筛选，同一节点的多个端口保持独立选择身份；提交前再次校验。新增节点入口或调整分组时同步维护 `nodeMenuCatalog.ts`，创建数据仍由 `createLibraryNode()` 提供。
 
+通过 Dock、空白右键或拖线菜单新建节点时，共享 `NodeFrame` 从 94% 轻弹至正常大小，复用 `spring.slow`；未连线节点以自身中心为支点，拖线新建则以连接端口为支点并配合连线回弹、端口涟漪。减少动态效果时保留淡入。临时状态由 `src/edges/connectionEffects.ts` 管理，不写入节点、连线或历史；撤销、重做和恢复不重播。`NodeEntrance` 等待节点测量后启动，拖线场景使用未缩放的端口布局坐标固定线头，完成或被指针打断后刷新 React Flow 测量。文本节点在拖线创建事务内初始化变量文档，确保新节点与连线可一起撤销。
+
 侧边栏、Dock 与画布右键添加菜单隐藏坐标记录（`position-logger`）和模型名称（`model-input`）入口，包括分类列表、搜索及快速访问；节点注册、已有节点与 `createLibraryNode()` 保持可用。两个节点复用 250px 宽的新版共享外框、标题、更多菜单与端口；坐标记录分行显示 X / Y 并随拖动更新，模型名称保留参数选项及不可连接的 `options` 输入。
 
 节点库的名称、分类和创建数据在 [libraryCatalog.ts](../components/libraryCatalog.ts) 中维护。只有提供 `nodeType` 的条目才能通过 `createLibraryNode` 创建节点；目录中的展示卡片不等于已实现的节点，不应为占位卡片生成替代节点。
