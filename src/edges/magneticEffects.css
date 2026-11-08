@@ -3,7 +3,7 @@
 }
 .react-flow.canvas-magnetic-connections .magnetic-preview .react-flow__connection-path { stroke: currentColor; }
 .react-flow.canvas-magnetic-connections .react-flow__connectionline { z-index: 1001; pointer-events: none; overflow: visible; }
-.magnetic-preview .cable-tip, .connection-port-effect .cable-tip { filter: drop-shadow(0 0 4px currentColor); }
+.connection-port-effect .cable-tip { filter: drop-shadow(0 0 4px currentColor); }
 .connection-feedback-layer { position: absolute; inset: 0; z-index: 1002; pointer-events: none; }
 .connection-feedback-anchor { position: absolute; width: 0; height: 0; pointer-events: none; }
 .connection-port-effect { position: absolute; left: 50%; top: 50%; width: 128px; height: 128px; overflow: visible; pointer-events: none; transform-origin: center; }
