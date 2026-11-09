@@ -1,10 +1,12 @@
 import { readImage, dataUrl } from './imageGenerationClient.ts';
 import { assetResources } from './assetResources.ts';
 import type { FileAsset } from './types';
-import type { SunburstRequest } from './sunburst';
+import { validateSunburstImageInputs, type SunburstRequest } from './sunburst.ts';
+import { validateVectorSvg } from './vectorSvg.ts';
 
 
 export async function requestSunburst(input: SunburstRequest, signal: AbortSignal): Promise<FileAsset> {
+  validateSunburstImageInputs(input.outputFormat, input.images.length > 0, Boolean(input.mask));
   const { maskMode, ...request } = input;
   const blobs: Blob[] = []; let total = 0;
   for (const url of input.images) {
@@ -55,10 +57,16 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
   });
   const result = await response.json().catch(() => { throw new Error('本地图片 API 不可用，请通过 npm run dev 启动服务。'); });
   if (!response.ok) throw new Error(result.error || '图片生成失败。');
-  if (typeof result.image !== 'string' || !/^data:image\/(png|jpeg|webp);base64,/.test(result.image)) throw new Error('未返回有效图片。');
+  if (typeof result.image !== 'string' || !/^data:image\/(png|jpeg|webp|svg\+xml);base64,/.test(result.image)) throw new Error('未返回有效图片。');
   const blob = await (await fetch(result.image, { signal })).blob();
-  const bitmap = await createImageBitmap(blob);
-  const dimensions = { width: bitmap.width, height: bitmap.height }; bitmap.close();
+  const svg = blob.type === 'image/svg+xml';
+  if ((input.outputFormat === 'svg') !== svg || (result.format === 'svg') !== svg) throw new Error('返回格式与请求不符，未取得 SVG 矢量结果。');
+  let dimensions: { width: number; height: number };
+  if (svg) dimensions = validateVectorSvg(new TextDecoder('utf-8', { fatal: true }).decode(await blob.arrayBuffer()));
+  else {
+    const bitmap = await createImageBitmap(blob);
+    dimensions = { width: bitmap.width, height: bitmap.height }; bitmap.close();
+  }
   signal.throwIfAborted();
-  return { id: crypto.randomUUID(), name: `Sunburst-${Date.now()}.${result.format}`, kind: 'image', url: assetResources.create(blob), size: blob.size, ...dimensions };
+  return { id: crypto.randomUUID(), name: `${input.variant ?? 'Sunburst'}-${Date.now()}.${result.format}`, kind: 'image', url: assetResources.create(blob), size: blob.size, ...dimensions };
 }

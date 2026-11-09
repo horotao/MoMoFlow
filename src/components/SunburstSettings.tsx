@@ -2,7 +2,7 @@ import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import type { AppNode, SunburstNode } from '../nodes/types';
 import { isNodeLocked, isSunburstNode } from '../nodes/types';
 import { effectiveSunburstSettings } from '../nodes/sunburstRun';
-import { defaultSunburstSettings, imageBackgrounds, imageFormats, imageQualityLabels, sunburstLocalParameter, sunburstName, sunburstParameterData, sunburstProviderLabels, sunburstProviders, sunburstQualities, validateSunburstProvider, validateSunburstSettings, type SunburstParameter, type SunburstSettings as Settings } from '../nodes/sunburst';
+import { sunburstVariants, validateSunburstVariant, defaultSunburstSettings, imageBackgrounds, imageFormats, imageQualityLabels, sunburstLocalParameter, sunburstName, sunburstParameterData, sunburstProviderLabels, sunburstProviders, sunburstQualities, validateSunburstProvider, validateSunburstSettings, type SunburstParameter, type SunburstSettings as Settings } from '../nodes/sunburst';
 import { DescriberModelSelect } from './DescriberModelSelect';
 import { ParameterField } from './ParameterField';
 import { SunburstSizeSelect } from './SunburstSizeSelect';
@@ -15,7 +15,7 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
   const { getNode, getNodes, getEdges, setNodes, setEdges, updateNodeData } = useReactFlow<AppNode>();
   const nodes = useNodes<AppNode>(); const edges = useEdges();
   const effective = effectiveSunburstSettings(node, nodes, edges);
-  const provider = effective.provider === 'openai' ? 'openai' : 'zenmux';
+  const provider = effective.provider === 'zenmux' ? 'zenmux' : 'openai';
   const qualities = sunburstQualities(provider);
   const change = (field: keyof Settings, value: string) => {
     if (isNodeLocked(getNode(node.id))) return;
@@ -35,8 +35,7 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
         // Detach only this field: unrelated invalid input must not discard it.
         if (field === 'provider') value = validateSunburstProvider(resolved.provider);
         else if (field === 'variant') {
-          if (resolved.variant !== 'Sunburst') throw new Error('不支持的模型版本。');
-          value = 'Sunburst';
+          value = validateSunburstVariant(resolved.variant);
         } else value = validateSunburstSettings({ ...defaultSunburstSettings, provider,
           [field]: resolved[field],
         })[field];
@@ -65,7 +64,7 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
   </ParameterField>;
   return <NodeSettingsSection title={sunburstName} icon={<img src="/gpt-sidebar/brand.svg" width={20} height={20} alt="" />} className="sunburst-settings" fieldsClassName="sunburst-parameter-list">
       <ParameterField label="渠道商" exposeButton={exposeButton('provider')}>
-        <DescriberModelSelect appearance="settings" fluidHover compact label="渠道商" value={String(effective.provider ?? 'zenmux')}
+        <DescriberModelSelect appearance="settings" fluidHover compact label="渠道商" value={String(effective.provider ?? 'openai')}
           choices={sunburstProviders} labels={sunburstProviders.map(item => sunburstProviderLabels[item])}
           disabled={node.data.locked || node.data.exposed?.includes('provider')} onChange={value => {
             if (isNodeLocked(getNode(node.id))) return;
@@ -74,13 +73,17 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
           }} />
       </ParameterField>
       <ParameterField label="模型版本" exposeButton={exposeButton('variant')}>
-        <DescriberModelSelect appearance="settings" fluidHover compact label="模型版本" value={String(effective.variant)} choices={['Sunburst']}
-          disabled={node.data.locked || node.data.exposed?.includes('variant')} onChange={() => {}} />
+        <DescriberModelSelect appearance="settings" fluidHover compact label="模型版本" value={String(effective.variant)} choices={sunburstVariants}
+          disabled={node.data.locked || node.data.exposed?.includes('variant')} onChange={value => {
+            if (isNodeLocked(getNode(node.id))) return;
+            updateNodeData(node.id, { variant: validateSunburstVariant(value) });
+          }} />
       </ParameterField>
       {selectField('quality', qualities, qualities.map(quality => imageQualityLabels[quality]))}
       {selectField('background', imageBackgrounds, ['自动', '透明', '不透明'])}
       <SunburstSizeSelect appearance="settings" value={String(effective.size ?? '')} disabled={node.data.locked || node.data.exposed?.includes('size')}
         onChange={value => change('size', value)} exposeButton={exposeButton('size')} resolutionExposeButton={exposeButton('size', '分辨率')} />
-      {selectField('outputFormat', imageFormats, ['PNG', 'JPEG', 'WebP'])}
+      {selectField('outputFormat', imageFormats, ['PNG', 'JPEG', 'WebP', 'SVG'])}
+      {effective.outputFormat === 'svg' && <div className="sunburst-size-note">SVG 仅支持文字生成，下载保留矢量路径。</div>}
   </NodeSettingsSection>;
 }

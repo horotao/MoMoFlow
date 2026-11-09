@@ -122,3 +122,19 @@ test('mask PNG export failures prevent API submission and release bitmaps', asyn
   assert.equal(f.body(), undefined);
   assert.equal(f.closed(), 2);
 });
+
+test('SVG client keeps UTF-8 XML as an SVG blob without decoding to a bitmap', async context => {
+  const xml = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480"><path d="M0 0h10v10z"/><text y="30">矢量</text></svg>';
+  const nativeFetch = globalThis.fetch;
+  context.mock.method(globalThis, 'fetch', async (url: Parameters<typeof fetch>[0], init?: RequestInit) => {
+    if (url === '/api/sunburst') return Response.json({ image: `data:image/svg+xml;base64,${Buffer.from(xml).toString('base64')}`, format: 'svg' });
+    return nativeFetch(url, init);
+  });
+  const asset = await requestSunburst({ ...defaultSunburstSettings, outputFormat: 'svg', variant: 'Flare', prompt: 'vector', images: [] }, new AbortController().signal);
+  try {
+    assert.match(asset.name, /^Flare-.*\.svg$/);
+    assert.equal(asset.width, 640); assert.equal(asset.height, 480);
+    const blob = await (await nativeFetch(asset.url)).blob();
+    assert.equal(blob.type, 'image/svg+xml'); assert.equal(await blob.text(), xml);
+  } finally { URL.revokeObjectURL(asset.url); }
+});

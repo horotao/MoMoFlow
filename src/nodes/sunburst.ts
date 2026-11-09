@@ -1,28 +1,37 @@
-export const sunburstModel = 'openai/gpt-image-2.5-sunburst';
-export const sunburstProviders = ['zenmux', 'openai'] as const;
+export const sunburstModel = 'openai/gpt-image-2.6-sunburst';
+export const sunburstProviders = ['openai', 'zenmux'] as const;
 export type SunburstProvider = typeof sunburstProviders[number];
 export const sunburstProviderLabels: Record<SunburstProvider, string> = { zenmux: 'ZenMux', openai: 'OpenAI 官方' };
 
-// Missing provider means ZenMux for existing workflows and queued requests.
+// New nodes and older nodes without a saved provider use OpenAI.
 export function validateSunburstProvider(value: unknown): SunburstProvider {
-  if (value === undefined) return 'zenmux';
+  if (value === undefined) return 'openai';
   if (value === 'zenmux' || value === 'openai') return value;
-  throw new Error('不支持的 GPT Image 2.5 渠道商。');
+  throw new Error('不支持的 GPT Image 2.6 渠道商。');
 }
 
-export function sunburstModelForProvider(provider: SunburstProvider): string {
-  return provider === 'openai' ? 'gpt-image-2.5-sunburst' : sunburstModel;
+export const sunburstVariants = ['Sunburst', 'Flare'] as const;
+export type SunburstVariant = typeof sunburstVariants[number];
+export function validateSunburstVariant(value: unknown): SunburstVariant {
+  if (value === undefined) return 'Sunburst';
+  if (value === 'Sunburst' || value === 'Flare') return value;
+  throw new Error('不支持的 GPT Image 2.6 模型版本。');
 }
 
-export const sunburstName = 'GPT Image 2.5';
+export function sunburstModelForProvider(provider: SunburstProvider, variant: SunburstVariant = 'Sunburst'): string {
+  const model = `gpt-image-2.6-${variant.toLowerCase()}`;
+  return provider === 'openai' ? model : `openai/${model}`;
+}
+
+export const sunburstName = 'GPT Image 2.6';
 const zenmuxImageQualities = ['auto', 'low', 'medium', 'high'] as const;
 export const imageQualities = [...zenmuxImageQualities, 'xhigh', 'max'] as const;
 export const imageQualityLabels: Record<typeof imageQualities[number], string> = { auto: '自动', low: '低', medium: '中', high: '高', xhigh: '超高', max: '最高' };
-export function sunburstQualities(provider: SunburstProvider = 'zenmux'): readonly typeof imageQualities[number][] {
+export function sunburstQualities(provider: SunburstProvider = 'openai'): readonly typeof imageQualities[number][] {
   return provider === 'openai' ? imageQualities : zenmuxImageQualities;
 }
 export const imageBackgrounds = ['auto', 'transparent', 'opaque'] as const;
-export const imageFormats = ['png', 'jpeg', 'webp'] as const;
+export const imageFormats = ['png', 'jpeg', 'webp', 'svg'] as const;
 export const imageSizes = ['auto', '1024x1024', '1536x1024', '1024x1536', '1536x1152', '1152x1536', '1280x1024', '1024x1280', '1536x864', '864x1536', '1792x768', '1536x768', '768x1536', '1536x512', '512x1536'] as const;
 export const imageSizeLabels = ['自动', '1:1', '3:2', '2:3', '4:3', '3:4', '5:4', '4:5', '16:9', '9:16', '21:9', '2:1', '1:2', '3:1', '1:3'];
 export const sunburstResolutions = ['1K', '2K', '4K'] as const;
@@ -59,11 +68,12 @@ export type SunburstSettings = {
 export type SunburstParameter = keyof SunburstSettings | 'provider' | 'variant';
 export const sunburstFieldLabels: Record<SunburstParameter, string> = { provider: 'Provider', variant: 'Model Version', quality: 'Quality', background: 'Background', size: 'Aspect Ratio', outputFormat: 'Output Format' };
 export function sunburstLocalParameter(data: SunburstSettings & { provider?: SunburstProvider; variant?: string }, field: SunburstParameter): string {
-  return String(data[field] ?? (field === 'provider' ? 'zenmux' : 'Sunburst'));
+  return String(data[field] ?? (field === 'provider' ? 'openai' : 'Sunburst'));
 }
 export const defaultSunburstSettings: SunburstSettings = { quality: 'medium', background: 'auto', size: 'auto', outputFormat: 'png' };
 export type SunburstRequest = SunburstSettings & {
   provider?: SunburstProvider;
+  variant?: SunburstVariant;
   prompt: string; images: string[]; mask?: string;
   // Client-only hint: convert opaque Invert masks; preserve existing alpha masks.
   maskMode?: 'luminance';
@@ -73,7 +83,7 @@ export function validateSunburstSettings(value: unknown): SunburstSettings {
   if (!value || typeof value !== 'object') throw new Error('图片参数格式错误。');
   const input = value as Record<string, unknown>;
   const provider = validateSunburstProvider(input.provider);
-  if (input.variant !== undefined && input.variant !== 'Sunburst') throw new Error('不支持的 GPT Image 2.5 模型版本。');
+  validateSunburstVariant(input.variant);
   if (!imageQualities.some(v => v === input.quality) || !imageBackgrounds.some(v => v === input.background)
     || !imageFormats.some(v => v === input.outputFormat)) throw new Error('不支持的图片参数。');
   if (!sunburstQualities(provider).some(v => v === input.quality)) throw new Error(`${sunburstProviderLabels[provider]} 暂未接入此画质参数，请选择自动、低、中或高，或切换到 OpenAI 官方渠道。`);
@@ -82,7 +92,7 @@ export function validateSunburstSettings(value: unknown): SunburstSettings {
   return { quality: input.quality, background: input.background, size: input.size, outputFormat: input.outputFormat } as SunburstSettings;
 }
 
-// OpenAI GPT Image 2.5 size constraints, shared by the editor and server.
+// OpenAI GPT Image 2.6 size constraints, shared by the editor and server.
 export function validateSunburstSize(size: unknown): string {
   if (size === 'auto') return size;
   if (typeof size !== 'string' || !/^[1-9]\d{0,3}x[1-9]\d{0,3}$/.test(size)) throw new Error('请输入有效的宽高，例如 1536x864。');
@@ -98,7 +108,11 @@ export const sunburstChoices: Record<keyof SunburstSettings, readonly string[]> 
   quality: zenmuxImageQualities, background: imageBackgrounds, size: sunburstSizeChoices, outputFormat: imageFormats,
 };
 
-export function sunburstParameterData(field: SunburstParameter, value: string, provider: SunburstProvider = 'zenmux') {
-  const choices: readonly string[] = field === 'provider' ? sunburstProviders : field === 'variant' ? ['Sunburst'] : field === 'quality' ? sunburstQualities(provider) : sunburstChoices[field];
+export function sunburstParameterData(field: SunburstParameter, value: string, provider: SunburstProvider = 'openai') {
+  const choices: readonly string[] = field === 'provider' ? sunburstProviders : field === 'variant' ? sunburstVariants : field === 'quality' ? sunburstQualities(provider) : sunburstChoices[field];
   return { label: sunburstFieldLabels[field], model: value, options: choices.includes(value) ? [...choices] : [value, ...choices], parameter: field };
+}
+
+export function validateSunburstImageInputs(outputFormat: string, hasImages: boolean, hasMask: boolean) {
+  if (outputFormat === 'svg' && (hasImages || hasMask)) throw new Error('SVG 仅支持文字生成，请断开参考图片和蒙版后再运行。');
 }

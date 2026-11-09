@@ -12,7 +12,7 @@ import '../src/nodes/ColorPaletteNode.css';
 import '../src/nodes/PainterNode.css';
 
 const kinds = ['sunburst', 'nano-banana', 'ideogram', 'image-describer', 'model-input', 'color-palette'] as const;
-const labels = ['GPT Image 2.5', 'Nano Banana', 'Ideogram', '图像描述', '模型选项', '调色板'];
+const labels = ['GPT Image 2.6', 'Nano Banana', 'Ideogram', '图像描述', '模型选项', '调色板'];
 function Probe() {
   const api = useReactFlow<AppNode>();
   const nodes = useNodes<AppNode>();

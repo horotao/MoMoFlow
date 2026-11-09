@@ -7,7 +7,7 @@ import { buildSunburstPayload, buildSunburstRequest, sunburstPlugin } from './su
 import { captureMiddleware } from './testMiddleware.ts';
 import { defaultSunburstSettings, sunburstModel, imageQualities } from '../src/nodes/sunburst.ts';
 const png = 'data:image/png;base64,aGVsbG8=';
-const input = { ...defaultSunburstSettings, prompt: 'A green circle', images: [] };
+const input = { ...defaultSunburstSettings, provider: 'zenmux', prompt: 'A green circle', images: [] };
 
 test('all six official qualities reach generation and edit payloads without rewriting', () => {
   for (const quality of imageQualities) for (const images of [[], [png]]) {
@@ -78,22 +78,22 @@ async function invoke({ hook = 'configureServer', headers = {}, body = input, ke
 }
 for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
   test(`${hook}: OpenAI generation and masked edits use only the official model, host and key`, async () => {
-    for (const images of [[], [png, png]]) {
+    for (const variant of ['Sunburst', 'Flare'] as const) for (const images of [[], [png, png]]) {
       let calls = 0;
-      const result = await invoke({ hook, key: '', body: { ...input, provider: 'openai', images, ...(images.length ? { mask: png } : {}) }, provider: async (url, options) => {
+      const result = await invoke({ hook, key: '', body: { ...input, provider: 'openai', variant, images, ...(images.length ? { mask: png } : {}) }, provider: async (url, options) => {
         calls++;
         assert.equal(url, `https://api.openai.com/v1/images/${images.length ? 'edits' : 'generations'}`);
         assert.equal(new Headers(options?.headers).get('Authorization'), 'Bearer test-openai-only');
         if (images.length) {
           assert.ok(options?.body instanceof FormData);
-          assert.equal(options.body.get('model'), 'gpt-image-2.5-sunburst');
+          assert.equal(options.body.get('model'), `gpt-image-2.6-${variant.toLowerCase()}`);
           assert.equal(options.body.getAll('image[]').length, 2);
           assert.equal(await (options.body.get('mask') as File).text(), 'hello');
           assert.equal(options.body.has('provider'), false);
         } else {
           assert.equal(typeof options?.body, 'string');
           const body = JSON.parse(options!.body as string);
-          assert.equal(body.model, 'gpt-image-2.5-sunburst');
+          assert.equal(body.model, `gpt-image-2.6-${variant.toLowerCase()}`);
           assert.equal('provider' in body, false);
         }
         return Response.json({ data: [{ b64_json: 'aGVsbG8=' }] });
@@ -302,4 +302,61 @@ test('logs redact identifier credentials and bound circular error causes', async
   } }, { status: 500, headers: { 'x-request-id': key } }) });
   assert.equal(http.logs.length, 1);
   for (const secret of [key, 'private.example', 'token=secret']) assert.equal(JSON.stringify(http.logs).includes(secret), false);
+});
+
+test('missing provider uses OpenAI and both 2.6 versions use exact IDs on each channel', () => {
+  for (const variant of ['Sunburst', 'Flare'] as const) for (const provider of [undefined, 'openai', 'zenmux']) {
+    for (const images of [[], [png]]) {
+      const request = buildSunburstRequest({ ...input, provider, variant, images });
+      assert.equal(request.provider, provider ?? 'openai');
+      assert.equal(request.body.model, `${provider === 'zenmux' ? 'openai/' : ''}gpt-image-2.6-${variant.toLowerCase()}`);
+    }
+  }
+  assert.throws(() => buildSunburstRequest({ ...input, variant: 'gpt-image-2.5-sunburst' }), /模型版本/);
+});
+
+test('SVG requests use generations with n=1 and preserve actual vector XML bytes', async () => {
+  const xml = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M0 0h100v100z"/><text y="50">矢量</text></svg>';
+  for (const variant of ['Sunburst', 'Flare']) {
+    const result = await invoke({ body: { ...input, provider: 'openai', variant, outputFormat: 'svg' }, provider: async (url, options) => {
+      assert.equal(url, 'https://api.openai.com/v1/images/generations');
+      const body = JSON.parse(options!.body as string);
+      assert.equal(body.n, 1); assert.equal(body.output_format, 'svg');
+      assert.deepEqual(body.svg, { model: 'gpt-6.1-terra' });
+      assert.equal(body.model, `gpt-image-2.6-${variant.toLowerCase()}`);
+      return Response.json({ data: [{ b64_json: Buffer.from(xml).toString('base64') }], output_format: 'svg' });
+    } });
+    assert.equal(result.status, 200);
+    assert.equal(result.body.format, 'svg');
+    assert.equal(result.body.image, `data:image/svg+xml;base64,${Buffer.from(xml).toString('base64')}`);
+  }
+});
+
+test('SVG rejects image editing before provider submission and rejects disguised raster responses', async () => {
+  for (const extra of [{ images: [png] }, { mask: png }]) {
+    assert.equal((await invoke({ body: { ...input, outputFormat: 'svg', ...extra }, provider: async () => { assert.fail('must not submit'); } })).status, 400);
+  }
+  for (const [xml, format] of [['PNG bytes', 'svg'], ['<svg xmlns="http://www.w3.org/2000/svg"><image href="data:image/png;base64,aGVsbG8="/></svg>', 'svg'], ['hello', 'png']]) {
+    let calls = 0;
+    const result = await invoke({ body: { ...input, outputFormat: 'svg' }, provider: async () => {
+      calls++; return Response.json({ output_format: format, data: [{ b64_json: Buffer.from(xml).toString('base64') }] });
+    } });
+    assert.equal(result.status, 502); assert.match(result.body.error, /SVG/); assert.equal(calls, 1);
+  }
+});
+
+
+test('SVG author is added only to official SVG generations, never raster or retained ZenMux requests', () => {
+  for (const provider of ['openai', 'zenmux']) for (const outputFormat of ['png', 'jpeg', 'webp', 'svg']) {
+    const request = buildSunburstRequest({ ...input, provider, outputFormat });
+    const payload = buildSunburstPayload(request);
+    assert.equal(typeof payload.body, 'string');
+    const wire = JSON.parse(payload.body as string);
+    assert.deepEqual(wire.svg, provider === 'openai' && outputFormat === 'svg' ? { model: 'gpt-6.1-terra' } : undefined);
+    if (outputFormat !== 'svg') {
+      const edit = buildSunburstPayload(buildSunburstRequest({ ...input, provider, outputFormat, images: [png] }));
+      assert.ok(edit.body instanceof FormData);
+      assert.equal(edit.body.has('svg'), false);
+    }
+  }
 });

@@ -150,7 +150,7 @@ export class WorkflowExecution {
   }
   private placeholder(id: string, batchId: string, iteration?: WorkflowIteration): PreviewTask {
     const node = this.graph.nodes.find(item => item.id === id)!;
-    const label = node.data.label || ({ sunburst: 'GPT Image 2.5', 'nano-banana': 'Nano Banana', ideogram: 'Ideogram 4.5', 'image-describer': '图像描述' } as Record<string, string>)[node.type!] || node.type;
+    const label = node.data.label || ({ sunburst: 'GPT Image 2.6', 'nano-banana': 'Nano Banana', ideogram: 'Ideogram 4.5', 'image-describer': '图像描述' } as Record<string, string>)[node.type!] || node.type;
     return { id: crypto.randomUUID(), nodeId: id, batchId, label: iteration ? `${label} · ${iteration.index + 1}/${iteration.total}` : label, iteration, model: node.type!, createdAt: Date.now(), state: 'Queued', progress: 0, started: 0, notice: '等待上游' };
   }
   private ensureInput(root: Root, consumer: AppNode, edge: Edge) {

@@ -1,8 +1,12 @@
+import { validateVectorSvg } from '../src/nodes/vectorSvg.ts';
 import { diagnosticText, logIdentifier, errorDiagnostic, readErrorDiagnostic, trusted, type ProviderDiagnostic } from './zenmuxShared.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import type { Plugin } from 'vite';
-import { sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings, type SunburstProvider } from '../src/nodes/sunburst.ts';
+import { validateSunburstImageInputs, validateSunburstVariant, sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings, type SunburstProvider } from '../src/nodes/sunburst.ts';
+
+// The image model renders the reference; this vision/text model authors SVG XML.
+const svgAuthorModel = 'gpt-6.1-terra';
 
 const maxBody = 64 * 1024 * 1024;
 const providers = {
@@ -23,6 +27,7 @@ export function buildSunburstRequest(value: unknown) {
   const provider = validateSunburstProvider(input.provider);
   if (typeof input.prompt !== 'string' || !input.prompt.trim() || input.prompt.length > 32000) throw new Error('请连接非空 Prompt，最多 32000 个字符。');
   if (!Array.isArray(input.images) || input.images.length > 16) throw new Error('最多支持 16 张参考图片。');
+  validateSunburstImageInputs(settings.outputFormat, input.images.length > 0, Boolean(input.mask));
   const images = input.images.map(url => ({ image_url: imageData(url) }));
   if (input.mask && !images.length) throw new Error('使用 Mask 时必须连接 Image。');
   const mask = input.mask ? { image_url: imageData(input.mask, true) } : undefined;
@@ -30,8 +35,9 @@ export function buildSunburstRequest(value: unknown) {
     provider,
     endpoint: images.length ? 'edits' : 'generations',
     body: {
-      model: sunburstModelForProvider(provider), prompt: input.prompt, n: 1,
+      model: sunburstModelForProvider(provider, validateSunburstVariant(input.variant)), prompt: input.prompt, n: 1,
       quality: settings.quality, background: settings.background, size: settings.size, output_format: settings.outputFormat,
+      ...(provider === 'openai' && settings.outputFormat === 'svg' ? { svg: { model: svgAuthorModel } } : {}),
       ...(images.length ? { images, ...(mask ? { mask } : {}) } : {}),
     },
   };
@@ -71,7 +77,7 @@ export function sunburstPlugin(apiKeys: Record<SunburstProvider, string>, provid
     if (req.method !== 'POST') return send(405, { error: 'Method not allowed' });
     if (!trusted(req)) return send(403, { error: 'Host or Origin not allowed' });
     if (!req.headers['content-type']?.startsWith('application/json')) return send(415, { error: 'Expected application/json' });
-    let provider: SunburstProvider = 'zenmux';
+    let provider: SunburstProvider = 'openai';
     let apiKey = '';
     const controller = new AbortController();
     const startedAt = Date.now();
@@ -139,9 +145,15 @@ export function sunburstPlugin(apiKeys: Record<SunburstProvider, string>, provid
       stage = 'validate-result';
       const data = result.data?.[0];
       if (typeof data?.b64_json !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(data.b64_json) || data.b64_json.length > maxBody) return sendFailure(`${config.name} 未返回有效图片，结果未知，请检查用量后再手动重试。`);
-      const format = ['png', 'jpeg', 'webp'].includes(result.output_format) ? result.output_format : request.body.output_format;
+      const format = ['png', 'jpeg', 'webp', 'svg'].includes(result.output_format) ? result.output_format : request.body.output_format;
+      if (request.body.output_format === 'svg' || format === 'svg') {
+        if (format !== 'svg' || request.body.output_format !== 'svg') return sendFailure('返回格式与请求不符，未取得 SVG 矢量结果。');
+        try {
+          validateVectorSvg(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.from(data.b64_json, 'base64')));
+        } catch (error) { return sendFailure(error instanceof Error ? error.message : '未返回有效的纯矢量 SVG。'); }
+      }
       stage = 'send-result';
-      send(200, { image: `data:image/${format};base64,${data.b64_json}`, format });
+      send(200, { image: `data:image/${format === 'svg' ? 'svg+xml' : format};base64,${data.b64_json}`, format });
     } catch (error) {
       sendFailure(controller.signal.aborted ? '请求超时或已取消；已提交请求仍可能计费，不会自动重试。' : `无法取得 ${providers[provider].name} 结果；请检查网络及用量后再手动重试。`, error);
     } finally { clearTimeout(timeout); res.off('close', close); }

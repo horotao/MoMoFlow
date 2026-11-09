@@ -31,7 +31,7 @@ import type { AppNode, FileAsset, SunburstNode } from './types';
 import { isNodeLocked, isSunburstNode, isImageGeneratorNode } from './types.ts';
 import { fileAssets } from './fileCollection.ts';
 import { resolveTextValue } from './textVariables.ts';
-import { sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
+import { validateSunburstImageInputs, validateSunburstVariant, sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
 import type { SunburstRequest } from './sunburst';
 import type { PreviewTask } from './taskQueue';
 
@@ -244,8 +244,10 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
       if (!node || !isSunburstNode(node) || isNodeLocked(node)) continue;
       const effective = effectiveSunburstSettings(node, nodes, edges);
       const provider = validateSunburstProvider(effective.provider);
+      const variant = validateSunburstVariant(effective.variant);
       const settings = validateSunburstSettings(effective);
       const inputs = edges.filter(edge => edge.target === id);
+      validateSunburstImageInputs(settings.outputFormat, inputs.some(edge => edge.targetHandle?.startsWith('image-')), inputs.some(edge => edge.targetHandle === 'mask'));
       const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
       const prompt = promptEdge ? resolveTextValue(promptEdge.source, nodes, edges).trim() : '';
       if (!prompt || prompt.length > 32000) throw new Error('请为每个选中节点连接非空 Prompt，最多 32000 个字符。');
@@ -268,7 +270,7 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
         mask = assets[0].url;
         if (assets[0].maskMode === 'luminance' || isMatteGrowShrinkNode(source) || isInvertNode(source) || (isMasksExtractorNode(source) && origin?.handle === 'mask')) maskMode = 'luminance';
       }
-      for (let index = 0; index < runs; index++) tasks.push({ id: crypto.randomUUID(), batchId, createdAt, nodeId: id, model: sunburstModelForProvider(provider), imageRequest: { ...settings, provider, prompt, images, mask, ...(maskMode ? { maskMode } : {}) }, progress: 0, state: 'Queued', started: 0 });
+      for (let index = 0; index < runs; index++) tasks.push({ id: crypto.randomUUID(), batchId, createdAt, nodeId: id, model: sunburstModelForProvider(provider, variant), imageRequest: { ...settings, provider, variant, prompt, images, mask, ...(maskMode ? { maskMode } : {}) }, progress: 0, state: 'Queued', started: 0 });
     }
     return { tasks };
   } catch (error) { return { tasks: [], error: error instanceof Error ? error.message : '输入参数无效。' }; }

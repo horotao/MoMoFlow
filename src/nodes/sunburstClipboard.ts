@@ -1,5 +1,5 @@
 import { isFileAsset } from './fileCollection.ts';
-import { validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
+import { validateSunburstVariant, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
 import type { SunburstNode } from './types';
 
 export function restoreSunburstData(value: unknown): SunburstNode['data'] | undefined {
@@ -17,7 +17,7 @@ export function restoreSunburstData(value: unknown): SunburstNode['data'] | unde
   return {
     ...settings, size: data.size, imageInputs: count, results,
     ...(data.provider !== undefined ? { provider } : {}),
-    ...(data.variant === 'Sunburst' ? { variant: 'Sunburst' as const } : {}),
+    ...(data.variant !== undefined ? { variant: validateSunburstVariant(data.variant) } : {}),
     ...(data.orderBy === 'date' || data.orderBy === 'name' ? { orderBy: data.orderBy } : {}),
     ...(data.outputMode === 'fixed' ? { outputMode: 'fixed' as const } : {}),
     label: typeof data.label === 'string' ? data.label : undefined,

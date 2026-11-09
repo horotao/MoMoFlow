@@ -51,12 +51,16 @@ async function run() {
   const originalFetch = window.fetch.bind(window);
   const requests: Record<string, unknown>[] = [];
   let fail = false;
+  let invalidSvg = false;
+  const svgXml = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480"><rect width="640" height="480" fill="#7760b7"/><path d="M80 240L320 80L560 240L320 400Z" fill="#fff"/><text x="250" y="250" fill="#222">矢量 SVG</text></svg>';
+  const svgBase64 = btoa(String.fromCharCode(...new TextEncoder().encode(svgXml)));
   // Every model request stays in this isolated page; no credentials or paid calls.
   window.fetch = async (url, init) => {
     const path = typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
     if (path === '/api/sunburst') {
       const request = JSON.parse(String(init?.body)); requests.push(request);
       if (fail) return Response.json({ error: 'OpenAI mock failure · sunburst-provider-qa' }, { status: 502 });
+      if (request.outputFormat === 'svg') return Response.json({ image: `data:image/svg+xml;base64,${invalidSvg ? btoa('PNG bytes') : svgBase64}`, format: 'svg' });
       const output = document.createElement('canvas');
       const [width, height] = request.size === 'auto' ? [320, 320] : request.size.split('x').map(Number);
       output.width = width; output.height = height;
@@ -81,16 +85,32 @@ async function run() {
   const storage = new WorkflowStorage(db); await storage.load();
   createRoot(document.getElementById('root')!).render(<ReactFlowProvider><Flow storage={storage} saved={workflow} /><Probe /></ReactFlowProvider>);
   await until(() => Boolean(document.querySelector('[aria-label="渠道商"]')), 'Settings did not mount');
-  check(find('[aria-label="渠道商"]').textContent?.includes('ZenMux'), 'Legacy/default nodes keep ZenMux');
+  check(find('[aria-label="渠道商"]').textContent?.includes('OpenAI 官方'), 'Default nodes use OpenAI');
+  await chooseProvider('ZenMux');
+  await new Promise(resolve => setTimeout(resolve, 800)); // Separate edits across the history coalescing window.
   check((await qualityOptions()).join(',') === '自动,低,中,高', 'ZenMux retains its four quality options');
   await chooseProvider('OpenAI 官方');
   check(read().data.provider === 'openai' && read().type === 'sunburst', 'Official channel uses the same Sunburst node');
-  check(find('[aria-label="渠道商"]').textContent?.includes('OpenAI 官方') && find('.sunburst-settings h2').textContent === 'GPT Image 2.5', 'Provider selector updates within the redesigned GPT sidebar');
+  check(find('[aria-label="渠道商"]').textContent?.includes('OpenAI 官方') && find('.sunburst-settings h2').textContent === 'GPT Image 2.6', 'Provider selector updates within the redesigned GPT sidebar');
   canvasHistoryShortcut('undo'); await settle();
-  check((read().data.provider ?? 'zenmux') === 'zenmux', 'Undo restores previous channel');
+  check((read().data.provider ?? 'openai') === 'zenmux', 'Undo restores previous channel');
   canvasHistoryShortcut('redo'); await settle();
   check(read().data.provider === 'openai', 'Redo restores OpenAI');
   check((await qualityOptions()).join(',') === '自动,低,中,高,超高,最高', 'OpenAI offers all six official quality options');
+  await new Promise(resolve => setTimeout(resolve, 800));
+  await chooseSetting('模型版本', 'Flare');
+  check(read().data.variant === 'Flare', 'Model selector saves Flare');
+  canvasHistoryShortcut('undo'); await settle();
+  check((read().data.variant ?? 'Sunburst') === 'Sunburst', 'Undo restores Sunburst');
+  canvasHistoryShortcut('redo'); await settle();
+  check(read().data.variant === 'Flare', 'Redo restores Flare');
+  find('[aria-label="将模型版本设为输入"]').click(); await settle();
+  const versionSource = api.getEdges().find(edge => edge.target === 'image' && edge.targetHandle === 'variant')!.source;
+  api.updateNodeData(versionSource, { model: 'Sunburst' }); await settle();
+  find('[aria-label="模型版本使用本地值"]').click(); await settle();
+  check(read().data.variant === 'Sunburst', 'Detaching version preserves the connected value');
+  await chooseSetting('模型版本', 'Flare');
+
   await chooseSetting('画质', '最高');
   find('[aria-label="将画质设为输入"]').click(); await settle();
   const parameter = api.getNodes().find(node => node.type === 'model-input' && 'parameter' in node.data && node.data.parameter === 'quality');
@@ -109,6 +129,7 @@ async function run() {
   const runButton = () => find('[data-id="image"] .sunburst-run');
   runButton().click(); await until(() => read().data.results?.length === 1, 'Official mock generation did not finish');
   check(requests[0].provider === 'openai' && (requests[0].images as string[]).length === 0, 'Text generation snapshots OpenAI');
+  check(requests[0].variant === 'Flare', 'Flare reaches the client request');
   check(requests[0].quality === 'max', 'Maximum quality reaches the generation request');
   check(requests[0].size === '2048x2048', '2K dimensions reach the generation request');
   await closeTasks();
@@ -192,6 +213,7 @@ async function run() {
   const reload = new WorkflowStorage(`${db}-roundtrip`), restored = await reload.load();
   const restoredNode = restored?.nodes.find(node => node.id === 'image') as SunburstNode;
   check(restoredNode.data.provider === 'openai' && restoredNode.data.results?.length === 3, 'IndexedDB restores provider and generated results');
+  check(restoredNode.data.variant === 'Flare', 'IndexedDB retains Flare');
   check(restoredNode.data.quality === 'xhigh', 'IndexedDB retains advanced quality');
   check(restoredNode.data.size === '3840x2160', 'IndexedDB retains 4K size');
   const bitmap = await createImageBitmap(await (await originalFetch(restoredNode.data.results![0].url)).blob());
@@ -199,6 +221,48 @@ async function run() {
   const restored4K = await createImageBitmap(await (await originalFetch(restoredNode.data.results![2].url)).blob());
   check(restored4K.width === 3840 && restored4K.height === 2160, 'Restored 4K result bytes retain full resolution'); restored4K.close();
   reload.dispose(); saved.dispose();
+  await closeTasks();
+  api.setEdges(all => all.filter(edge => !(edge.target === 'image' && (edge.targetHandle?.startsWith('image-') || edge.targetHandle === 'mask'))));
+  await settle();
+  await chooseSetting('输出格式', 'SVG');
+  check(read().data.outputFormat === 'svg', 'SVG format is selectable');
+  for (const variant of ['Sunburst', 'Flare']) {
+    await chooseSetting('模型版本', variant);
+    const count = read().data.results!.length;
+    runButton().click();
+    await until(() => read().data.results?.length === count + 1, `${variant} SVG did not finish`);
+    const asset = read().data.results!.at(-1)!;
+    const blob = await (await originalFetch(asset.url)).blob();
+    check(blob.type === 'image/svg+xml' && await blob.text() === svgXml, `${variant} keeps exact UTF-8 vector XML`);
+    check(asset.name.endsWith('.svg') && asset.width === 640 && asset.height === 480, `${variant} preserves SVG filename and viewBox dimensions`);
+    await until(() => [...document.querySelectorAll<HTMLImageElement>('[data-id="image"] img')].some(image => image.src === asset.url && image.complete && image.naturalWidth > 0), 'SVG preview did not load');
+    check(true, `${variant} renders vector preview`);
+    await closeTasks();
+  }
+  const vector = read().data.results!.at(-1)!;
+  let downloaded: { href: string; name: string } | undefined;
+  const captureDownload = (event: MouseEvent) => {
+    const anchor = event.target;
+    if (anchor instanceof HTMLAnchorElement && anchor.download) { event.preventDefault(); downloaded = { href: anchor.href, name: anchor.download }; }
+  };
+  document.addEventListener('click', captureDownload, true);
+  try {
+    find('[data-id="image"] [aria-label="下载当前图片"]').click();
+    await until(() => Boolean(downloaded), 'SVG download did not start');
+    check(downloaded!.name.endsWith('.svg') && await (await originalFetch(downloaded!.href)).text() === svgXml, 'Download keeps actual SVG bytes without PNG conversion');
+  } finally { document.removeEventListener('click', captureDownload, true); }
+  const svgStorage = new WorkflowStorage(`${db}-svg`); await svgStorage.load();
+  await svgStorage.save({ ...workflow, nodes: api.getNodes(), edges: api.getEdges() });
+  const svgReload = new WorkflowStorage(`${db}-svg`), svgRestored = await svgReload.load();
+  const savedVector = (svgRestored!.nodes.find(node => node.id === 'image') as SunburstNode).data.results!.find(asset => asset.id === vector.id)!;
+  const savedBlob = await (await originalFetch(savedVector.url)).blob();
+  check(savedBlob.type === 'image/svg+xml' && await savedBlob.text() === svgXml, 'IndexedDB retains SVG MIME and exact vector XML');
+  svgReload.dispose(); svgStorage.dispose();
+  invalidSvg = true;
+  runButton().click();
+  await until(() => Boolean(document.querySelector('[data-id="image"] .sunburst-error, [data-id="image"] [role="alert"]')) || document.body.textContent!.includes('纯矢量 SVG'), 'Invalid SVG error did not appear');
+  check(read().data.results!.at(-1)!.id === vector.id, 'Invalid SVG retains the previous vector result');
+
   find('#results').dataset.result = 'passed'; find('#results').textContent = `PASS · ${checks.length} checks · mock only\n${checks.join('\n')}`;
 }
 

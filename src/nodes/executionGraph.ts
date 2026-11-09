@@ -11,7 +11,7 @@ import { isDescriberNode, isImageGeneratorNode, isNodeLocked, isCompositorNode, 
 import { hasVariable } from './textDocument.ts';
 import { fileAssets, orderedAssets } from './fileCollection.ts';
 import { imageOutput } from './sunburstRun.ts';
-import { defaultSunburstSettings, sunburstModel, validateSunburstSettings } from './sunburst.ts';
+import { validateSunburstImageInputs, defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
 import { defaultNanoBananaSettings, validateNanoBananaSettings } from './nanoBanana.ts';
 import { resolveTextValue } from './textVariables.ts';
 import { effectiveSunburstSettings, prepareSunburstRun } from './sunburstRun.ts';
@@ -180,22 +180,9 @@ export function reusable(node: AppNode, signature: string) {
   if (isDescriberNode(node)) return Boolean(node.data.text.trim() && node.data.generation?.version === 1 && node.data.generation.inputSignature === signature && node.data.generation.outputSignature === stableSignature(node.data.text));
   const asset = selectedResult(node);
   return Boolean(asset?.generation?.version === 1 && asset.generation.outputSignature === asset.id
-    && (asset.generation.inputSignature === signature || (node.type === 'sunburst' && matchesLegacySunburstSignature(asset.generation.inputSignature, signature))));
+    && asset.generation.inputSignature === signature);
 }
 
-// Before channel selection, ZenMux signatures omitted provider. Match only that
-// schema difference; keep all other inputs and current signatures unchanged.
-function matchesLegacySunburstSignature(saved: string, current: string): boolean {
-  try {
-    const value: unknown = JSON.parse(current);
-    if (!Array.isArray(value) || value.length !== 3 || value[0] !== 'model-input-v1' || value[1] !== sunburstModel) return false;
-    const request: unknown = value[2];
-    if (!request || typeof request !== 'object' || Array.isArray(request) || !('provider' in request) || request.provider !== 'zenmux') return false;
-    const legacy = { ...request } as Record<string, unknown>;
-    delete legacy.provider;
-    return saved === stableSignature([value[0], value[1], legacy]);
-  } catch { return false; }
-}
 // Validate values that are already knowable before submitting any model work.
 // A model-produced text field is checked again by prepareModel after execution.
 function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets: string[]) {
@@ -228,7 +215,9 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
     const masked = inputs.some(edge => edge.targetHandle === 'mask');
     const images = inputs.filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''));
     if (node.type === 'sunburst') {
-      validateSunburstSettings(knownSettings(effectiveSunburstSettings(node, graph.nodes, graph.edges), { ...defaultSunburstSettings, provider: 'openai', variant: 'Sunburst' }));
+      const settings = knownSettings(effectiveSunburstSettings(node, graph.nodes, graph.edges), { ...defaultSunburstSettings, provider: 'openai', variant: 'Sunburst' });
+      validateSunburstSettings(settings);
+      validateSunburstImageInputs(String(settings.outputFormat), images.length > 0, masked);
       if (masked && !images.length) throw new Error('使用 Mask 时必须连接 Image。');
     } else if (node.type === 'nano-banana') {
       validateNanoBananaSettings(knownSettings(effectiveNanoBananaSettings(node, graph.nodes, graph.edges), defaultNanoBananaSettings));

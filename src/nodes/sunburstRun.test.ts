@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { AppNode, SunburstNode, ModelInputNode, FileAsset } from './types';
 import { prepareSunburstRun, imageOutput } from './sunburstRun.ts';
-import { defaultSunburstSettings, sunburstModel, imageSizes, validateSunburstSize, sunburstParameterData } from './sunburst.ts';
+import { defaultSunburstSettings, imageSizes, validateSunburstSize, sunburstParameterData } from './sunburst.ts';
 import { prepareDescriberRun } from './describerRun.ts';
 const generator: SunburstNode = { id: 'g', type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, imageInputs: 2 } };
 const prompt: AppNode = { id: 'p', type: 'text', position: { x: 0, y: 0 }, data: { text: '一只猫' } };
@@ -12,8 +12,8 @@ const promptEdge = { id: 'p-g', source: 'p', target: 'g', targetHandle: 'prompt'
 test('text-only runs snapshot every setting, resolve upstream text, and honor count', () => {
   const run = prepareSunburstRun([generator, prompt], [promptEdge], ['g'], 2);
   assert.equal(run.tasks.length, 2); assert.equal(run.error, undefined);
-  assert.equal(run.tasks[0].model, sunburstModel);
-  assert.deepEqual(run.tasks[0].imageRequest, { ...defaultSunburstSettings, provider: 'zenmux', prompt: '一只猫', images: [], mask: undefined });
+  assert.equal(run.tasks[0].model, 'gpt-image-2.6-sunburst');
+  assert.deepEqual(run.tasks[0].imageRequest, { ...defaultSunburstSettings, provider: 'openai', variant: 'Sunburst', prompt: '一只猫', images: [], mask: undefined });
   assert.equal(run.tasks[0].batchId, run.tasks[1].batchId);
 });
 test('provider is frozen per task and invalid channels block the batch before enqueue', () => {
@@ -21,7 +21,7 @@ test('provider is frozen per task and invalid channels block the batch before en
   const run = prepareSunburstRun([node, prompt], [promptEdge], ['g'], 2);
   assert.equal(run.error, undefined);
   node.data.provider = 'zenmux';
-  assert.ok(run.tasks.every(task => task.imageRequest?.provider === 'openai' && task.model === 'gpt-image-2.5-sunburst'));
+  assert.ok(run.tasks.every(task => task.imageRequest?.provider === 'openai' && task.model === 'gpt-image-2.6-sunburst'));
   const invalid = { ...node, data: { ...node.data, provider: 'unknown' } } as unknown as SunburstNode;
   const rejected = prepareSunburstRun([invalid, prompt], [promptEdge], ['g'], 1);
   assert.equal(rejected.tasks.length, 0);
@@ -44,13 +44,15 @@ test('OpenAI advanced quality survives local and connected parameter snapshots',
 test('exposed channel and version resolve before validation and remain frozen in queued tasks', () => {
   const node: SunburstNode = { ...generator, data: { ...generator.data, quality: 'max', exposed: ['provider', 'variant'] } };
   const channel: ModelInputNode = { id: 'channel', type: 'model-input', position: { x: 0, y: 0 }, data: sunburstParameterData('provider', 'openai') };
-  const version: ModelInputNode = { id: 'version', type: 'model-input', position: { x: 0, y: 0 }, data: sunburstParameterData('variant', 'Sunburst') };
+  const version: ModelInputNode = { id: 'version', type: 'model-input', position: { x: 0, y: 0 }, data: sunburstParameterData('variant', 'Flare') };
   const nodes: AppNode[] = [node, prompt, channel, version];
   const edges = [promptEdge, { id: 'channel', source: channel.id, target: node.id, targetHandle: 'provider' }, { id: 'version', source: version.id, target: node.id, targetHandle: 'variant' }];
   const run = prepareSunburstRun(nodes, edges, ['g'], 2);
   assert.equal(run.error, undefined);
   assert.equal(run.tasks.length, 2);
-  assert.ok(run.tasks.every(task => task.model === 'gpt-image-2.5-sunburst' && task.imageRequest?.provider === 'openai' && task.imageRequest.quality === 'max'));
+  assert.ok(run.tasks.every(task => task.model === 'gpt-image-2.6-flare' && task.imageRequest?.variant === 'Flare' && task.imageRequest?.provider === 'openai' && task.imageRequest.quality === 'max'));
+  version.data.model = 'Sunburst';
+  assert.ok(run.tasks.every(task => task.imageRequest?.variant === 'Flare'));
   channel.data.model = 'invalid';
   assert.ok(run.tasks.every(task => task.imageRequest?.provider === 'openai'));
   assert.match(prepareSunburstRun(nodes, edges, ['g'], 1).error!, /渠道商/);
@@ -93,7 +95,7 @@ test('exposed advanced parameters use connected values and reject unsupported va
   const node: SunburstNode = { ...generator, data: { ...generator.data, exposed: ['quality'] } };
   const edges = [promptEdge, { id: 'qg', source: 'q', target: 'g', targetHandle: 'quality' }];
   assert.equal(prepareSunburstRun([node, prompt, quality], edges, ['g'], 1).tasks[0].imageRequest?.quality, 'high');
-  const invalid: AppNode = { ...quality, data: { text: 'max' } };
+  const invalid: AppNode = { ...quality, data: { text: 'ultra' } };
   const result = prepareSunburstRun([node, prompt, invalid], edges, ['g'], 1);
   assert.equal(result.tasks.length, 0); assert.match(result.error!, /参数/);
 });

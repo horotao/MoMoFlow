@@ -28,7 +28,7 @@ test('cut clipboard round trip preserves name, selected result and downstream im
   assert.equal(imageOutput({ ...original, id: 'pasted', data })[0].url, 'blob:first');
 });
 
-test('clipboard preserves the selected provider and keeps old nodes on ZenMux', () => {
+test('clipboard preserves the selected provider and retains missing provider for the OpenAI default', () => {
   for (const provider of ['openai', 'zenmux'] as const) {
     const data = clipboardRoundTrip({ ...original, data: { ...original.data, provider } });
     assert.equal(data?.provider, provider);
@@ -77,10 +77,16 @@ test('missing or stale selection retains last-result fallback and optional names
 test('clipboard restoration keeps other settings, asset and input-count guards', () => {
   for (const invalid of [null, {}, { ...original.data, size: 123 }, { ...original.data, imageInputs: 0 }, { ...original.data, imageInputs: 17 },
     { ...original.data, imageInputs: 1.5 }, { ...original.data, results: [{}] }, { ...original.data, results: 'bad' }]) assert.equal(restoreSunburstData(invalid), undefined);
-  for (const invalid of [{ ...original.data, quality: 'max' }, { ...original.data, background: 'transparent', outputFormat: 'jpeg' }]) assert.throws(() => restoreSunburstData(invalid));
+  for (const invalid of [{ ...original.data, quality: 'ultra' }, { ...original.data, background: 'transparent', outputFormat: 'jpeg' }]) assert.throws(() => restoreSunburstData(invalid));
   const data = restoreSunburstData({ ...original.data, locked: true, exposed: ['size'], extra: 'ignored' });
   assert.ok(data);
   assert.equal(data.locked, undefined);
   assert.equal(data.exposed, undefined);
   assert.equal('extra' in data, false);
+});
+
+test('Flare variant survives clipboard restoration and invalid variants are rejected', () => {
+  const data = restoreSunburstData({ ...original.data, variant: 'Flare', results: [] });
+  assert.equal(data?.variant, 'Flare');
+  assert.throws(() => restoreSunburstData({ ...original.data, variant: 'unknown' }), /模型版本/);
 });

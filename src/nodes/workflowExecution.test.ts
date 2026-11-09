@@ -44,7 +44,11 @@ function recordedSunburstGraph(recording: 'legacy' | 'zenmux' | 'openai'): Execu
   const recorded = prepareModel(graph, 'upstream');
   assert.ok(recorded.imageRequest);
   // Reproduce the persisted request schema before provider selection existed.
-  if (recording === 'legacy') delete recorded.imageRequest.provider;
+  if (recording === 'legacy') {
+    recorded.model = 'openai/gpt-image-2.5-sunburst';
+    delete recorded.imageRequest.provider;
+    delete recorded.imageRequest.variant;
+  }
   const asset: FileAsset = { id: 'cached', kind: 'image', name: 'cached.png', url: 'blob:cached', generation: {
     version: 1, inputSignature: requestSignature(recorded, graph), outputSignature: 'cached',
   } };
@@ -52,24 +56,22 @@ function recordedSunburstGraph(recording: 'legacy' | 'zenmux' | 'openai'): Execu
   return JSON.parse(JSON.stringify(workflowSnapshot({ ...graph, colorMode: 'dark', viewport: { x: 0, y: 0, zoom: 1 } })));
 }
 
-test('saved ZenMux signatures without a provider reuse upstream results, including locked nodes', async () => {
-  for (const recording of ['legacy', 'zenmux', 'openai'] as const) for (const locked of [false, true]) {
-    for (const explicitDefault of recording === 'legacy' ? [false, true] : [false]) {
-      const graph = recordedSunburstGraph(recording);
-      graph.nodes = graph.nodes.map(node => node.id === 'upstream' ? { ...node, data: { ...node.data, locked, ...(explicitDefault ? { provider: 'zenmux' } : {}) } } as AppNode : node);
-      const h = harness(graph);
-      await h.engine.run(['downstream'], 1);
-      assert.deepEqual(h.requests.map(task => task.nodeId), ['downstream'], `${recording}, locked=${locked}, explicit=${explicitDefault}`);
-      assert.deepEqual(h.requests[0].images, ['blob:cached']);
-      assert.ok(h.store.getSnapshot().every(task => task.state === 'Done'));
-      h.engine.dispose();
-    }
+test('current model signatures reuse upstream results, including locked nodes', async () => {
+  for (const recording of ['zenmux', 'openai'] as const) for (const locked of [false, true]) {
+    const graph = recordedSunburstGraph(recording);
+    graph.nodes = graph.nodes.map(node => node.id === 'upstream' ? { ...node, data: { ...node.data, locked } } as AppNode : node);
+    const h = harness(graph);
+    await h.engine.run(['downstream'], 1);
+    assert.deepEqual(h.requests.map(task => task.nodeId), ['downstream'], `${recording}, locked=${locked}`);
+    assert.deepEqual(h.requests[0].images, ['blob:cached']);
+    assert.ok(h.store.getSnapshot().every(task => task.state === 'Done'));
+    h.engine.dispose();
   }
 });
 
-test('legacy signature compatibility never reuses a changed provider, input, size or output', async () => {
-  for (const change of ['provider', 'prompt', 'image', '2K', '4K', 'quality', 'output', 'signature', 'locked-size', 'openai-to-zenmux']) {
-    const graph = recordedSunburstGraph(change === 'openai-to-zenmux' ? 'openai' : 'legacy');
+test('model upgrades and changes to version, provider, input, size or output invalidate cached results', async () => {
+  for (const change of ['model-upgrade', 'variant', 'provider', 'prompt', 'image', '2K', '4K', 'quality', 'output', 'signature', 'locked-size', 'openai-to-zenmux']) {
+    const graph = recordedSunburstGraph(change === 'model-upgrade' ? 'legacy' : change === 'openai-to-zenmux' ? 'openai' : 'zenmux');
     graph.nodes = graph.nodes.map(node => {
       if (change === 'prompt' && node.id === 'prompt') return { ...node, data: { text: 'A different circle' } } as AppNode;
       if (change === 'image' && node.id === 'source') return { ...file('source'), data: { assets: [{ id: 'replacement', kind: 'image', name: 'new.png', url: 'blob:new' }] } } as AppNode;
@@ -78,6 +80,7 @@ test('legacy signature compatibility never reuses a changed provider, input, siz
         ...(change === 'provider' ? { provider: 'openai' } : change === 'openai-to-zenmux' ? { provider: 'zenmux' } : {}),
         ...(['2K', '4K', 'locked-size'].includes(change) ? { size: change === '2K' ? '2048x2048' : '3840x2160', locked: change === 'locked-size' } : {}),
         ...(change === 'quality' ? { quality: 'high' } : {}),
+        ...(change === 'variant' ? { variant: 'Flare' } : {}),
         ...(['output', 'signature'].includes(change) ? { results: node.data.results!.map(asset => ({ ...asset, generation: { ...asset.generation!, ...(change === 'output' ? { outputSignature: 'wrong' } : { inputSignature: '{broken' }) } })) } : {}),
       } } as AppNode;
     });
@@ -993,4 +996,15 @@ test('image cover browsing keeps active tasks alive; list edits cancel queued it
     assert.ok(h.store.getSnapshot().every(task => task.state === 'Cancelled'));
     const model = h.node('g'); assert.ok(isImageGeneratorNode(model)); assert.equal(model.data.results?.length ?? 0, 0);
   } finally { h.engine.dispose(); }
+});
+
+
+test('SVG reference input rejects the whole workflow before any upstream model request', async () => {
+  const graph = fixture();
+  graph.nodes = graph.nodes.map(node => node.id === 'g' ? { ...node, data: { ...node.data, outputFormat: 'svg' } } as AppNode : node);
+  graph.edges.push(edge('a', 'g', 'image-0', 'file'));
+  const h = harness(graph);
+  assert.throws(() => h.engine.run(['g'], 1), /SVG.*文字生成/);
+  assert.equal(h.requests.length, 0);
+  h.engine.dispose();
 });

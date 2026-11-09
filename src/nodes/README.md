@@ -15,7 +15,7 @@
 | 导入 / 文件（Import / File）：导入、预览和管理文件集合 | `file` | [FileNode.tsx](./FileNode.tsx) | 无输入端口；通过 `file` 端口输出文件，端口类型随集合内容变化 |
 | 图像描述（Image Describer）：根据图片生成可继续编辑的文本 | `image-describer` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) | 图片输入 `image-0` 起；可暴露 `model`、`instructions` 文本输入；输出 `data.text` |
 | 模型名称 / 参数选项（Model Name）：提供一个可选的文本值 | `model-input` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) 中的 `ModelInputNode` | 输出当前 `data.model`；`options` 输入仅展示，不能连接 |
-| GPT Image 2.5：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`、`image-0` 起、`mask` 及暴露的参数输入；`result` 输出当前选中的结果图片 |
+| GPT Image 2.6：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`、`image-0` 起、`mask` 及暴露的参数输入；`result` 输出当前选中的结果图片 |
 | Ideogram 4.5：生成或编辑图片 | `ideogram` | [IdeogramNode.tsx](./IdeogramNode.tsx) | 必需的 `prompt`；`image-0` 原图、`image-1` 起参考图、`mask` 及暴露的生成/编辑参数输入；`result` 输出选中图片 |
 | Nano Banana：生成或编辑图片 | `nano-banana` | [NanoBananaNode.tsx](./NanoBananaNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起与暴露的 `aspectRatio` / `imageSize` / `outputFormat` 输入；`result` 输出选中图片 |
 | 调色板（Color palette）：制作最多十色色板 | `color-palette` | [ColorPaletteNode.tsx](./ColorPaletteNode.tsx) | 无输入；`image`（Image）输出纯色条 PNG，`text`（Text）输出按顺序以 `*` 连接的 HEX 色值 |
@@ -35,9 +35,9 @@
 | 预览（Preview）：查看上游图片与遮罩 | `preview` | [PreviewNode.tsx](./PreviewNode.tsx) | 单图片输入 `file`，无输出；实时显示上游图片 |
 | 坐标记录（Position Logger）：显示节点坐标的示例节点 | `position-logger` | [PositionLoggerNode.tsx](./PositionLoggerNode.tsx) | 左侧输入、右侧输出；不执行模型任务 |
 
-画布节点的默认标题使用中文，自定义名称与导入文件名保持原样；模型品牌名（如 GPT Image 2.5）保留英文。标题与重命名框使用相同默认文案，界面字体复用全局 `--font-ui`（英文 Inter、macOS 中文苹方、Windows 中文 Noto Sans SC）。
+画布节点的默认标题使用中文，自定义名称与导入文件名保持原样；模型品牌名（如 GPT Image 2.6）保留英文。标题与重命名框使用相同默认文案，界面字体复用全局 `--font-ui`（英文 Inter、macOS 中文苹方、Windows 中文 Noto Sans SC）。
 
-侧边栏、画布右键创建与拖线推荐共用 `NodeAddMenu`，以 `libraryItemLabel` 为基础显示名称，Figma 菜单中的 Resize 显示为“调节尺寸”；GPT Image 2.5 与 Nano Banana 的节点标题、设置面板和任务列表复用对应模型的名称常量，保持一致。菜单搜索同时匹配中文和原英文，端口说明仅翻译显示，不改变连接标识。拖线入口仍由 `connectionRecommendations` 按兼容端口筛选，同一节点的多个端口保持独立选择身份；提交前再次校验。新增节点入口或调整分组时同步维护 `nodeMenuCatalog.ts`，创建数据仍由 `createLibraryNode()` 提供。
+侧边栏、画布右键创建与拖线推荐共用 `NodeAddMenu`，以 `libraryItemLabel` 为基础显示名称，Figma 菜单中的 Resize 显示为“调节尺寸”；GPT Image 2.6 与 Nano Banana 的节点标题、设置面板和任务列表复用对应模型的名称常量，保持一致。菜单搜索同时匹配中文和原英文，端口说明仅翻译显示，不改变连接标识。拖线入口仍由 `connectionRecommendations` 按兼容端口筛选，同一节点的多个端口保持独立选择身份；提交前再次校验。新增节点入口或调整分组时同步维护 `nodeMenuCatalog.ts`，创建数据仍由 `createLibraryNode()` 提供。
 
 通过 Dock、空白右键或拖线菜单新建节点时，共享 `NodeFrame` 从 94% 轻弹至正常大小，复用 `spring.slow`；未连线节点以自身中心为支点，拖线新建则以连接端口为支点并配合连线回弹、端口涟漪。减少动态效果时保留淡入。临时状态由 `src/edges/connectionEffects.ts` 管理，不写入节点、连线或历史；撤销、重做和恢复不重播。`NodeEntrance` 等待节点测量后启动，拖线场景使用未缩放的端口布局坐标固定线头，完成或被指针打断后刷新 React Flow 测量。文本节点在拖线创建事务内初始化变量文档，确保新节点与连线可一起撤销。
 
@@ -49,7 +49,7 @@
 
 应用仅支持深色模式；不再提供浅色切换、制作或验收。历史画布中的浅色设置读取时按深色处理，重新保存时写入深色设置，节点、连线和素材内容不变。图片操作按钮为 24×24px、8px 圆角，默认透明，悬停背景按 Figma 使用 10% 白色（`rgba(255,255,255,0.1)`）。
 
-新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：外框、标题栏、颜色和尺寸变量按节点逐个接入；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、图像描述、绘图、GPT Image 2.5、Nano Banana、Ideogram 4.5 和文件导入使用新版外框；三个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。三个图片模型直接共用 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代沿用原有外观。新版外框内按 Figma 使用 Inter / Noto Sans SC，字体作用域不扩散到原有节点。图像描述复用 Text 的外框、标题栏、更多菜单和文本内容区样式，宽 454px、内边距 14px，空状态高 403px；底部提供添加图片输入与运行模型，进度和取消复用图片模型的 `ModelRunButton`。Text 与图像描述的标题、更多、加号、运行、下拉箭头与文本端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。三个图片模型的运行按钮使用本地 DM Mono 字体、固定 98px 宽度，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
+新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：外框、标题栏、颜色和尺寸变量按节点逐个接入；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、图像描述、绘图、GPT Image 2.6、Nano Banana、Ideogram 4.5 和文件导入使用新版外框；三个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。三个图片模型直接共用 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代沿用原有外观。新版外框内按 Figma 使用 Inter / Noto Sans SC，字体作用域不扩散到原有节点。图像描述复用 Text 的外框、标题栏、更多菜单和文本内容区样式，宽 454px、内边距 14px，空状态高 403px；底部提供添加图片输入与运行模型，进度和取消复用图片模型的 `ModelRunButton`。Text 与图像描述的标题、更多、加号、运行、下拉箭头与文本端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。三个图片模型的运行按钮使用本地 DM Mono 字体、固定 98px 宽度，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
 
 反相、裁剪和模糊也使用新版共享外框、标题、更多菜单与图片端口，宽 456px、图片区域宽 424px。反相沿用预览节点的图片样式；裁剪保留选区与外侧拖动手柄，图片和遮罩单独裁切圆角；模糊复用色彩校正的参数行和 `NodeRangeInput` 滑条，类型与裁剪比例复用已有下拉菜单。图片处理、端口 ID 和保存数据不变。
 
@@ -94,7 +94,7 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 - Sunburst 的 Prompt 和暴露参数接受 `text`、`image-describer`、`model-input` 的文本输出；Image Describer 的模型与指令输入也接受这些类型。Sunburst、Painter、Crop、Blur、Invert、Levels 和 Color correction 图片输出可连到 Sunburst 的图片/遮罩输入、Image Describer 的图片输入或 Painter / Crop / Blur / Invert / Levels 的 Image 输入，以及 Color correction / Preview 的 File 输入。
 - `model-input` 同时用于模型名称和 Sunburst 参数选项，`parameter` 标识参数用途，`options` 保存可选文本。Options 输入端口尚未实现，继续保持不可连接。
 - Sunburst 将宽高比与 1K / 2K / 4K 分辨率预设统一编码到 `data.size`，不另存可能冲突的比例/分辨率状态。`sunburstSizePresets` 保持旧 1K 尺寸，按精确比例、16 像素对齐、3840 边长与 8,294,400 像素上限生成高分辨率；正方形最高 2880×2880。预览、执行快照、服务端与保存恢复均沿用实际尺寸；外部 `size` 接管时禁用两个控件，切回本地保留完整尺寸。
-- GPT Image 2.5 参数侧栏为 300px 宽并撑满画布高度，标题固定、参数列表独立滚动；复用 `NodeSettingsSection`、`ParameterField`、`ParameterExposeButton` 和 `DescriberModelSelect` 的 `settings` 外观。七项下拉框与菜单等宽，每行的 expose 按钮只在该行悬停或键盘聚焦时显示，始终保留占位。宽高比、分辨率的 expose 操作共享完整 `size` 输入；渠道商与模型版本分别使用 `provider`、`variant` 输入（版本仅支持 `Sunburst`），运行前解析外部值并冻结到任务快照，未知渠道/版本会阻止运行。Nano Banana、Ideogram、Image Describer 与模型选项侧栏也复用这套外观，公共样式位于 `components/NodeSettingsSidebar.css`；各模型支持的参数、原图尺寸限制、锁定、外部输入与运行规则不变。Image Describer 与模型选项的任务入口置于标题栏，Nano Banana 和 Ideogram 不显示该入口；模型运行区域保留在底部；画廊、全屏预览和合成器编辑器中的专用面板不属于画布参数侧栏。
+- GPT Image 2.6 参数侧栏为 300px 宽并撑满画布高度，标题固定、参数列表独立滚动；复用 `NodeSettingsSection`、`ParameterField`、`ParameterExposeButton` 和 `DescriberModelSelect` 的 `settings` 外观。七项下拉框与菜单等宽，每行的 expose 按钮只在该行悬停或键盘聚焦时显示，始终保留占位。宽高比、分辨率的 expose 操作共享完整 `size` 输入；渠道商与模型版本分别使用 `provider`、`variant` 输入（版本支持 `Sunburst` / `Flare`，默认 `Sunburst`；未保存渠道时默认 OpenAI），运行前解析外部值并冻结到任务快照，未知渠道/版本会阻止运行。Nano Banana、Ideogram、Image Describer 与模型选项侧栏也复用这套外观，公共样式位于 `components/NodeSettingsSidebar.css`；各模型支持的参数、原图尺寸限制、锁定、外部输入与运行规则不变。Image Describer 与模型选项的任务入口置于标题栏，Nano Banana 和 Ideogram 不显示该入口；模型运行区域保留在底部；画廊、全屏预览和合成器编辑器中的专用面板不属于画布参数侧栏。
 - `/tests/right-sidebars.html` 是五类共享参数侧栏及调色板无侧栏行为的独立浏览器验收入口（React / React Flow，`npm run dev` 后打开），使用隔离 IndexedDB 并拦截真实模型请求。可通过页面按钮切换节点，检查标题、滚动、32px 控件、下拉菜单、expose、模型选项和运行区域，以及选中调色板不打开侧栏；原有 Nano Banana、Ideogram 编辑和调色板浏览器验收入口继续用于功能回归。
 - `/tests/sunburst-sidebar.html` 是这次侧栏的独立浏览器验收页（React 与现有浏览器测试入口），运行 `npm run dev` 后打开，可检查满高、等宽、逐行悬停 / 键盘聚焦、外部输入、自定义尺寸和短窗口滚动；隔离 IndexedDB 且拦截真实模型请求。`sunburstRun.test.ts` 和 `connectionRecommendations.test.ts` 随 `npm test` 验证渠道 / 版本的外部解析、校验及反向参数初始化。
 - Sunburst 外部参数切回本地时独立校验当前字段，其他字段的错误不会丢弃有效值；当前字段无效时保留原本地值，运行前仍执行完整参数校验。已记录的旧 ZenMux 生成结果在复用比较时兼容缺少 `provider` 的请求签名；仅兼容这一处差异，渠道、提示词、尺寸、图片及输出身份变化仍使结果失效，锁定节点也遵守此规则。`workflowExecution.test.ts` 随 `npm test` 覆盖旧/新签名复用与失效；`/tests/sunburst-provider.html` 覆盖 xhigh/max 跨渠道后 2K/4K 切回本地、撤销/重做及无效尺寸回退。
@@ -111,7 +111,7 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 
 空列表或未填写的条目会在下游模型和设置面板的批量摘要区域显示提示：顶部分隔线、圆形感叹号和暖红色文字，支持换行及深浅主题。补齐或删除空条目后自动恢复正常摘要；提示中不显示内部节点类型名称，运行前的校验规则保持一致。文本迭代节点自身保留紧凑列表布局，上游文本数组解析失败时使用相同的提示样式。
 
-连接到 GPT Image 2.5、Nano Banana、Ideogram 4.5 的 Prompt 或暴露文本参数，以及图像描述的文本指令时，每个条目创建独立任务。可经过 Router、Prompt 内联变量及后续模型/图像处理链。执行器为每条创建独立图快照和依赖输出，支持已有的四任务并发限制；原始画布条目不会被临时值覆盖。模型节点、设置面板与运行入口共用临时运行次数状态，不写入撤销或持久化；切换选择后任务数仍与执行一致。运行次数作用于每条文本，`3 条 × 2 次` 为 6 个目标任务。运行前校验全部已知文本与参数；重复文本仍是独立目标任务。
+连接到 GPT Image 2.6、Nano Banana、Ideogram 4.5 的 Prompt 或暴露文本参数，以及图像描述的文本指令时，每个条目创建独立任务。可经过 Router、Prompt 内联变量及后续模型/图像处理链。执行器为每条创建独立图快照和依赖输出，支持已有的四任务并发限制；原始画布条目不会被临时值覆盖。模型节点、设置面板与运行入口共用临时运行次数状态，不写入撤销或持久化；切换选择后任务数仍与执行一致。运行次数作用于每条文本，`3 条 × 2 次` 为 6 个目标任务。运行前校验全部已知文本与参数；重复文本仍是独立目标任务。
 
 每项失败不会重试或阻止其他条目，任务面板保留条目编号与原始提示词。单项重试只创建该条目的一个新任务，原条目被修改/删除后要求重新检查列表。依赖运行中的上游模型时按迭代器、条目 ID 和文本匹配结果，重复文本、乱序完成或单项失败不会混用其他条目。已完成的上游图片按 `generation.iteration` 从历史结果中恢复对应条目，并继续校验当前请求输入；输入已变或缺少对应记录时重新生成，不回退到其他条目的封面。不同条目即使请求内容相同，也不共享同一个上游模型请求。只有实际依赖迭代器的共享上游任务附带条目信息，无关共享上游仍按普通任务重试。取消单项不影响其他条目；节点取消停止整批。运行中修改文本、顺序、输入连接或锁定节点会中止受影响任务，迟到结果不会写回。成功结果追加到同一模型的现有结果列表，`generation.iteration` 保留来源条目，结果仍使用已有的画廊、下载和选中输出行为。
 
@@ -123,7 +123,7 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 
 图片迭代位于工具 → 迭代器，支持中文及 Image Iterator 搜索。节点沿用新版共享外框、标题、更多菜单及图片端口，宽 456px、圆角 28px，标题显示 `n/50`；空态为 424px 棋盘格、多选上传和图片链接；多图默认双列缩略图，可切换单图、前后浏览、按添加时间或名称排序，底部添加更多图片。右键图片可下载当前图片、下载全部、设为封面和复制图片；节点菜单提供清空、重命名、锁定、副本、剪切和删除。仅接受图片，最多 50 张；没有输入端口，绿色 `file` 输出可在列表为空时预先连接。没有图片时，下游显示共用的迭代警告并阻止运行。
 
-`ImageIteratorNode` 复用 `FileNode` 的导入、预览和图库，共享深灰节点外观；`imageIterator.ts` 负责图片列表与剪贴板校验。当前封面只用于画布预览，不改变批量范围。运行时 `workflowIterations` 按列表的显示顺序生成稳定图片身份，`iterationGraph` 为每个任务投影成只含对应图片的文件节点，原始列表保持不变。支持图像描述、GPT Image 2.5、Nano Banana、Ideogram，以及 Router / 本地图片处理 / 后续模型链；同一张图片的多个依赖共享本轮结果，跨图片和并发批次按身份匹配，不混用其他图片。与文本迭代共用运行次数，`3 张 × 2 次` 创建 6 个目标任务；同一目标只允许一个迭代器，多个图片列表或图片与文本列表同时汇入时先报错，不隐式组合请求。
+`ImageIteratorNode` 复用 `FileNode` 的导入、预览和图库，共享深灰节点外观；`imageIterator.ts` 负责图片列表与剪贴板校验。当前封面只用于画布预览，不改变批量范围。运行时 `workflowIterations` 按列表的显示顺序生成稳定图片身份，`iterationGraph` 为每个任务投影成只含对应图片的文件节点，原始列表保持不变。支持图像描述、GPT Image 2.6、Nano Banana、Ideogram，以及 Router / 本地图片处理 / 后续模型链；同一张图片的多个依赖共享本轮结果，跨图片和并发批次按身份匹配，不混用其他图片。与文本迭代共用运行次数，`3 张 × 2 次` 创建 6 个目标任务；同一目标只允许一个迭代器，多个图片列表或图片与文本列表同时汇入时先报错，不隐式组合请求。
 
 单张失败不影响其他图片；单张重试只运行对应图片，图片已删除或内容身份已变则拒绝重试。任务面板和成功结果记录图片序号、名称与来源身份。远程图片按本项建立快照，一张链接失败不阻断其他项。切换封面或网格/单图不会取消任务；增删、清空、有效顺序变化或锁定会中止受影响任务，迟到结果不写回。清空还会废弃尚未完成的导入。列表、排序、封面、结果和图片二进制随 IndexedDB 保存；素材同时由画布、历史和剪贴板保留，清空可单步撤销/重做，副本独立修改。
 
@@ -233,7 +233,7 @@ Painter 在浏览器本地绘制，不运行模型或消耗额度。外框、标
 
 Image Describer 运行前需要至少一张有效的上游图片和非空模型值；当前实际接入的描述模型为 `deepseek-flash`。图片按输入端口编号排序，生成文本写回 `data.text`。
 
-Sunburst 运行前必须连接非空 Prompt，参考图片和 Mask 可选。连接了 Image 时，上游必须已有图片；使用 Mask 时还必须连接参考图片，且 Mask 只能提供一张图片。图片格式、尺寸及参数限制由 `sunburst.ts`、`sunburstClient.ts` 和服务端共同校验，不应只依赖界面限制。成功结果追加到 `results`，并更新 `activeResultId`。多张结果时，页码前的图标可切换单张预览与全部图片；全部视图与文件导入共用 [shared/NodeImagePreview.tsx](./shared/NodeImagePreview.tsx) 的两列瀑布流（8px 内边距、4px 列距），点击缩略图选择输出结果，双击打开全屏。视图切换仅影响当前预览，不改变已选结果。下载按钮同样复用 File Node：单张视图下载当前图片，全部图片视图按当前排序将所有结果打包为 `images.zip`。
+Sunburst 运行前必须连接非空 Prompt，栅格输出时参考图片和 Mask 可选。SVG 输出仅支持 Prompt 文生图，连接参考图片或 Mask 会在执行任何上游模型前报错；每个请求 n=1，OpenAI SVG 请求显式使用 `svg.model: gpt-6.1-terra` 编写矢量 XML，顶层模型仍为所选 Flare / Sunburst；其他格式与 ZenMux 不附加此参数。`vectorSvg.ts` 使用 saxes 解析并验证纯矢量 XML，拒绝内嵌位图、脚本、动画及外部资源。服务端和客户端均校验，结果使用 image/svg+xml Blob 和 .svg 名称，预览、原文件下载、ZIP 与 IndexedDB 保留原始矢量字节，不经 Canvas 栅格化。SVG 不能直接作为模型图片参考输入。连接了 Image 时，上游必须已有图片；使用 Mask 时还必须连接参考图片，且 Mask 只能提供一张图片。图片格式、尺寸及参数限制由 `sunburst.ts`、`sunburstClient.ts` 和服务端共同校验，不应只依赖界面限制。成功结果追加到 `results`，并更新 `activeResultId`。多张结果时，页码前的图标可切换单张预览与全部图片；全部视图与文件导入共用 [shared/NodeImagePreview.tsx](./shared/NodeImagePreview.tsx) 的两列瀑布流（8px 内边距、4px 列距），点击缩略图选择输出结果，双击打开全屏。视图切换仅影响当前预览，不改变已选结果。下载按钮同样复用 File Node：单张视图下载当前图片，全部图片视图按当前排序将所有结果打包为 `images.zip`。
 
 Sunburst 的单张预览框在生成前即按有效宽高比调整高度，支持预设、自定义尺寸及外接参数（含 Router）。节点宽度保持一致，高度随预览变化，并为输入端口保留最小空间。自动比例或无效的尺寸草稿使用当前结果的实际比例；无结果时使用正方形。已有结果在新比例内完整显示，尺寸调整不修改图片、下载或下游输出；全部图片视图保留网格布局。
 
@@ -365,7 +365,7 @@ Mask 必须恰好一张且与原图尺寸一致。[ideogramEditClient.ts](./ideo
 
 ## 按依赖自动执行与结果复用
 
-点击模型节点或“运行选中节点”时，目标模型强制运行，上游按实际使用的端口准备。`executionGraph.ts` 定义依赖、生成条件指纹、输出有效性和执行前检查；`workflowExecution.ts` 管理运行身份、共享任务、取消和写回；`useWorkflowExecution.ts` 提供请求与素材适配。`DescriberPanel` 只触发运行和展示设置、任务。描述器、GPT Image 2.5、Nano Banana、Ideogram 共用此机制。
+点击模型节点或“运行选中节点”时，目标模型强制运行，上游按实际使用的端口准备。`executionGraph.ts` 定义依赖、生成条件指纹、输出有效性和执行前检查；`workflowExecution.ts` 管理运行身份、共享任务、取消和写回；`useWorkflowExecution.ts` 提供请求与素材适配。`DescriberPanel` 只触发运行和展示设置、任务。描述器、GPT Image 2.6、Nano Banana、Ideogram 共用此机制。
 
 互不依赖的分支可并发；汇合节点在必需上游成功后才组装请求。Text 只追踪实际引用的富文本变量（旧文本仍按原规则拼接全部输入）；Router 保留原端口语义，Compare 只追踪所用一路，Ideogram 只追踪当前模式的参数。执行前检查整条必要依赖链，缺图、无连接、无选区、已知不匹配的选区和环路都先定位到问题节点，不提交模型请求。依赖运行后才能确定的错误在下一节点提交前检查。
 

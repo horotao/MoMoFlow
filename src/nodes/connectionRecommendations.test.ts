@@ -128,8 +128,8 @@ test('Compare quick creation appears once in either direction and preserves the 
 });
 
 test('reverse channel and model-version inputs inherit defaults and connect to their exposed ports', () => {
-  const target: SunburstNode = { ...generator, data: { ...generator.data, provider: 'openai', exposed: ['provider', 'variant'] } };
-  for (const [field, value, choices] of [['provider', 'openai', ['zenmux', 'openai']], ['variant', 'Sunburst', ['Sunburst']]] as const) {
+  const target: SunburstNode = { ...generator, data: { ...generator.data, provider: 'openai', variant: 'Flare', exposed: ['provider', 'variant'] } };
+  for (const [field, value, choices] of [['provider', 'openai', ['openai', 'zenmux']], ['variant', 'Flare', ['Sunburst', 'Flare']]] as const) {
     const start = pending(target.id, 'target', field);
     const choice = connectionChoices(start, [target], []).find(item => item.itemId === 'model-input');
     assert.ok(choice);
