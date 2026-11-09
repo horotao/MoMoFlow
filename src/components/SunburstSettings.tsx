@@ -58,7 +58,8 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
     const exposed = Boolean(node.data.exposed?.includes(field));
     return <ParameterExposeButton label={label} exposed={exposed} disabled={node.data.locked} onClick={() => expose(field)} />;
   };
-  const selectField = (field: 'quality' | 'background' | 'outputFormat', choices: readonly string[], labels: readonly string[]) => <ParameterField label={fieldLabels[field]} exposeButton={exposeButton(field)}>
+  const selectField = (field: 'quality' | 'background' | 'outputFormat', choices: readonly string[], labels: readonly string[]) => <ParameterField label={fieldLabels[field]} exposeButton={exposeButton(field)}
+    labelHint={field === 'outputFormat' ? 'SVG 仅支持文字生成，下载保留矢量路径。' : undefined}>
     <DescriberModelSelect appearance="settings" fluidHover compact label={fieldLabels[field]} value={String(effective[field] ?? '')}
       choices={choices} labels={labels} disabled={node.data.locked || node.data.exposed?.includes(field)} onChange={value => change(field, value)} />
   </ParameterField>;
@@ -84,6 +85,5 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
       <SunburstSizeSelect appearance="settings" value={String(effective.size ?? '')} disabled={node.data.locked || node.data.exposed?.includes('size')}
         onChange={value => change('size', value)} exposeButton={exposeButton('size')} resolutionExposeButton={exposeButton('size', '分辨率')} />
       {selectField('outputFormat', imageFormats, ['PNG', 'JPEG', 'WebP', 'SVG'])}
-      {effective.outputFormat === 'svg' && <div className="sunburst-size-note">SVG 仅支持文字生成，下载保留矢量路径。</div>}
   </NodeSettingsSection>;
 }

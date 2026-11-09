@@ -6,6 +6,7 @@ import { pickNearest, useFluidHover, useRegisterFluidHoverItem, type UseFluidHov
 import { FluidHoverHighlight } from './fluid-hover-highlight';
 
 const noSeparators: readonly number[] = [];
+const settingsOptionHeight = 24;
 
 function SelectOption({ id, index, selected, active, separator, label, checkIcon, checkText, registerItem, onPointerMove, onChoose }: {
   id: string; index: number; selected: boolean; active: boolean; separator: boolean; label: string;
@@ -51,9 +52,9 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
     const top = Math.max(12, Math.min(rect.top - index * 24 - separators.filter(n => n <= index).length * 16 - 8, window.innerHeight - height - 12));
     activate(index);
     if (appearance === 'settings') {
-      const height = Math.min(options.length * 28 + 16, 324, window.innerHeight - 16);
+      const height = Math.min(options.length * settingsOptionHeight + 16, 324, window.innerHeight - 16);
       const width = Math.min(rect.width + 16, window.innerWidth - 16);
-      const top = Math.max(8, Math.min(rect.top - index * 28 - 8, window.innerHeight - height - 8));
+      const top = Math.max(8, Math.min(rect.top - index * settingsOptionHeight - 8, window.innerHeight - height - 8));
       setPlacement({ width, height, left: Math.max(8, Math.min(rect.left - 8, window.innerWidth - width - 8)), top });
       return;
     }
@@ -87,7 +88,7 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
       const index = Math.max(0, options.indexOf(value));
       const offset = index * 28 + separators.filter(n => n <= index).length * 9;
       list.current.scrollTop = Math.max(0, offset - (placement.height - 28) / 2);
-    } else if (appearance !== 'levels') list.current.scrollTop = Math.max(0, options.indexOf(value) * (appearance === 'settings' ? 28 : 24) + separators.filter(n => n <= options.indexOf(value)).length * 16 - (trigger.current.getBoundingClientRect().top - placement.top - 8));
+    } else if (appearance !== 'levels') list.current.scrollTop = Math.max(0, options.indexOf(value) * (appearance === 'settings' ? settingsOptionHeight : 24) + separators.filter(n => n <= options.indexOf(value)).length * 16 - (trigger.current.getBoundingClientRect().top - placement.top - 8));
     list.current.focus();
   }, [placement, value, options, separators, appearance]);
   useEffect(() => {
