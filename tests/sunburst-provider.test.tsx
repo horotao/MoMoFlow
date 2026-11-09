@@ -41,7 +41,7 @@ async function qualityOptions() {
   document.querySelector('[role="listbox"]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
   return values;
 }
-const closeTasks = async () => { document.querySelector<HTMLButtonElement>('[aria-label="关闭任务面板"]')?.click(); await settle(); };
+const closeTasks = async () => { document.querySelector<HTMLButtonElement>('.model-queue-toggle[aria-expanded="true"]')?.click(); await settle(); };
 
 async function run() {
   const canvas = document.createElement('canvas'); canvas.width = 320; canvas.height = 320;

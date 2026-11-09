@@ -1,3 +1,4 @@
+import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import type { Plugin } from 'vite';
@@ -100,6 +101,7 @@ export function nanoBananaPlugin(apiKey: string, providerFetch: typeof fetch = f
       send(502, { error: [message, diagnostic && `ZenMux HTTP：${diagnostic.status}`,
         diagnostic?.message && `服务商说明：${diagnostic.message}`, diagnostic?.requestId && `Request ID：${diagnostic.requestId}`].filter(Boolean).join('\n'),
         ...(diagnostic ? { diagnostic } : {}),
+        ...(controller.signal.aborted || isTimeoutStatus(diagnostic?.status) ? { code: modelTimeoutCode } : {}),
       });
     };
     const timeout = setTimeout(() => controller.abort(), 300000);

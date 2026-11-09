@@ -1,3 +1,4 @@
+import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 
@@ -61,13 +62,13 @@ export function deepseekPlugin(apiKey: string): Plugin {
       });
       if (!response.ok) {
         const messages: Record<number, string> = { 401: 'DeepSeek API Key 无效。', 402: 'DeepSeek 余额不足。', 429: 'DeepSeek 请求过于频繁，请稍后手动重试。', 400: 'DeepSeek 拒绝了图片或参数，请检查图片格式与尺寸。' };
-        send(502, { error: messages[response.status] ?? `DeepSeek 请求失败（${response.status}）。` }); return;
+        send(502, { error: messages[response.status] ?? `DeepSeek 请求失败（${response.status}）。`, ...(isTimeoutStatus(response.status) ? { code: modelTimeoutCode } : {}) }); return;
       }
       const result = await response.json();
       const text = result.choices?.[0]?.message?.content;
       if (typeof text !== 'string' || !text.trim() || result.choices[0].finish_reason === 'length') { send(502, { error: 'DeepSeek 未返回完整提示词，请手动重试。' }); return; }
       send(200, { text, usage: result.usage });
-    } catch { send(502, { error: controller.signal.aborted ? '请求超时或已取消；不会自动重试。' : '无法连接 DeepSeek，请检查网络。' }); }
+    } catch { send(502, { error: controller.signal.aborted ? '请求超时或已取消；不会自动重试。' : '无法连接 DeepSeek，请检查网络。', ...(controller.signal.aborted ? { code: modelTimeoutCode } : {}) }); }
     finally { clearTimeout(timer); res.off('close', close); }
   };
   return { name: 'deepseek-describer', configureServer(server) { server.middlewares.use(middleware); }, configurePreviewServer(server) { server.middlewares.use(middleware); } };

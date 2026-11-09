@@ -1,0 +1,221 @@
+.canvas-task-queue {
+  position: absolute;
+  z-index: 7;
+  right: 12px;
+  bottom: 12px;
+  width: 256px;
+  max-width: calc(100% - 24px);
+}
+
+.canvas-task-queue[data-sidebar-open='true'] {
+  right: calc(var(--node-settings-width) + 12px);
+  max-width: calc(100% - var(--node-settings-width) - 24px);
+}
+
+.model-queue {
+  --queue-surface: rgb(35 35 35 / 90%);
+  --queue-border: rgb(255 255 255 / 5%);
+  --queue-muted: #8c8c8c;
+  box-sizing: border-box;
+  width: 256px;
+  max-width: 100%;
+  container-type: inline-size;
+  overflow: hidden;
+  border: 1px solid var(--queue-border);
+  border-radius: 12px;
+  background: var(--queue-surface);
+  backdrop-filter: blur(20px);
+  color: #fff;
+  font: 400 14px/1.4 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+.model-queue-header {
+  position: relative;
+  height: 37.6px;
+  overflow: hidden;
+}
+
+.model-queue button { cursor: pointer; }
+.model-queue button:disabled { cursor: default; }
+.model-queue button:focus-visible { outline: 1px solid #aaa; outline-offset: -2px; }
+
+.model-queue-toggle {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  text-align: left;
+}
+
+.model-queue-toggle img { display: block; flex: none; }
+.model-queue-title { display: flex; align-items: center; gap: 8px; }
+.model-queue-title > span { color: var(--queue-muted); }
+
+.model-queue-clear {
+  position: absolute;
+  top: 0;
+  right: 32px;
+  height: 100%;
+  padding: 0 4px;
+}
+
+@container (max-width: 170px) {
+  .model-queue-toggle { padding-inline: 6px; }
+  .model-queue-title { gap: 4px; white-space: nowrap; }
+  .model-queue-clear { right: 23px; padding-inline: 2px; }
+  .model-queue-header:has(.model-queue-clear) .model-queue-title > span { font-size: 11px; }
+}
+
+.model-queue-body {
+  overflow: hidden;
+  border-top: 1px solid var(--queue-border);
+}
+
+.model-queue-list {
+  display: grid;
+  gap: 4px;
+  max-height: min(326px, 55vh);
+  margin: 0 4px;
+  padding: 4px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.model-queue-empty {
+  display: grid;
+  height: 59px;
+  place-items: center;
+  color: var(--queue-muted);
+}
+
+.model-queue-row {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  height: 51px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.model-queue-item { min-width: 0; }
+.model-queue-item .task-error {
+  padding: 0 8px 6px;
+  color: var(--queue-muted);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.model-queue-progress {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: rgb(255 255 255 / 5%);
+  pointer-events: none;
+  transition: width 300ms ease, opacity 200ms ease;
+}
+
+.model-queue-progress:is(.is-inactive, .is-done) { opacity: 0; }
+.model-queue-progress.is-done { transition-delay: 0s, 300ms; }
+
+.model-queue-preview {
+  position: relative;
+  display: grid;
+  flex: 0 0 32px;
+  height: 32px;
+  place-items: center;
+  color: var(--queue-muted);
+}
+
+.model-queue-status-icon { display: grid; place-items: center; }
+
+.model-queue-ring {
+  --queue-close-duration: 140ms;
+  --queue-symbol-duration: 130ms;
+  --queue-close-ease: cubic-bezier(0.23, 1, 0.32, 1);
+  display: grid;
+  place-items: center;
+  transition: color var(--queue-close-duration) var(--queue-close-ease);
+}
+
+.model-queue-ring > * { grid-area: 1 / 1; }
+.model-queue-spinner { animation: model-queue-spin 1s linear infinite; }
+.model-queue-arc { transition: stroke-dasharray 300ms linear; }
+.model-queue-symbol { opacity: 0; clip-path: inset(0 100% 0 0); }
+
+.model-queue-ring[data-outcome='done'] { color: #80cda0; }
+.model-queue-ring[data-outcome='failed'] { color: #f19797; }
+.model-queue-ring[data-outcome='timeout'] { color: #e1bc7c; }
+.model-queue-ring[data-outcome] .model-queue-spinner { animation-play-state: paused; }
+.model-queue-ring[data-outcome] .model-queue-arc {
+  stroke-width: 1.25;
+  transition: stroke-dasharray var(--queue-close-duration) var(--queue-close-ease),
+    stroke-width var(--queue-close-duration) var(--queue-close-ease);
+}
+.model-queue-ring[data-outcome] .model-queue-symbol {
+  opacity: 1;
+  clip-path: inset(0);
+  transition: clip-path var(--queue-symbol-duration) var(--queue-close-ease) var(--queue-close-duration);
+}
+.model-queue-ring[data-outcome='timeout'] .model-queue-spinner,
+.model-queue-ring[data-outcome='timeout'] .model-queue-symbol {
+  transition: opacity var(--queue-symbol-duration) linear var(--queue-close-duration);
+}
+.model-queue-ring[data-outcome='timeout'] .model-queue-spinner { opacity: 0; }
+
+.model-queue-copy {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.model-queue-name, .model-queue-status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-queue-status { color: var(--queue-muted); font-size: 12px; line-height: 18px; }
+
+.model-queue-row-action {
+  position: relative;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  place-items: center;
+  border-radius: 5px;
+  color: var(--queue-muted);
+}
+
+.model-queue-row-action:hover, .model-queue-clear:not(:disabled):hover { color: white; background: var(--queue-border); }
+
+@container (max-width: 128px) {
+  .model-queue-header:has(.model-queue-clear) .model-queue-title > span { display: none; }
+  .model-queue-row { gap: 4px; padding-inline: 6px; }
+  .model-queue-row-action { width: 18px; }
+}
+
+@media (hover: hover) {
+  .model-queue-row-action { opacity: 0; }
+  .model-queue-row:hover .model-queue-row-action, .model-queue-row:focus-within .model-queue-row-action { opacity: 1; }
+}
+
+@keyframes model-queue-spin { to { transform: rotate(1turn); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .model-queue-progress, .model-queue-arc { transition: none; }
+  .model-queue-ring, .model-queue-ring[data-outcome] :is(.model-queue-arc, .model-queue-spinner, .model-queue-symbol) { transition: none; }
+  .model-queue-spinner { animation: none; }
+}

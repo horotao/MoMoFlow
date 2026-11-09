@@ -3,6 +3,7 @@ import { resolveOutputSource } from './router.ts';
 import type { AppNode, FileAsset } from './types';
 import type { PreviewTask } from './taskQueue';
 import { isActiveTask } from './taskQueue.ts';
+import { ModelRequestTimeout } from './modelRequestError.ts';
 import { isDescriberNode, isImageGeneratorNode, isNodeLocked } from './types.ts';
 import { executionInputs, executionSourceAssets, fixedOutput, graphGuard, isModelNode, iterationGraph, nodeProblem, planExecution, prepareModel, requestSignature, reusable, selectedResult, stableSignature, workflowIterations, type ExecutionGraph } from './executionGraph.ts';
 import { sameIteration, type WorkflowIteration } from './workflowIteration.ts';
@@ -19,7 +20,7 @@ export type ExecutionIO = {
   discard: (assets: FileAsset[]) => void;
   patch: (id: string, data: Record<string, unknown>) => void;
 };
-type Root = { id: string; iteration?: WorkflowIteration; controller: AbortController; guard: string; tasks: string[]; memo: Map<string, Promise<void>>; remote: Map<string, FileAsset>; outputs: Map<string, Record<string, unknown>>; releases: (() => void)[]; done?: Promise<void> };
+type Root = { id: string; batchId: string; iteration?: WorkflowIteration; controller: AbortController; guard: string; tasks: string[]; memo: Map<string, Promise<void>>; remote: Map<string, FileAsset>; outputs: Map<string, Record<string, unknown>>; releases: (() => void)[]; done?: Promise<void> };
 type LocalFlight = { controller: AbortController; consumers: Set<AbortSignal>; promise: Promise<Record<string, unknown>> };
 type Flight = { nodeId: string; taskId: string; controller: AbortController; consumers: Set<AbortSignal>; promise: Promise<Record<string, unknown>> };
 export function aborted(signal: AbortSignal) { if (signal.aborted) throw new Error(typeof signal.reason === 'string' ? signal.reason : '运行已取消。'); }
@@ -106,7 +107,7 @@ export class WorkflowExecution {
     const batchId = crypto.randomUUID();
     const roots = targets.flatMap(id => plans.get(id)!.map(iteration => {
       const tasks = Array.from({ length: runs }, () => this.placeholder(id, batchId, iteration));
-      const root: Root = { id, iteration, tasks: tasks.map(task => task.id), controller: new AbortController(), guard: graphGuard(this.graph, id, true), memo: new Map(), remote: new Map(), outputs: new Map(), releases: [] };
+      const root: Root = { id, batchId, iteration, tasks: tasks.map(task => task.id), controller: new AbortController(), guard: graphGuard(this.graph, id, true), memo: new Map(), remote: new Map(), outputs: new Map(), releases: [] };
       this.roots.add(root);
       this.store.update(current => [...current, ...tasks]);
       return root;
@@ -139,7 +140,8 @@ export class WorkflowExecution {
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : '工作流执行失败。';
-          for (const taskId of root.tasks) this.state(taskId, { state: signal.aborted ? 'Cancelled' : 'Failed', error: message, notice: undefined });
+          const state = signal.aborted ? 'Cancelled' : error instanceof ModelRequestTimeout ? 'TimedOut' : 'Failed';
+          for (const taskId of root.tasks) this.state(taskId, { state, error: message, notice: undefined });
         } finally {
           root.controller.abort('本次运行已结束。');
           this.roots.delete(root); root.releases.forEach(release => release()); release();
@@ -289,7 +291,7 @@ export class WorkflowExecution {
     const key = stableSignature([id, signature, iteration && [iteration.kind ?? 'text', iteration.nodeId, iteration.itemId, iteration.kind === 'image' ? iteration.signature : iteration.text]]);
     let flight = this.flights.get(key);
     if (!flight || flight.controller.signal.aborted) {
-      const task = this.placeholder(id, this.store.getSnapshot().find(task => task.id === root.tasks[0])!.batchId, iteration);
+      const task = this.placeholder(id, root.batchId, iteration);
       const controller = new AbortController();
       flight = { nodeId: id, taskId: task.id, controller, consumers: new Set(), promise: Promise.resolve({}) };
       this.flights.set(key, flight);
@@ -326,7 +328,7 @@ export class WorkflowExecution {
       aborted(signal); aborted(controller.signal);
       releaseSlot = await this.acquireModelSlot(controller.signal);
       aborted(controller.signal);
-      timeout = setTimeout(() => controller.abort('请求超时；不会自动重试。'), isDescriberNode(this.graph.nodes.find(node => node.id === id)!) ? 130000 : 310000);
+      timeout = setTimeout(() => controller.abort(new ModelRequestTimeout('请求超时；不会自动重试。')), isDescriberNode(this.graph.nodes.find(node => node.id === id)!) ? 130000 : 310000);
       const queued = this.store.getSnapshot().find(task => task.id === taskId)!;
       const task = { ...prepared, id: taskId, label: queued.label, iteration: queued.iteration, notice: undefined, state: 'Running' as const, started: Date.now() };
       // Retain the caller's batch identity and user-visible label.
@@ -358,8 +360,11 @@ export class WorkflowExecution {
       this.state(taskId, { state: 'Done', progress: 100, notice: undefined });
       return output;
     } catch (error) {
-      this.state(taskId, { state: controller.signal.aborted || signal.aborted ? 'Cancelled' : 'Failed', error: error instanceof Error ? error.message : '执行失败。', notice: undefined });
-      throw error;
+      const deadline = controller.signal.reason instanceof ModelRequestTimeout;
+      const failure = deadline ? controller.signal.reason : error;
+      const state = deadline ? 'TimedOut' : controller.signal.aborted || signal.aborted ? 'Cancelled' : failure instanceof ModelRequestTimeout ? 'TimedOut' : 'Failed';
+      this.state(taskId, { state, error: failure instanceof Error ? failure.message : '执行失败。', notice: undefined });
+      throw failure;
     } finally {
       if (!attached) this.io.discard(assets);
       releaseSlot(); clearTimeout(timeout); unsubscribe(); signal.removeEventListener('abort', cancel); release();

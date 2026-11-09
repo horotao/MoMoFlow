@@ -6,6 +6,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { buildIdeogramRequest, buildIdeogramEditRequest, ideogramPlugin, pollingDelay, runIdeogramPrediction, uploadIdeogramImages } from './ideogram.ts';
 import { captureMiddleware } from './testMiddleware.ts';
 import { defaultIdeogramSettings, ideogramModel } from '../src/nodes/ideogram.ts';
+import { modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 
 const input = { ...defaultIdeogramSettings, prompt: 'A poster saying HELLO' };
 const output = 'https://images.wavespeed.ai/test.png';
@@ -156,6 +157,7 @@ test('all failure terminal states stop polling and retain the task ID without up
     let calls = 0;
     const result = await invoke({ provider: async () => { calls++; return Response.json({ data: { ...queued, status, error: 'secret prompt and API key' } }); } });
     assert.equal(calls, 1); assert.equal(result.status, 502);
+    assert.equal(result.body.code, status === 'timeout' ? modelTimeoutCode : undefined);
     assert.match(result.body.error, new RegExp(status)); assert.match(result.body.error, /pred_123/);
     assert.equal(JSON.stringify(result).includes('secret'), false);
   }

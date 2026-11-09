@@ -1,3 +1,4 @@
+import { isTimeoutStatus, modelTimeoutCode, ModelRequestTimeout } from '../src/nodes/modelRequestError.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { Plugin } from 'vite';
@@ -7,7 +8,7 @@ import { trusted } from './zenmuxShared.ts';
 class WaveSpeedError extends Error {}
 
 const apiBase = 'https://api.wavespeed.ai/api/v3';
-const terminalFailures = new Set(['failed', 'cancelled', 'timeout', 'deleted']);
+const terminalFailures = new Set(['failed', 'cancelled', 'deleted']);
 type Pause = (milliseconds: number, signal: AbortSignal) => Promise<void>;
 const pause: Pause = (milliseconds, signal) => delay(milliseconds, undefined, { signal });
 const record = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -108,7 +109,8 @@ async function readPrediction(response: Response) {
 
 function httpError(status: number) {
   const hint = status === 401 || status === 403 ? '请检查 WAVESPEED_API_KEY 及模型权限。' : status === 402 ? '请检查 WaveSpeed 余额。' : status === 429 ? '请求过于频繁。' : '';
-  return new WaveSpeedError(`WaveSpeed HTTP ${status}。${hint}`);
+  const message = `WaveSpeed HTTP ${status}。${hint}`;
+  return isTimeoutStatus(status) ? new ModelRequestTimeout(message) : new WaveSpeedError(message);
 }
 
 export function pollingDelay(retryAfter: string | null, failures: number, now = Date.now()) {
@@ -145,6 +147,7 @@ export async function runIdeogramPrediction(apiKey: string, input: ReturnType<ty
       });
       return { taskId, outputs: urls };
     }
+    if (prediction.status === 'timeout') throw new ModelRequestTimeout('WaveSpeed 任务结束：timeout。');
     if (terminalFailures.has(String(prediction.status))) throw new WaveSpeedError(`WaveSpeed 任务结束：${prediction.status}。`);
     await wait(waitMs, signal);
     signal.throwIfAborted();
@@ -207,8 +210,9 @@ export function ideogramPlugin(apiKey: string, providerFetch: typeof fetch = fet
       send(200, result);
     } catch (error) {
       // Only locally constructed messages may reach the browser, never upstream bodies or fetch errors.
-      const message = error instanceof WaveSpeedError ? error.message : '无法取得 WaveSpeed 结果。';
-      send(502, { error: `${controller.signal.aborted ? '请求超时或已取消。' : message} ${submitted ? '已提交请求仍可能计费，不会自动重试；请先到 WaveSpeed History 查看。' : '尚未提交生成任务。'}${taskId ? ` Task ID：${taskId}` : ''}`, ...(taskId ? { taskId } : {}) });
+      const message = error instanceof WaveSpeedError || error instanceof ModelRequestTimeout ? error.message : '无法取得 WaveSpeed 结果。';
+      const timedOut = controller.signal.aborted || error instanceof ModelRequestTimeout || (error instanceof Error && error.name === 'TimeoutError');
+      send(502, { error: `${controller.signal.aborted ? '请求超时或已取消。' : message} ${submitted ? '已提交请求仍可能计费，不会自动重试；请先到 WaveSpeed History 查看。' : '尚未提交生成任务。'}${taskId ? ` Task ID：${taskId}` : ''}`, ...(taskId ? { taskId } : {}), ...(timedOut ? { code: modelTimeoutCode } : {}) });
     } finally { clearTimeout(timeout); res.off('close', close); }
   };
   return { name: 'wavespeed-ideogram', configureServer(server) { server.middlewares.use(middleware); }, configurePreviewServer(server) { server.middlewares.use(middleware); } };

@@ -469,6 +469,13 @@ test('model request deadline starts after slot acquisition; queued cancellation 
   assert.equal(pending.length, 5); assert.equal(pending[4].task.nodeId, 'd');
   t.mock.timers.tick(129999); await flush(); assert.equal(pending[4].signal.aborted, false);
   t.mock.timers.tick(1); await waiting; assert.equal(pending[4].signal.aborted, true);
+  assert.equal(h.store.getSnapshot().find(task => task.nodeId === 'd')?.state, 'TimedOut');
+  assert.equal(h.store.getSnapshot().find(task => task.nodeId === 'cancel')?.state, 'Cancelled');
+  pending[4].resolve('Late description');
+  await flush();
+  assert.equal(h.store.getSnapshot().find(task => task.nodeId === 'd')?.state, 'TimedOut');
+  const timedOutNode = h.node('d');
+  assert.ok(isDescriberNode(timedOutNode) && timedOutNode.data.text === '');
   for (const item of pending.slice(1, 4)) item.resolve(generatedAsset(item.task.nodeId!));
   await busy;
   assert.equal(h.requests.filter(task => task.nodeId === 'd').length, 1);

@@ -105,9 +105,9 @@ async function run() {
   runButton().click(); await until(() => read().data.results?.length === 1, 'Edit result appears');
   check(requests.length === 1 && requests[0].image === original && (requests[0].referenceImages as string[])[0] === original, 'Edit submits original and references once to the edit route');
   check(requests[0].editSize === '1536*1024' && !('resolution' in requests[0]) && !('enablePromptExpansion' in requests[0]), 'Edit omits generation-only parameters');
-  check(document.querySelector('.task-name')?.textContent?.includes('Ideogram 4.5')
-    && document.querySelector('.task-main')?.getAttribute('title')?.endsWith('/edit'), 'Task manager identifies the Ideogram edit route');
-  find('[aria-label="关闭任务面板"]').click(); await settle();
+  check(document.querySelector('.model-queue-name')?.textContent?.includes('Ideogram 4.5')
+    && document.querySelector('.model-queue-copy')?.getAttribute('title')?.endsWith('/edit'), 'Task manager identifies the Ideogram edit route');
+  find('.model-queue-toggle[aria-expanded="true"]').click(); await settle();
   api.addEdges([{ id: 'mask', source: 'mask', sourceHandle: 'file', target: 'ideogram', targetHandle: 'mask' }]); await settle();
   check(find<HTMLButtonElement>('[aria-label="编辑尺寸"]').disabled && read().data.editSize === '1536*1024', 'Mask locks source dimensions and retains saved custom size');
   await select('编辑精度', '高');
@@ -130,7 +130,7 @@ async function run() {
     check(error.includes(expected), `Invalid mask blocks submission: ${expected}`);
   }
   check(requests.length === 2, 'Mask preprocessing failures never submit generation');
-  find('[aria-label="关闭任务面板"]').click(); await settle();
+  find('.model-queue-toggle[aria-expanded="true"]').click(); await settle();
   api.setEdges(current => current.filter(edge => edge.id !== 'mask')); await settle();
   check(find<HTMLButtonElement>('[aria-label="编辑尺寸"]').disabled, 'High precision continues to force source dimensions without Mask');
   await select('编辑精度', '标准');
@@ -141,12 +141,12 @@ async function run() {
   check(Boolean(document.querySelector('[aria-label="分辨率"]')) && read().data.resolution === '1k', 'Disconnecting originals restores generation settings');
   api.addEdges([{ id: 'source', source: 'source', sourceHandle: 'file', target: 'ideogram', targetHandle: 'image-0' }, { id: 'mask', source: 'mask', sourceHandle: 'file', target: 'ideogram', targetHandle: 'mask' }]); await settle();
   mode = 'cancel'; runButton().click(); await until(() => requests.length === 3, 'Cancelable edit starts');
-  find('[aria-label="取消任务"]').click(); await until(() => cancelled, 'Cancel aborts edit fetch');
+  find('.model-queue-row [aria-label^="取消 "]').click(); await until(() => cancelled, 'Cancel aborts edit fetch');
   check(read().data.results?.length === 2, 'Cancellation preserves previous edit results');
-  find('[aria-label="关闭任务面板"]').click(); await settle();
+  find('.model-queue-toggle[aria-expanded="true"]').click(); await settle();
   mode = 'failure'; runButton().click(); await until(() => Boolean(document.querySelector('.task-error')?.textContent?.includes('Edit QA failure')), 'Edit failure appears');
   check(requests.length === 4 && read().data.results?.length === 2, 'Failed edit does not retry or erase output');
-  find('[aria-label="关闭任务面板"]').click(); await settle();
+  find('.model-queue-toggle[aria-expanded="true"]').click(); await settle();
   const saved = new WorkflowStorage(`${db}-roundtrip`); await saved.load();
   await saved.save({ ...workflow, nodes: api.getNodes(), edges: api.getEdges() });
   const reload = new WorkflowStorage(`${db}-roundtrip`), restored = await reload.load();
@@ -179,7 +179,7 @@ async function run() {
     const count = read().data.results!.length;
     runButton().click(); await until(() => read().data.results?.length === count + 1, 'Painter mask edit completes');
     const pixels = await maskBytes(String(requests.at(-1)!.mask));
-    find('[aria-label="关闭任务面板"]').click(); await settle();
+    find('.model-queue-toggle[aria-expanded="true"]').click(); await settle();
     return pixels;
   };
   const direct = await submitMask();

@@ -1,3 +1,4 @@
+import { modelRequestError } from './modelRequestError.ts';
 import type { PreviewTask } from './taskQueue';
 
 export async function requestDescription(task: PreviewTask, signal: AbortSignal): Promise<string> {
@@ -25,7 +26,7 @@ export async function requestDescription(task: PreviewTask, signal: AbortSignal)
     body: JSON.stringify({ model: task.model, instructions: task.instructions ?? '', images }), signal,
   });
   const result = await response.json().catch(() => { throw new Error('本地 API 不可用，请通过 npm run dev 启动服务。'); });
-  if (!response.ok) throw new Error(result.error || '图片理解失败。');
+  if (!response.ok) throw modelRequestError(result.error || '图片理解失败。', response.status, result.code);
   if (typeof result.text !== 'string' || !result.text.trim()) throw new Error('未返回提示词。');
   return result.text;
 }

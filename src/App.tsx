@@ -433,6 +433,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         if ((event.target as HTMLElement).classList.contains('react-flow__pane')) canvasRef.current?.focus({ preventScroll: true });
       }}
       minZoom={0.01}
+      proOptions={{ hideAttribution: true }}
       colorMode={colorMode}
       className={`canvas-tool-${tool} canvas-magnetic-connections`}
       style={{ '--magnetic-line-width': `${magneticDefaults.lineWidth}px` } as CSSProperties}

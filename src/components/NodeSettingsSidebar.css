@@ -1,4 +1,5 @@
 /* Shared canvas node sidebars, based on the approved GPT Image 2.5 design. */
+.react-flow { --node-settings-width: min(300px, 55%); }
 .describer-panel.node-settings-panel.is-open {
   --panel-bg: #222;
   --panel-input: #2b2b2b;
@@ -9,8 +10,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  width: 300px;
-  max-width: 100%;
+  width: var(--node-settings-width);
   min-height: 0;
   border: 0;
   border-radius: 0;
@@ -42,11 +42,6 @@
 .describer-panel.node-settings-panel .node-settings-body h2 img { width: 18px; height: 18px; flex-shrink: 0; }
 .describer-panel.node-settings-panel .node-settings-body h2 > svg { width: 18px; height: 18px; flex-shrink: 0; }
 .describer-panel.node-settings-panel .node-settings-body h2 > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.describer-panel.node-settings-panel .node-settings-header-actions { display: flex; align-items: center; flex-shrink: 0; margin-left: auto; }
-.describer-panel.node-settings-panel .node-settings-task-trigger { height: 24px; padding: 0 4px; gap: 0; border-radius: 6px; corner-shape: superellipse(1.25); color: var(--panel-muted); font: 400 11px/16px var(--font-ui); }
-.describer-panel.node-settings-panel .node-settings-task-trigger > svg { width: 18px; height: 18px; flex-shrink: 0; }
-.describer-panel.node-settings-panel .node-settings-task-trigger:hover,
-.describer-panel.node-settings-panel .node-settings-task-trigger.active { background: #383838; }
 .describer-panel.node-settings-panel .node-settings-fields {
   display: flex;
   flex-direction: column;
@@ -185,7 +180,6 @@
 .describer-panel.node-settings-panel .palette-color-row:hover .palette-remove,
 .describer-panel.node-settings-panel .palette-color-row:has(:focus-visible) .palette-remove { opacity: 1; pointer-events: auto; }
 .describer-panel.node-settings-panel .palette-remove:hover { background: #383838; }
-.describer-panel.node-settings-panel .node-settings-header-actions button:focus-visible,
 .describer-panel.node-settings-panel .model-option-row input[type='radio']:focus-visible,
 .describer-panel.node-settings-panel .model-add-option:focus-visible,
 .describer-panel.node-settings-panel .palette-add:focus-visible { outline: 1px solid var(--panel-muted); outline-offset: 2px; }
@@ -203,7 +197,3 @@
 .node-settings-menu[role='listbox'] .describer-model-check { width: 14px; color: #b3b3b3; }
 .node-settings-menu[role='listbox'] .describer-model-check > svg { width: 14px; height: 14px; }
 .node-settings-menu[role='listbox'] .describer-model-hover { border-radius: 6px; background: var(--momo-surface-menu-hover, rgb(255 255 255 / 8%)); }
-.react-flow:has(.node-settings-panel) .describer-tasks.with-sidebar { right: 308px; }
-@media (max-width: 700px) {
-  .react-flow:has(.node-settings-panel) .describer-tasks.with-sidebar { right: 12px; }
-}

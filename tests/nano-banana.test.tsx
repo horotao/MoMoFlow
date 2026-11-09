@@ -92,12 +92,12 @@ async function run() {
   await until(() => read().data.results?.length === 2, 'Mock generation completes');
   check(requests.length === 1 && (requests[0].images as string[]).length === 0, 'Text-only generation submits exactly once');
   check(requests[0].imageSize === '2K' && requests[0].aspectRatio === '16:9', 'Selected parameters reach the API');
-  check(document.querySelector('.task-name')?.textContent?.includes('Nano Banana'), 'Task manager shows the correct model');
+  check(document.querySelector('.model-queue-name')?.textContent?.includes('Nano Banana'), 'Task manager shows the correct model');
   check(read().data.results?.every(asset => asset.width === 640 && asset.height === 360), 'All returned images are decoded at actual dimensions');
   const originalPng = await (await originalFetch(read().data.results![0].url)).blob();
   const originalBytes = new Uint8Array(await blob.arrayBuffer()), pngBytes = new Uint8Array(await originalPng.arrayBuffer());
   check(originalPng.type === 'image/png' && pngBytes.length === originalBytes.length && pngBytes.every((value, index) => value === originalBytes[index]), 'PNG output preserves provider bytes exactly');
-  find('[aria-label="关闭任务面板"]').click(); await settle();
+  find('.model-queue-toggle[aria-expanded="true"]').click(); await settle();
   find('[aria-label="输出格式"]').click(); await settle(); select('JPEG'); await settle();
   api.setEdges(current => [...current,
     { id: 'reference', source: 'reference', sourceHandle: 'file', target: 'banana', targetHandle: 'image-0' },
@@ -113,7 +113,7 @@ async function run() {
   context.clearRect(0, 0, 640, 360); context.drawImage(jpegBitmap, 0, 0); jpegBitmap.close();
   check([...context.getImageData(2, 2, 1, 1).data].every(value => value >= 250), 'JPEG conversion fills transparent pixels with white');
   await until(() => Boolean(document.querySelector<HTMLImageElement>('.preview-image img')?.naturalWidth), 'Downstream preview resolves');
-  find('[aria-label="关闭任务面板"]').click(); await settle();
+  find('.model-queue-toggle[aria-expanded="true"]').click(); await settle();
   find('[data-id="banana"] [aria-label="上一张"]').click(); await settle();
   check(imageOutput(read(), 'result')[0]?.id === read().data.activeResultId, 'Selected result is the downstream output');
   find('[data-id="banana"] [aria-label="图片画廊"]').click(); await settle();
@@ -128,13 +128,13 @@ async function run() {
   canvasHistoryShortcut('undo'); await settle();
   api.setNodes(current => current.map(node => ({ ...node, selected: node.id === 'banana' }))); await settle();
   mode = 'cancel'; runButton().click(); await until(() => requests.length === 3, 'Cancellable request starts');
-  find('[aria-label="取消任务"]').click(); await until(() => cancelled, 'Cancellation reaches fetch signal');
+  find('.model-queue-row [aria-label^="取消 "]').click(); await until(() => cancelled, 'Cancellation reaches fetch signal');
   check(read().data.results?.length === 4, 'Cancelled task keeps previous results');
   mode = 'failure';
-  find('[aria-label="关闭任务面板"]').click(); await settle(); runButton().click();
+  find('.model-queue-toggle[aria-expanded="true"]').click(); await settle(); runButton().click();
   await until(() => Boolean(document.querySelector('.task-error')?.textContent?.includes('banana-qa')), 'Provider error appears');
   check(requests.length === 4 && read().data.results?.length === 4, 'Failure does not retry or erase previous images');
-  find('[aria-label="关闭任务面板"]').click(); await settle();
+  find('.model-queue-toggle[aria-expanded="true"]').click(); await settle();
   const saved = new WorkflowStorage(`${db}-roundtrip`); await saved.load();
   await saved.save({ ...workflow, nodes: api.getNodes(), edges: api.getEdges() });
   const reload = new WorkflowStorage(`${db}-roundtrip`), restored = await reload.load();

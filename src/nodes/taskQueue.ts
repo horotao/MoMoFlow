@@ -2,7 +2,7 @@ import type { IdeogramRequest } from './ideogram';
 import type { NanoBananaRequest } from './nanoBanana';
 import type { SunburstRequest } from './sunburst';
 import type { WorkflowIteration } from './workflowIteration';
-export type TaskState = 'Queued' | 'Running' | 'Done' | 'Cancelled' | 'Failed';
+export type TaskState = 'Queued' | 'Running' | 'Done' | 'Cancelled' | 'Failed' | 'TimedOut';
 export type PreviewTask = {
   id: string; batchId: string; nodeId: string; model: string; createdAt: number;
   instructions?: string; images?: string[]; imageRequest?: SunburstRequest; nanoBananaRequest?: NanoBananaRequest; ideogramRequest?: IdeogramRequest;
@@ -52,6 +52,7 @@ export function groupState(tasks: PreviewTask[]): TaskState {
   if (tasks.some((task) => task.state === 'Running')) return 'Running';
   if (tasks.some((task) => task.state === 'Queued')) return 'Queued';
   if (tasks.some((task) => task.state === 'Failed')) return 'Failed';
+  if (tasks.some((task) => task.state === 'TimedOut')) return 'TimedOut';
   if (tasks.some((task) => task.state === 'Cancelled')) return 'Cancelled';
   return 'Done';
 }

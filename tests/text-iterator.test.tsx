@@ -196,8 +196,7 @@ async function run() {
   check(requests.join('|') === initialItems.map(item => item.text).join('|'), 'Separate prompts');
   check(store.getSnapshot().filter(task => task.state === 'Done').length === 2 && store.getSnapshot().filter(task => task.state === 'Failed').length === 1, 'Independent failures');
   await settle();
-  const batch = find<HTMLButtonElement>('.task-batch .task-main'); batch.click(); await settle();
-  find('[aria-label="重试任务"]').click();
+  find('.model-queue-row[data-state="failed"] [aria-label^="重试 "]').click();
   await until(() => requests.length === 4 && !store.getSnapshot().some(isActiveTask), 'Retry one item');
   check(requests[3] === initialItems[1].text, 'Retry only failed prompt');
   const model = api.getNode('model'); check(model && isImageGeneratorNode(model) && model.data.results?.length === 3, 'Three results accumulated');

@@ -1,3 +1,4 @@
+import { modelRequestError } from './modelRequestError.ts';
 import { readImage, dataUrl } from './imageGenerationClient.ts';
 import { assetResources } from './assetResources.ts';
 import type { FileAsset } from './types';
@@ -56,7 +57,7 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
     body: JSON.stringify({ ...request, images: await Promise.all(blobs.map(dataUrl)), ...(mask ? { mask: await dataUrl(mask) } : {}) }),
   });
   const result = await response.json().catch(() => { throw new Error('本地图片 API 不可用，请通过 npm run dev 启动服务。'); });
-  if (!response.ok) throw new Error(result.error || '图片生成失败。');
+  if (!response.ok) throw modelRequestError(result.error || '图片生成失败。', response.status, result.code);
   if (typeof result.image !== 'string' || !/^data:image\/(png|jpeg|webp|svg\+xml);base64,/.test(result.image)) throw new Error('未返回有效图片。');
   const blob = await (await fetch(result.image, { signal })).blob();
   const svg = blob.type === 'image/svg+xml';

@@ -1,18 +1,17 @@
 import { Plus } from 'lucide-react';
-import type { ReactNode } from 'react';
 import { NodeIcon } from '../nodes/NodeIcon';
 import { NodeSettingsSection } from './NodeSettingsSection';
 import type { ModelInputNode } from '../nodes/types';
 import { describerModels } from '../nodes/describer';
 
-export function ModelOptionsSettings({ node, onChange, headerActions }: {
-  node: ModelInputNode; onChange: (data: Partial<ModelInputNode['data']>) => void; headerActions?: ReactNode;
+export function ModelOptionsSettings({ node, onChange }: {
+  node: ModelInputNode; onChange: (data: Partial<ModelInputNode['data']>) => void;
 }) {
   const { data } = node;
   // Include a custom value from earlier nodes so the selected value remains editable.
   const savedOptions = data.options ?? describerModels;
   const options = savedOptions.includes(data.model) ? savedOptions : [data.model, ...savedOptions];
-  return <NodeSettingsSection title={data.label || 'Model Name'} icon={<NodeIcon nodeType="model-input" size={20} />} actions={headerActions} className="model-options-settings">
+  return <NodeSettingsSection title={data.label || 'Model Name'} icon={<NodeIcon nodeType="model-input" size={20} />} className="model-options-settings">
     <div className="describer-field" id={`options-${node.id}`}>Options</div>
     <div className="model-option-list" role="radiogroup" aria-labelledby={`options-${node.id}`}>
       {options.map((option, index) => <div className="model-option-row" key={index}>

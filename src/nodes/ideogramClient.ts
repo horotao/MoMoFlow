@@ -1,3 +1,4 @@
+import { modelRequestError } from './modelRequestError.ts';
 import { assetResources } from './assetResources.ts';
 import { readImage } from './imageGenerationClient.ts';
 import { validateIdeogramEditSettings, validateIdeogramPrompt, validateIdeogramSettings, type IdeogramRequest } from './ideogram.ts';
@@ -16,7 +17,7 @@ export async function requestIdeogram(input: IdeogramRequest, signal: AbortSigna
     body: JSON.stringify(body),
   });
   const result = await response.json().catch(() => { throw new Error('本地图片 API 不可用，请通过 npm run dev 启动服务。'); });
-  if (!response.ok) throw new Error(typeof result?.error === 'string' ? result.error : '图片生成失败。');
+  if (!response.ok) throw modelRequestError(typeof result?.error === 'string' ? result.error : '图片生成失败。', response.status, result?.code);
   const taskId = typeof result?.taskId === 'string' && /^[A-Za-z0-9_-]{1,200}$/.test(result.taskId) ? result.taskId : '';
   const assets: FileAsset[] = [];
   try {

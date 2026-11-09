@@ -9,7 +9,7 @@ import { nanoBananaName } from '../nodes/nanoBanana';
 import { ModelOptionsSettings } from './ModelOptionsSettings';
 import { SunburstSettings } from './SunburstSettings';
 import { sunburstName, sunburstProviderLabels } from '../nodes/sunburst';
-import { useEffect, useRef, useState, type KeyboardEventHandler, type ReactNode } from 'react';
+import { useEffect, useState, type KeyboardEventHandler, type ReactNode } from 'react';
 import { AnimatePresence, motion, useIsPresent } from 'motion/react';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import { X } from 'lucide-react';
@@ -60,14 +60,11 @@ export function DescriberPanel() {
   const selectedModel = nodes.find((n): n is ModelInputNode => n.type === 'model-input' && Boolean(n.selected));
   const panelOpen = Boolean(selected || selectedModel || selectedImage);
   const sunburstPanel = Boolean(selectedImage && isSunburstNode(selectedImage));
-  const [tasksOpen, setTasksOpen] = useState(false);
   const tasks = useModelTasks();
   const taskStore = useModelTaskStore();
   const execution = useWorkflowExecution();
   const [runs, setRuns] = useModelRuns();
   const [error, setError] = useState('');
-  const tasksTrigger = useRef<HTMLButtonElement>(null);
-  const changeTasks = taskStore.update;
   const effective = (node: ImageDescriberNode, field: 'model' | 'instructions') => {
     const edge = edges.find((e) => e.target === node.id && e.targetHandle === field);
     return edge ? resolveTextValue(edge.source, nodes, edges) : node.data[field];
@@ -78,7 +75,7 @@ export function DescriberPanel() {
       const ids = Array.isArray(detail) ? detail : [detail];
       try {
         void execution.current?.run(ids, taskStore.getRuns());
-        setError(''); setTasksOpen(true);
+        setError('');
       } catch (error) {
         setError(error instanceof Error ? error.message : '无法开始运行。');
         if (error instanceof ExecutionProblem) {
@@ -106,19 +103,16 @@ export function DescriberPanel() {
     setNodes((all) => [...all.map((n) => n.id === selected.id && isDescriberNode(n) ? { ...n, data: { ...n.data, exposed: [...exposed, field] } } : n), input]);
     setEdges((all) => [...all, { id: crypto.randomUUID(), source: id, target: selected.id, targetHandle: field }]);
   };
-  const taskButton = <button ref={tasksTrigger} className={`node-settings-task-trigger${tasksOpen ? ' active' : ''}`} aria-controls={tasksOpen ? 'task-manager' : undefined} aria-expanded={tasksOpen} onClick={() => setTasksOpen(!tasksOpen)}>
-    任务<DescriberIcon name="chevron" />{tasks.filter(isActiveTask).length || ''}
-  </button>;
   return <>
     {/* Presence retains the last settings and full-height shell until the exit finishes. */}
     <AnimatePresence initial={false}>
       {panelOpen && <NodeSettingsSidebar key="node-settings" sunburst={sunburstPanel} label={selectedImage ? `${selectedImage.type === 'ideogram' ? ideogramName : selectedImage.type === 'nano-banana' ? nanoBananaName : sunburstName} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => e.stopPropagation()}>
-        {selectedModel && !selectedImage && <ModelOptionsSettings key={selectedModel.id} node={selectedModel} headerActions={taskButton} onChange={data => updateNodeData(selectedModel.id, data)} />}
+        {selectedModel && !selectedImage && <ModelOptionsSettings key={selectedModel.id} node={selectedModel} onChange={data => updateNodeData(selectedModel.id, data)} />}
         {selectedImage && isSunburstNode(selectedImage) && <SunburstSettings key={selectedImage.id} node={selectedImage} />}
         {selectedImage && isIdeogramNode(selectedImage) && <IdeogramSettings key={selectedImage.id} node={selectedImage} />}
         {selectedImage && isNanoBananaNode(selectedImage) && <NanoBananaSettings key={selectedImage.id} node={selectedImage} />}
         {selected && !selectedImage && <>
-          <NodeSettingsSection title="Image Describer" icon={<NodeIcon nodeType="image-describer" size={20} />} actions={taskButton} key={selected.id}>
+          <NodeSettingsSection title="Image Describer" icon={<NodeIcon nodeType="image-describer" size={20} />} key={selected.id}>
             <ParameterField label="Model" exposeButton={<ParameterExposeButton label="Model" exposed={Boolean(selected.data.exposed?.includes('model'))} disabled={selected.data.locked}
               ariaLabel="Set model as input" title={selected.data.exposed?.includes('model') ? 'Use local value' : 'Set as input'} onClick={() => expose('model')} />}>
               <DescriberModelSelect appearance="settings" compact fluidHover label="Model" value={effective(selected, 'model')} disabled={selected.data.locked || selected.data.exposed?.includes('model')} onChange={(model) => updateNodeData(selected.id, { model })} />
@@ -144,8 +138,7 @@ export function DescriberPanel() {
         </>}
       </NodeSettingsSidebar>}
     </AnimatePresence>
-    {tasksOpen && <TaskManager tasks={tasks} trigger={tasksTrigger} sidebarOpen={panelOpen}
-      onClose={() => setTasksOpen(false)} onChange={changeTasks}
+    <TaskManager sidebarOpen={panelOpen}
       onRetry={(task) => {
         const node = getNodes().find((item) => item.id === task.nodeId);
         if (!node || (!isDescriberNode(node) && !isImageGeneratorNode(node)) || node.data.locked) return;
@@ -159,7 +152,7 @@ export function DescriberPanel() {
         if (!node) return;
         setNodes((all) => all.map((n) => ({ ...n, selected: n.id === id })));
         void setCenter(node.position.x + 230, node.position.y + 200, { zoom: 0.8, duration: 300 });
-      }} />}
+      }} />
     {error && <div className="describer-error" role="alert">{error}<button aria-label="关闭提示" onClick={() => setError('')}><X size={14} /></button></div>}
   </>;
 }

@@ -1,3 +1,4 @@
+import { modelRequestError } from './modelRequestError.ts';
 import { assetResources } from './assetResources.ts';
 import { readImage, dataUrl } from './imageGenerationClient.ts';
 import { nanoBananaMaxImages, validateNanoBananaSettings, type NanoBananaRequest } from './nanoBanana.ts';
@@ -48,7 +49,7 @@ export async function requestNanoBanana(input: NanoBananaRequest, signal: AbortS
     body: JSON.stringify({ ...settings, prompt: input.prompt, images }),
   });
   const result = await response.json().catch(() => { throw new Error('本地图片 API 不可用，请通过 npm run dev 启动服务。'); });
-  if (!response.ok) throw new Error(typeof result?.error === 'string' ? result.error : '图片生成失败。');
+  if (!response.ok) throw modelRequestError(typeof result?.error === 'string' ? result.error : '图片生成失败。', response.status, result?.code);
   if (!Array.isArray(result?.images) || !result.images.length) throw new Error('未返回有效图片。');
   const assets: FileAsset[] = [];
   try {

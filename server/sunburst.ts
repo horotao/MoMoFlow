@@ -1,3 +1,4 @@
+import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 import { validateVectorSvg } from '../src/nodes/vectorSvg.ts';
 import { diagnosticText, logIdentifier, errorDiagnostic, readErrorDiagnostic, trusted, type ProviderDiagnostic } from './zenmuxShared.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -105,6 +106,7 @@ export function sunburstPlugin(apiKeys: Record<SunburstProvider, string>, provid
           diagnostic && `${providers[provider].name} HTTP：${diagnostic.status}`,
           diagnostic?.requestId && `Request ID：${diagnostic.requestId}`].filter(Boolean).join('\n'),
         ...(diagnostic ? { diagnostic } : {}),
+        ...(controller.signal.aborted || isTimeoutStatus(diagnostic?.status) ? { code: modelTimeoutCode } : {}),
       });
     };
     const timeout = setTimeout(() => controller.abort(), 300000);

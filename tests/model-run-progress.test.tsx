@@ -46,9 +46,12 @@ window.fetch = (input, init) => {
   if (/^(data:|blob:)/.test(path)) return originalFetch(input, init);
   return Promise.reject(new Error(`Unexpected request blocked by fixture: ${path}`));
 };
-function respond(request: Request, failed = false) {
+function respond(request: Request, outcome: 'success' | 'failure' | 'timeout' = 'success') {
   request.settled = true;
-  request.resolve(Response.json(failed ? { error: 'Mock provider failure' } : request.path === '/api/sunburst' ? { image, format: 'png' } : { text: 'Mock description result' }, { status: failed ? 500 : 200 }));
+  const body = outcome === 'timeout' ? { error: 'Mock request timed out', code: 'MODEL_TIMEOUT' }
+    : outcome === 'failure' ? { error: 'Mock provider failure' }
+      : request.path === '/api/sunburst' ? { image, format: 'png' } : { text: 'Mock description result' };
+  request.resolve(Response.json(body, { status: outcome === 'success' ? 200 : 502 }));
 }
 
 let nodesNow: AppNode[] = [];
@@ -93,6 +96,8 @@ async function run() {
   await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
   const checks: string[] = [];
   const check = (value: unknown, message: string) => { assert(value, message); checks.push(message); };
+  const queueToggle = find<HTMLButtonElement>('.model-queue-toggle');
+  check(queueToggle.getAttribute('aria-expanded') === 'false', 'Canvas queue starts collapsed');
   find('.sunburst-run').click();
   await until(() => Boolean(document.querySelector(`${nodeSelector('image')} [aria-busy="true"]`)), 'Starting state missing');
   check(Boolean(find(`${nodeSelector('image')} .model-run-progress`).textContent?.match(/\d+%|等待上游/))
@@ -113,7 +118,11 @@ async function run() {
   const descriptionProgress = find(`${nodeSelector('description')} .model-run-progress`);
   check(getComputedStyle(descriptionProgress).minWidth === '98px' && getComputedStyle(descriptionProgress).height === '32px' && getComputedStyle(descriptionProgress).borderRadius === '13px', 'Description node reuses the image model progress frame');
   check(Number(find(`${nodeSelector('image')} [role="progressbar"]`).getAttribute('aria-valuenow')) === nodeTask('image')?.progress, 'Node percentage matches shared task progress');
-  check(document.querySelectorAll('.task-progress').length === 2, 'Task list shows both percentages and progress tracks');
+  check(queueToggle.getAttribute('aria-expanded') === 'true' && document.querySelectorAll('.model-queue-row[data-state=running] .model-queue-progress').length === 2, 'Active tasks open the queue and show both estimated progresses');
+  queueToggle.click();
+  await until(() => Boolean(document.querySelector('.model-queue-summary-progress')), 'Collapsed progress is missing');
+  check(Number(find('.model-queue-summary-progress').getAttribute('aria-valuenow')) > 0, 'Manually collapsed queue shows average estimated progress');
+  queueToggle.click();
   check(!canUndo, 'Progress does not create canvas undo entries');
   check(!JSON.stringify(nodesNow).includes('progress'), 'Progress stays out of saved node data');
   find<HTMLButtonElement>(`${nodeSelector('image')} .model-run-cancel`).click();
@@ -128,7 +137,7 @@ async function run() {
   check(!document.querySelector('.model-run-progress') && Boolean(document.querySelector('.sunburst-run')) && Boolean(document.querySelector('.describer-run')), 'Completed and cancelled nodes restore Run Model');
   find('.sunburst-run').click();
   await until(() => requests.length === 3, 'Second image run missing');
-  respond(requests[2], true);
+  respond(requests[2], 'failure');
   await until(() => nodeTask('image')?.state === 'Failed' && Boolean(document.querySelector('.task-error')), 'Failure not reported');
   check(Boolean(document.querySelector('.sunburst-run')) && find('.task-error').textContent?.includes('Mock provider failure'), 'Failure restores button and retains error details');
   replaceNodes(all => all.map(node => node.id === 'image' && isSunburstNode(node) ? { ...node, data: { ...node.data, locked: true } } : node));
@@ -142,6 +151,8 @@ async function run() {
   await until(() => nodeTask('image')?.state === 'Done' && Boolean(document.querySelector('.sunburst-run')), 'Image did not finish');
   const completed = nodesNow.find(node => node.id === 'image');
   check(completed && isSunburstNode(completed) && completed.data.results?.length === 2, 'Image success appends one result and stops animation');
+  replaceNodes(all => all.map(node => ({ ...node, selected: node.id === 'image' })));
+  await until(() => Boolean(document.querySelector('.describer-runs')), 'Settings sidebar did not open');
   find<HTMLButtonElement>('[aria-label="增加运行次数"]').click();
   await until(() => document.querySelector('.describer-runs > div > span')?.textContent === '2', 'Batch count not updated');
   find('.sunburst-run').click();
@@ -152,9 +163,22 @@ async function run() {
   respond(requests[4]);
   find<HTMLButtonElement>('[aria-label="减少运行次数"]').click();
   await until(() => document.querySelector('.describer-runs > div > span')?.textContent === '1', 'Batch count not reset');
+  find('.sunburst-run').click();
+  await until(() => requests.length === 6, 'Timeout request did not start');
+  respond(requests[5], 'timeout');
+  await until(() => nodeTask('image')?.state === 'TimedOut' && Boolean(document.querySelector('[data-outcome="timeout"]')), 'Request timeout did not reach the canvas queue');
+  check(find('[data-state="timeout"] .model-queue-status').textContent === '任务超时', 'Timeout has a distinct terminal status and icon');
+  find('[data-state="timeout"] [aria-label^="重试 "]').click();
+  await until(() => requests.length === 7 && Boolean(document.querySelector('.model-queue-row[data-state="running"]')), 'Retry did not start a new request');
+  find('.model-queue-row[data-state="running"] [aria-label^="取消 "]').click();
+  await until(() => nodeTask('image')?.state === 'Cancelled', 'Queue cancellation did not reach the execution store');
+  check(requests[6].signal?.aborted, 'Retry starts one request and cancellation aborts it');
+  respond(requests[6]);
+  find('.model-queue-clear').click();
+  await until(() => store.getSnapshot().length === 0 && Boolean(document.querySelector('.model-queue-empty')), 'Clear did not remove terminal tasks');
   // Keep a fresh mock run available for visual/mouse/zoom acceptance.
   start();
-  await until(() => requests.length === 7, 'Visual demo did not start');
+  await until(() => requests.length === 9, 'Visual demo did not start');
   advance();
   await until(() => Number(nodeTask('image')?.progress) > 0, 'Visual demo progress missing');
   document.getElementById('results')!.textContent = `PASS (${checks.length}) · No real model calls\n${checks.join('\n')}`;

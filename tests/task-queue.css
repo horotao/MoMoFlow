@@ -1,0 +1,72 @@
+body { min-height: 100dvh; background: #0c0c0c; color: #eee; }
+
+.queue-preview {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 32px clamp(16px, 5vw, 40px);
+}
+
+.queue-preview h1 { margin-bottom: 8px; font-size: 22px; }
+.queue-preview > p { color: #aaa; font-size: 13px; line-height: 1.6; }
+
+.queue-preview-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 20px 0 10px;
+}
+
+.queue-preview-controls button {
+  padding: 6px 10px;
+  border: 1px solid #414141;
+  border-radius: 6px;
+  background: #222;
+  color: #ddd;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.queue-preview-controls button[aria-pressed='true'] {
+  border-color: #888;
+  background: #383838;
+  color: #fff;
+}
+
+.queue-preview-stage { margin-top: 20px; }
+
+/* The exported Figma timeline is a two-second loop. Realistic scenarios use task progress. */
+@media (prefers-reduced-motion: no-preference) {
+  .queue-preview-stage[data-prototype='true'] .model-queue-progress {
+    animation: queue-prototype-fill 2s linear infinite;
+  }
+
+  .queue-preview-stage[data-prototype='true'] .model-queue-arc {
+    animation: queue-prototype-arc 2s linear infinite;
+  }
+
+  .queue-preview-stage[data-prototype='true'] .model-queue-item:first-child {
+    --prototype-start: 20;
+    --prototype-end: 100;
+  }
+
+  .queue-preview-stage[data-prototype='true'] .model-queue-item:nth-child(2) {
+    --prototype-start: 1;
+    --prototype-end: 80;
+    --prototype-arc-start: 8;
+  }
+
+  .queue-preview-stage[data-prototype='true'] .model-queue-summary-progress {
+    --prototype-start: 10;
+    --prototype-end: 90;
+  }
+}
+
+@keyframes queue-prototype-fill {
+  from { width: calc(var(--prototype-start) * 1%); }
+  to { width: calc(var(--prototype-end) * 1%); }
+}
+
+@keyframes queue-prototype-arc {
+  from { stroke-dasharray: var(--prototype-arc-start, var(--prototype-start)) 100; }
+  to { stroke-dasharray: var(--prototype-end) 100; }
+}

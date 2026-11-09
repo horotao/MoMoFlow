@@ -162,8 +162,8 @@ async function run() {
   check(requests.every(request => request.images.length === 1), 'Exactly one image per request');
   check(requests.map(request => request.images[0]).sort().join('|') === [red.url, blue, green.url].sort().join('|'), 'All three distinct images transmitted');
   check(store.getSnapshot().filter(task => task.state === 'Failed').length === 1 && store.getSnapshot().filter(task => task.state === 'Done').length === 2, 'Failure isolated');
-  await settle(); find('.task-batch .task-main').click(); await settle();
-  find('[aria-label="重试任务"]').click();
+  await settle();
+  find('.model-queue-row[data-state="failed"] [aria-label^="重试 "]').click();
   await until(() => requests.length === 4 && !store.getSnapshot().some(isActiveTask), 'Retry one image');
   check(requests[3].images[0] === blue, 'Retry only failed image');
   pass('逐图独立请求、一张失败不影响其他、单张重试（模拟）');
