@@ -5,6 +5,7 @@ import { Flow } from '../src/App';
 import { nodeTypes } from '../src/nodes';
 import type { AppNode } from '../src/nodes/types';
 import { nodeMenuCategories, searchableNodeMenuEntries } from '../src/components/nodeMenuCatalog';
+import { NodeAddMenu } from '../src/components/NodeAddMenu';
 import { isInMenuTriangle } from '../src/components/useCascadeMenu';
 import { WorkflowStorage } from '../src/persistence/workflowStorage';
 import { canvasHistoryShortcut } from './canvasShortcuts';
@@ -83,9 +84,9 @@ async function run() {
   await open();
   check(document.activeElement === main().querySelector('input'), 'Opening focuses search in StrictMode');
   const bounds = main().getBoundingClientRect();
-  check(bounds.width === 232 && bounds.height === Math.min(500, innerHeight - 16), 'Figma menu dimensions: 232 × 500 with viewport clamping');
-  check(getComputedStyle(main()).borderRadius === '16px', 'Menu has 16px continuous-corner fallback');
-  check(main().querySelector('.node-add-menu-row')!.getBoundingClientRect().height === 36, 'Rows retain the Figma 36px height');
+  check(bounds.width === 216 && bounds.height === Math.min(456, innerHeight - 16), 'Compact menu dimensions: 216 × 456 with viewport clamping');
+  check(getComputedStyle(main()).borderRadius === '14px', 'Compact menu has a 14px corner radius');
+  check(main().querySelector('.node-add-menu-row')!.getBoundingClientRect().height === 32, 'Compact menu rows use a 32px height');
   const ids = searchableNodeMenuEntries.map(entry => entry.nodeId).sort();
   check(JSON.stringify(ids) === JSON.stringify(Object.keys(nodeTypes).filter(id => !['model-input', 'position-logger'].includes(id)).sort()), 'Public nodes are searchable; model-input and position-logger stay hidden');
   const categorized = Object.values(nodeMenuCategories).flatMap(groups => groups.flatMap(group => group.entries.map(entry => entry.id)));
@@ -118,7 +119,7 @@ async function run() {
   const editIcons = Array.from(sub()!.querySelectorAll<HTMLImageElement>('.node-add-menu-icon img'));
   await Promise.all(editIcons.map(img => img.decode()));
   check(editIcons.length === 10 && editIcons.every(img => img.naturalWidth === 18 && img.getBoundingClientRect().width === 18 && img.getBoundingClientRect().height === 18), 'All ten Figma editing icons retain their local asset and original geometry');
-  check(sub()!.getBoundingClientRect().height === Math.min(411, innerHeight - 16), 'Submenu keeps its Figma 411px height');
+  check(sub()!.getBoundingClientRect().height === Math.min(376, innerHeight - 16), 'Compact submenu uses a viewport-bounded 376px height');
   const edit = category('editing').getBoundingClientRect();
   const helper = category('helpers').getBoundingClientRect();
   point(category('editing'), bounds.left + 30, edit.top + 18);
@@ -328,6 +329,24 @@ async function run() {
   window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, view: window, buttons: 0, button: 0, clientX: from.x + 60, clientY: from.y + 30 }));
   await settle();
   check(api.getNode('qa-position')!.position.x > 820 && logger.textContent?.includes(`${Math.round(api.getNode('qa-position')!.position.x)}px`), 'Node dragging still updates the stored position and visible coordinates');
+  const filteredHost = document.createElement('div');
+  document.body.append(filteredHost);
+  const filteredRoot = createRoot(filteredHost);
+  const renderFilteredMenu = (ids: string[]) => filteredRoot.render(<NodeAddMenu
+    screen={{ x: 100, y: innerHeight - 100 }} mode="connect"
+    choices={ids.map(id => ({ id, itemId: id }))} onChoose={() => {}} onDismiss={() => {}} />);
+  renderFilteredMenu(['text', 'image-describer', 'router', 'text-iterator']);
+  await settle();
+  category('helpers').click(); await settle();
+  const filteredHeight = sub()!.offsetHeight;
+  const filteredViewport = sub()!.querySelector<HTMLElement>('.node-add-menu-scroll')!;
+  check(filteredHeight === 204 && filteredViewport.scrollHeight === filteredViewport.clientHeight, 'Four filtered helpers fit their content without empty space or scrolling');
+  check(!sub()!.querySelector('[data-slot="scroll-area-thumb"]'), 'Content-sized submenu has no unnecessary scrollbar');
+  renderFilteredMenu(['text']); await settle();
+  check(sub()!.offsetHeight === 80, 'Submenu shrinks again when only one matching helper remains');
+  renderFilteredMenu(['text', 'image-describer', 'router', 'text-iterator']); await settle();
+  check(sub()!.offsetHeight === filteredHeight && sub()!.getBoundingClientRect().bottom <= innerHeight - 8, 'Growing submenu repositions to stay inside the viewport');
+  filteredRoot.unmount(); filteredHost.remove();
   find('#results').dataset.result = 'passed';
   find('#results').textContent = `PASS · ${checks.length} checks\n${checks.join('\n')}`;
 }

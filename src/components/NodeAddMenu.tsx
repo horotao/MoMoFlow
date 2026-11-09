@@ -7,6 +7,7 @@ import {
   type NodeMenuEntry, type NodeMenuGroup, type NodeMenuChoice,
 } from './nodeMenuCatalog';
 import { useCascadeMenu } from './useCascadeMenu';
+import { ScrollArea } from './ui/scroll-area';
 import './NodeAddMenu.css';
 
 type Props = {
@@ -27,7 +28,7 @@ const menuMotionStyle = { '--node-menu-duration': `${spring.moderate.duration}s`
 function MenuIcon({ entry }: { entry: NodeMenuEntry }) {
   return <span className="node-add-menu-icon" aria-hidden="true">
     {entry.asset ? <img src={`/canvas-menu/${entry.asset}.svg`} alt="" draggable={false} />
-      : entry.icon && <HugeiconsIcon icon={entry.icon} size={18} strokeWidth={1} />}
+      : entry.icon && <HugeiconsIcon icon={entry.icon} size={18} strokeWidth={1.5} absoluteStrokeWidth />}
   </span>;
 }
 function MenuRow({ row, highlighted, child, category, menuId, onSelect }: {
@@ -137,8 +138,10 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
     };
     place();
     if (focusSubmenu.current) { focusButton(menuButtons(submenu.current)[0]); focusSubmenu.current = false; }
+    const observer = new ResizeObserver(place);
+    if (submenu.current) observer.observe(submenu.current);
     window.addEventListener('resize', place);
-    return () => window.removeEventListener('resize', place);
+    return () => { observer.disconnect(); window.removeEventListener('resize', place); };
   }, [category, position]);
   const back = () => {
     const parent = main.current?.querySelector<HTMLButtonElement>(`[data-main-row="${category}"]`);
@@ -202,14 +205,16 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
         <img src="/canvas-menu/search-menu.svg" alt="" draggable={false} />
         <input ref={search} value={query} placeholder="搜索" aria-label={mode === 'connect' ? '搜索可连接节点' : '搜索节点'} autoComplete="off" spellCheck={false}
           onChange={event => { setQuery(event.target.value); activate(null); }} />
-        {query && <button type="button" aria-label="清空搜索" onClick={() => { setQuery(''); activate(null); search.current?.focus(); }}><X size={14} /></button>}
+        {query && <button type="button" aria-label="清空搜索" onClick={() => { setQuery(''); activate(null); search.current?.focus(); }}><X size={14} strokeWidth={1.5} absoluteStrokeWidth /></button>}
       </div>
-      <div className="node-add-menu-scroll" role="menu" aria-label={mode === 'connect' ? '可连接节点' : '节点'} onScroll={() => activate(null)}>
-        <MenuList groups={groups} child={false} category={category} highlightedRow={highlightedRow} keyboardInteraction={keyboardInteraction}
-          menuId={id} categoryAvailable={categoryAvailable} onSelect={select} />
-        {term && matches.length === 0 && <div className="node-add-menu-empty" role="status">没有匹配的节点</div>}
-        {!term && mode === 'connect' && choices?.length === 0 && <div className="node-add-menu-empty" role="status">暂无可连接的节点</div>}
-      </div>
+      <ScrollArea className="node-add-menu-scroll-area" viewportClassName="node-add-menu-scroll fluid-scroll-fade" onScrollCapture={() => activate(null)}>
+        <div role="menu" aria-label={mode === 'connect' ? '可连接节点' : '节点'}>
+          <MenuList groups={groups} child={false} category={category} highlightedRow={highlightedRow} keyboardInteraction={keyboardInteraction}
+            menuId={id} categoryAvailable={categoryAvailable} onSelect={select} />
+          {term && matches.length === 0 && <div className="node-add-menu-empty" role="status">没有匹配的节点</div>}
+          {!term && mode === 'connect' && choices?.length === 0 && <div className="node-add-menu-empty" role="status">暂无可连接的节点</div>}
+        </div>
+      </ScrollArea>
     </div>
     {category && <div ref={submenu} id={`${id}-submenu`} className="node-add-menu node-add-menu-submenu nodrag nopan nowheel"
       data-animate-entrance={animateEntrance && !keyboardInteraction || undefined}
@@ -219,9 +224,11 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
       onPointerDownCapture={() => setKeyboardInteraction(false)}
       onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }}
       onKeyDown={event => onKeyDown(event, true)} onPointerDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}>
-      {subPosition.overlaid && <button type="button" className="node-add-menu-back" onClick={back}><ArrowLeft size={14} />返回</button>}
-      <div className="node-add-menu-scroll"><MenuList groups={categories[category]} child category={category} highlightedRow={null} keyboardInteraction={keyboardInteraction}
-        menuId={id} categoryAvailable={categoryAvailable} onSelect={select} /></div>
+      {subPosition.overlaid && <button type="button" className="node-add-menu-back" onClick={back}><ArrowLeft size={14} strokeWidth={1.5} absoluteStrokeWidth />返回</button>}
+      <ScrollArea className="node-add-menu-scroll-area" viewportClassName="node-add-menu-scroll fluid-scroll-fade">
+        <MenuList groups={categories[category]} child category={category} highlightedRow={null} keyboardInteraction={keyboardInteraction}
+          menuId={id} categoryAvailable={categoryAvailable} onSelect={select} />
+      </ScrollArea>
     </div>}
   </>;
 }
