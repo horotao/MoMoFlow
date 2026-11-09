@@ -228,11 +228,11 @@ export function imageOutput(node: AppNode | undefined, handle?: string | null, n
 }
 
 export function effectiveSunburstSettings(node: SunburstNode, nodes: AppNode[], edges: Edge[]): Record<string, unknown> {
-  const settings = Object.fromEntries(Object.entries(node.data).filter(([field]) => ['quality', 'background', 'size', 'outputFormat'].includes(field)).map(([field, value]) => {
+  const settings = Object.fromEntries(Object.entries({ ...node.data, provider: node.data.provider, variant: node.data.variant ?? 'Sunburst' }).filter(([field]) => ['quality', 'background', 'size', 'outputFormat', 'provider', 'variant'].includes(field)).map(([field, value]) => {
     const edge = edges.find(item => item.target === node.id && item.targetHandle === field);
     return [field, edge ? resolveTextValue(edge.source, nodes, edges).trim() : value];
   }));
-  return { ...settings, provider: node.data.provider };
+  return settings;
 }
 
 export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[], runs: number): { tasks: PreviewTask[]; error?: string } {
@@ -242,8 +242,9 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
     for (const id of new Set(ids)) {
       const node = nodes.find(item => item.id === id);
       if (!node || !isSunburstNode(node) || isNodeLocked(node)) continue;
-      const provider = validateSunburstProvider(node.data.provider);
-      const settings = validateSunburstSettings(effectiveSunburstSettings(node, nodes, edges));
+      const effective = effectiveSunburstSettings(node, nodes, edges);
+      const provider = validateSunburstProvider(effective.provider);
+      const settings = validateSunburstSettings(effective);
       const inputs = edges.filter(edge => edge.target === id);
       const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
       const prompt = promptEdge ? resolveTextValue(promptEdge.source, nodes, edges).trim() : '';

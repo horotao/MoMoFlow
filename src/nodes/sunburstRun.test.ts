@@ -41,6 +41,23 @@ test('OpenAI advanced quality survives local and connected parameter snapshots',
     assert.equal(connected.tasks[0].imageRequest?.quality, quality);
   }
 });
+test('exposed channel and version resolve before validation and remain frozen in queued tasks', () => {
+  const node: SunburstNode = { ...generator, data: { ...generator.data, quality: 'max', exposed: ['provider', 'variant'] } };
+  const channel: ModelInputNode = { id: 'channel', type: 'model-input', position: { x: 0, y: 0 }, data: sunburstParameterData('provider', 'openai') };
+  const version: ModelInputNode = { id: 'version', type: 'model-input', position: { x: 0, y: 0 }, data: sunburstParameterData('variant', 'Sunburst') };
+  const nodes: AppNode[] = [node, prompt, channel, version];
+  const edges = [promptEdge, { id: 'channel', source: channel.id, target: node.id, targetHandle: 'provider' }, { id: 'version', source: version.id, target: node.id, targetHandle: 'variant' }];
+  const run = prepareSunburstRun(nodes, edges, ['g'], 2);
+  assert.equal(run.error, undefined);
+  assert.equal(run.tasks.length, 2);
+  assert.ok(run.tasks.every(task => task.model === 'gpt-image-2.5-sunburst' && task.imageRequest?.provider === 'openai' && task.imageRequest.quality === 'max'));
+  channel.data.model = 'invalid';
+  assert.ok(run.tasks.every(task => task.imageRequest?.provider === 'openai'));
+  assert.match(prepareSunburstRun(nodes, edges, ['g'], 1).error!, /渠道商/);
+  channel.data.model = 'openai'; version.data.model = 'unsupported';
+  assert.match(prepareSunburstRun(nodes, edges, ['g'], 1).error!, /模型版本/);
+  assert.equal(prepareSunburstRun(nodes, edges, ['g'], 1).tasks.length, 0);
+});
 test('images retain port order and mask stays separate from source images', () => {
   const second: AppNode = { ...file, id: 'second', data: { assets: [{ ...asset, url: 'blob:second' }] } };
   const mask: AppNode = { ...file, id: 'mask', data: { assets: [{ ...asset, url: 'blob:mask' }] } };

@@ -228,7 +228,7 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
     const masked = inputs.some(edge => edge.targetHandle === 'mask');
     const images = inputs.filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''));
     if (node.type === 'sunburst') {
-      validateSunburstSettings(knownSettings(effectiveSunburstSettings(node, graph.nodes, graph.edges), defaultSunburstSettings));
+      validateSunburstSettings(knownSettings(effectiveSunburstSettings(node, graph.nodes, graph.edges), { ...defaultSunburstSettings, provider: 'openai', variant: 'Sunburst' }));
       if (masked && !images.length) throw new Error('使用 Mask 时必须连接 Image。');
     } else if (node.type === 'nano-banana') {
       validateNanoBananaSettings(knownSettings(effectiveNanoBananaSettings(node, graph.nodes, graph.edges), defaultNanoBananaSettings));

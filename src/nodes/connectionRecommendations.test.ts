@@ -70,7 +70,7 @@ test('reverse parameter creation preserves all Sunburst values and produces a va
   const prompt = { ...text, data: { text: 'An apple' } };
   const nodes: AppNode[] = [target, prompt];
   const edges: Edge[] = [{ id: 'prompt', source: prompt.id, target: target.id, sourceHandle: null, targetHandle: 'prompt' }];
-  for (const field of target.data.exposed!) {
+  for (const field of Object.keys(fields) as (keyof typeof fields)[]) {
     const start = pending(target.id, 'target', field);
     const choice = connectionChoices(start, nodes, edges).find(item => item.itemId === 'model-input')!;
     assert.ok(choice);
@@ -90,7 +90,7 @@ test('reverse parameter creation preserves all Sunburst values and produces a va
   const run = prepareSunburstRun(nodes, edges, [target.id], 1);
   assert.equal(run.error, undefined);
   assert.equal(run.tasks.length, 1);
-  for (const field of target.data.exposed!) assert.equal(run.tasks[0].imageRequest?.[field], fields[field]);
+  for (const field of Object.keys(fields) as (keyof typeof fields)[]) assert.equal(run.tasks[0].imageRequest?.[field], fields[field]);
 });
 
 test('parameter initialization leaves ordinary model nodes and other recommendations unchanged', () => {
@@ -124,5 +124,19 @@ test('Compare quick creation appears once in either direction and preserves the 
     const connection = choiceConnection(start, choices[0], created.id);
     assert.equal(direction === 'source' ? connection.sourceHandle : connection.targetHandle, start.handleId);
     assert.ok(canConnect(connection, [compare, created], []));
+  }
+});
+
+test('reverse channel and model-version inputs inherit defaults and connect to their exposed ports', () => {
+  const target: SunburstNode = { ...generator, data: { ...generator.data, provider: 'openai', exposed: ['provider', 'variant'] } };
+  for (const [field, value, choices] of [['provider', 'openai', ['zenmux', 'openai']], ['variant', 'Sunburst', ['Sunburst']]] as const) {
+    const start = pending(target.id, 'target', field);
+    const choice = connectionChoices(start, [target], []).find(item => item.itemId === 'model-input');
+    assert.ok(choice);
+    const model: AppNode = { id: field, type: 'model-input', position: start.position, data: { model: 'deepseek-flash' } };
+    const created = initializeConnectionParameter(model, start, [target]);
+    assert.equal(created.type, 'model-input');
+    assert.deepEqual(created.data, { label: field === 'provider' ? 'Provider' : 'Model Version', model: value, options: [...choices], parameter: field });
+    assert.equal(canConnect(choiceConnection(start, choice, created.id), [target, created], []), true);
   }
 });

@@ -5,7 +5,9 @@ import { isNanoBananaNode, isNodeLocked } from '../nodes/types';
 import { effectiveNanoBananaSettings } from '../nodes/nanoBananaRun';
 import { nanoBananaChoices, nanoBananaName, nanoBananaParameterData, validateNanoBananaSettings, type NanoBananaSettings as Settings } from '../nodes/nanoBanana';
 import { DescriberModelSelect } from './DescriberModelSelect';
-import { DescriberIcon } from './DescriberIcon';
+import { NodeSettingsSection } from './NodeSettingsSection';
+import { ParameterField } from './ParameterField';
+import { ParameterExposeButton } from './ParameterExposeButton';
 
 const labels: Record<keyof Settings, string> = { aspectRatio: '宽高比', imageSize: '分辨率', outputFormat: '输出格式' };
 export function NanoBananaSettings({ node }: { node: NanoBananaNode }) {
@@ -31,16 +33,14 @@ export function NanoBananaSettings({ node }: { node: NanoBananaNode }) {
       setEdges(all => [...all, { id: crypto.randomUUID(), source: id, target: node.id, targetHandle: field }]);
     }
   };
-  return <div className="describer-settings sunburst-settings">
-    <h2><NodeIcon nodeType="nano-banana" size={20} /><span>{nanoBananaName}</span></h2>
+  return <NodeSettingsSection title={nanoBananaName} icon={<NodeIcon nodeType="nano-banana" size={20} />} className="sunburst-settings">
+    <div className="sunburst-provider"><span>ZenMux</span><span>按用量计费</span></div>
     {(Object.keys(nanoBananaChoices) as (keyof Settings)[]).map(field => {
       const exposed = Boolean(node.data.exposed?.includes(field)), label = labels[field];
       const choices = [...nanoBananaChoices[field]];
-      return <div className="describer-field" key={field}><label>{label}</label><div className="describer-field-row">
-        <DescriberModelSelect fluidHover compact label={label} value={String(effective[field] ?? '')} choices={choices} labels={choices.map(value => value === 'auto' ? '自动' : value.toUpperCase())} disabled={node.data.locked || exposed} onChange={value => { if (!isNodeLocked(getNode(node.id))) updateNodeData(node.id, { [field]: value }); }} />
-        <button disabled={node.data.locked} className="describer-expose" data-exposed={exposed} title={exposed ? '使用本地值' : '设为输入'} aria-label={exposed ? `${label}使用本地值` : `将${label}设为输入`} aria-pressed={exposed} onClick={() => expose(field)}><DescriberIcon name="expose" /></button>
-      </div></div>;
+      return <ParameterField key={field} label={label} exposeButton={<ParameterExposeButton label={label} exposed={exposed} disabled={node.data.locked} onClick={() => expose(field)} />}>
+        <DescriberModelSelect appearance="settings" fluidHover compact label={label} value={String(effective[field] ?? '')} choices={choices} labels={choices.map(value => value === 'auto' ? '自动' : value.toUpperCase())} disabled={node.data.locked || exposed} onChange={value => { if (!isNodeLocked(getNode(node.id))) updateNodeData(node.id, { [field]: value }); }} />
+      </ParameterField>;
     })}
-    <p className="describer-hint">格式在生成后转换；JPEG 的透明区域会填为白色。</p>
-  </div>;
+  </NodeSettingsSection>;
 }

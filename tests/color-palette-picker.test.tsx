@@ -50,15 +50,15 @@ function key(target: HTMLElement, value: string, options: KeyboardEventInit = {}
 async function reset(zoom = 1, multiple = false) {
   root.render(<ReactFlowProvider key={++revision}><Harness zoom={zoom} multiple={multiple} /></ReactFlowProvider>);
   // React Flow publishes controlled nodes to its store in an effect, after the
-  // React tree mounts. Wait for that publication before exercising the sidebar.
+  // React tree mounts. Wait for that publication before exercising the node.
   for (let frame = 0; frame < 60; frame++) {
     await settle();
-    if (document.querySelector('.palette-settings .palette-swatch') && committed === initial) break;
+    if (document.querySelector('.palette-canvas .palette-edit-color') && committed === initial) break;
   }
   assert(committed === initial, 'Fixture did not reset');
 }
-async function open(inline = false) {
-  find(inline ? '.palette-canvas .palette-edit-color' : '.palette-settings .palette-swatch').click();
+async function open() {
+  find('.palette-canvas .palette-edit-color').click();
   await settle();
 }
 async function input(value: string) {
@@ -89,12 +89,15 @@ async function check(name: string, run: () => Promise<void>, zoom = 1, multiple 
   await reset(zoom, multiple); await run(); passed.push(name); results.textContent = passed.map(value => `PASS ${value}`).join('\n');
 }
 async function run() {
-  for (const inline of [false, true]) {
-    await check(`${inline ? 'Node' : 'Sidebar'} outside dismissal saves HEX exactly once`, async () => {
-      await open(inline); await input('123456'); await outside();
-      assert(committed === '#123456', 'Outside dismissal discarded HEX'); await oneUndo('#123456');
-    });
-  }
+  await check('Selected palette edits entirely in the node without a settings sidebar', async () => {
+    assert(!document.querySelector('.node-settings-panel'), 'Selecting palette opened a settings sidebar');
+    await open();
+    assert(!document.querySelector('.node-settings-panel'), 'Opening the picker opened a settings sidebar');
+  });
+  await check('Node outside dismissal saves HEX exactly once', async () => {
+    await open(); await input('123456'); await outside();
+    assert(committed === '#123456', 'Outside dismissal discarded HEX'); await oneUndo('#123456');
+  });
   await check('Shorthand and lowercase HEX normalize on dismissal', async () => {
     await open(); await input('#abc'); await outside();
     assert(committed === '#AABBCC', 'HEX not normalized'); await oneUndo('#AABBCC');
@@ -166,7 +169,7 @@ async function run() {
       assert(order() === `${initial},#000000,#FFFFFF`, 'Upper half did not insert before the right cell');
       await travel('undo'); assert(order() === original, 'Second cross-column drag did not undo in one step');
     }, zoom, true);
-    await check(`Synthetic drag at ${zoom * 100}% supplies a loaded image and preserves cancellation/history/sidebar`, async () => {
+    await check(`Synthetic drag at ${zoom * 100}% supplies a loaded image and preserves cancellation/history`, async () => {
       const source = find('.palette-canvas .palette-color-row');
       const list = find('.palette-canvas .palette-color-list');
       const transfer = new DataTransfer();
@@ -178,7 +181,6 @@ async function run() {
       const dispatch = (target: HTMLElement, type: string, point = { clientX: 0, clientY: 0 }) =>
         target.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: transfer, ...point }));
       const order = () => [...document.querySelectorAll('.palette-canvas .palette-hex-label')].map(el => el.textContent).join(',');
-      const sidebar = () => [...document.querySelectorAll<HTMLInputElement>('.palette-settings input')].map(el => `#${el.value}`).join(',');
       const original = `${initial},#FFFFFF,#000000`, reordered = `#FFFFFF,#000000,${initial}`;
       dispatch(source, 'dragstart'); await settle();
       assert(preview instanceof HTMLImageElement && preview.complete && preview.naturalWidth === 1
@@ -192,15 +194,10 @@ async function run() {
       dispatch(list, 'dragover', point); await settle();
       assert(!!document.querySelector('.palette-drop-line') && order() === original, 'Preview reordered data before drop');
       dispatch(list, 'drop', point); dispatch(source, 'dragend'); await settle();
-      assert(order() === reordered && sidebar() === reordered, 'Drop did not synchronize node and sidebar');
+      assert(order() === reordered, 'Drop did not reorder node colors');
       await travel('undo');
-      assert(order() === original && sidebar() === original && find<HTMLButtonElement>('[data-test="undo"]').disabled, 'Drag did not undo in one step');
-      await travel('redo'); assert(order() === reordered && sidebar() === reordered, 'Drag redo lost order');
-      preview = undefined;
-      const sidebarRow = find('.palette-settings .palette-color-row');
-      dispatch(sidebarRow, 'dragstart'); await settle();
-      assert(preview === undefined, 'Sidebar native preview changed');
-      dispatch(sidebarRow, 'dragend'); await settle();
+      assert(order() === original && find<HTMLButtonElement>('[data-test="undo"]').disabled, 'Drag did not undo in one step');
+      await travel('redo'); assert(order() === reordered, 'Drag redo lost order');
     }, zoom, true);
   }
   results.dataset.result = 'passed';

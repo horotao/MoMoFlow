@@ -23,8 +23,8 @@ function SelectOption({ id, index, selected, active, separator, label, checkIcon
 }
 
 export function DescriberModelSelect({ value, disabled, onChange, choices = describerModels, node = false, compact = false, appearance = 'default', fluidHover = false, label = 'Model', labels, includeCurrentValue = true, menuLabel, separators = noSeparators }: {
-  appearance?: 'default' | 'levels' | 'blend' | 'compare';
-  separators?: readonly number[]; value: string; choices?: readonly string[]; node?: boolean; compact?: boolean; fluidHover?: boolean; label?: string; labels?: string[]; disabled?: boolean; includeCurrentValue?: boolean; menuLabel?: string; onChange: (model: string) => void;
+  appearance?: 'default' | 'levels' | 'blend' | 'compare' | 'settings';
+  separators?: readonly number[]; value: string; choices?: readonly string[]; node?: boolean; compact?: boolean; fluidHover?: boolean; label?: string; labels?: readonly string[]; disabled?: boolean; includeCurrentValue?: boolean; menuLabel?: string; onChange: (model: string) => void;
 }) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
@@ -50,6 +50,13 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
     const height = Math.min(node || compact ? options.length * 24 + separators.length * 16 + 16 : 410, window.innerHeight - 24, rect.top - 12 + (options.length - index) * 24 + 8);
     const top = Math.max(12, Math.min(rect.top - index * 24 - separators.filter(n => n <= index).length * 16 - 8, window.innerHeight - height - 12));
     activate(index);
+    if (appearance === 'settings') {
+      const height = Math.min(options.length * 28 + 16, 324, window.innerHeight - 16);
+      const width = Math.min(rect.width + 16, window.innerWidth - 16);
+      const top = Math.max(8, Math.min(rect.top - index * 28 - 8, window.innerHeight - height - 8));
+      setPlacement({ width, height, left: Math.max(8, Math.min(rect.left - 8, window.innerWidth - width - 8)), top });
+      return;
+    }
     if (appearance === 'blend' || appearance === 'compare') {
       const height = Math.min(options.length * 28 + separators.length * 9 + 16, 320, window.innerHeight - 24);
       const width = Math.min(appearance === 'compare' ? 152 : 176, window.innerWidth - 24);
@@ -80,7 +87,7 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
       const index = Math.max(0, options.indexOf(value));
       const offset = index * 28 + separators.filter(n => n <= index).length * 9;
       list.current.scrollTop = Math.max(0, offset - (placement.height - 28) / 2);
-    } else if (appearance !== 'levels') list.current.scrollTop = Math.max(0, options.indexOf(value) * 24 + separators.filter(n => n <= options.indexOf(value)).length * 16 - (trigger.current.getBoundingClientRect().top - placement.top - 8));
+    } else if (appearance !== 'levels') list.current.scrollTop = Math.max(0, options.indexOf(value) * (appearance === 'settings' ? 28 : 24) + separators.filter(n => n <= options.indexOf(value)).length * 16 - (trigger.current.getBoundingClientRect().top - placement.top - 8));
     list.current.focus();
   }, [placement, value, options, separators, appearance]);
   useEffect(() => {
@@ -96,8 +103,8 @@ export function DescriberModelSelect({ value, disabled, onChange, choices = desc
   return <>
     <button id={node || compact ? id + "-trigger" : "describer-model"} ref={trigger} role="combobox" aria-label={label} aria-haspopup="listbox" aria-expanded={Boolean(placement)} aria-controls={placement ? id : undefined} disabled={disabled} className="describer-model-trigger nodrag nopan" onClick={() => placement ? close() : open()} onKeyDown={(e) => {
       if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) { e.preventDefault(); open(); }
-    }}><span>{labels?.[choices.indexOf(value)] ?? (value || 'Select an option')}</span>{appearance !== 'default' ? <img src={`/${appearance === 'levels' ? 'levels-node' : 'blend-node'}/chevron.svg`} width={12} height={12} alt="" /> : <DescriberIcon name="chevron" />}</button>
-    {placement && !disabled && createPortal(<div ref={list} id={id} role="listbox" aria-label={menuLabel ?? (compact || label !== 'Model' ? label : "Models")} aria-activedescendant={options[activeIndex] !== undefined ? `${id}-${activeIndex}` : undefined} tabIndex={-1} className={`describer-model-menu nodrag nopan nowheel${fluidHover ? ' describer-model-menu-fluid' : ''}${appearance === 'levels' ? ' levels-channel-menu' : ''}${appearance === 'blend' ? ' blend-mode-menu' : ''}${appearance === 'compare' ? ' compare-mode-menu' : ''}`} style={placement}
+    }}><span>{labels?.[choices.indexOf(value)] ?? (value || 'Select an option')}</span>{appearance === 'settings' ? <img src="/gpt-sidebar/chevron.svg" width={20} height={20} alt="" /> : appearance !== 'default' ? <img src={`/${appearance === 'levels' ? 'levels-node' : 'blend-node'}/chevron.svg`} width={12} height={12} alt="" /> : <DescriberIcon name="chevron" />}</button>
+    {placement && !disabled && createPortal(<div ref={list} id={id} role="listbox" aria-label={menuLabel ?? (compact || label !== 'Model' ? label : "Models")} aria-activedescendant={options[activeIndex] !== undefined ? `${id}-${activeIndex}` : undefined} tabIndex={-1} className={`describer-model-menu nodrag nopan nowheel${fluidHover ? ' describer-model-menu-fluid' : ''}${appearance === 'levels' ? ' levels-channel-menu' : ''}${appearance === 'blend' ? ' blend-mode-menu' : ''}${appearance === 'compare' ? ' compare-mode-menu' : ''}${appearance === 'settings' ? ' node-settings-menu sunburst-parameter-menu' : ''}`} style={placement}
       {...(fluidHover ? hover.handlers : {})}
       onMouseMove={fluidHover ? event => {
         pointer.current = { x: event.clientX, y: event.clientY };

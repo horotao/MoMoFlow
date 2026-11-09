@@ -56,7 +56,11 @@ export type SunburstSettings = {
   size: string;
   outputFormat: typeof imageFormats[number];
 };
-export const sunburstFieldLabels: Record<keyof SunburstSettings, string> = { quality: 'Quality', background: 'Background', size: 'Aspect Ratio', outputFormat: 'Output Format' };
+export type SunburstParameter = keyof SunburstSettings | 'provider' | 'variant';
+export const sunburstFieldLabels: Record<SunburstParameter, string> = { provider: 'Provider', variant: 'Model Version', quality: 'Quality', background: 'Background', size: 'Aspect Ratio', outputFormat: 'Output Format' };
+export function sunburstLocalParameter(data: SunburstSettings & { provider?: SunburstProvider; variant?: string }, field: SunburstParameter): string {
+  return String(data[field] ?? (field === 'provider' ? 'zenmux' : 'Sunburst'));
+}
 export const defaultSunburstSettings: SunburstSettings = { quality: 'medium', background: 'auto', size: 'auto', outputFormat: 'png' };
 export type SunburstRequest = SunburstSettings & {
   provider?: SunburstProvider;
@@ -69,6 +73,7 @@ export function validateSunburstSettings(value: unknown): SunburstSettings {
   if (!value || typeof value !== 'object') throw new Error('图片参数格式错误。');
   const input = value as Record<string, unknown>;
   const provider = validateSunburstProvider(input.provider);
+  if (input.variant !== undefined && input.variant !== 'Sunburst') throw new Error('不支持的 GPT Image 2.5 模型版本。');
   if (!imageQualities.some(v => v === input.quality) || !imageBackgrounds.some(v => v === input.background)
     || !imageFormats.some(v => v === input.outputFormat)) throw new Error('不支持的图片参数。');
   if (!sunburstQualities(provider).some(v => v === input.quality)) throw new Error(`${sunburstProviderLabels[provider]} 暂未接入此画质参数，请选择自动、低、中或高，或切换到 OpenAI 官方渠道。`);
@@ -93,7 +98,7 @@ export const sunburstChoices: Record<keyof SunburstSettings, readonly string[]> 
   quality: zenmuxImageQualities, background: imageBackgrounds, size: sunburstSizeChoices, outputFormat: imageFormats,
 };
 
-export function sunburstParameterData(field: keyof SunburstSettings, value: string, provider: SunburstProvider = 'zenmux') {
-  const choices: readonly string[] = field === 'quality' ? sunburstQualities(provider) : sunburstChoices[field];
+export function sunburstParameterData(field: SunburstParameter, value: string, provider: SunburstProvider = 'zenmux') {
+  const choices: readonly string[] = field === 'provider' ? sunburstProviders : field === 'variant' ? ['Sunburst'] : field === 'quality' ? sunburstQualities(provider) : sunburstChoices[field];
   return { label: sunburstFieldLabels[field], model: value, options: choices.includes(value) ? [...choices] : [value, ...choices], parameter: field };
 }

@@ -6,7 +6,7 @@ import type { Connection, Edge, XYPosition } from '@xyflow/react';
 import type { AppNode } from './types';
 import { isCompositorNode, isNodeLocked, isImageGeneratorNode, isDescriberNode } from './types.ts';
 import { fileOutputKind } from './fileCollection.ts';
-import { sunburstParameterData } from './sunburst.ts';
+import { sunburstLocalParameter, sunburstParameterData } from './sunburst.ts';
 
 export type PendingConnection = {
   nodeId: string;
@@ -43,7 +43,7 @@ export function initializeConnectionParameter(node: AppNode, pending: PendingCon
     return field ? { ...node, data: nanoBananaParameterData(field, target.data[field]) } : node;
   }
   const field = target.data.exposed?.find(item => item === pending.handleId);
-  return field ? { ...node, data: sunburstParameterData(field, target.data[field], target.data.provider) } : node;
+  return field ? { ...node, data: sunburstParameterData(field, sunburstLocalParameter(target.data, field), target.data.provider) } : node;
 }
 
 function directConnectionChoices(pending: PendingConnection, nodes: AppNode[]): ConnectionChoice[] {

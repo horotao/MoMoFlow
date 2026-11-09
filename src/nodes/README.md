@@ -90,10 +90,13 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 - 连接期间，文本值通过 `resolveTextValue` 从当前图数据动态解析，不持续复制到下游节点数据中。参数从外部输入切回 **Use local value** 时例外：Image Describer 会将当前解析值写回本地参数并移除对应连线；Sunburst 也会保存当前有效参数值，校验失败时保留原本地值。具体入口见 [DescriberPanel.tsx](../components/DescriberPanel.tsx) 和 [SunburstSettings.tsx](../components/SunburstSettings.tsx)。
 - Prompt 连接到已有素材的 File 时会显示类型不兼容；连接空 File 时不显示该错误。两种情况下 File 都解析为空文本，不会转换成提示词内容；这与模型节点在连接时直接拒绝错误输入的行为不同。
 - Image Describer、Sunburst、Painter、Crop、Blur、Invert、Levels 和 Color correction 的图片输入接受纯图片 File 集合、Sunburst 结果、Painter、Crop、Blur、Invert、Levels 或 Color correction 输出。Painter、Crop、Blur、Invert、Levels 和 Color correction 使用集合的第一张图片作为底图。`imageOutput` 对 File 返回集合中的图片，对 Sunburst 只返回当前选中结果（没有有效选中项时取最后一张），对 Crop、Blur、Invert、Levels 和 Color correction 返回当前有效的处理结果；对 Painter 按 `sourceHandle` 区分 Result 与 Mask，并在上游或绘制内容变化后拒绝尚未更新的输出。不要将 File 的预览选中项误当作唯一输出。
-- Sunburst 的渠道商在右侧选择 OpenAI 官方或 ZenMux，共用同一节点与端口；`data.provider` 缺失时兼容为 ZenMux。渠道不可暴露为输入，随节点保存/复制及撤销恢复；运行快照固定渠道，服务端只向对应官方地址发送该渠道密钥，不自动重试或跨渠道回退。OpenAI 画质提供 auto / low / medium / high / xhigh / max，ZenMux 保留原四档；前置校验、任务快照及参数节点创建均按渠道处理。切回 ZenMux 时，不兼容的本地画质改为 high，渠道与画质可一起撤销；外部画质输入不改写，在运行前校验。
+- Sunburst 的渠道商在右侧选择 OpenAI 官方或 ZenMux，共用同一节点与端口；`data.provider` 缺失时兼容为 ZenMux。渠道支持暴露为 `provider` 输入，本地值随节点保存/复制及撤销恢复；运行快照固定渠道，服务端只向对应官方地址发送该渠道密钥，不自动重试或跨渠道回退。OpenAI 画质提供 auto / low / medium / high / xhigh / max，ZenMux 保留原四档；前置校验、任务快照及参数节点创建均按渠道处理。切回 ZenMux 时，不兼容的本地画质改为 high，渠道与画质可一起撤销；外部画质输入不改写，在运行前校验。
 - Sunburst 的 Prompt 和暴露参数接受 `text`、`image-describer`、`model-input` 的文本输出；Image Describer 的模型与指令输入也接受这些类型。Sunburst、Painter、Crop、Blur、Invert、Levels 和 Color correction 图片输出可连到 Sunburst 的图片/遮罩输入、Image Describer 的图片输入或 Painter / Crop / Blur / Invert / Levels 的 Image 输入，以及 Color correction / Preview 的 File 输入。
 - `model-input` 同时用于模型名称和 Sunburst 参数选项，`parameter` 标识参数用途，`options` 保存可选文本。Options 输入端口尚未实现，继续保持不可连接。
 - Sunburst 将宽高比与 1K / 2K / 4K 分辨率预设统一编码到 `data.size`，不另存可能冲突的比例/分辨率状态。`sunburstSizePresets` 保持旧 1K 尺寸，按精确比例、16 像素对齐、3840 边长与 8,294,400 像素上限生成高分辨率；正方形最高 2880×2880。预览、执行快照、服务端与保存恢复均沿用实际尺寸；外部 `size` 接管时禁用两个控件，切回本地保留完整尺寸。
+- GPT Image 2.5 参数侧栏为 300px 宽并撑满画布高度，标题固定、参数列表独立滚动；复用 `NodeSettingsSection`、`ParameterField`、`ParameterExposeButton` 和 `DescriberModelSelect` 的 `settings` 外观。七项下拉框与菜单等宽，每行的 expose 按钮只在该行悬停或键盘聚焦时显示，始终保留占位。宽高比、分辨率的 expose 操作共享完整 `size` 输入；渠道商与模型版本分别使用 `provider`、`variant` 输入（版本仅支持 `Sunburst`），运行前解析外部值并冻结到任务快照，未知渠道/版本会阻止运行。Nano Banana、Ideogram、Image Describer 与模型选项侧栏也复用这套外观，公共样式位于 `components/NodeSettingsSidebar.css`；各模型支持的参数、原图尺寸限制、锁定、外部输入与运行规则不变。Image Describer 与模型选项的任务入口置于标题栏，Nano Banana 和 Ideogram 不显示该入口；模型运行区域保留在底部；画廊、全屏预览和合成器编辑器中的专用面板不属于画布参数侧栏。
+- `/tests/right-sidebars.html` 是五类共享参数侧栏及调色板无侧栏行为的独立浏览器验收入口（React / React Flow，`npm run dev` 后打开），使用隔离 IndexedDB 并拦截真实模型请求。可通过页面按钮切换节点，检查标题、滚动、32px 控件、下拉菜单、expose、模型选项和运行区域，以及选中调色板不打开侧栏；原有 Nano Banana、Ideogram 编辑和调色板浏览器验收入口继续用于功能回归。
+- `/tests/sunburst-sidebar.html` 是这次侧栏的独立浏览器验收页（React 与现有浏览器测试入口），运行 `npm run dev` 后打开，可检查满高、等宽、逐行悬停 / 键盘聚焦、外部输入、自定义尺寸和短窗口滚动；隔离 IndexedDB 且拦截真实模型请求。`sunburstRun.test.ts` 和 `connectionRecommendations.test.ts` 随 `npm test` 验证渠道 / 版本的外部解析、校验及反向参数初始化。
 - Sunburst 外部参数切回本地时独立校验当前字段，其他字段的错误不会丢弃有效值；当前字段无效时保留原本地值，运行前仍执行完整参数校验。已记录的旧 ZenMux 生成结果在复用比较时兼容缺少 `provider` 的请求签名；仅兼容这一处差异，渠道、提示词、尺寸、图片及输出身份变化仍使结果失效，锁定节点也遵守此规则。`workflowExecution.test.ts` 随 `npm test` 覆盖旧/新签名复用与失效；`/tests/sunburst-provider.html` 覆盖 xhigh/max 跨渠道后 2K/4K 切回本地、撤销/重做及无效尺寸回退。
 - 从 Sunburst 暴露的参数输入反向选择 Model Name 时，复用 `sunburstParameterData`，按目标参数的当前本地值初始化名称、值和选项（保留自定义尺寸）；普通模型名称节点仍使用原默认值。
 - 对支持锁定的节点，数据更新、拖动、删除、连线和运行入口都需考虑 `locked`，异步结果写回前再次检查。节点内的编辑与点击控件按交互需要使用 `nodrag`、`nopan`、`nowheel`，避免与画布手势冲突。
@@ -130,17 +133,17 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 
 ## Color palette 色板约定
 
-Color palette 位于 Tools → Editing，新建时使用 Figma 的五种预设颜色：`#4ADE80`、`#FBBF24`、`#60A5FA`、`#C084FC`、`#222222`。节点采用双列色签列表，每项显示圆形色样和 HEX；加号位于下一个网格空位，满十色后隐藏。允许重复颜色，已保存的颜色与空色板按原数据恢复。点击色签打开选色弹窗；仅悬停或键盘聚焦当前色签时，在右侧显示六点排序手柄与删除按钮；触屏始终显示这两个操作。侧栏继续支持添加、HEX 编辑、选色、删除与排序。
+Color palette 位于 Tools → Editing，新建时使用 Figma 的五种预设颜色：`#4ADE80`、`#FBBF24`、`#60A5FA`、`#C084FC`、`#222222`。节点采用双列色签列表，每项显示圆形色样和 HEX；加号位于下一个网格空位，满十色后隐藏。允许重复颜色，已保存的颜色与空色板按原数据恢复。点击色签打开选色弹窗；仅悬停或键盘聚焦当前色签时，在右侧显示六点排序手柄与删除按钮；触屏始终显示这两个操作。选中调色板不打开右侧参数栏；添加、HEX 编辑、选色、删除与排序均在节点内完成。
 
-拖动时保持原顺序，以目标色签上方或下方的细线提示插入位置，落点同时识别双列的横向位置；其他色签变暗，松开后一次性排序，拖出列表取消。节点内使用原位反馈和预加载的透明图片抑制额外的浏览器拖拽预览，侧栏保留原生预览。手柄支持方向键、Home / End；Escape 取消排序，锁定后禁止修改。共享标题栏、更多菜单与端口复用节点组件；Image / Text 端口随节点高度变化整体保持上下居中。
+拖动时保持原顺序，以目标色签上方或下方的细线提示插入位置，落点同时识别双列的横向位置；其他色签变暗，松开后一次性排序，拖出列表取消。节点内使用原位反馈和预加载的透明图片抑制额外的浏览器拖拽预览。手柄支持方向键、Home / End；Escape 取消排序，锁定后禁止修改。共享标题栏、更多菜单与端口复用节点组件；Image / Text 端口随节点高度变化整体保持上下居中。
 
 节点没有输入，Image（`image`）输出 1024 × 1024 的纯色横条 PNG，不包含 HEX 和编辑控件；Text（`text`）输出大写 HEX，以 `*` 连接，顺序与画布一致。Image 可连接所有图片消费者（包括 Compositor、Preview、Sunburst 和 Image Describer）；Text 可连接 Prompt 变量、Sunburst 文本输入和 Image Describer 文本参数。连接推荐按输出端口区分类型，反向创建也支持这两个端口。空色板无图片且文本为空；改色或排序后立即使旧图片失效，导出完成才提供新图片，迟到的结果不会覆盖新状态。
 
 每次添加、删除、排序、HEX 提交或颜色选择手势各记录一次撤销；颜色选择器拖动时先在弹窗预览，松开提交。派生图片不增加撤销记录。支持重命名、锁定、副本、剪切粘贴和 IndexedDB 恢复；颜色顺序和 PNG 素材随画布保存，素材引用复用现有生命周期。数据与纯函数见 [colorPalette.ts](./colorPalette.ts)，颜色列表和弹窗见 `ColorPaletteColors.tsx` / `ColorPalettePicker.tsx`。`colorPalette.test.ts` 使用现有 Node.js 测试运行器，随 `npm test` 检查十色上限、排序、文本、输出失效、双端口连接、剪贴板校验和素材映射。
 
-选色弹窗的 HEX 在 Enter、失焦或点击外部关闭时提交合法值；无效值与 Escape 不产生修改。弹窗及滑块上的 Cmd/Ctrl+Z、Cmd/Ctrl+Shift+Z 操作画布历史，HEX 输入框保留原生文本撤销。浏览器回归测试在 `tests/color-palette-picker.test.tsx`，沿用项目现有的浏览器测试页方式，无新增测试依赖：运行 `npm run dev` 后打开 `/tests/color-palette-picker.html`，页面自动挂载真实节点、侧栏、弹窗和画布历史并报告结果。覆盖外部关闭保存、HEX 规范化、取消、重复提交、弹窗/滑块撤销重做、文本撤销与中文输入保护，以及连续编辑的历史边界；另覆盖 53% / 100% / 150% 缩放下的合成拖拽事件、预览图片加载、取消、双列横向落点及上下半区插入线、落点排序、单步撤销重做与侧栏同步；测试使用独立状态，不读写已保存的工作流。
+选色弹窗的 HEX 在 Enter、失焦或点击外部关闭时提交合法值；无效值与 Escape 不产生修改。弹窗及滑块上的 Cmd/Ctrl+Z、Cmd/Ctrl+Shift+Z 操作画布历史，HEX 输入框保留原生文本撤销。浏览器回归测试在 `tests/color-palette-picker.test.tsx`，沿用项目现有的浏览器测试页方式，无新增测试依赖：运行 `npm run dev` 后打开 `/tests/color-palette-picker.html`，页面自动挂载真实节点、弹窗和画布历史并报告结果，并验证选中调色板与打开选色弹窗时不出现参数侧栏。覆盖外部关闭保存、HEX 规范化、取消、重复提交、弹窗/滑块撤销重做、文本撤销与中文输入保护，以及连续编辑的历史边界；另覆盖 53% / 100% / 150% 缩放下的合成拖拽事件、预览图片加载、取消、双列横向落点及上下半区插入线、落点排序、单步撤销重做；测试使用独立状态，不读写已保存的工作流。
 
-原生拖拽验收页为 `/tests/color-palette-native-drag.html`（入口 `tests/color-palette-native-drag.test.tsx`），同样通过 Vite 运行且不读写用户工作流。用真实鼠标在节点中拖动，页面检查可信 `dragstart`、透传原生 `setDragImage`、已加载的 1×1 透明图片和可信 `dragend`；`Broken canvas control` 使用旧实现作负例，必须失败，`Fixed image` 应通过。分别检查 53% / 100% / 150%，拖出及 Escape 取消后顺序/历史不变，落点后节点和侧栏同步且可单步撤销重做。原生预览使用预加载的离屏 `HTMLImageElement`，不可用没有布局的 canvas 替代。页面的 PASS 仅代表原生调用及图片有效，浏览器页面截图不包含系统拖拽图层；大色条是否消失仍必须用系统目视或能包含该图层的录屏对照确认，不得用合成事件或页面截图代替。
+原生拖拽验收页为 `/tests/color-palette-native-drag.html`（入口 `tests/color-palette-native-drag.test.tsx`），同样通过 Vite 运行且不读写用户工作流。用真实鼠标在节点中拖动，页面检查可信 `dragstart`、透传原生 `setDragImage`、已加载的 1×1 透明图片和可信 `dragend`；`Broken canvas control` 使用旧实现作负例，必须失败，`Fixed image` 应通过。分别检查 53% / 100% / 150%，拖出及 Escape 取消后顺序/历史不变，落点后节点顺序更新且可单步撤销重做。原生预览使用预加载的离屏 `HTMLImageElement`，不可用没有布局的 canvas 替代。页面的 PASS 仅代表原生调用及图片有效，浏览器页面截图不包含系统拖拽图层；大色条是否消失仍必须用系统目视或能包含该图层的录屏对照确认，不得用合成事件或页面截图代替。
 
 ## Compositor 合成约定
 
