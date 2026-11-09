@@ -1,8 +1,9 @@
 .react-flow { --router-empty-port: #b3b3b3; --router-text-port: #e28cf8; }
 .router-node-frame {
   --node-width: 250px;
+  --node-port-dot-radius: 3px;
 }
 .react-flow .router-node-frame .text-node-rename { width: 100%; min-width: 0; height: 24px; font: inherit; }
 .router-port-ring { position: absolute; inset: 0; border-radius: 50%; background: #2f2f2f; pointer-events: none; }
 .router-port-ring::before { content: ''; position: absolute; inset: 8px; border: 3px solid var(--node-port-color); border-radius: 50%; background: #2c2c2c; }
-.router-port-ring.is-connected::after { content: ''; position: absolute; inset: 13px; border-radius: 50%; background: var(--node-port-color); }
+.router-port-ring.is-connected::after { content: ''; position: absolute; inset: calc(50% - var(--node-port-dot-radius)); border-radius: 50%; background: var(--node-port-color); }

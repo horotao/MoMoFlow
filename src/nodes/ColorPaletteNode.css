@@ -3,7 +3,7 @@
 .palette-node-frame .node-title-icon { flex-basis: 18px; width: 18px; height: 18px; }
 .palette-title-icon { display: block; width: 18px; height: 18px; }
 .palette-title-icon img { display: block; transform: scale(.75); transform-origin: top left; }
-.palette-port { display: contents; }
+.palette-port { display: contents; --node-port-dot-radius: 3px; }
 .react-flow .palette-node-frame .node-port.react-flow__handle-right { right: -1px; }
 .palette-port-image { --node-port-color: #97ffcd; }
 .palette-port-text { --node-port-color: #e28cf8; }

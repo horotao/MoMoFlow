@@ -22,7 +22,7 @@
 .react-flow .text-iterator-frame .iterator-add:hover:not(:disabled) { color: var(--node-primary); background: transparent; }
 .text-iterator-frame .iterator-add:disabled { opacity: .4; cursor: default; }
 .text-iterator-frame .iterator-input-note { padding: 0 4px; color: var(--node-muted); font-size: 11px; line-height: 16px; }
-.text-iterator-frame .iterator-input { display: contents; --node-port-color: #f3ffe3; }
-.text-iterator-frame .iterator-port-dot { position: absolute; inset: 13px; border-radius: 50%; background: var(--node-port-color); pointer-events: none; }
+.text-iterator-frame .iterator-input { display: contents; --node-port-color: #f3ffe3; --node-port-dot-radius: 3px; }
+.text-iterator-frame .iterator-port-dot { position: absolute; inset: calc(50% - var(--node-port-dot-radius)); border-radius: 50%; background: var(--node-port-color); pointer-events: none; }
 .text-iteration-summary { display: flex; width: 100%; justify-content: space-between; gap: 16px; color: var(--text-node-secondary, var(--panel-muted)); font-size: 12px; }
 @media (hover: none) { .text-iterator-frame :is(.iterator-grip, .iterator-remove) { opacity: 1; } }

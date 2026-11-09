@@ -11,7 +11,7 @@ export type CableRelease = { id: string; velocity: number; reverse: boolean; spe
 export type CableImpact = { id: string; point: XYPosition; zoom: number; velocity: number; speed: number; rigidity: number };
 // Positions and sizes are normalized to the 100% effect size, shared by the
 // preview and release overlay so the tip stays continuous through zoom changes.
-export type AbsorptionSnapshot = { x: number; y: number; radius: number };
+export type AbsorptionSnapshot = { x: number; y: number; radius: number; tipRadius?: number };
 export type ConnectionVisualSnapshot = AbsorptionSnapshot & { color: string };
 export type PortFeedbackEvent = {
   id: string; nodeId: string; handleId: string | null; direction: 'source' | 'target'; edgeId: string;

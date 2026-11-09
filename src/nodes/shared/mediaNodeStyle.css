@@ -49,11 +49,11 @@
 .media-node-frame .node-port-label { visibility: hidden; opacity: 1; }
 .react-flow__node:hover .media-node-frame .node-port-label,
 .react-flow__node.selected .media-node-frame .node-port-label { visibility: visible; }
-.media-port-image { --node-port-color: var(--media-port-image, #97ffcd); }
-.media-port-mask { --node-port-color: #e4ff97; }
-.media-port-file { --node-port-color: var(--media-port-file, #f3ffe3); }
+.media-port-image { --node-port-color: var(--media-port-image, #97ffcd); --node-port-dot-radius: 3px; }
+.media-port-mask { --node-port-color: #e4ff97; --node-port-dot-radius: 3px; }
+.media-port-file { --node-port-color: var(--media-port-file, #f3ffe3); --node-port-dot-radius: 3px; }
 .media-node-frame :is(.media-port-image, .media-port-mask, .media-port-prompt, .media-port-parameter, .media-port-file) { display: contents; }
-.media-port-dot { position: absolute; inset: 13px; border-radius: 50%; background: var(--node-port-color); pointer-events: none; }
+.media-port-dot { position: absolute; inset: calc(50% - var(--node-port-dot-radius)); border-radius: 50%; background: var(--node-port-color); pointer-events: none; }
 
 .media-node-frame :is(.file-node-media, .sunburst-preview).is-grid { background: var(--node-inset); }
 .node-image-single { position: relative; width: 100%; height: 100%; }

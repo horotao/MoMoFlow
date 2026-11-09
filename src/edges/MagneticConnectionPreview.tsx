@@ -9,14 +9,15 @@ import type { ConnectionVisualSnapshot, MagneticSettings } from './magneticTypes
 type Props = ConnectionLineComponentProps & {
   settings: Pick<MagneticSettings, 'radius' | 'speed' | 'rigidity' | 'field' | 'enabled'>;
   visual: MutableRefObject<(() => ConnectionVisualSnapshot) | null>;
-  color: string; className?: string; curvature?: number;
+  color: string; className?: string; curvature?: number; portRadius?: number;
 };
 
 export function MagneticConnectionPreview({ fromX, fromY, toX, toY, fromPosition, toPosition, pointer, connectionStatus,
-  settings, visual, color, className = '', curvature = 0.42,
+  settings, visual, color, className = '', curvature = 0.42, portRadius,
 }: Props) {
   const viewport = useViewport();
   const sizeScale = magneticSizeScale(viewport.zoom);
+  const ballRadius = portRadius ?? magneticTipRadius * sizeScale;
   const reduced = useReducedMotion();
   const group = useRef<SVGGElement>(null);
   const snapped = connectionStatus === 'valid';
@@ -37,13 +38,14 @@ export function MagneticConnectionPreview({ fromX, fromY, toX, toY, fromPosition
   const radius = (32 + proximity * 12) * sizeScale;
   const outline = useTransform([x, y], () => magneticOutline({ x: toX, y: toY }, { x: x.get(), y: y.get() }, radius, 12 * sizeScale));
   useEffect(() => {
-    visual.current = () => ({ x: (x.get() - toX) / sizeScale, y: (y.get() - toY) / sizeScale, radius: radius / sizeScale,
+    visual.current = () => ({ x: (x.get() - toX) / sizeScale, y: (y.get() - toY) / sizeScale, radius: radius / sizeScale, tipRadius: ballRadius / sizeScale,
       color: group.current ? getComputedStyle(group.current).color : color });
     return () => { visual.current = null; };
-  }, [visual, x, y, toX, toY, radius, sizeScale, color]);
+  }, [visual, x, y, toX, toY, radius, ballRadius, sizeScale, color]);
   return <g ref={group} className={`magnetic-preview ${className}`} data-snapped={snapped} style={{ color }}>
     {snapped && settings.enabled && settings.field && <motion.path className="magnetic-field" d={outline} fill="currentColor" fillOpacity={0.11} stroke="currentColor" strokeOpacity={0.45} strokeWidth={1} vectorEffect="non-scaling-stroke" />}
     <motion.path className="react-flow__connection-path magnetic-wire" d={path} fill="none" style={{ stroke: 'currentColor' }} vectorEffect="non-scaling-stroke" />
-    <motion.circle className="cable-tip" cx={x} cy={y} r={magneticTipRadius * sizeScale} fill="currentColor" />
+    <circle className="cable-origin" cx={fromX} cy={fromY} r={ballRadius} fill="currentColor" />
+    <motion.circle className="cable-tip" cx={x} cy={y} r={ballRadius} fill="currentColor" />
   </g>;
 }

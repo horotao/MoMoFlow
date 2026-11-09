@@ -19,6 +19,7 @@
   --node-selected-row: rgb(255 255 255 / 5%);
   --node-hover: rgb(255 255 255 / 8%);
   --node-port-color: #e28cf8;
+  --node-port-dot-radius: 2.5px;
   --node-variable-chip: #503c55;
   --node-shadow: rgb(0 0 0 / 20%);
   --text-node-surface: var(--node-surface);

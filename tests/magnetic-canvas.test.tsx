@@ -3,10 +3,26 @@ import { createRoot } from 'react-dom/client';
 import { MotionConfig } from 'motion/react';
 import { MarkerType, ReactFlowProvider, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
 import { Flow } from '../src/App';
+import { createLibraryNode, items } from '../src/components/libraryCatalog';
 import type { AppNode } from '../src/nodes/types';
 import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
 import { canvasHistoryShortcut } from './canvasShortcuts';
 import '../src/index.css';
+import '../src/nodes/SunburstNode.css';
+import '../src/nodes/PainterNode.css';
+import '../src/nodes/PreviewNode.css';
+import '../src/nodes/CropNode.css';
+import '../src/nodes/ColorCorrectionNode.css';
+import '../src/nodes/BlurNode.css';
+import '../src/nodes/MatteGrowShrinkNode.css';
+import '../src/nodes/LevelsNode.css';
+import '../src/nodes/InvertNode.css';
+import '../src/nodes/RotateFlipNode.css';
+import '../src/nodes/ResizeNode.css';
+import '../src/nodes/CompareNode.css';
+import '../src/nodes/BlendNode.css';
+import '../src/nodes/ColorPaletteNode.css';
+import '../src/nodes/compositor/Compositor.css';
 
 let api: ReactFlowInstance<AppNode>;
 function Probe() { api = useReactFlow<AppNode>(); return null; }
@@ -96,7 +112,7 @@ run.onclick = async () => {
     check(document.querySelector('.react-flow__edge-text')?.textContent === 'Existing label' && edgePath('far').getAttribute('marker-end')?.startsWith('url('), 'Existing labels and arrow markers survive the renderer change');
     let point = await drag(port('a', 'source'), port('consumer', 'target', 'variable-2'));
     check(document.querySelector('.magnetic-preview[data-snapped="true"] .magnetic-field'), 'Production ports magnetically attract before direct contact');
-    check(document.querySelectorAll('.magnetic-preview circle').length === 1, 'Preview has one tip and no duplicate port outline');
+    check(document.querySelectorAll('.magnetic-preview circle').length === 2 && document.querySelector('.magnetic-preview .cable-origin'), 'Preview has one fixed origin ball and one moving tip');
     check(getComputedStyle(document.querySelector('.magnetic-preview .magnetic-wire')!).strokeWidth === '2px', 'Production preview uses the approved line width');
     await release(point);
     const fresh = api.getEdges().find(edge => edge.target === 'consumer' && edge.targetHandle === 'variable-2')!;
@@ -117,6 +133,10 @@ run.onclick = async () => {
     check(api.getEdges().some(edge => edge.id === fresh.id) && !document.querySelector('.port-ripple, .port-absorption'), 'Redo restores the graph without replaying feedback');
     check((await sample([fresh.id])).get(fresh.id)!.peak < 0.1, 'Redo does not restart a stale spring');
     point = await drag(port('consumer', 'target', 'variable-2'), port('b', 'source'), 55);
+    const reverseOrigin = document.querySelector<SVGCircleElement>('.magnetic-preview .cable-origin')!.getBoundingClientRect();
+    const reverseStart = port('consumer', 'target', 'variable-2');
+    check(Math.hypot(reverseOrigin.x + reverseOrigin.width / 2 - reverseStart.x, reverseOrigin.y + reverseOrigin.height / 2 - reverseStart.y) < 0.2,
+      'Reverse drag keeps the origin ball centered on its starting input');
     await release(point);
     check(document.querySelector('[data-feedback-node="b"][data-feedback-handle=""] .port-ripple'), 'Reverse drops confirm at the output handle');
     await wait(900);
@@ -147,9 +167,13 @@ run.onclick = async () => {
       mouse(document, 'mousemove', point.x, point.y); await wait(250);
       check(outside && document.querySelector('.magnetic-preview[data-snapped="true"]'), `${zoom * 100}% zoom uses the smaller capture area below 100% and caps it above`);
       const tip = document.querySelector<SVGCircleElement>('.magnetic-preview .cable-tip')!.getBoundingClientRect();
+      const origin = document.querySelector<SVGCircleElement>('.magnetic-preview .cable-origin')!.getBoundingClientRect();
+      const start = port('a', 'source');
+      check(Math.abs(origin.width - tip.width) < 0.2 && Math.hypot(origin.x + origin.width / 2 - start.x, origin.y + origin.height / 2 - start.y) < 0.2,
+        `${zoom * 100}% zoom keeps the origin ball centered on the starting port and sized like the tip`);
       const field = document.querySelector<SVGPathElement>('.magnetic-field')!.getBoundingClientRect();
-      check(Math.abs(tip.width - 9 * screenScale) < 0.2 && field.width > 64 * screenScale && field.width < 95 * screenScale,
-        `${zoom * 100}% zoom keeps both metaball lobes proportional to the capture area`);
+      check(Math.abs(tip.width - 5 * zoom) < 0.2 && field.width > 64 * screenScale && field.width < 95 * screenScale,
+        `${zoom * 100}% zoom matches the text port's 5px connected dot while keeping the field proportional to the capture area`);
       await release(point);
       const absorption = document.querySelector<SVGCircleElement>('.absorbing-tip')?.getBoundingClientRect();
       const ripple = document.querySelector<SVGSVGElement>('.port-ripple')!.getBoundingClientRect();
@@ -214,6 +238,36 @@ run.onclick = async () => {
     check(document.querySelector('.magnetic-preview[data-snapped="true"]'), 'Zooming out mid-drag expands the flow-space search to the current radius');
     await release(point);
     check(api.getEdges().some(edge => edge.source === 'a' && edge.targetHandle === 'variable-2'), 'A valid hit after mid-drag zoom still commits normally');
+    // Compare against the rendered SVG asset/ring, independently of preview tokens.
+    for (const item of items.filter(item => item.nodeType)) {
+      const node = createLibraryNode(item.id, { x: 220, y: 100 })!;
+      render({ nodes: [node], edges: [], colorMode: 'dark', viewport: { x: 0, y: 0, zoom: 1 } });
+      await until(() => !!document.querySelector('.react-flow__handle.connectable.connectablestart'), `${item.id} color fixture`);
+      await settle();
+      const ports = document.querySelectorAll<HTMLElement>('.react-flow__handle.connectable.connectablestart');
+      for (const element of ports) {
+        const image = element.querySelector('img');
+        const ring = element.querySelector('.router-port-ring');
+        const svg = image && new DOMParser().parseFromString(await (await fetch(image.src)).text(), 'image/svg+xml');
+        const expected = svg?.querySelector('[id="Ellipse"]')?.getAttribute('fill')
+          ?? (ring ? getComputedStyle(ring, '::before').borderTopColor : getComputedStyle(element).backgroundColor);
+        const probe = document.createElement('span');
+        probe.style.color = expected!; document.body.append(probe);
+        const expectedColor = getComputedStyle(probe).color; probe.remove();
+        const box = element.getBoundingClientRect(), x = box.x + box.width / 2, y = box.y + box.height / 2;
+        mouse(element, 'mousedown', x, y); mouse(document, 'mousemove', x + 100, y + 35); await settle();
+        const wire = document.querySelector('.magnetic-preview .magnetic-wire');
+        const tip = document.querySelector('.magnetic-preview .cable-tip');
+        const origin = document.querySelector('.magnetic-preview .cable-origin');
+        check(wire && tip && origin && getComputedStyle(wire).stroke === expectedColor && getComputedStyle(tip).fill === expectedColor && getComputedStyle(origin).fill === expectedColor,
+          `${item.id} ${element.classList.contains('source') ? 'output' : 'input'} ${element.dataset.handleid ?? ''}: wire and tip match the actual port (${expectedColor}; wire ${wire && getComputedStyle(wire).stroke}; tip ${tip && getComputedStyle(tip).fill})`);
+        const dotSize = image?.src.includes('/node-style/port-text') ? 5 : 6;
+        check(Math.abs(origin.getBoundingClientRect().width - dotSize) < 0.2 && Math.abs(tip.getBoundingClientRect().width - dotSize) < 0.2,
+          `${item.id} ${element.dataset.handleid ?? ''}: both drag balls match the ${dotSize}px connected dot`);
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await release({ x: x + 100, y: y + 35 });
+      }
+    }
     results.dataset.result = 'passed'; results.textContent = `PASS · ${checks.length} checks\n${checks.join('\n')}`;
   } catch (error) {
     mouse(document, 'mouseup', 0, 0); results.dataset.result = 'failed'; results.textContent = `FAIL ${String(error)}\n${checks.join('\n')}`;
