@@ -51,6 +51,7 @@
 .node-add-menu-list { position: relative; isolation: isolate; }
 .node-add-menu-heading { height: 28px; box-sizing: border-box; padding: 6px 0 4px 10px; font: 500 11px/16px var(--font-ui); color: var(--dock-menu-content-secondary); }
 .node-add-menu-row { position: relative; display: flex; align-items: center; gap: 6px; width: 100%; height: 32px; padding: 6px; border: 0; border-radius: 7px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.node-add-menu-row + .node-add-menu-row { margin-top: 4px; }
 .node-add-menu-row:focus-visible { outline: 1px solid var(--dock-menu-content-secondary); outline-offset: -1px; }
 .node-add-menu-list[data-keyboard] .node-add-menu-row:focus { background: var(--dock-menu-surface-subtle); }
 @media (hover: hover) and (pointer: fine) {

@@ -67,6 +67,14 @@ export function useCascadeMenu({ main, submenu, trigger, onDismiss }: Options) {
       if (remaining > 0) { hoverTimer = setTimeout(resolve, remaining); return; }
       select(pending.id);
     };
+    const scheduleSubmenuClose = () => {
+      cancel();
+      previous = null;
+      // Pointer departure only collapses the cascade; the main menu stays open
+      // until an explicit dismissal, including when opened under a round corner.
+      if (current === null) { setHighlightedRow(null); return; }
+      if (closeTimer === undefined) closeTimer = setTimeout(() => select(null), MENU_CLOSE_DELAY);
+    };
     const move = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return;
       const target = event.target instanceof Element ? event.target : null;
@@ -105,9 +113,7 @@ export function useCascadeMenu({ main, submenu, trigger, onDismiss }: Options) {
         }
         previous = { point: pointer, row: id };
       } else {
-        cancel();
-        previous = null;
-        if (closeTimer === undefined) closeTimer = setTimeout(onDismiss, MENU_CLOSE_DELAY);
+        scheduleSubmenuClose();
       }
     };
     const outside = (event: PointerEvent) => {
@@ -115,11 +121,7 @@ export function useCascadeMenu({ main, submenu, trigger, onDismiss }: Options) {
       if (!main.current?.contains(target) && !submenu.current?.contains(target) && !trigger?.current?.contains(target)) onDismiss();
     };
     const leaveWindow = (event: PointerEvent) => {
-      if (event.relatedTarget === null) {
-        cancel();
-        previous = null;
-        if (closeTimer === undefined) closeTimer = setTimeout(onDismiss, MENU_CLOSE_DELAY);
-      }
+      if (event.relatedTarget === null) scheduleSubmenuClose();
     };
     const keyboard = () => { cancel(); cancelClose(); previous = null; };
     const reenter = (event: PointerEvent) => {
