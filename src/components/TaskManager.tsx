@@ -4,7 +4,7 @@ import { clearFinishedTasks, isActiveTask, taskGroups, type PreviewTask, type Ta
 import { ideogramName } from '../nodes/ideogram';
 import { nanoBananaName } from '../nodes/nanoBanana';
 import { sunburstName } from '../nodes/sunburst';
-import { spring } from '../lib/springs';
+import { nodeSettingsSpring } from '../lib/springs';
 import { TaskQueue, type QueueTask } from './TaskQueue';
 import { useModelTaskStore, useModelTasks } from './useModelTasks';
 
@@ -47,7 +47,7 @@ export function TaskManager({ sidebarOpen, onFocus, onRetry }: Props) {
 
   return <motion.div className="canvas-task-queue nodrag nopan nowheel" data-sidebar-open={sidebarOpen}
     layout={reduceMotion ? false : 'position'} layoutDependency={sidebarOpen}
-    transition={{ layout: sidebarOpen ? spring.slow : spring.slow.exit }}
+    transition={{ layout: nodeSettingsSpring }}
     onKeyDown={event => event.stopPropagation()}>
     <TaskQueue tasks={taskGroups(tasks).flat().map(queueTask)} expanded={expanded} onExpandedChange={setExpanded}
       canClear={clearFinishedTasks(tasks).length < tasks.length}

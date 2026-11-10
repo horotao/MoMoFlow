@@ -10,7 +10,7 @@ import { ModelOptionsSettings } from './ModelOptionsSettings';
 import { SunburstSettings } from './SunburstSettings';
 import { sunburstName, sunburstProviderLabels } from '../nodes/sunburst';
 import { useEffect, useState, type KeyboardEventHandler, type ReactNode } from 'react';
-import { AnimatePresence, motion, useIsPresent } from 'motion/react';
+import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import { X } from 'lucide-react';
 import { TaskManager } from './TaskManager';
@@ -21,7 +21,7 @@ import type { AppNode, ImageDescriberNode, ModelInputNode } from '../nodes/types
 import { DescriberIcon } from './DescriberIcon';
 import { DescriberModelSelect } from './DescriberModelSelect';
 import { resolveTextValue } from '../nodes/textVariables';
-import { spring } from '../lib/springs';
+import { nodeSettingsSpring } from '../lib/springs';
 import { NodeIcon } from '../nodes/NodeIcon';
 import { NodeSettingsSection } from './NodeSettingsSection';
 import { ParameterField } from './ParameterField';
@@ -32,13 +32,15 @@ function NodeSettingsSidebar({ children, label, onKeyDown, sunburst = false }: {
   children: ReactNode; label: string; onKeyDown: KeyboardEventHandler<HTMLElement>; sunburst?: boolean;
 }) {
   const isPresent = useIsPresent();
+  const reduceMotion = useReducedMotion();
+  const closed = reduceMotion ? { opacity: 0 } : { x: '100%' };
   return <motion.aside
     className={`describer-panel node-settings-panel is-open nodrag nopan nowheel${sunburst ? ' gpt-image-settings' : ''}`}
     aria-label={label}
-    initial={{ x: '100%', opacity: 0 }}
-    animate={{ x: '0%', opacity: 1 }}
-    exit={{ x: '100%', opacity: 0, transition: spring.slow.exit }}
-    transition={spring.slow}
+    initial={closed}
+    animate={reduceMotion ? { opacity: 1 } : { x: '0%' }}
+    exit={closed}
+    transition={reduceMotion ? { duration: 0.2, ease: [0.16, 1, 0.3, 1] } : nodeSettingsSpring}
     {...(!isPresent ? { inert: '' } : {})}
     onKeyDown={onKeyDown}
   >{children}</motion.aside>;

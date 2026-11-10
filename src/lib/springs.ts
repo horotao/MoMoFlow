@@ -34,6 +34,15 @@ export const spring = {
   },
 } as const;
 
+// BeUI Drawer spring, shared by the settings sidebar and the queue that moves beside it.
+// https://beui.dev/components/motion/drawer
+export const nodeSettingsSpring = {
+  type: 'spring',
+  stiffness: 420,
+  damping: 40,
+  mass: 0.5,
+} as const;
+
 // Fallback delay (ms) for deferred-unmount timers that guard an exit tween:
 // popups keep their portal mounted until onAnimationComplete fires, but a
 // throttled/background tab can stall the animation, so a timer force-unmounts
