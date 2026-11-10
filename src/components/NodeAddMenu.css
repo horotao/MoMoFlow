@@ -40,7 +40,7 @@
 .node-add-menu-scroll-area > [data-slot='scroll-area-scrollbar']:not(:has([data-slot='scroll-area-thumb'])) { visibility: hidden; pointer-events: none; }
 .node-add-menu-scroll-area [data-slot='scroll-area-thumb'] { background: color-mix(in srgb, var(--dock-menu-content-primary) 18%, transparent); }
 .node-add-menu-scroll-area [data-slot='scroll-area-scrollbar']:hover > [data-slot='scroll-area-thumb'] { background: color-mix(in srgb, var(--dock-menu-content-primary) 28%, transparent); }
-.node-add-menu-scroll-area [data-slot='scroll-area-thumb']:active { background: color-mix(in srgb, var(--dock-menu-content-primary) 38%, transparent); }
+.node-add-menu-scroll-area [data-slot='scroll-area-scrollbar']:active > [data-slot='scroll-area-thumb'] { background: color-mix(in srgb, var(--dock-menu-content-primary) 38%, transparent); }
 @media (hover: hover) and (pointer: fine) {
   .node-add-menu:hover > .node-add-menu-scroll-area > [data-slot='scroll-area-scrollbar'] {
     opacity: 1;

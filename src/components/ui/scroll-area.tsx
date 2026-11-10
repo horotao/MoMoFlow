@@ -200,7 +200,7 @@ const ScrollBar = forwardRef<
           // Fixed surface-relative overlay ramp (8 → 12 → 16%) — same tint
           // direction as the menu hover/active tokens, one notch stronger.
           'relative bg-[rgb(var(--overlay)/0.08)] transition-[background-color,width,height] duration-160 ease-in-out',
-          'group-hover/scrollbar:bg-[rgb(var(--overlay)/0.12)] active:!bg-[rgb(var(--overlay)/0.16)]',
+          'group-hover/scrollbar:bg-[rgb(var(--overlay)/0.12)] active:bg-[rgb(var(--overlay)/0.16)]',
           // Use the project’s existing radius token; no global shape provider.
           'rounded-lg',
           // -translate nudges the thumb 2px off the container edge; the track
