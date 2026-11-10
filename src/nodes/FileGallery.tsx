@@ -12,20 +12,26 @@ import { FileActionMenu } from './FileActionMenu';
 import { copyAssetImage, downloadAsset, downloadAssets } from './fileMedia';
 import type { FileAsset } from './types';
 
+export type FileGalleryTrigger = { trigger: HTMLElement; keyboard: boolean };
+
 type Props = {
   assets: FileAsset[];
   activeId: string;
   onSelect: (id: string) => void;
   onClose: () => void;
-  imageTransition?: { trigger: HTMLElement; keyboard: boolean; findThumbnail: (id: string) => HTMLImageElement | null };
+  imageTransition?: FileGalleryTrigger;
 };
+
+function findThumbnail(trigger: HTMLElement, assetId: string) {
+  return trigger.closest('.media-node-frame')?.querySelector<HTMLImageElement>(`[data-asset-id="${CSS.escape(assetId)}"] > img`) ?? null;
+}
 
 // Thumbnail morph inspired by https://beui.dev/components/motion/image-viewer.
 // Compare viewport coordinates so React Flow's canvas zoom and pan are included.
 function thumbnailBounds(image: HTMLImageElement | null) {
   if (!image?.naturalWidth) return;
   const rect = image.getBoundingClientRect();
-  const clip = image.closest('.node-image-grid, .file-node-media')?.getBoundingClientRect();
+  const clip = image.closest('.node-image-grid, .file-node-grid, .file-node-media, .sunburst-preview, .preview-image')?.getBoundingClientRect();
   if (!rect.width || !rect.height || rect.right <= 0 || rect.bottom <= 0 || rect.left >= innerWidth || rect.top >= innerHeight ||
     (clip && (rect.top < clip.top - 1 || rect.bottom > clip.bottom + 1))) return;
   const scale = Math.min(rect.width / image.naturalWidth, rect.height / image.naturalHeight);
@@ -83,7 +89,8 @@ export function FileGallery({ assets, activeId, onSelect, onClose, imageTransiti
       opened.current = false;
       window.clearTimeout(exitTimer.current);
       if (app) app.inert = wasInert;
-      (trigger?.isConnected ? trigger : previous)?.focus({ preventScroll: true });
+      if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+      if (document.activeElement !== trigger) previous?.focus({ preventScroll: true });
     };
   }, [trigger]);
   useLayoutEffect(() => {
@@ -92,7 +99,7 @@ export function FileGallery({ assets, activeId, onSelect, onClose, imageTransiti
     if (imageTransition.keyboard) return;
     const image = picture.current;
     const element = panel.current!;
-    const from = reduce ? undefined : thumbnailBounds(imageTransition.findThumbnail(asset.id));
+    const from = reduce ? undefined : thumbnailBounds(findThumbnail(imageTransition.trigger, asset.id));
     const to = image?.getBoundingClientRect();
     const layers = element.querySelectorAll<HTMLElement>(galleryLayers);
     // Motion applies keyframes on its next tick. Set the starting styles before the portal paints.
@@ -121,7 +128,7 @@ export function FileGallery({ assets, activeId, onSelect, onClose, imageTransiti
     const image = picture.current;
     const from = image?.getBoundingClientRect();
     const base = image?.parentElement?.getBoundingClientRect();
-    const thumbnail = !reduce && zoom === 1 && pan.x === 0 && pan.y === 0 ? imageTransition.findThumbnail(asset.id) : null;
+    const thumbnail = !reduce && zoom === 1 && pan.x === 0 && pan.y === 0 ? findThumbnail(imageTransition.trigger, asset.id) : null;
     const to = thumbnailBounds(thumbnail);
     playback.current.forEach(animation => animation.stop());
     const layers = element.querySelectorAll(galleryLayers);

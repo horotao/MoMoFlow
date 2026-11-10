@@ -11,7 +11,7 @@ import { isNodeLocked } from './types';
 import { previewImages } from './preview';
 import { TextNodeMenu } from './TextNodeMenu';
 import { FileIcon } from './FileIcon';
-import { FileGallery } from './FileGallery';
+import { FileGallery, type FileGalleryTrigger } from './FileGallery';
 import { downloadAsset } from './fileMedia';
 import { painterLivePreviews } from './painterLivePreview';
 import { NodeFrame, NodeHeader } from './shared/NodeFrame';
@@ -23,7 +23,7 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
   const { getNode, updateNodeData } = useReactFlow<AppNode>();
   const internals = useUpdateNodeInternals();
   const [renaming, setRenaming] = useState(false), [name, setName] = useState('');
-  const [fullscreen, setFullscreen] = useState(false), [viewId, setViewId] = useState('');
+  const [gallery, setGallery] = useState<FileGalleryTrigger & { assetId: string }>();
   const [failedUrl, setFailedUrl] = useState(''), [error, setError] = useState('');
   const [measured, setMeasured] = useState<{ url: string; width: number; height: number }>();
   const inputEdge = edges.find(edge => edge.target === id && edge.targetHandle === 'file');
@@ -60,6 +60,7 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
     useCallback(() => colorLivePreviews.get(colorId), [colorId]),
   );
   const liveCanvas = useRef<HTMLCanvasElement>(null);
+  const fullscreenButton = useRef<HTMLButtonElement>(null);
   const assets = previewImages(id, nodes, edges);
   const active = assets.find(asset => asset.id === data.activeAssetId) ?? assets[0];
   const activeUrl = active?.url;
@@ -68,7 +69,11 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
   const size = matteLive ?? levelsLive ?? blurLive ?? colorLive ?? cropLive ?? live ?? (measured?.url === active?.url ? measured : active);
   const aspectRatio = size?.width && size.height ? `${size.width} / ${size.height}` : '1';
   const patch = (value: Partial<Preview['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
-  const show = () => { if (active && !live?.drawing && !cropLive && !colorLive && !levelsLive && !matteLive && !blurLive && active.url !== failedUrl) { setViewId(active.id); setFullscreen(true); } };
+  const show = (trigger: HTMLElement, keyboard: boolean) => {
+    if (active && !live?.drawing && !cropLive && !colorLive && !levelsLive && !matteLive && !blurLive && active.url !== failedUrl) {
+      setGallery({ assetId: active.id, trigger, keyboard });
+    }
+  };
   useLayoutEffect(() => {
     const target = liveCanvas.current;
     if (!target || (!live && !cropLive && !colorLive && !levelsLive && !matteLive && !blurLive)) return;
@@ -77,7 +82,7 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
     target.getContext('2d')?.drawImage(image, 0, 0);
   }, [live, cropLive, colorLive, levelsLive, matteLive, blurLive, origin?.handle]);
   useEffect(() => internals(id), [id, aspectRatio, internals]);
-  useEffect(() => { if (!activeUrl) setFullscreen(false); setError(''); }, [activeUrl]);
+  useEffect(() => { if (!activeUrl) setGallery(undefined); setError(''); }, [activeUrl]);
 
   return <NodeFrame className="media-node-frame preview-node-frame">
     <NodeHeader icon={<img src="/preview-node/preview.svg" width={16} height={16} alt="" draggable={false} />} title={renaming
@@ -88,10 +93,10 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
       actions={<TextNodeMenu id={id} appearance="shared" locked={Boolean(data.locked)} onRename={() => { setName(data.label || '预览'); setRenaming(true); }}>
         <img src="/node-style/more.svg" width={18} height={18} alt="" draggable={false} />
       </TextNodeMenu>} />
-    <div className={`preview-image${active || live || cropLive || colorLive || levelsLive || matteLive || blurLive ? ' has-image' : ''}`} style={{ aspectRatio }}>
+    <div className={`preview-image${active || live || cropLive || colorLive || levelsLive || matteLive || blurLive ? ' has-image' : ''}`} data-asset-id={active?.id} style={{ aspectRatio }}>
       {live || cropLive || colorLive || levelsLive || matteLive || blurLive || (active && active.url !== failedUrl) ? <>
         {live || cropLive || colorLive || levelsLive || matteLive || blurLive ? <canvas ref={liveCanvas} aria-label={matteLive ? 'Live Matte Grow / Shrink preview' : levelsLive ? 'Live Levels preview' : blurLive ? 'Live Blur preview' : colorLive ? 'Live Color correction preview' : cropLive ? 'Live Crop preview' : `Live Painter ${origin?.handle === 'mask' ? 'Mask' : 'Result'} preview`} data-drawing={Boolean(cropLive || colorLive || levelsLive || matteLive || blurLive) || live?.drawing}
-          onDoubleClick={event => { event.stopPropagation(); show(); }} /> : active && <img key={active.url} src={active.url} alt={active.name} draggable={false} onDoubleClick={event => { event.stopPropagation(); show(); }}
+          onDoubleClick={event => { event.stopPropagation(); show(fullscreenButton.current ?? event.currentTarget, false); }} /> : active && <img key={active.url} src={active.url} alt={active.name} draggable={false} onDoubleClick={event => { event.stopPropagation(); show(fullscreenButton.current ?? event.currentTarget, false); }}
           onLoad={event => setMeasured({ url: active.url, width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })}
           onError={() => setFailedUrl(active.url)} />}
         <div className="file-media-overlay nodrag nopan">
@@ -101,7 +106,7 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
             <button className="file-icon-button" aria-label="Next image" disabled={data.locked} onClick={() => patch({ activeAssetId: assets[(index + 1) % assets.length].id })}><FileIcon name="next" /></button>
           </>}</div><div className="file-media-tools">
             <button className="file-icon-button" aria-label="Download preview" title="Download" disabled={!active || live?.drawing || Boolean(cropLive || colorLive || levelsLive || matteLive || blurLive)} onClick={() => { if (!active) return; setError(''); void downloadAsset(active).catch(() => setError('下载失败，请重试。')); }}><FileIcon name="download" /></button>
-            <button className="file-icon-button" aria-label="Full screen preview" title="Full screen" disabled={!active || live?.drawing || Boolean(cropLive || colorLive || levelsLive || matteLive || blurLive)} onClick={show}><FileIcon name="fullscreen" /></button>
+            <button ref={fullscreenButton} className="file-icon-button" aria-label="Full screen preview" title="Full screen" disabled={!active || live?.drawing || Boolean(cropLive || colorLive || levelsLive || matteLive || blurLive)} onClick={event => show(event.currentTarget, event.detail === 0)}><FileIcon name="fullscreen" /></button>
           </div></div>
           {size?.width && size.height && <span className="file-media-resolution">{size.width} × {size.height}</span>}
         </div>
@@ -113,7 +118,8 @@ export function PreviewNode({ id, data, isConnectable }: NodeProps<Preview>) {
         {connected && <span className="media-port-dot" />}
       </NodePort>
     </div>
-    {fullscreen && active && <FileGallery assets={assets.map(asset => measured?.url === asset.url ? { ...asset, width: measured.width, height: measured.height } : asset)} activeId={viewId} onSelect={setViewId} onClose={() => setFullscreen(false)} />}
+    {gallery && active && <FileGallery assets={assets.map(asset => measured?.url === asset.url ? { ...asset, width: measured.width, height: measured.height } : asset)}
+      activeId={gallery.assetId} imageTransition={gallery} onSelect={assetId => setGallery({ ...gallery, assetId })} onClose={() => setGallery(undefined)} />}
     {error && <div role="alert" className="preview-error">{error}</div>}
   </NodeFrame>;
 }

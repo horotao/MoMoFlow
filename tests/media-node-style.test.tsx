@@ -1,13 +1,14 @@
 import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { MotionConfig } from 'motion/react';
-import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, addEdge, useEdgesState, useNodesState, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
+import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, addEdge, useEdgesState, useNodesState, useReactFlow, type Edge, type ReactFlowInstance } from '@xyflow/react';
 import { SunburstNode } from '../src/nodes/SunburstNode';
 import { NanoBananaNode } from '../src/nodes/NanoBananaNode';
 import { IdeogramNode } from '../src/nodes/IdeogramNode';
 import { defaultNanoBananaSettings } from '../src/nodes/nanoBanana';
 import { defaultIdeogramSettings } from '../src/nodes/ideogram';
 import { FileNode } from '../src/nodes/FileNode';
+import { PreviewNode } from '../src/nodes/PreviewNode';
 import { defaultSunburstSettings } from '../src/nodes/sunburst';
 import { ModelTasksProvider } from '../src/components/ModelTasksProvider';
 import { useModelTaskStore } from '../src/components/useModelTasks';
@@ -15,6 +16,7 @@ import type { AppNode, FileAsset } from '../src/nodes/types';
 import '@xyflow/react/dist/style.css';
 import '../src/index.css';
 import '../src/nodes/SunburstNode.css';
+import '../src/nodes/PreviewNode.css';
 
 const assets: FileAsset[] = [
   { id: 'landscape', name: 'B landscape.png', kind: 'image', url: '/tests/fixtures/image-node-1.png', width: 1536, height: 1152 },
@@ -28,8 +30,9 @@ const initial: AppNode[] = [
   { id: 'nano', type: 'nano-banana', position: { x: 540, y: 0 }, data: { ...defaultNanoBananaSettings, imageInputs: 1 } },
   { id: 'ideogram', type: 'ideogram', position: { x: 1080, y: 0 }, data: { ...defaultIdeogramSettings, imageInputs: 1 } },
   { id: 'import', type: 'file', position: { x: 1620, y: 0 }, data: {} },
+  { id: 'preview', type: 'preview', position: { x: 2160, y: 0 }, data: {} },
 ];
-const nodeTypes = { sunburst: SunburstNode, 'nano-banana': NanoBananaNode, ideogram: IdeogramNode, file: FileNode };
+const nodeTypes = { sunburst: SunburstNode, 'nano-banana': NanoBananaNode, ideogram: IdeogramNode, file: FileNode, preview: PreviewNode };
 let api: ReactFlowInstance<AppNode>;
 let tasks: ReturnType<typeof useModelTaskStore>;
 function fill(count: number) {
@@ -45,7 +48,9 @@ function progress(value: number) {
 function Graph() {
   api = useReactFlow<AppNode>(); tasks = useModelTaskStore();
   const [nodes, , onNodesChange] = useNodesState(initial);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([
+    { id: 'preview-link', source: 'import', sourceHandle: 'file', target: 'preview', targetHandle: 'file' },
+  ]);
   return <>
     <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
       onConnect={connection => setEdges(current => addEdge(connection, current))} colorMode="dark" defaultViewport={{ x: 50, y: 40, zoom }}
@@ -72,6 +77,31 @@ function check(condition: unknown, message: string): asserts condition {
 const node = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`)!;
 const surface = (id: string) => node(id).querySelector<HTMLElement>(id === 'import' ? '.file-node-media' : '.sunburst-preview')!;
 const button = (id: string, label: string) => node(id).querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
+async function verifySingleImageFullscreen(id: string) {
+  const isPreview = id === 'preview';
+  const thumbnail = () => node(id).querySelector<HTMLImageElement>(isPreview ? '.preview-image > img' : '.node-image-single > img');
+  await until(() => Boolean(thumbnail()?.naturalWidth), `${id}: single image must load`);
+  await api.setViewport({ x: 30 - api.getNode(id)!.position.x * zoom, y: 40, zoom });
+  await frame();
+  const thumb = thumbnail()!;
+  const origin = thumb.getBoundingClientRect();
+  const trigger = button(id, isPreview ? 'Full screen preview' : '全屏展开');
+  flushSync(() => trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })));
+  const viewer = document.querySelector<HTMLElement>('.file-gallery-morph');
+  const image = viewer?.querySelector<HTMLImageElement>('.file-gallery-stage img');
+  check(viewer && image?.alt === thumb.alt, `${id}: single image fullscreen uses the shared viewer`);
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reducedMotion) {
+    const first = image.getBoundingClientRect();
+    check(viewer.hasAttribute('data-morphing') && Math.abs(first.width - origin.width) < 2 && Math.abs(first.x - origin.x) < 2,
+      `${id}: fullscreen starts at the single image`);
+    await until(() => !viewer.hasAttribute('data-morphing'), `${id}: fullscreen entrance must settle`);
+  }
+  viewer.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  if (!reducedMotion) check(viewer.hasAttribute('data-morphing') && getComputedStyle(thumb).opacity === '0', `${id}: Escape returns to the single image`);
+  await until(() => !viewer.isConnected, `${id}: fullscreen viewer must close`);
+  check(document.activeElement === trigger, `${id}: close restores focus to the fullscreen button`);
+}
 async function run() {
   const result = document.getElementById('results')!;
   try {
@@ -190,6 +220,8 @@ async function run() {
     }
     check(!node('nano').querySelector('[data-handleid="mask"]') && node('ideogram').querySelector('[data-handleid="mask"]'), 'Model-specific mask inputs are preserved');
     for (const id of ['nano', 'ideogram']) check(Boolean(node(id).querySelector('.node-title-icon svg')), `${id}: original model brand icon is preserved`);
+    fill(1);
+    for (const id of [...allIds, 'preview']) await verifySingleImageFullscreen(id);
     fill(0); await frame(); await frame();
     const loadedImages = Array.from(document.querySelectorAll<HTMLImageElement>('.media-node-frame img'));
     await until(() => loadedImages.every(img => img.complete && img.naturalWidth > 0), 'All design SVG assets must load');

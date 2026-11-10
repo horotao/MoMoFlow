@@ -11,7 +11,7 @@ import { resolveTextValue } from './textVariables';
 import { ModelRunButton } from '../components/ModelRunButton';
 import { IterationSummary } from '../components/IterationSummary';
 import { TextNodeMenu } from './TextNodeMenu';
-import { FileGallery } from './FileGallery';
+import { FileGallery, type FileGalleryTrigger } from './FileGallery';
 import { orderedAssets } from './fileCollection';
 import { downloadAsset, downloadAssets } from './fileMedia';
 import { useImagePreviewHeight } from './useImagePreviewHeight';
@@ -34,12 +34,12 @@ export function ImageGenerationNode({ id, type, data, isConnectable, name, icon,
     return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : 'size' in data ? data.size : data.aspectRatio;
   });
   const [renaming, setRenaming] = useState(false); const [draft, setDraft] = useState('');
-  const [fullscreen, setFullscreen] = useState(false); const [error, setError] = useState('');
+  const [gallery, setGallery] = useState<FileGalleryTrigger & { assetId: string }>();
+  const [error, setError] = useState('');
   const [showAll, setShowAll] = useState(false);
   const results = orderedAssets({ assets: data.results ?? [], orderBy: data.orderBy });
   const grid = showAll && results.length > 1;
   const active = results.find(asset => asset.id === data.activeResultId) ?? data.results?.[data.results.length - 1];
-  const [viewId, setViewId] = useState('');
   const [dimensions, setDimensions] = useState<Record<string, { width: number; height: number }>>({});
   const size = active ? dimensions[active.url] ?? active : undefined;
   let aspectRatio = size?.width && size.height ? `${size.width} / ${size.height}` : '1';
@@ -51,7 +51,6 @@ export function ImageGenerationNode({ id, type, data, isConnectable, name, icon,
     else if ('size' in data && validateSunburstSize(requestedSize) !== 'auto') aspectRatio = requestedSize.replace('x', ' / ');
   } catch { /* Incomplete or invalid custom sizes use the result ratio or a square. */ }
   const preview = useImagePreviewHeight(aspectRatio, grid);
-  const portSpace = (mask ? 110 : 50) + (data.imageInputs + (data.exposed?.length ?? 0)) * 60;
   const patch = (value: Partial<Generator['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
   useEffect(() => internals(id), [id, data.imageInputs, data.exposed, aspectRatio, grid, internals]);
   const ports = [
@@ -60,15 +59,17 @@ export function ImageGenerationNode({ id, type, data, isConnectable, name, icon,
     ...(mask ? [{ id: 'mask', label: 'Mask', kind: 'mask', top: 149 + data.imageInputs * 60 }] : []),
     ...(data.exposed ?? []).map((field, index) => ({ id: field, label: fieldLabels[field], kind: 'parameter', top: (mask ? 209 : 149) + (data.imageInputs + index) * 60 })),
   ];
+  // Fit the lowest handle, including its 16px radius, 15px padding and 1px border.
+  const minHeight = ports[ports.length - 1].top + 32;
   const renameTitle = renaming ? <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={draft} onChange={e => setDraft(e.target.value)} onBlur={() => { if (draft.trim()) patch({ label: draft.trim() }); setRenaming(false); }} onKeyDown={e => { e.stopPropagation(); if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setRenaming(false); }} /> : <span>{data.label || name}</span>;
-  return <NodeFrame className="media-node-frame image-generation-frame">
+  return <NodeFrame className="media-node-frame image-generation-frame" style={{ minHeight }}>
     <NodeHeader icon={type === 'sunburst' ? <img src="/image-node/brand.svg" width={16} height={16} alt="" className="node-monochrome" /> : icon} title={renameTitle}
       actions={<TextNodeMenu appearance="shared" id={id} locked={Boolean(data.locked)} onRename={() => { setDraft(data.label || name); setRenaming(true); }}><img src="/node-style/more.svg" width={18} height={18} alt="" className="node-monochrome" /></TextNodeMenu>} />
-    <div className="sunburst-preview-area" style={{ minHeight: portSpace }}>
+    <div className="sunburst-preview-area">
     <motion.div ref={preview.ref} className={`sunburst-preview${active ? ' has-result' : ''}${grid ? ' is-grid nodrag nopan nowheel' : ''}`} style={{ aspectRatio: grid ? undefined : aspectRatio, height: preview.height }}>
       {active && <NodeImagePreview nodeId={id} assets={results} active={{ ...active, ...size }} grid={grid} orderBy={data.orderBy} locked={Boolean(data.locked)}
         onSelect={activeResultId => patch({ activeResultId })} onGridChange={() => setShowAll(value => !value)} onOrderChange={orderBy => patch({ orderBy })}
-        onFullscreen={assetId => { setViewId(assetId); setFullscreen(true); }}
+        onFullscreen={(assetId, trigger, keyboard) => setGallery({ assetId, trigger, keyboard })}
         onDownload={() => { setError(''); void (grid ? downloadAssets(results) : downloadAsset(active)).catch(() => setError('下载失败，请重试。')); }}
         renderMedia={item => <img src={item.url} alt={item.name} draggable={false} onLoad={event => {
           const { naturalWidth: width, naturalHeight: height } = event.currentTarget;
@@ -86,7 +87,8 @@ export function ImageGenerationNode({ id, type, data, isConnectable, name, icon,
     </div>)}<div className="media-port-image"><NodePort label="Result" id="result" type="source" position={Position.Right} isConnectable={isConnectable && !data.locked}>
       <img src="/image-node/port-image.svg" width={32} height={32} alt="" />{edges.some(edge => edge.source === id) && <span className="media-port-dot" />}
     </NodePort></div>
-    {fullscreen && active && <FileGallery assets={results} activeId={viewId} onSelect={setViewId} onClose={() => setFullscreen(false)} />}
+    {gallery && active && <FileGallery assets={results.map(asset => ({ ...asset, ...dimensions[asset.url] }))}
+      activeId={gallery.assetId} imageTransition={gallery} onSelect={assetId => setGallery({ ...gallery, assetId })} onClose={() => setGallery(undefined)} />}
     {error && <div role="alert">{error}</div>}
   </NodeFrame>;
 }

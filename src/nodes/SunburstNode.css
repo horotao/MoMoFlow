@@ -4,7 +4,7 @@
 :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana) .text-node-title { color: var(--text-node-primary); min-width: 0; }
 :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana) .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana) .text-node-title > svg { flex-shrink: 0; }
-.sunburst-preview-area { width: 100%; flex-shrink: 0; }
+.sunburst-preview-area { width: 100%; flex: 1 0 auto; }
 .sunburst-preview.has-result { min-height: 0; border: 0; }
 .sunburst-preview { position: relative; width: 100%; aspect-ratio: 1; border: 1px solid var(--text-node-surface); overflow: hidden; border-radius: 3px; background-color: #eee; background-image: conic-gradient(#ddd 25%, transparent 0 50%, #ddd 0 75%, transparent 0); background-size: 30px 30px; }
 .dark .sunburst-preview { background-color: #2c2c2c; background-image: conic-gradient(#333 25%, transparent 0 50%, #333 0 75%, transparent 0); }
