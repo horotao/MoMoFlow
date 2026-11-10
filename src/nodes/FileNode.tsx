@@ -36,7 +36,7 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
   const [busy, setBusy] = useState(false);
   const [failedAssets, setFailedAssets] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
-  const [gallery, setGallery] = useState(false);
+  const [gallery, setGallery] = useState<{ assetId: string; transition?: { trigger: HTMLElement; keyboard: boolean } }>();
   const [contextAssetId, setContextAssetId] = useState<string>();
   const [renaming, setRenaming] = useState(false);
   const [title, setTitle] = useState('');
@@ -55,6 +55,8 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
   const nodeTitle = iterator ? data.label || '图片迭代' : fileNodeTitle(data);
   const kind = iterator ? 'image' : fileOutputKind(data);
   const select = (assetId: string) => { if (!iterator || !locked) updateNodeData(id, { activeAssetId: assetId }); };
+  const canViewImage = (item: FileAsset) => item.kind === 'image' && !failedAssets.includes(item.id);
+  const findThumbnail = (assetId: string) => media.current?.querySelector<HTMLImageElement>(`[data-asset-id="${CSS.escape(assetId)}"] > img`) ?? null;
   const append = (imported: FileAsset[], version: number) => {
     if (!mounted.current || version !== importVersion.current) {
       assetResources.discard(imported.map(asset => asset.url));
@@ -169,12 +171,16 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
         <img src="/image-node/upload.svg" width={24} height={24} alt="" /><span>{iterator ? busy ? '正在读取图片…' : '拖放图片或点击上传' : busy ? '正在读取文件…' : '拖放文件或点击上传'}</span>{!iterator && <small>图片 · 视频 · 音频 · 3D</small>}
       </button> : !iterator ? <NodeImagePreview nodeId={id} assets={assets} active={asset} grid={grid} orderBy={data.orderBy} locked={locked}
         onSelect={select} onGridChange={() => updateNodeData(id, { viewMode: grid ? 'single' : 'all' })}
-        onOrderChange={orderBy => updateNodeData(id, { orderBy })} onFullscreen={assetId => { select(assetId); setGallery(true); }}
-        onDownload={runDownload} renderMedia={preview} /> : <>
+        onOrderChange={orderBy => updateNodeData(id, { orderBy })} onFullscreen={(assetId, trigger, keyboard) => {
+          const item = assets.find(value => value.id === assetId);
+          // Start on the clicked image before React Flow applies the output selection.
+          setGallery({ assetId, transition: item && canViewImage(item) ? { trigger, keyboard } : undefined });
+          select(assetId);
+        }} onDownload={runDownload} renderMedia={preview} opensOnClick={canViewImage} /> : <>
         {grid ? <div className="file-node-grid" aria-label="Images">
           {[0, 1].map((column) => <div className="file-node-grid-column" key={column}>{assets.filter((_, index) => index % 2 === column).map((item) => <div key={item.id}
             className={`file-node-tile${item.id === asset.id ? ' is-active' : ''}`} data-asset-id={item.id} role="button" tabIndex={0} aria-label={`Select ${item.name}`} aria-pressed={item.id === asset.id}
-            draggable={!locked} onClick={() => select(item.id)} onDoubleClick={() => { select(item.id); setGallery(true); }}
+            draggable={!locked} onClick={() => select(item.id)} onDoubleClick={() => { select(item.id); setGallery({ assetId: locked ? asset.id : item.id }); }}
             onKeyDown={(event) => { event.stopPropagation(); if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(item.id); } }}
             onDragStart={(event) => { event.stopPropagation(); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-momoflow-asset', item.id); }}
             onDragEnd={(event) => {
@@ -188,7 +194,7 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
             }}>
             {preview(item)}
           </div>)}</div>)}
-        </div> : <div className="file-node-single" onDoubleClick={(event) => { if (!(event.target as HTMLElement).closest('video,audio')) setGallery(true); }}>{preview(asset)}</div>}
+        </div> : <div className="file-node-single" onDoubleClick={(event) => { if (!(event.target as HTMLElement).closest('video,audio')) setGallery({ assetId: asset.id }); }}>{preview(asset)}</div>}
         <div className="file-media-overlay">
           <div className="file-media-top">
             <div className="file-media-navigation">{multiple && <>
@@ -205,7 +211,7 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
                 { label: '名称', checked: data.orderBy === 'name', action: () => updateNodeData(id, { orderBy: 'name' }) },
               ]} disabled={iterator && locked}><FileIcon name="order" /></FileActionMenu>
               {!iterator && <><button className="file-icon-button" aria-label={grid ? 'Download all' : 'Download current'} title={grid ? 'Download all' : 'Download current'} onClick={runDownload}><FileIcon name="download" /></button>
-              <button className="file-icon-button" aria-label="Full screen" title="Full screen" onClick={() => setGallery(true)}><FileIcon name="fullscreen" /></button></>}
+              <button className="file-icon-button" aria-label="Full screen" title="Full screen" onClick={() => setGallery({ assetId: asset.id })}><FileIcon name="fullscreen" /></button></>}
             </div>
           </div>
           {!grid && asset.width && asset.height && <span className="file-media-resolution">{asset.width}x{asset.height}</span>}
@@ -234,7 +240,10 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
       style={{ '--file-port': filePortColors[kind] } as CSSProperties} className={`file-node-port${connected ? ' is-connected' : ''}`}>
       <span className="file-node-port-label">File</span>
     </Handle>}
-    {gallery && asset && <FileGallery assets={assets} activeId={asset.id} onSelect={select} onClose={() => setGallery(false)} />}
+    {gallery && asset && <FileGallery assets={assets} activeId={gallery.assetId} onSelect={assetId => {
+      if (iterator && locked) return;
+      setGallery({ ...gallery, assetId }); select(assetId);
+    }} imageTransition={gallery.transition && { ...gallery.transition, findThumbnail }} onClose={() => setGallery(undefined)} />}
   </>;
   return <NodeFrame className={`media-node-frame ${iterator ? 'image-iterator-frame' : 'file-node-frame'}`}>{content}</NodeFrame>;
 }

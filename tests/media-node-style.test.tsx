@@ -1,3 +1,4 @@
+import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { MotionConfig } from 'motion/react';
 import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, addEdge, useEdgesState, useNodesState, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
@@ -47,7 +48,12 @@ function Graph() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   return <>
     <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-      onConnect={connection => setEdges(current => addEdge(connection, current))} colorMode="dark" defaultViewport={{ x: 50, y: 40, zoom }}>
+      onConnect={connection => setEdges(current => addEdge(connection, current))} colorMode="dark" defaultViewport={{ x: 50, y: 40, zoom }}
+      onDragOver={event => {
+        if (event.dataTransfer.types.includes('application/x-momoflow-asset') && (event.target as HTMLElement).classList.contains('react-flow__pane')) {
+          event.preventDefault(); event.dataTransfer.dropEffect = 'move';
+        }
+      }} onDrop={event => event.preventDefault()}>
       <Background /><Controls /><MiniMap pannable zoomable />
     </ReactFlow>
     <div className="qa-toolbar"><button onClick={() => fill(0)}>空状态</button><button onClick={() => fill(2)}>双图</button><button onClick={() => fill(4)}>四图</button><button onClick={() => progress(37)}>运行 37%</button><button onClick={() => tasks.update(() => [])}>结束运行</button></div>
@@ -98,17 +104,69 @@ async function run() {
       button(id, '图片画廊').click();
       await until(() => surface(id).querySelectorAll('.node-image-tile').length === 2, `${id}: gallery must open`);
       const tile = surface(id).querySelector<HTMLElement>('.node-image-tile[aria-pressed="false"]')!;
-      tile.click(); await frame(); await frame();
+      if (id === 'import') {
+        await api.setViewport({ x: 30 - 1620 * zoom, y: 40, zoom });
+        const thumb = tile.querySelector('img')!;
+        await until(() => thumb.naturalWidth > 0, 'Import thumbnail must load');
+        const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const origin = thumb.getBoundingClientRect();
+        flushSync(() => tile.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })));
+        const viewer = document.querySelector<HTMLElement>('.file-gallery');
+        const image = viewer?.querySelector<HTMLImageElement>('.file-gallery-stage img');
+        check(viewer && image?.alt === thumb.alt, 'One click opens the viewer on the clicked thumbnail');
+        if (!reducedMotion) {
+          const first = image.getBoundingClientRect();
+          check(viewer.hasAttribute('data-morphing') && (['x', 'y', 'width', 'height'] as const).every(key => Math.abs(first[key] - origin[key]) < 2),
+            'The first frame matches the clicked, previously inactive thumbnail at canvas zoom');
+          const widths = [first.width];
+          while (viewer.hasAttribute('data-morphing') && widths.length < 120) {
+            await frame(); widths.push(image.getBoundingClientRect().width);
+          }
+          const settled = image.getBoundingClientRect().width;
+          check(!viewer.hasAttribute('data-morphing') && settled > origin.width * 2 && widths.some(width => width > origin.width * 1.2 && width < settled * .85),
+            'The image grows through visible intermediate sizes before settling');
+        }
+        viewer.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+        await until(() => viewer.querySelector<HTMLImageElement>('.file-gallery-stage img')?.alt !== thumb.alt, 'Right arrow must change the displayed image');
+        viewer.querySelector<HTMLButtonElement>('.file-gallery-thumbnails button[aria-pressed="false"]')!.click();
+        await until(() => viewer.querySelector<HTMLImageElement>('.file-gallery-stage img')?.alt === thumb.alt, 'Viewer thumbnails must switch images');
+        viewer.querySelector('button[aria-label="Close"]')!.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+        if (!reducedMotion) {
+          check(viewer.hasAttribute('data-closing') && getComputedStyle(thumb).opacity === '0', 'The canvas thumbnail stays hidden while the returning image starts moving');
+        }
+        await until(() => !viewer.isConnected, 'Closing must unmount the viewer after the return animation');
+        check(getComputedStyle(thumb).opacity === '1', 'The canvas thumbnail is visible after the return animation');
+        check(document.activeElement === tile && !document.getElementById('root')!.inert, 'Closing restores focus and canvas input');
+      } else {
+        tile.click(); await frame(); await frame();
+        check(!document.querySelector('.file-gallery'), `${id}: result clicks select without opening a viewer`);
+      }
       check(tile.getAttribute('aria-pressed') === 'true', `${id}: thumbnail updates active image`);
       check(parseFloat(getComputedStyle(surface(id).querySelector('.node-image-grid')!).paddingLeft) === 8, `${id}: gallery has 8px edge padding`);
       check(surface(id).querySelectorAll('.node-image-column').length === 2, `${id}: masonry uses two columns`);
       button(id, '返回单张展示').click();
       await until(() => surface(id).clientHeight === 424, `${id}: gallery return keeps selected image`);
+      if (id === 'import') {
+        const single = surface(id).querySelector<HTMLElement>('.node-image-single')!;
+        single.focus();
+        single.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        await until(() => Boolean(document.querySelector('.file-gallery-stage img')), 'Enter must open single image preview');
+        const viewer = document.querySelector('.file-gallery')!;
+        viewer.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        check(viewer.hasAttribute('data-closing'), 'Escape starts the same closing transition as the Close button');
+        if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          check(viewer.hasAttribute('data-morphing') && getComputedStyle(single.querySelector('img')!).opacity === '0',
+            'Escape returns the image to its thumbnail');
+        }
+        await until(() => !viewer.isConnected, 'Escape must dismiss the single image preview');
+        check(document.activeElement === single, 'Keyboard dismissal restores focus to the single image');
+        await api.setViewport({ x: 50, y: 40, zoom });
+      }
       button(id, '全屏展开').click();
       await until(() => Boolean(document.querySelector('[role="dialog"]')), 'Fullscreen viewer must open');
       check(Boolean(document.querySelector('.file-gallery img')), `${id}: fullscreen displays current image`);
       document.querySelector<HTMLButtonElement>('.file-gallery button[aria-label="Close"]')!.click();
-      await frame(); await frame();
+      await until(() => !document.querySelector('.file-gallery'), `${id}: Close must dismiss the fullscreen viewer`);
     }
     fill(4); await frame(); await frame();
     for (const id of allIds) {

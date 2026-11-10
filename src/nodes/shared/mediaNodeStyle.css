@@ -69,19 +69,21 @@
 .node-image-tile.is-active::after { background: transparent; box-shadow: inset 0 0 0 1.5px var(--node-selected-border); }
 .node-image-tile:focus-visible { outline: 1.5px solid var(--node-selected-border); outline-offset: 2px; }
 .node-image-tile:active { cursor: grabbing; }
+.node-image-tile[aria-haspopup='dialog'], .node-image-single[aria-haspopup='dialog'] { cursor: zoom-in; }
+.node-image-single[aria-haspopup='dialog']:focus-visible { outline: 2px solid var(--node-selected-border); outline-offset: -2px; }
 .node-image-overlay { position: absolute; inset: 0; opacity: 0; pointer-events: none; color: #fff; font: 400 12px/22px var(--font-ui); }
 .node-image-overlay::before,
 .node-image-overlay::after { content: ''; position: absolute; left: 0; right: 0; pointer-events: none; }
 .node-image-overlay::before { top: 0; height: 96px; background: linear-gradient(rgb(0 0 0 / 65%), transparent); }
 .node-image-overlay::after { bottom: 0; height: 80px; background: linear-gradient(transparent, rgb(0 0 0 / 65%)); }
-.media-node-frame :is(.file-node-media, .sunburst-preview):is(:hover, :focus-within) .node-image-overlay { opacity: 1; }
+.media-node-frame :is(.file-node-media, .sunburst-preview):is(:hover, :focus-within:not(:has([data-asset-id][aria-haspopup='dialog']:focus:not(:focus-visible)))) .node-image-overlay { opacity: 1; }
 .node-image-top { position: absolute; z-index: 1; top: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; gap: 8px; }
 .is-grid .node-image-top { top: 20px; left: 20px; right: 20px; }
 .node-image-navigation,
 .node-image-tools { display: flex; align-items: center; gap: 4px; }
 .node-image-page { min-width: 38px; text-align: center; font-variant-numeric: tabular-nums; }
 .media-node-frame .node-image-overlay .file-icon-button { width: 24px; height: 24px; padding: 0; border-radius: 8px; pointer-events: none; }
-.media-node-frame :is(.file-node-media, .sunburst-preview):is(:hover, :focus-within) .node-image-overlay .file-icon-button { pointer-events: auto; }
+.media-node-frame :is(.file-node-media, .sunburst-preview):is(:hover, :focus-within:not(:has([data-asset-id][aria-haspopup='dialog']:focus:not(:focus-visible)))) .node-image-overlay .file-icon-button { pointer-events: auto; }
 .node-image-overlay .file-icon-button:hover:not(:disabled) { background: rgb(255 255 255 / 10%); }
 .node-image-overlay .file-icon-button:focus-visible { outline: 1px solid #b3b3b3; outline-offset: 1px; }
 .node-image-resolution { position: absolute; z-index: 1; left: 14px; bottom: 10px; font-variant-numeric: tabular-nums; }
