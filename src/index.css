@@ -49,6 +49,9 @@
 }
 
 :root {
+  --canvas-background: #151515;
+  --canvas-overlay-background: rgb(35 35 35 / 90%);
+  --canvas-overlay-border: rgb(255 255 255 / 5%);
   /* Inter renders Latin; macOS uses PingFang for Chinese, with self-hosted Noto as fallback. */
   --font-ui: 'Text Node Inter', 'PingFang SC', 'Noto Sans SC', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Noto Sans SC Variable', sans-serif;
   --radius: 0.625rem;

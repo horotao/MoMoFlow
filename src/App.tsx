@@ -20,6 +20,7 @@ import { restoreCropData } from './nodes/crop';
 import { isPainterNode, isNodeLocked } from './nodes/types';
 import { restorePainterData } from './nodes/painter';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
+import { CanvasNavigation, canvasMinZoom, canvasMaxZoom, type ZoomTarget } from './components/CanvasNavigation';
 import { CanvasSidebar, type CanvasTool } from './components/CanvasSidebar';
 import { NodePortLabelMotion } from './components/NodePortLabelMotion';
 import { ConnectionMenu, type NodeMenuChoice } from './components/ConnectionMenu';
@@ -32,8 +33,6 @@ import {
   ReactFlowProvider,
   useReactFlow,
   Background,
-  Controls,
-  ControlButton,
   Panel,
   addEdge,
   useNodesState,
@@ -45,7 +44,6 @@ import {
 
 import { DescriberPanel } from './components/DescriberPanel';
 import { ModelTasksProvider } from './components/ModelTasksProvider';
-import { defaultInstructions } from './nodes/describer';
 import { CanvasHistoryContext, useCanvasHistory } from './components/useCanvasHistory';
 import { initialNodes, nodeTypes } from './nodes';
 import { isDescriberNode, isImageGeneratorNode } from './nodes/types';
@@ -54,7 +52,6 @@ import { isTextNode, textVariableCount, variableIndex } from './nodes/textVariab
 import { imagesFromDrop, isFileNode } from './nodes/fileAsset';
 import { fileOutputKind, filePortColors, isFileAsset } from './nodes/fileCollection';
 import { cloneTextNode } from './nodes/cloneTextNode';
-import { defaultTextNodeText } from './nodes/defaults';
 import { documentText, initialTextDocument } from './nodes/textDocument';
 import { initialEdges, edgeTypes } from './edges';
 import { ConnectionLine } from './edges/ConnectionLine';
@@ -110,6 +107,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
   const history = useCanvasHistory(nodes, edges, restore);
   useLayoutEffect(() => { storage.releaseRestoredAssets(); }, [storage]);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const pendingZoom = useRef<ZoomTarget | null>(null);
   useEffect(() => {
     const pasteNode = (event: ClipboardEvent) => {
       if (event.defaultPrevented || (event.target as HTMLElement).closest('input, textarea, [contenteditable="true"], [data-compositor-editor]')) return;
@@ -319,24 +317,6 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
     window.addEventListener('paste', pasteNode);
     return () => window.removeEventListener('paste', pasteNode);
   }, [setNodes]);
-  const addTextNode = useCallback(() => {
-    const bounds = canvasRef.current?.getBoundingClientRect();
-    if (!bounds) return;
-
-    setNodes((currentNodes) => [
-      ...currentNodes.map((node) => ({ ...node, selected: false })),
-      {
-        id: `text-${crypto.randomUUID()}`,
-        type: 'text',
-        position: screenToFlowPosition({
-          x: bounds.left + bounds.width / 2,
-          y: bounds.top + bounds.height / 2,
-        }),
-        data: { text: defaultTextNodeText },
-        selected: true,
-      },
-    ]);
-  }, [screenToFlowPosition, setNodes]);
   const onConnect: OnConnect = useCallback(
     (connection) => {
       if (connectionCancelled.current || !withinConnectionRadius(connection) || !canConnect(connection, getNodes(), getEdges())) return;
@@ -432,7 +412,8 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       onPointerDownCapture={event => {
         if ((event.target as HTMLElement).classList.contains('react-flow__pane')) canvasRef.current?.focus({ preventScroll: true });
       }}
-      minZoom={0.01}
+      minZoom={canvasMinZoom}
+      maxZoom={canvasMaxZoom}
       proOptions={{ hideAttribution: true }}
       colorMode={colorMode}
       className={`canvas-tool-${tool} canvas-magnetic-connections`}
@@ -530,7 +511,10 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       }}
       onConnectStart={(event, params) => { startConnectionEffects(event, params); dismissNodeMenu(); }}
       onClickConnectStart={() => { startClickConnection(); dismissNodeMenu(); }}
-      onMoveStart={dismissNodeMenu}
+      onMoveStart={event => {
+        if (event) pendingZoom.current = null;
+        dismissNodeMenu();
+      }}
       onConnect={onConnect}
       onConnectEnd={onConnectEnd}
       onKeyDown={(event) => {
@@ -552,7 +536,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       onMoveEnd={(_event, next) => setViewport(next)}
       fitView={!saved}
     >
-      <Background bgColor="#151515" color="#3f3f3f" />
+      <Background bgColor="var(--canvas-background)" color="#3f3f3f" />
       {pendingNodeMenu && <ConnectionMenu
         key={menuGeneration}
         screen={pendingNodeMenu.screen}
@@ -565,7 +549,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         onChoose={choice => { chooseNode(choice); canvasRef.current?.focus({ preventScroll: true }); }}
         onDismiss={dismissNodeMenu}
       />}
-      {persistence.error && <Panel position="bottom-left" className="canvas-save-status" role="alert">
+      {persistence.error && <Panel position="top-left" className="canvas-save-status" role="alert">
         <span>{persistence.error}</span>
         <button type="button" onClick={persistence.retry}>重试保存</button>
       </Panel>}
@@ -586,28 +570,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       {importError && <Panel position="top-center" className="canvas-import-error" role="alert">
         <span>{importError}</span><button type="button" aria-label="Dismiss import error" onClick={() => setImportError('')}>×</button>
       </Panel>}
-      <Controls showInteractive={false}>
-        <ControlButton title="添加 Image Describer" aria-label="添加 Image Describer" onClick={() => {
-          const bounds = canvasRef.current?.getBoundingClientRect();
-          if (!bounds) return;
-          const position = screenToFlowPosition({ x: bounds.left + bounds.width / 2 - 230, y: bounds.top + bounds.height / 2 - 200 });
-          setNodes((all) => [...all.map((n) => ({ ...n, selected: false })), { id: crypto.randomUUID(), type: 'image-describer', selected: true, position, data: { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } }]);
-        }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ fill: 'none' }}><rect x="3" y="3" width="13" height="13" rx="2" /><path d="m4 13 4-4 6 6m2-5h5v11H10v-4M13 3v3" /></svg></ControlButton>
-        <ControlButton title="添加 File 节点" aria-label="添加 File 节点" onClick={() => {
-          const bounds = canvasRef.current?.getBoundingClientRect();
-          if (!bounds) return;
-          const center = screenToFlowPosition({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 });
-          setNodes((current) => [...current.map((node) => ({ ...node, selected: false })), {
-            id: `file-${crypto.randomUUID()}`, type: 'file', selected: true,
-            position: { x: center.x - 230, y: center.y - 279 }, data: {},
-          }]);
-        }}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" style={{ fill: 'none' }} aria-hidden="true"><path d="M13 3H5v18h14V9zM13 3v6h6M8 15h8m-4-4v8" /></svg></ControlButton>
-        <ControlButton onClick={addTextNode} title="添加文本节点" aria-label="添加文本节点">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 4h16v3h-6.5v13h-3V7H4z" />
-          </svg>
-        </ControlButton>
-      </Controls>
+      <CanvasNavigation pendingZoom={pendingZoom} />
       <NodePortLabelMotion />
       <ConnectionEffectsLayer />
     </ReactFlow></ConnectionEffectsContext.Provider></CanvasHistoryContext.Provider>

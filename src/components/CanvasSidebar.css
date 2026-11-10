@@ -52,7 +52,10 @@
   color: inherit;
   cursor: pointer;
 }
-.canvas-sidebar-button[aria-pressed='true'] { background: var(--dock-menu-surface-subtle); }
+.canvas-sidebar-button[aria-pressed='true'] { background: #2f2f2f; }
+@media (hover: hover) {
+  .canvas-sidebar-button[aria-pressed]:hover { background: #363636; }
+}
 .canvas-sidebar-add { background: var(--dock-menu-content-white); }
 .canvas-sidebar-button:focus-visible { outline: 1px solid var(--dock-menu-content-primary); outline-offset: 2px; }
 .canvas-sidebar-button img { display: block; max-width: none; pointer-events: none; }

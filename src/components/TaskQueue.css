@@ -13,8 +13,7 @@
 }
 
 .model-queue {
-  --queue-surface: rgb(35 35 35 / 90%);
-  --queue-border: rgb(255 255 255 / 5%);
+  --queue-border: var(--canvas-overlay-border);
   --queue-muted: #8c8c8c;
   box-sizing: border-box;
   width: 256px;
@@ -23,7 +22,7 @@
   overflow: hidden;
   border: 1px solid var(--queue-border);
   border-radius: 12px;
-  background: var(--queue-surface);
+  background: var(--canvas-overlay-background);
   backdrop-filter: blur(20px);
   color: #fff;
   font: 400 14px/1.4 var(--font-ui);
