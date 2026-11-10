@@ -69,10 +69,9 @@
 .node-add-menu-submenu > .node-add-menu-scroll-area { display: flex; flex-direction: column; flex: 0 1 auto; }
 .node-add-menu-submenu .node-add-menu-scroll { height: auto; min-height: 0; flex: 0 1 auto; }
 .node-add-menu[data-animate-entrance] {
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   opacity: 1;
   transform: scale(1);
-  transition: opacity var(--node-menu-duration) var(--ease-out), transform var(--node-menu-duration) var(--ease-out);
+  transition: opacity var(--node-menu-duration) var(--dock-menu-ease-out), transform var(--node-menu-duration) var(--dock-menu-ease-out);
 }
 @starting-style {
   .node-add-menu[data-animate-entrance] {

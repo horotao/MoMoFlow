@@ -1,5 +1,7 @@
-import { Fragment, useId } from 'react';
+import { Fragment } from 'react';
 import type { RefObject } from 'react';
+import { spring } from '../lib/springs';
+import { Tooltip, TooltipProvider } from './ui/tooltip';
 import './CanvasSidebar.css';
 
 export type CanvasTool = 'select' | 'hand';
@@ -21,28 +23,33 @@ type Props = {
   onAddMenu: (keyboard: boolean) => void;
 };
 export function CanvasSidebar({ tool, onToolChange, addTrigger, menuOpen, onAddMenu }: Props) {
-  const tooltipId = useId();
   return <div className="canvas-sidebar-positioner nodrag nopan nowheel">
     <nav className="canvas-sidebar" aria-label="画布工具栏">
-      {dockItems.map(({ id, label, asset, shortcut, divider }) => <Fragment key={id}>
-        {divider && <div className="canvas-sidebar-divider" aria-hidden="true" />}
-        <button ref={id === 'add' ? addTrigger : undefined} type="button"
-          className={`canvas-sidebar-button${id === 'add' ? ' canvas-sidebar-add' : ''}`}
-          aria-label={label} aria-pressed={id === 'select' || id === 'hand' ? tool === id : undefined}
-          aria-keyshortcuts={shortcut} aria-haspopup={id === 'add' ? 'dialog' : undefined}
-          aria-expanded={id === 'add' ? menuOpen : undefined}
-          aria-controls={id === 'add' && menuOpen ? 'canvas-node-menu' : undefined}
-          aria-describedby={`${tooltipId}-${id}`}
-          onClick={event => {
-            if (id === 'add') onAddMenu(event.detail === 0);
-            if (id === 'select' || id === 'hand') onToolChange(id);
-          }}>
-          <img src={`/canvas-menu/${asset}.svg`} alt="" draggable={false} />
-          {!menuOpen && <span id={`${tooltipId}-${id}`} role="tooltip" className="canvas-sidebar-tooltip">
-            {label}{shortcut && <kbd>{shortcut}</kbd>}
-          </span>}
-        </button>
-      </Fragment>)}
+      <TooltipProvider disableHoverableContent>
+        {dockItems.map(({ id, label, asset, shortcut, divider }) => <Fragment key={id}>
+          {divider && <div className="canvas-sidebar-divider" aria-hidden="true" />}
+          <Tooltip side="right" sideOffset={12} forceOpen={menuOpen ? false : undefined}
+            className="canvas-sidebar-tooltip"
+            contentClassName="canvas-sidebar-tooltip-content"
+            content={shortcut ? <span className="inline-flex items-center gap-2 whitespace-nowrap">
+              {label}<kbd>{shortcut}</kbd>
+            </span> : label}>
+            <button ref={id === 'add' ? addTrigger : undefined} type="button"
+              className={`canvas-sidebar-button${id === 'add' ? ' canvas-sidebar-add' : ''}`}
+              aria-label={label} aria-pressed={id === 'select' || id === 'hand' ? tool === id : undefined}
+              aria-keyshortcuts={shortcut} aria-haspopup={id === 'add' ? 'dialog' : undefined}
+              aria-expanded={id === 'add' ? menuOpen : undefined}
+              aria-controls={id === 'add' && menuOpen ? 'canvas-node-menu' : undefined}
+              onClick={event => {
+                if (id === 'add') onAddMenu(event.detail === 0);
+                if (id === 'select' || id === 'hand') onToolChange(id);
+              }}>
+              <img src={`/canvas-menu/${asset}.svg`} alt="" draggable={false}
+                style={id === 'add' ? { transitionDuration: `${menuOpen ? spring.moderate.duration : spring.moderate.exit.duration}s` } : undefined} />
+            </button>
+          </Tooltip>
+        </Fragment>)}
+      </TooltipProvider>
     </nav>
   </div>;
 }
