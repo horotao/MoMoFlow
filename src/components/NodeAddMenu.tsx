@@ -16,6 +16,8 @@ type Props = {
   instantEntrance?: boolean;
   mode?: 'create' | 'connect';
   choices?: NodeMenuChoice[];
+  actions?: NodeMenuEntry[];
+  onAction?: (id: string) => void;
   trigger?: RefObject<HTMLButtonElement>;
   screen: { x: number; y: number };
   onChoose: (choice: NodeMenuChoice) => void;
@@ -72,7 +74,7 @@ function focusButton(button?: HTMLButtonElement) {
   button?.focus({ preventScroll: true });
   button?.scrollIntoView({ block: 'nearest' });
 }
-export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, instantEntrance = false, screen, trigger, mode = 'create', choices, onChoose, onDismiss }: Props) {
+export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, instantEntrance = false, screen, trigger, mode = 'create', choices, actions, onAction, onChoose, onDismiss }: Props) {
   const main = useRef<HTMLDivElement>(null);
   const submenu = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
@@ -93,7 +95,10 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
     .filter(entry => `${entry.label} ${entry.keywords}`.toLocaleLowerCase().includes(term));
   const groups = term ? [{ label: '搜索结果', entries: matches }] : resolveMenuGroups(nodeMenuGroups, choices);
 
-  useLayoutEffect(() => { search.current?.focus({ preventScroll: true }); }, []);
+  useLayoutEffect(() => {
+    if (actions) menuButtons(main.current)[0]?.focus({ preventScroll: true });
+    else search.current?.focus({ preventScroll: true });
+  }, [actions]);
   useLayoutEffect(() => {
     const place = () => {
       const menu = main.current;
@@ -149,6 +154,7 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
   };
   const select = (row: MenuRowData, keyboard: boolean) => {
     if (!row.available) return;
+    if (actions) { onAction?.(row.entry.id); return; }
     if (row.hasSubmenu) {
       setKeyboardInteraction(keyboard);
       focusSubmenu.current = keyboard;
@@ -193,20 +199,24 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
     }
   };
   return <>
-    <div ref={main} id={id} className={`node-add-menu${mode === 'connect' ? ' connection-menu' : ''} nodrag nopan nowheel`}
+    <div ref={main} id={id} className={`node-add-menu${actions ? ' node-add-menu-actions' : ''}${mode === 'connect' ? ' connection-menu' : ''} nodrag nopan nowheel`}
       data-animate-entrance={animateEntrance && !instantEntrance || undefined}
-      style={{ ...position, ...menuMotionStyle }} role="dialog" aria-label={mode === 'connect' ? '推荐节点' : '添加节点'}
+      style={{ ...position, ...menuMotionStyle }} role={actions ? 'menu' : 'dialog'} aria-label={actions ? '更多' : mode === 'connect' ? '推荐节点' : '添加节点'}
       onKeyDown={event => onKeyDown(event, false)}
       onPointerMoveCapture={() => setKeyboardInteraction(false)}
       onPointerDownCapture={() => setKeyboardInteraction(false)}
       onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }}
       onPointerDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}>
-      <div className="node-add-menu-search">
+      {!actions && <div className="node-add-menu-search">
         <img src="/canvas-menu/search-menu.svg" alt="" draggable={false} />
         <input ref={search} value={query} placeholder="搜索" aria-label={mode === 'connect' ? '搜索可连接节点' : '搜索节点'} autoComplete="off" spellCheck={false}
           onChange={event => { setQuery(event.target.value); activate(null); }} />
         {query && <button type="button" aria-label="清空搜索" onClick={() => { setQuery(''); activate(null); search.current?.focus(); }}><X size={14} strokeWidth={1.5} absoluteStrokeWidth /></button>}
-      </div>
+      </div>}
+      {actions ? <div className="node-add-menu-list" data-keyboard={keyboardInteraction || undefined}>
+        {actions.map(entry => <MenuRow key={entry.id} row={{ entry, rowId: entry.id, hasSubmenu: false, available: true }}
+          highlighted={highlightedRow === entry.id} child={false} category={null} menuId={id} onSelect={select} />)}
+      </div> : <>
       <ScrollArea className="node-add-menu-scroll-area" viewportClassName="node-add-menu-scroll fluid-scroll-fade" onScrollCapture={() => activate(null)}>
         <div role="menu" aria-label={mode === 'connect' ? '可连接节点' : '节点'}>
           <MenuList groups={groups} child={false} category={category} highlightedRow={highlightedRow} keyboardInteraction={keyboardInteraction}
@@ -215,6 +225,7 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
           {!term && mode === 'connect' && choices?.length === 0 && <div className="node-add-menu-empty" role="status">暂无可连接的节点</div>}
         </div>
       </ScrollArea>
+      </>}
     </div>
     {category && <div ref={submenu} id={`${id}-submenu`} className="node-add-menu node-add-menu-submenu nodrag nopan nowheel"
       data-animate-entrance={animateEntrance && !keyboardInteraction || undefined}

@@ -1,3 +1,4 @@
+import { apiCredentialHeaders } from '../components/apiSettings.ts';
 import { modelRequestError } from './modelRequestError.ts';
 import { assetResources } from './assetResources.ts';
 import { readImage } from './imageGenerationClient.ts';
@@ -6,6 +7,7 @@ import { prepareIdeogramEditImages } from './ideogramEditClient.ts';
 import type { FileAsset } from './types';
 
 export async function requestIdeogram(input: IdeogramRequest, signal: AbortSignal): Promise<FileAsset[]> {
+  const credentialHeaders = apiCredentialHeaders('wavespeed');
   signal.throwIfAborted();
   const prompt = validateIdeogramPrompt(input.prompt);
   const body = input.image !== undefined
@@ -13,7 +15,7 @@ export async function requestIdeogram(input: IdeogramRequest, signal: AbortSigna
     : { ...validateIdeogramSettings(input), prompt };
   signal.throwIfAborted();
   const response = await fetch(input.image !== undefined ? '/api/ideogram/edit' : '/api/ideogram', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, signal,
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...credentialHeaders }, signal,
     body: JSON.stringify(body),
   });
   const result = await response.json().catch(() => { throw new Error('本地图片 API 不可用，请通过 npm run dev 启动服务。'); });

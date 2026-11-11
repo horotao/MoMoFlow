@@ -92,7 +92,7 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 - 连接期间，文本值通过 `resolveTextValue` 从当前图数据动态解析，不持续复制到下游节点数据中。参数从外部输入切回 **Use local value** 时例外：Image Describer 会将当前解析值写回本地参数并移除对应连线；Sunburst 也会保存当前有效参数值，校验失败时保留原本地值。具体入口见 [DescriberPanel.tsx](../components/DescriberPanel.tsx) 和 [SunburstSettings.tsx](../components/SunburstSettings.tsx)。
 - Prompt 连接到已有素材的 File 时会显示类型不兼容；连接空 File 时不显示该错误。两种情况下 File 都解析为空文本，不会转换成提示词内容；这与模型节点在连接时直接拒绝错误输入的行为不同。
 - Image Describer、Sunburst、Painter、Crop、Blur、Invert、Levels 和 Color correction 的图片输入接受纯图片 File 集合、Sunburst 结果、Painter、Crop、Blur、Invert、Levels 或 Color correction 输出。Painter、Crop、Blur、Invert、Levels 和 Color correction 使用集合的第一张图片作为底图。`imageOutput` 对 File 返回集合中的图片，对 Sunburst 只返回当前选中结果（没有有效选中项时取最后一张），对 Crop、Blur、Invert、Levels 和 Color correction 返回当前有效的处理结果；对 Painter 按 `sourceHandle` 区分 Result 与 Mask，并在上游或绘制内容变化后拒绝尚未更新的输出。不要将 File 的预览选中项误当作唯一输出。
-- Sunburst 的渠道商在右侧选择 OpenAI 官方或 ZenMux，共用同一节点与端口；`data.provider` 缺失时兼容为 ZenMux。渠道支持暴露为 `provider` 输入，本地值随节点保存/复制及撤销恢复；运行快照固定渠道，服务端只向对应官方地址发送该渠道密钥，不自动重试或跨渠道回退。OpenAI 画质提供 auto / low / medium / high / xhigh / max，ZenMux 保留原四档；前置校验、任务快照及参数节点创建均按渠道处理。切回 ZenMux 时，不兼容的本地画质改为 high，渠道与画质可一起撤销；外部画质输入不改写，在运行前校验。
+- Sunburst 的渠道商在右侧选择 OpenAI 官方或 ZenMux，共用同一节点与端口；`data.provider` 缺失时兼容为 ZenMux。渠道支持暴露为 `provider` 输入，本地值随节点保存/复制及撤销恢复；运行快照固定渠道，服务端按该渠道选择 API 设置中保存的地址与 Key；未保存配置时使用原服务端 Key 与官方地址，不自动重试或跨渠道回退。OpenAI 画质提供 auto / low / medium / high / xhigh / max，ZenMux 保留原四档；前置校验、任务快照及参数节点创建均按渠道处理。切回 ZenMux 时，不兼容的本地画质改为 high，渠道与画质可一起撤销；外部画质输入不改写，在运行前校验。
 - Sunburst 的 Prompt 和暴露参数接受 `text`、`image-describer`、`model-input` 的文本输出；Image Describer 的模型与指令输入也接受这些类型。Sunburst、Painter、Crop、Blur、Invert、Levels 和 Color correction 图片输出可连到 Sunburst 的图片/遮罩输入、Image Describer 的图片输入或 Painter / Crop / Blur / Invert / Levels 的 Image 输入，以及 Color correction / Preview 的 File 输入。
 - `model-input` 同时用于模型名称和 Sunburst 参数选项，`parameter` 标识参数用途，`options` 保存可选文本。Options 输入端口尚未实现，继续保持不可连接。
 - Sunburst 将宽高比与 1K / 2K / 4K 分辨率预设统一编码到 `data.size`，不另存可能冲突的比例/分辨率状态。`sunburstSizePresets` 保持旧 1K 尺寸，按精确比例、16 像素对齐、3840 边长与 8,294,400 像素上限生成高分辨率；正方形最高 2880×2880。预览、执行快照、服务端与保存恢复均沿用实际尺寸；外部 `size` 接管时禁用两个控件，切回本地保留完整尺寸。
@@ -249,7 +249,7 @@ Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排�
 
 取消会中断本地请求等待，已取消或超时任务的迟到结果不得写回。节点删除或锁定后也不得写入结果。失败和超时可手动重试，按当前节点输入和参数重新创建一次任务，迭代任务只重试对应条目。取消或超时不代表服务商停止处理或计费。进度为预估值，完成以实际调用结果为准。
 
-密钥只在服务端读取，不放入节点数据或浏览器环境变量。纯前端验证和自动化测试不需要真实模型请求；需要验证真实生成时，应明确区分其结果和可能产生的费用。
+默认密钥由服务端环境变量读取。左侧 Dock 的“更多 → API 设置”可按渠道保存 BYOK 地址和 Key 到当前浏览器；请求开始时读取对应渠道配置，仅传给本地 API，由服务端发往该地址。清空 Key 并保存会删除当前渠道覆盖，恢复默认服务端 Key 和地址。密钥不放入节点数据、任务快照或工作流导出。纯前端验证和自动化测试不需要真实模型请求；需要验证真实生成时，应明确区分其结果和可能产生的费用。
 
 ## 新增或扩展节点
 
@@ -361,7 +361,7 @@ Mask 必须恰好一张且与原图尺寸一致。[ideogramEditClient.ts](./ideo
 
 [ideogramRun.ts](./ideogramRun.ts) 建立参数和图片快照，任务资源引用保留原图、参考图及蒙版 Blob。[ideogramClient.ts](./ideogramClient.ts) 按模式请求 `/api/ideogram` 或 `/api/ideogram/edit`，将结果 URL 立即读入受管理的 Blob，保留原始格式和尺寸，支持下载、下游、撤销和 IndexedDB 保存。结果图库、选中结果、拆分与剪贴板复用生图节点约定；[ideogramClipboard.ts](./ideogramClipboard.ts) 恢复时清除外部参数连接状态。
 
-服务端 [ideogram.ts](../../server/ideogram.ts) 仅从 `WAVESPEED_API_KEY` 读取密钥。编辑支持 PNG/JPEG/WebP 输入，单张最多 32 MiB、合计 46 MiB；所有参数和文件大小先校验，再按 [上传协议](https://wavespeed.ai/docs/upload-files-api) 向固定 `/media/uploads` 获取凭证，使用返回的 URL/headers PUT 原始字节，PUT 不携带 API 密钥。上传地址、签名和上游错误正文不返回客户端。上传失败不提交模型任务；供应商默认保留上传文件 7 天。
+服务端 [ideogram.ts](../../server/ideogram.ts) 优先使用请求携带的 WaveSpeed BYOK 配置，未配置时从 `WAVESPEED_API_KEY` 读取默认密钥。编辑支持 PNG/JPEG/WebP 输入，单张最多 32 MiB、合计 46 MiB；所有参数和文件大小先校验，再按 [上传协议](https://wavespeed.ai/docs/upload-files-api) 向固定 `/media/uploads` 获取凭证，使用返回的 URL/headers PUT 原始字节，PUT 不携带 API 密钥。上传地址、签名和上游错误正文不返回客户端。上传失败不提交模型任务；供应商默认保留上传文件 7 天。
 
 按 [文生图](https://wavespeed.ai/docs/docs-api/ideogram-ai/ideogram-ai-ideogram-v4.5) 和 [Edit 文档](https://wavespeed.ai/docs/docs-api/ideogram-ai/ideogram-ai-ideogram-v4.5-edit) 提交一次，通过 Task ID 查询固定结果接口，每次至少间隔 2 秒；仅 GET 的网络错误、429 和 5xx 退避重试并遵守 Retry-After。completed 读取 outputs，failed/cancelled/timeout/deleted 停止查询。上传和生成总等待最多 5 分钟，取消只停止本地等待，不代表撤销供应商任务或退款；提交后失败保留 Task ID（已取得时），提示先查看 WaveSpeed History，绝不自动重新提交。
 

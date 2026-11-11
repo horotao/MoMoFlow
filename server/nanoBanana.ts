@@ -1,3 +1,4 @@
+import { providerConnection, zenmuxVertexBase } from './apiCredentials.ts';
 import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
@@ -6,7 +7,6 @@ import { nanoBananaMaxImages, nanoBananaModel, validateNanoBananaSettings } from
 import { diagnosticText, errorDiagnostic, logIdentifier, readErrorDiagnostic, trusted, type ProviderDiagnostic } from './zenmuxShared.ts';
 
 const maxBody = 64 * 1024 * 1024;
-const endpoint = `https://zenmux.ai/api/vertex-ai/v1/publishers/${nanoBananaModel.replace('/', '/models/')}:generateContent`;
 
 export function buildNanoBananaRequest(value: unknown) {
   const settings = validateNanoBananaSettings(value);
@@ -76,7 +76,7 @@ async function readResult(response: Response): Promise<unknown> {
   } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
 }
 
-export function nanoBananaPlugin(apiKey: string, providerFetch: typeof fetch = fetch): Plugin {
+export function nanoBananaPlugin(defaultApiKey: string, providerFetch: typeof fetch = fetch): Plugin {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (req.url?.split('?')[0] !== '/api/nano-banana') return next();
     const send = (status: number, value: object) => {
@@ -86,6 +86,10 @@ export function nanoBananaPlugin(apiKey: string, providerFetch: typeof fetch = f
     if (req.method !== 'POST') return send(405, { error: 'Method not allowed' });
     if (!trusted(req)) return send(403, { error: 'Host or Origin not allowed' });
     if (!req.headers['content-type']?.startsWith('application/json')) return send(415, { error: 'Expected application/json' });
+    let connection;
+    try { connection = providerConnection(req, 'zenmux', defaultApiKey, providerFetch); }
+    catch { return send(400, { error: 'API 配置无效，请重新保存 ZenMux 配置' }); }
+    const { apiKey } = connection;
     if (!apiKey) return send(503, { error: '请在 .env.local 配置 ZENMUX_API_KEY，然后重启开发服务器。' });
     const controller = new AbortController(), startedAt = Date.now(), localRequestId = randomUUID();
     let stage = 'read-request', diagnostic: ProviderDiagnostic | undefined;
@@ -119,8 +123,8 @@ export function nanoBananaPlugin(apiKey: string, providerFetch: typeof fetch = f
       catch (error) { return send(400, { error: error instanceof Error ? error.message : '请求格式错误。' }); }
       controller.signal.throwIfAborted();
       stage = 'request-provider';
-      const response = await providerFetch(endpoint, {
-        method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal,
+      const response = await connection.fetch(`${zenmuxVertexBase(connection.baseUrl)}/publishers/${nanoBananaModel.replace('/', '/models/')}:generateContent`, {
+        method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal, redirect: 'error',
       });
       const requestId = diagnosticText(response.headers.get('x-zenmux-requestid') ?? response.headers.get('x-request-id'), apiKey, 200);
       diagnostic = { status: response.status, ...(requestId ? { requestId } : {}) };

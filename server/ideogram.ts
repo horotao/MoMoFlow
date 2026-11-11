@@ -1,3 +1,4 @@
+import { providerConnection } from './apiCredentials.ts';
 import { isTimeoutStatus, modelTimeoutCode, ModelRequestTimeout } from '../src/nodes/modelRequestError.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -55,11 +56,11 @@ function uploadUrl(value: unknown): string {
   return url.href;
 }
 
-export async function uploadIdeogramImages(apiKey: string, input: ReturnType<typeof buildIdeogramEditRequest>, signal: AbortSignal, providerFetch: typeof fetch = fetch) {
+export async function uploadIdeogramImages(apiKey: string, input: ReturnType<typeof buildIdeogramEditRequest>, signal: AbortSignal, providerFetch: typeof fetch = fetch, baseUrl = apiBase) {
   const upload = async (data: string, filename: string) => {
     signal.throwIfAborted();
     const image = imageBytes(data);
-    const ticketResponse = await providerFetch(`${apiBase}/media/uploads`, {
+    const ticketResponse = await providerFetch(`${baseUrl}/media/uploads`, {
       method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ filename: `${filename}.${image.type.slice(6)}`, size: image.size, content_type: image.type }),
       redirect: 'error', signal: AbortSignal.any([signal, AbortSignal.timeout(30000)]),
@@ -119,11 +120,11 @@ export function pollingDelay(retryAfter: string | null, failures: number, now = 
   return Math.min(300000, Math.max(2000, Number.isFinite(requested) ? requested : Math.min(30000, 2000 * 2 ** Math.min(failures - 1, 4))));
 }
 
-export async function runIdeogramPrediction(apiKey: string, input: ReturnType<typeof buildIdeogramRequest> | ReturnType<typeof buildIdeogramEditRequest>, signal: AbortSignal, providerFetch: typeof fetch = fetch, wait: Pause = pause, onTaskId: (id: string) => void = () => {}) {
+export async function runIdeogramPrediction(apiKey: string, input: ReturnType<typeof buildIdeogramRequest> | ReturnType<typeof buildIdeogramEditRequest>, signal: AbortSignal, providerFetch: typeof fetch = fetch, wait: Pause = pause, onTaskId: (id: string) => void = () => {}, baseUrl = apiBase) {
   const headers = { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' };
   signal.throwIfAborted();
   // A POST is sent exactly once: an ambiguous failure can still be a billed task.
-  const submitted = await providerFetch(`${apiBase}/${'image' in input ? ideogramEditModel : ideogramModel}`, {
+  const submitted = await providerFetch(`${baseUrl}/${'image' in input ? ideogramEditModel : ideogramModel}`, {
     method: 'POST', headers, body: JSON.stringify(input), redirect: 'error',
     signal: AbortSignal.any([signal, AbortSignal.timeout(60000)]),
   });
@@ -153,7 +154,7 @@ export async function runIdeogramPrediction(apiKey: string, input: ReturnType<ty
     signal.throwIfAborted();
     let response: Response | undefined;
     try {
-      response = await providerFetch(`${apiBase}/predictions/${encodeURIComponent(taskId)}/result`, {
+      response = await providerFetch(`${baseUrl}/predictions/${encodeURIComponent(taskId)}/result`, {
         headers, redirect: 'error', signal: AbortSignal.any([signal, AbortSignal.timeout(30000)]),
       });
       if (response.ok) {
@@ -176,7 +177,7 @@ export async function runIdeogramPrediction(apiKey: string, input: ReturnType<ty
   }
 }
 
-export function ideogramPlugin(apiKey: string, providerFetch: typeof fetch = fetch, wait: Pause = pause): Plugin {
+export function ideogramPlugin(defaultApiKey: string, providerFetch: typeof fetch = fetch, wait: Pause = pause): Plugin {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const path = req.url?.split('?')[0];
     if (path !== '/api/ideogram' && path !== '/api/ideogram/edit') return next();
@@ -188,6 +189,10 @@ export function ideogramPlugin(apiKey: string, providerFetch: typeof fetch = fet
     if (req.method !== 'POST') return send(405, { error: 'Method not allowed' });
     if (!trusted(req)) return send(403, { error: 'Host or Origin not allowed' });
     if (!req.headers['content-type']?.startsWith('application/json')) return send(415, { error: 'Expected application/json' });
+    let connection;
+    try { connection = providerConnection(req, 'wavespeed', defaultApiKey, providerFetch); }
+    catch { return send(400, { error: 'API 配置无效，请重新保存 WaveSpeed 配置' }); }
+    const { apiKey } = connection;
     if (!apiKey) return send(503, { error: '请在 .env.local 配置 WAVESPEED_API_KEY，然后重启开发服务器。' });
     const controller = new AbortController(); let taskId = '', submitted = false;
     const timeout = setTimeout(() => controller.abort(), 300000);
@@ -203,10 +208,10 @@ export function ideogramPlugin(apiKey: string, providerFetch: typeof fetch = fet
       let input: ReturnType<typeof buildIdeogramRequest> | ReturnType<typeof buildIdeogramEditRequest>;
       try { input = (editing ? buildIdeogramEditRequest : buildIdeogramRequest)(JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
       catch (error) { return send(400, { error: error instanceof SyntaxError ? '请求格式错误。' : error instanceof Error ? error.message : '输入参数无效。' }); }
-      if ('image' in input) input = await uploadIdeogramImages(apiKey, input, controller.signal, providerFetch);
+      if ('image' in input) input = await uploadIdeogramImages(apiKey, input, controller.signal, connection.fetch, connection.baseUrl);
       controller.signal.throwIfAborted();
       submitted = true;
-      const result = await runIdeogramPrediction(apiKey, input, controller.signal, providerFetch, wait, id => { taskId = id; });
+      const result = await runIdeogramPrediction(apiKey, input, controller.signal, connection.fetch, wait, id => { taskId = id; }, connection.baseUrl);
       send(200, result);
     } catch (error) {
       // Only locally constructed messages may reach the browser, never upstream bodies or fetch errors.

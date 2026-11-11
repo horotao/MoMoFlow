@@ -1,3 +1,4 @@
+import { providerConnection } from './apiCredentials.ts';
 import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 import { validateVectorSvg } from '../src/nodes/vectorSvg.ts';
 import { diagnosticText, logIdentifier, errorDiagnostic, readErrorDiagnostic, trusted, type ProviderDiagnostic } from './zenmuxShared.ts';
@@ -123,16 +124,19 @@ export function sunburstPlugin(apiKeys: Record<SunburstProvider, string>, provid
       try { request = buildSunburstRequest(JSON.parse(Buffer.concat(chunks).toString())); }
       catch (error) { return send(400, { error: error instanceof Error ? error.message : '请求格式错误。' }); }
       provider = request.provider;
-      apiKey = apiKeys[provider];
+      let connection;
+      try { connection = providerConnection(req, provider, apiKeys[provider], providerFetch); }
+      catch { return send(400, { error: 'API 配置无效，请重新保存对应渠道的配置' }); }
+      apiKey = connection.apiKey;
       const config = providers[provider];
       if (!apiKey) return send(503, { error: `请在 .env.local 配置 ${config.keyName}，然后重启开发服务器。` });
       endpoint = request.endpoint;
       stage = 'build-payload';
       const payload = buildSunburstPayload(request);
       stage = 'request-provider';
-      const response = await providerFetch(`${config.baseUrl}/images/${request.endpoint}`, {
+      const response = await connection.fetch(`${connection.baseUrl}/images/${request.endpoint}`, {
         method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, ...payload.headers },
-        body: payload.body, signal: controller.signal,
+        body: payload.body, signal: controller.signal, redirect: 'error',
       });
       const requestId = diagnosticText(response.headers.get('x-zenmux-requestid') ?? response.headers.get('x-request-id'), apiKey, 200);
       diagnostic = { status: response.status, ...(requestId ? { requestId } : {}) };

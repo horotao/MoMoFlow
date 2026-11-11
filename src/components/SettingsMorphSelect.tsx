@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { DescriberIcon } from './DescriberIcon';
@@ -8,7 +8,6 @@ import { DescriberIcon } from './DescriberIcon';
 const morph = { type: 'spring', duration: 0.5, bounce: 0.22 } as const;
 const openMorph = { ...morph, duration: 0.35 };
 const surfaceRadius = 8;
-const optionHeight = 24;
 const listPadding = 8;
 const panelInset = 8;
 
@@ -21,9 +20,10 @@ type Placement = {
   maxListHeight: number;
 };
 
-export function SettingsMorphSelect({ value, choices, labels, label = 'Model', menuLabel, disabled, includeCurrentValue = true, onChange }: {
+export function SettingsMorphSelect({ value, choices, labels, label = 'Model', menuLabel, disabled, includeCurrentValue = true, appearance = 'sidebar', leading, onChange }: {
   value: string; choices: readonly string[]; labels?: readonly string[]; label?: string; menuLabel?: string;
   disabled?: boolean; includeCurrentValue?: boolean; onChange: (value: string) => void;
+  appearance?: 'sidebar' | 'api'; leading?: ReactNode;
 }) {
   const id = useId();
   const reduceMotion = useReducedMotion();
@@ -36,6 +36,8 @@ export function SettingsMorphSelect({ value, choices, labels, label = 'Model', m
   const options = !includeCurrentValue || choices.includes(value) ? choices : [value, ...choices];
   const labelFor = (option: string) => labels?.[choices.indexOf(option)] ?? option;
   const currentLabel = labelFor(value) || 'Select an option';
+  const optionHeight = appearance === 'api' ? 36 : 24;
+  const optionGap = appearance === 'api' ? 4 : 0;
   const open = Boolean(placement && !disabled);
   const layoutId = reduceMotion ? undefined : id;
 
@@ -46,13 +48,13 @@ export function SettingsMorphSelect({ value, choices, labels, label = 'Model', m
 
   const show = () => {
     const button = trigger.current;
-    const host = button?.closest<HTMLElement>('.node-settings-panel');
+    const host = button?.closest<HTMLElement>('[data-settings-select-host], .node-settings-panel');
     if (disabled || !button || !host || !options.length) return;
     const rect = button.getBoundingClientRect();
     const bounds = host.getBoundingClientRect();
     const below = bounds.bottom - rect.top - panelInset;
     const above = rect.bottom - bounds.top - panelInset;
-    const desiredHeight = Math.min(options.length * optionHeight + listPadding, 244);
+    const desiredHeight = Math.min(options.length * optionHeight + Math.max(0, options.length - 1) * optionGap + listPadding, 244);
     const opensAbove = below < desiredHeight && above > below;
     typeahead.current = { query: '', time: 0 };
     setActive(Math.max(0, options.indexOf(value)));
@@ -139,7 +141,7 @@ export function SettingsMorphSelect({ value, choices, labels, label = 'Model', m
   };
 
   return <>
-    <button ref={trigger} type="button" className="settings-select-trigger nodrag nopan" role="combobox" aria-label={label}
+    <button ref={trigger} type="button" className={`settings-select-trigger nodrag nopan${appearance === 'api' ? ' api-settings-select' : ''}`} role="combobox" aria-label={label}
       aria-expanded={open} aria-controls={open ? id : undefined} aria-haspopup="listbox" disabled={disabled}
       style={{ borderRadius: surfaceRadius }} tabIndex={open ? -1 : undefined} onClick={show}
       onKeyDown={event => {
@@ -153,13 +155,14 @@ export function SettingsMorphSelect({ value, choices, labels, label = 'Model', m
           aria-hidden="true" className="settings-select-fill settings-select-surface" />}
       </AnimatePresence>
       <span className="settings-select-row">
+        {leading}
         <span className="settings-select-label">{currentLabel}</span>
-        <img src="/gpt-sidebar/chevron.svg" width={18} height={18} alt="" />
+        <img src={appearance === 'api' ? '/api-settings/chevron.svg' : '/gpt-sidebar/chevron.svg'} width={appearance === 'api' ? undefined : 18} height={appearance === 'api' ? undefined : 18} alt="" />
       </span>
     </button>
     {placement && createPortal(<AnimatePresence initial={false}>
       {open && <motion.div ref={popup} key="popup" layoutId={layoutId} transition={openMorph}
-        className="settings-select-popup settings-select-surface nodrag nopan nowheel"
+        className={`settings-select-popup settings-select-surface nodrag nopan nowheel${appearance === 'api' ? ' api-settings-select-popup' : ''}`}
         style={{
           borderRadius: surfaceRadius, left: placement.left, width: placement.width,
           top: placement.top, bottom: placement.bottom,

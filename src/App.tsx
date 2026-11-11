@@ -22,6 +22,8 @@ import { restorePainterData } from './nodes/painter';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasNavigation, canvasMinZoom, canvasMaxZoom, type ZoomTarget } from './components/CanvasNavigation';
 import { CanvasSidebar, type CanvasTool } from './components/CanvasSidebar';
+import { ApiSettingsDialog } from './components/ApiSettingsDialog';
+import { testApiConnection } from './components/apiSettings';
 import { NodePortLabelMotion } from './components/NodePortLabelMotion';
 import { ConnectionMenu, type NodeMenuChoice } from './components/ConnectionMenu';
 import { canConnect, withoutReplacedInput } from './nodes/connectionRules';
@@ -69,6 +71,7 @@ const creationChoices: NodeMenuChoice[] = items.filter(item => item.nodeType).ma
 const dockCreationChoices = creationChoices.filter(choice => !['position-logger', 'model-input'].includes(choice.itemId));
 
 export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | null }) {
+  const [apiSettingsOpen, setApiSettingsOpen] = useState(false);
   const colorMode = 'dark' as const;
   const [viewport, setViewport] = useState(saved?.viewport ?? { x: 0, y: 0, zoom: 1 });
   useEffect(() => {
@@ -554,6 +557,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
         <button type="button" onClick={persistence.retry}>重试保存</button>
       </Panel>}
       <CanvasSidebar tool={tool} onToolChange={setTool} addTrigger={addTrigger}
+        onApiSettings={() => { dismissNodeMenu(); setApiSettingsOpen(true); }}
         menuOpen={Boolean(pendingNodeMenu && 'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock')}
         onAddMenu={keyboard => {
           if (pendingNodeMenu && 'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock') {
@@ -572,6 +576,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       </Panel>}
       <CanvasNavigation pendingZoom={pendingZoom} />
       <NodePortLabelMotion />
+      <ApiSettingsDialog open={apiSettingsOpen} onClose={() => setApiSettingsOpen(false)} onTestConnection={testApiConnection} />
       <ConnectionEffectsLayer />
     </ReactFlow></ConnectionEffectsContext.Provider></CanvasHistoryContext.Provider>
   );

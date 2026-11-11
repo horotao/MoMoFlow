@@ -65,7 +65,7 @@ Learn:
 
 底部 Dock 已移除，选择与抓手使用左侧 Dock 或 V / H；撤销与重做使用 Ctrl / ⌘ Z 和 Ctrl / ⌘ Shift Z，画布缩放仍支持滚轮与触控板。
 
-左侧 Dock 采用 Figma 的 50 × 338 布局，选择与抓手连接画布工具状态；文件、搜索、更多暂作展示。加号、空白画布右键和拖线后的推荐入口共用 `NodeAddMenu`：主菜单 232 × 500，子菜单 232 × 411，较小窗口内自动避让边缘。Dock 选中按钮为 16px 圆角与浅底，菜单悬停高亮为 8px 圆角与浅底。视频、音频及其他尚未实现的条目仅展示，不创建节点。子菜单悬停 220ms 打开，离开菜单 360ms 关闭，斜向移动使用左右兼容的三角安全区，最多保护 1200ms；支持搜索、方向键和 Escape。图标保存在 `public/canvas-menu/`，不依赖临时 Figma 链接。
+左侧 Dock 采用 Figma 的 50 × 338 布局，选择与抓手连接画布工具状态；文件、搜索暂作展示，更多菜单提供 API 设置。加号、空白画布右键和拖线后的推荐入口共用 `NodeAddMenu`：主菜单 232 × 500，子菜单 232 × 411，较小窗口内自动避让边缘。Dock 选中按钮为 16px 圆角与浅底，菜单悬停高亮为 8px 圆角与浅底。视频、音频及其他尚未实现的条目仅展示，不创建节点。子菜单悬停 220ms 打开，离开菜单 360ms 关闭，斜向移动使用左右兼容的三角安全区，最多保护 1200ms；支持搜索、方向键和 Escape。图标保存在 `public/canvas-menu/`，不依赖临时 Figma 链接。
 
 - `components.json`：shadcn 配置，`@/` 映射到 `src/`。
 - `src/index.css`：Tailwind、React Flow 样式、主题变量和现有画布样式。
@@ -90,9 +90,17 @@ React Flow CSS 通过 `src/index.css` 中的 `layer(base)` 在 Tailwind 之后�
 验证命令：`npm run lint`、`npm run build`。手动检查拖动、坐标更新、双向拖线创建节点、
 普通连线、主题切换、缩放及小地图。
 
+## BYOK API 设置
+
+左侧 Dock 的“更多 → API 设置”按渠道保存 Base URL 与 API Key。GPT Image 使用节点所选的 OpenAI / ZenMux 配置，Nano Banana 使用 ZenMux，图像描述使用 DeepSeek，Ideogram 使用 WaveSpeed。未配置的渠道继续使用 `.env.local` 中原有的 Key；清空当前渠道的 Key 后保存，即可恢复服务端默认地址和 Key。保存的配置在后续模型请求开始时生效，密钥独立于画布与工作流数据保存。
+
+“测试连接”检查当前填写的配置，Key 留空时检查该渠道的服务端默认配置。OpenAI / DeepSeek 读取模型列表，WaveSpeed 读取余额，ZenMux 读取一个固定不存在的生成记录以检查认证，避免公开模型目录对无效 Key 返回成功。连接检查不创建生成任务。错误区分认证、地址、限流、网络与超时，取消弹窗或修改输入会中止本次检查。
+
+BYOK Base URL 支持公开 HTTPS 网关。服务端校验并固定 DNS 解析结果，阻止本机/内网目标与重定向。ZenMux 的 Base URL 使用 OpenAI 兼容格式（默认 `https://zenmux.ai/api/v1`），Nano Banana 自动切换到同一网关路径前缀下的 `vertex-ai/v1` 协议。
+
 ## DeepSeek 图片反推提示词（本地测试）
 
-复制 `.env.example` 为 `.env.local`，填写 `DEEPSEEK_API_KEY`，然后运行（或重启）`npm run dev`。密钥仅在 Vite 服务端读取，不能使用 `VITE_` 前缀或写进节点数据。
+复制 `.env.example` 为 `.env.local`，填写 `DEEPSEEK_API_KEY`，然后运行（或重启）`npm run dev`。默认密钥仅在 Vite 服务端读取，不能使用 `VITE_` 前缀或写进节点数据。
 
 添加 File 节点并上传 JPEG / PNG / GIF / WebP 图片，将输出连接到 Image Describer 的 Image 输入。模型选择 `deepseek-flash`，按需调整 System Instructions，然后点击 Run selected。真实返回的提示词会写入节点，并可通过文本输出传递到下游。多个输入按端口编号排列；本地入口一次最多接受 14 张图片。旧节点需手动切换 DeepSeek 模型。
 
@@ -106,7 +114,7 @@ Tasks 显示实际排队、运行、成功或失败状态。每次 Run 都可能
 
 ## GPT Image 2.6 Sunburst（OpenAI / ZenMux）
 
-在已忽略的 `.env.local` 配置所需渠道的密钥：OpenAI 官方使用 `OPENAI_API_KEY`，ZenMux 使用 `ZENMUX_API_KEY`，然后重启 `npm run dev`。密钥由本地服务读取，浏览器只请求 `/api/sunburst`。此接口同样支持 `npm run preview`，单独发布 `dist/` 不提供后端。
+在已忽略的 `.env.local` 配置所需渠道的密钥：OpenAI 官方使用 `OPENAI_API_KEY`，ZenMux 使用 `ZENMUX_API_KEY`，然后重启 `npm run dev`。默认密钥由本地服务读取，浏览器只请求 `/api/sunburst`。此接口同样支持 `npm run preview`，单独发布 `dist/` 不提供后端。
 
 左侧 Image → Image Models 中点击或拖入 **GPT Image 2.6 Sunburst**。将 Prompt 或 Image Describer 文本输出连接到 Prompt；可选连接 File 图片或其他 Sunburst 的 Result 到 Image。没有图片时使用所选渠道的 `/images/generations`，有图片时使用 `/images/edits`（服务端以 multipart/form-data 上传 `image[]` 文件，可选 `mask` 文件；文生图仍为 JSON）。参考图按 Image 端口顺序排列，最多 16 张；生成节点的输出是当前选中的结果。
 

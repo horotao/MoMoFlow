@@ -1,3 +1,4 @@
+import { providerConnection } from './apiCredentials.ts';
 import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
@@ -34,13 +35,17 @@ function isTrustedLocalRequest(req: IncomingMessage): boolean {
   return origin === `${protocol}://${host}`;
 }
 
-export function deepseekPlugin(apiKey: string): Plugin {
+export function deepseekPlugin(defaultApiKey: string, providerFetch: typeof fetch = fetch): Plugin {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (req.url?.split('?')[0] !== '/api/describer') return next();
-    const send = (status: number, value: object) => { if (!res.destroyed) { res.writeHead(status, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(value)); } };
+    const send = (status: number, value: object) => { if (!res.destroyed) { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(value)); } };
     if (req.method !== 'POST') return send(405, { error: 'Method not allowed' });
     if (!isTrustedLocalRequest(req)) return send(403, { error: 'Host or Origin not allowed' });
     if (!req.headers['content-type']?.startsWith('application/json')) return send(415, { error: 'Expected application/json' });
+    let connection;
+    try { connection = providerConnection(req, 'deepseek', defaultApiKey, providerFetch); }
+    catch { return send(400, { error: 'API 配置无效，请重新保存 DeepSeek 配置' }); }
+    const { apiKey } = connection;
     if (!apiKey) return send(503, { error: '请在 .env.local 设置 DEEPSEEK_API_KEY，然后重启开发服务器。' });
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 120000);
@@ -57,8 +62,8 @@ export function deepseekPlugin(apiKey: string): Plugin {
       let body: ReturnType<typeof buildDeepSeekRequest>;
       try { body = buildDeepSeekRequest(JSON.parse(Buffer.concat(chunks).toString())); }
       catch (error) { send(400, { error: error instanceof Error ? error.message : '请求格式错误。' }); return; }
-      const response = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal,
+      const response = await connection.fetch(`${connection.baseUrl}/chat/completions`, {
+        method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal, redirect: 'error',
       });
       if (!response.ok) {
         const messages: Record<number, string> = { 401: 'DeepSeek API Key 无效。', 402: 'DeepSeek 余额不足。', 429: 'DeepSeek 请求过于频繁，请稍后手动重试。', 400: 'DeepSeek 拒绝了图片或参数，请检查图片格式与尺寸。' };

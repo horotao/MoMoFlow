@@ -1,12 +1,14 @@
+import { apiCredentialHeaders } from '../components/apiSettings.ts';
 import { modelRequestError } from './modelRequestError.ts';
 import { readImage, dataUrl } from './imageGenerationClient.ts';
 import { assetResources } from './assetResources.ts';
 import type { FileAsset } from './types';
-import { validateSunburstImageInputs, type SunburstRequest } from './sunburst.ts';
+import { validateSunburstImageInputs, validateSunburstProvider, type SunburstRequest } from './sunburst.ts';
 import { validateVectorSvg } from './vectorSvg.ts';
 
 
 export async function requestSunburst(input: SunburstRequest, signal: AbortSignal): Promise<FileAsset> {
+  const credentialHeaders = apiCredentialHeaders(validateSunburstProvider(input.provider));
   validateSunburstImageInputs(input.outputFormat, input.images.length > 0, Boolean(input.mask));
   const { maskMode, ...request } = input;
   const blobs: Blob[] = []; let total = 0;
@@ -53,7 +55,7 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
   }
   signal.throwIfAborted();
   const response = await fetch('/api/sunburst', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, signal,
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...credentialHeaders }, signal,
     body: JSON.stringify({ ...request, images: await Promise.all(blobs.map(dataUrl)), ...(mask ? { mask: await dataUrl(mask) } : {}) }),
   });
   const result = await response.json().catch(() => { throw new Error('本地图片 API 不可用，请通过 npm run dev 启动服务。'); });

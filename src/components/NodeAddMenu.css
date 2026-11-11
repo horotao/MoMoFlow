@@ -66,6 +66,7 @@
 .node-add-menu-icon { display: grid; place-items: center; flex: 0 0 20px; height: 20px; }
 .node-add-menu-icon img, .node-add-menu-chevron { display: block; max-width: none; flex-shrink: 0; pointer-events: none; }
 .node-add-menu-submenu { z-index: 1101; height: auto; max-height: min(376px, calc(100dvh - 16px)); }
+.node-add-menu-actions { height: auto; }
 .node-add-menu-submenu > .node-add-menu-scroll-area { display: flex; flex-direction: column; flex: 0 1 auto; }
 .node-add-menu-submenu .node-add-menu-scroll { height: auto; min-height: 0; flex: 0 1 auto; }
 .node-add-menu[data-animate-entrance] {

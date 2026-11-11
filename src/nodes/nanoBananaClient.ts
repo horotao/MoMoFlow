@@ -1,3 +1,4 @@
+import { apiCredentialHeaders } from '../components/apiSettings.ts';
 import { modelRequestError } from './modelRequestError.ts';
 import { assetResources } from './assetResources.ts';
 import { readImage, dataUrl } from './imageGenerationClient.ts';
@@ -33,6 +34,7 @@ async function outputImage(blob: Blob, format: NanoBananaRequest['outputFormat']
 }
 
 export async function requestNanoBanana(input: NanoBananaRequest, signal: AbortSignal): Promise<FileAsset[]> {
+  const credentialHeaders = apiCredentialHeaders('zenmux');
   const settings = validateNanoBananaSettings(input);
   signal.throwIfAborted();
   if (input.images.length > nanoBananaMaxImages) throw new Error(`最多支持 ${nanoBananaMaxImages} 张参考图片。`);
@@ -45,7 +47,7 @@ export async function requestNanoBanana(input: NanoBananaRequest, signal: AbortS
   }
   signal.throwIfAborted();
   const response = await fetch('/api/nano-banana', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, signal,
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...credentialHeaders }, signal,
     body: JSON.stringify({ ...settings, prompt: input.prompt, images }),
   });
   const result = await response.json().catch(() => { throw new Error('本地图片 API 不可用，请通过 npm run dev 启动服务。'); });

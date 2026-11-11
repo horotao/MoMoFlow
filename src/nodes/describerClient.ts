@@ -1,7 +1,9 @@
+import { apiCredentialHeaders } from '../components/apiSettings.ts';
 import { modelRequestError } from './modelRequestError.ts';
 import type { PreviewTask } from './taskQueue';
 
 export async function requestDescription(task: PreviewTask, signal: AbortSignal): Promise<string> {
+  const credentialHeaders = apiCredentialHeaders('deepseek');
   if (task.model !== 'deepseek-flash') throw new Error('请选择 deepseek-flash；其他模型尚未接入。');
   if (!task.images?.length || task.images.length > 14) throw new Error('请连接 1–14 张图片。');
   const images: string[] = [];
@@ -22,7 +24,7 @@ export async function requestDescription(task: PreviewTask, signal: AbortSignal)
     }));
   }
   const response = await fetch('/api/describer', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...credentialHeaders },
     body: JSON.stringify({ model: task.model, instructions: task.instructions ?? '', images }), signal,
   });
   const result = await response.json().catch(() => { throw new Error('本地 API 不可用，请通过 npm run dev 启动服务。'); });

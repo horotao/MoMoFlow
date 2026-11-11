@@ -1,0 +1,76 @@
+.api-settings-dialog {
+  --api-surface: #202020;
+  --api-inset: #191919;
+  --api-control: #303030;
+  --api-border: #2d2d2d;
+  --api-primary: #fff;
+  --api-secondary: #b3b3b3;
+  --api-muted: #808080;
+  --api-error: #f47777;
+  width: min(480px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  background: transparent;
+  color: var(--api-primary);
+  font: 400 12px/20px var(--font-ui);
+  outline: none;
+}
+.api-settings-dialog::backdrop { background: rgb(0 0 0 / 30%); backdrop-filter: blur(10.8px); }
+.api-settings-panel { box-sizing: border-box; width: 100%; border: 1px solid var(--api-border); border-radius: 24px; background: var(--api-surface); }
+.api-settings-form { display: flex; flex-direction: column; gap: 20px; padding: 19px; max-height: calc(100dvh - 34px); overflow-y: auto; border-radius: inherit; }
+.api-settings-header { display: flex; align-items: center; gap: 12px; height: 28px; flex-shrink: 0; }
+.api-settings-header h2 { margin: 0; font: 400 16px/24px var(--font-ui); }
+.api-settings-badge { padding: 2px 8px; border-radius: 8px; background: var(--api-control); color: var(--api-secondary); font-size: 10px; }
+.api-settings-close { display: grid; place-items: center; width: 28px; height: 28px; margin-left: auto; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--api-muted); cursor: pointer; }
+.api-settings-dialog img { display: block; max-width: none; flex-shrink: 0; }
+.api-settings-fields { display: flex; flex-direction: column; gap: 16px; }
+.api-settings-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.api-settings-field > label { color: var(--api-secondary); font: inherit; }
+.api-settings-input { display: flex; align-items: center; gap: 8px; height: 36px; min-width: 0; padding: 0 11px; border: 1px solid var(--api-border); border-radius: 8px; background: var(--api-inset); }
+.api-settings-input:focus-within { border-color: #666; }
+.api-settings-input[data-invalid] { border-color: var(--api-error); }
+.api-settings-input input { width: 100%; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; color: var(--api-primary); font: 400 12px/20px var(--font-ui); }
+.api-settings-input input::placeholder { color: var(--api-muted); opacity: 1; }
+.api-settings-valid { display: flex; flex-shrink: 0; color: #7bcfa0; }
+.api-settings-reveal { display: grid; place-items: center; flex-shrink: 0; width: 20px; height: 24px; padding: 0; border: 0; background: transparent; color: var(--api-secondary); cursor: pointer; }
+.api-settings-actions { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+.api-settings-test-group { display: flex; flex: 1; align-items: center; gap: 8px; min-width: 0; }
+.api-settings-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex-shrink: 0; width: 80px; height: 36px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--api-control); color: var(--api-primary); font: inherit; white-space: nowrap; cursor: pointer; transition: transform var(--api-press-duration) var(--dock-menu-ease-out), background-color var(--api-feedback-duration) ease; }
+.api-settings-save { background: #0285f8; color: var(--api-primary); }
+.api-settings-button:active:not(:disabled) { transform: scale(.97); }
+.api-settings-button:disabled { cursor: wait; opacity: .6; }
+.api-settings-button:focus-visible, .api-settings-close:focus-visible, .api-settings-reveal:focus-visible { outline: 1px solid var(--api-secondary); outline-offset: 2px; }
+.api-settings-feedback { min-width: 0; color: var(--api-secondary); font: 400 10px/16px var(--font-ui); overflow-wrap: anywhere; }
+.api-settings-feedback[data-state='error'] { color: var(--api-error); }
+.api-settings-feedback[data-state='success'] { color: #7bcfa0; }
+.api-settings-test-group > .api-settings-button { padding-inline: 10px; }
+.api-settings-spinner { flex-shrink: 0; width: 14px; height: 14px; background: currentColor; mask: url('/image-node/run-spinner.svg') center / contain no-repeat; animation: api-settings-spin .84s linear infinite; }
+@keyframes api-settings-spin { to { transform: rotate(360deg); } }
+.api-settings-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.api-settings-dialog .api-settings-select { position: relative; display: block; width: 100%; height: 36px; padding: 0; border: 0; background: transparent; color: var(--api-primary); font: inherit; cursor: pointer; }
+.api-settings-dialog .settings-select-surface { border: 1px solid var(--api-border); background: var(--api-inset); corner-shape: round; }
+.api-settings-dialog .settings-select-row { display: flex; align-items: center; gap: 8px; width: 100%; height: 36px; padding: 0 12px; text-align: left; }
+.api-settings-dialog .settings-select-label { flex: 1; }
+.api-settings-dialog .settings-select-list { display: flex; flex-direction: column; gap: 4px; padding: 4px; }
+.api-settings-dialog .settings-select-list [role='option'] { flex-shrink: 0; height: 36px; padding: 0 8px; border-radius: 3px; color: var(--api-secondary); }
+.api-settings-dialog .settings-select-list [role='option'][aria-selected='true'] { background: var(--api-control); color: var(--api-primary); }
+.api-settings-dialog .settings-select-list [data-active='true'], .api-settings-dialog .settings-select-list [role='option']:hover { background: #303030; color: var(--api-primary); }
+@media (hover: hover) and (pointer: fine) {
+  .api-settings-button:hover:not(:disabled) { background: #3b3b3b; }
+  .api-settings-save:hover:not(:disabled) { background: #1991fa; }
+  .api-settings-close:hover { background: var(--api-control); }
+  .api-settings-reveal:hover { color: var(--api-primary); }
+}
+@media (max-width: 480px) {
+  .api-settings-actions { flex-wrap: wrap; justify-content: flex-end; }
+  .api-settings-test-group { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .api-settings-button { transition-property: background-color; }
+  .api-settings-button:active:not(:disabled) { transform: none; }
+  .api-settings-spinner { animation: none; }
+}
