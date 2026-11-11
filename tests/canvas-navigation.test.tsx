@@ -1,11 +1,12 @@
 import {
-  addEdge, Background, Panel, ReactFlow, ReactFlowProvider, useEdgesState, useNodesState,
+  addEdge, Panel, ReactFlow, ReactFlowProvider, useEdgesState, useNodesState,
   useNodesInitialized, useReactFlow, type Edge, type FitViewOptions, type OnConnect,
 } from '@xyflow/react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CanvasNavigation, canvasMinZoom, canvasMaxZoom, type ZoomTarget } from '../src/components/CanvasNavigation';
 import { CanvasSidebar, type CanvasTool } from '../src/components/CanvasSidebar';
+import { CanvasBackground } from '../src/components/CanvasBackground';
 import { ConnectionMenu, type NodeMenuChoice } from '../src/components/ConnectionMenu';
 import { createLibraryNode, items } from '../src/components/libraryCatalog';
 import { TaskQueue, type QueueTask } from '../src/components/TaskQueue';
@@ -101,7 +102,7 @@ function Preview() {
       onMoveStart={event => { if (event) pendingZoom.current = null; }}
       minZoom={canvasMinZoom} maxZoom={canvasMaxZoom} colorMode="dark"
       proOptions={{ hideAttribution: true }}>
-      <Background bgColor="var(--canvas-background)" color="#3f3f3f" />
+      <CanvasBackground />
       <Panel position="top-left" className="navigation-preview-heading">
         <div className="navigation-preview-brand">MoMoFlow <span>隔离预览</span></div>
         <h1>画布导航</h1>

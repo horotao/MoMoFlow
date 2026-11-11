@@ -22,6 +22,7 @@ import { restorePainterData } from './nodes/painter';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasNavigation, canvasMinZoom, canvasMaxZoom, type ZoomTarget } from './components/CanvasNavigation';
 import { CanvasSidebar, type CanvasTool } from './components/CanvasSidebar';
+import { CanvasBackground } from './components/CanvasBackground';
 import { ApiSettingsDialog } from './components/ApiSettingsDialog';
 import { testApiConnection } from './components/apiSettings';
 import { NodePortLabelMotion } from './components/NodePortLabelMotion';
@@ -34,7 +35,6 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
-  Background,
   Panel,
   addEdge,
   useNodesState,
@@ -539,7 +539,7 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       onMoveEnd={(_event, next) => setViewport(next)}
       fitView={!saved}
     >
-      <Background bgColor="var(--canvas-background)" color="#3f3f3f" />
+      <CanvasBackground />
       {pendingNodeMenu && <ConnectionMenu
         key={menuGeneration}
         screen={pendingNodeMenu.screen}

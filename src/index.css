@@ -49,7 +49,8 @@
 }
 
 :root {
-  --canvas-background: #151515;
+  --canvas-background: #121212;
+  --canvas-grid-dot: #fdf8ec5d;
   --canvas-overlay-background: rgb(35 35 35 / 90%);
   --canvas-overlay-border: rgb(255 255 255 / 5%);
   /* Inter renders Latin; macOS uses PingFang for Chinese, with self-hosted Noto as fallback. */

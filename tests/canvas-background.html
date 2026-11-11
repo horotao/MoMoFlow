@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MoMoFlow · 背景色试选</title>
+    <link rel="stylesheet" href="./canvas-background.css">
+  </head>
+  <body>
+    <iframe id="canvas" src="./canvas-navigation.html" title="背景色隔离画布"></iframe>
+    <aside aria-label="背景色试选">
+      <div class="eyebrow">MoMoFlow <span>隔离预览</span></div>
+      <h1>选一个舒服的背景</h1>
+      <p>点击色卡，看看节点和画布的整体感觉。<br>选好后把色号告诉我就可以。</p>
+      <div class="selection"><span id="selected-swatch"></span><div><small id="selected-name">当前背景</small><output id="selected-hex">加载中</output></div></div>
+      <div id="presets" aria-label="背景色方案"></div>
+      <label class="field-label" for="hex">自定义颜色</label>
+      <div class="custom-color"><input id="color" type="color" value="#090908" aria-label="自定义背景色"><input id="hex" value="#090908" maxlength="7" spellcheck="false" autocomplete="off" aria-describedby="hex-hint"></div>
+      <small id="hex-hint">支持 3 位或 6 位十六进制色号</small>
+      <div class="actions"><button id="compare" type="button" aria-pressed="false">对照当前背景</button><button id="copy" type="button">复制色号</button></div>
+      <button id="reset" type="button">恢复当前颜色</button>
+      <p class="note" id="status" role="status">仅在此页预览，正式画布保持原样。</p>
+    </aside>
+    <script type="module" src="./canvas-background.ts"></script>
+  </body>
+</html>
