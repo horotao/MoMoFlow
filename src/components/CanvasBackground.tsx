@@ -141,8 +141,11 @@ export function CanvasBackground() {
     };
   }, [store]);
 
-  return <div className="canvas-background" aria-hidden="true">
-    {fallback && <Background gap={32} size={1} bgColor="var(--canvas-background)" color="var(--canvas-grid-dot)" />}
-    <canvas ref={canvasRef} />
-  </div>;
+  return <>
+    <div className="canvas-background" aria-hidden="true">
+      {fallback && <Background gap={32} size={1} bgColor="var(--canvas-background)" color="var(--canvas-grid-dot)" />}
+      <canvas ref={canvasRef} />
+    </div>
+    <div className="canvas-top-fade" aria-hidden="true" />
+  </>;
 }

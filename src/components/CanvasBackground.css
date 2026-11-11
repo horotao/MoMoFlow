@@ -19,10 +19,12 @@
   z-index: 0;
 }
 
-.canvas-background::after {
-  content: '';
+.canvas-top-fade {
   position: absolute;
   inset: 0 0 auto;
+  /* Above React Flow's renderer (4), below its later UI panels (5). */
+  z-index: 5;
   height: 128px;
+  pointer-events: none;
   background: linear-gradient(to bottom, var(--canvas-background), transparent);
 }
