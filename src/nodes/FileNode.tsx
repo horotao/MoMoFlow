@@ -52,6 +52,7 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
   const multiple = assets.length > 1;
   const grid = multiple && (iterator ? data.viewMode !== 'single' : data.viewMode === 'all');
   const locked = Boolean(data.locked);
+  const draggableImage = !iterator && !grid && asset?.kind === 'image' && !locked;
   const nodeTitle = iterator ? data.label || '图片迭代' : fileNodeTitle(data);
   const kind = iterator ? 'image' : fileOutputKind(data);
   const select = (assetId: string) => { if (!iterator || !locked) updateNodeData(id, { activeAssetId: assetId }); };
@@ -163,7 +164,7 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
       status={locked && <LockKeyhole size={12} aria-label="已锁定" />}
       actions={<div className="image-iterator-heading-actions"><span className="image-iterator-count" aria-label={`${assets.length} / ${imageIteratorLimit} 张图片`}>{assets.length}/{imageIteratorLimit}</span>{nodeMenu}</div>} />
       : <header className="file-node-header"><NodeIcon nodeType="file" />{titleField}{nodeMenu}</header>}
-    <div ref={media} tabIndex={iterator ? 0 : undefined} className={`file-node-media nodrag nopan nowheel${asset ? ' has-assets' : ''}${grid ? ' is-grid' : ''}${dragging ? ' is-dragging' : ''}`}
+    <div ref={media} tabIndex={iterator ? 0 : undefined} className={`file-node-media${draggableImage ? '' : ' nodrag'} nopan nowheel${asset ? ' has-assets' : ''}${grid ? ' is-grid' : ''}${dragging ? ' is-dragging' : ''}`}
       style={!grid && asset?.width && asset.height ? { aspectRatio: `${asset.width} / ${asset.height}` } : undefined}
       onDragEnter={(event) => { if (!event.dataTransfer.types.includes('Files')) return; event.preventDefault(); event.stopPropagation(); if (!locked) { dragDepth.current++; setDragging(true); } }}
       onDragOver={(event) => { if (!event.dataTransfer.types.includes('Files')) return; event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = locked ? 'none' : 'copy'; }}
@@ -175,10 +176,10 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
         onSelect={select} onGridChange={() => updateNodeData(id, { viewMode: grid ? 'single' : 'all' })}
         onOrderChange={orderBy => updateNodeData(id, { orderBy })} onFullscreen={(assetId, trigger, keyboard) => {
           const item = assets.find(value => value.id === assetId);
-          // Start on the clicked image before React Flow applies the output selection.
+          // Start on the requested image before React Flow applies the output selection.
           if (item) showGallery(item, trigger, keyboard);
           select(assetId);
-        }} onDownload={runDownload} renderMedia={preview} opensOnClick={canViewImage} /> : <>
+        }} onDownload={runDownload} renderMedia={preview} opensOnKeyboard={canViewImage} /> : <>
         {grid ? <div className="file-node-grid" aria-label="Images">
           {[0, 1].map((column) => <div className="file-node-grid-column" key={column}>{assets.filter((_, index) => index % 2 === column).map((item) => <div key={item.id}
             className={`file-node-tile${item.id === asset.id ? ' is-active' : ''}`} data-asset-id={item.id} role="button" tabIndex={0} aria-label={`Select ${item.name}`} aria-pressed={item.id === asset.id}

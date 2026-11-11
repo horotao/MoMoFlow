@@ -69,7 +69,7 @@
 .node-image-tile.is-active::after { background: transparent; box-shadow: inset 0 0 0 1.5px var(--node-selected-border); }
 .node-image-tile:focus-visible { outline: 1.5px solid var(--node-selected-border); outline-offset: 2px; }
 .node-image-tile:active { cursor: grabbing; }
-.node-image-tile[aria-haspopup='dialog'], .node-image-single[aria-haspopup='dialog'] { cursor: zoom-in; }
+.node-image-tile[aria-haspopup='dialog'] { cursor: zoom-in; }
 .node-image-single[aria-haspopup='dialog']:focus-visible { outline: 2px solid var(--node-selected-border); outline-offset: -2px; }
 .node-image-overlay { position: absolute; inset: 0; opacity: 0; pointer-events: none; color: #fff; font: 400 12px/22px var(--font-ui); }
 .node-image-overlay::before,

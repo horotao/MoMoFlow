@@ -5,7 +5,7 @@ import { extractFileAsset } from '../fileCollection';
 import type { AppNode, FileAsset, FileNode } from '../types';
 
 /** Shared imported/generated image surface; selection stays in the owning node. */
-export function NodeImagePreview({ nodeId, assets, active, grid, orderBy, locked, onSelect, onGridChange, onOrderChange, onFullscreen, onDownload, renderMedia, opensOnClick }: {
+export function NodeImagePreview({ nodeId, assets, active, grid, orderBy, locked, onSelect, onGridChange, onOrderChange, onFullscreen, onDownload, renderMedia, opensOnKeyboard }: {
   nodeId: string;
   assets: FileAsset[];
   active: FileAsset;
@@ -18,23 +18,24 @@ export function NodeImagePreview({ nodeId, assets, active, grid, orderBy, locked
   onFullscreen: (id: string, trigger: HTMLElement, keyboard: boolean) => void;
   onDownload: () => void;
   renderMedia: (asset: FileAsset) => ReactNode;
-  opensOnClick?: (asset: FileAsset) => boolean;
+  opensOnKeyboard?: (asset: FileAsset) => boolean;
 }) {
   const { getNode, setNodes, screenToFlowPosition } = useReactFlow<AppNode>();
   const index = Math.max(0, assets.findIndex(item => item.id === active.id));
-  const opensSingle = opensOnClick?.(active);
+  const opensSingle = opensOnKeyboard?.(active);
   return <>
     {grid ? <div className="node-image-grid" aria-label="图片画廊">
       {[0, 1].map(column => <div className="node-image-column" key={column}>
         {assets.filter((_, i) => i % 2 === column).map(item => {
-          const opens = opensOnClick?.(item);
+          const opens = opensOnKeyboard?.(item);
           return <div key={item.id}
             className={`node-image-tile${item.id === active.id ? ' is-active' : ''}`} data-asset-id={item.id}
             role="button" tabIndex={0} aria-label={`${opens ? '查看' : '选择'} ${item.name}`} aria-pressed={item.id === active.id} aria-haspopup={opens ? 'dialog' : undefined}
             draggable={!locked} onClick={event => {
-              if (opens) onFullscreen(item.id, event.currentTarget, event.detail === 0);
+              if (opens && event.detail === 0) onFullscreen(item.id, event.currentTarget, true);
               else onSelect(item.id);
-            }} onDoubleClick={event => { if (!opens) onFullscreen(item.id, event.currentTarget, false); }}
+            }}
+            onDoubleClick={event => onFullscreen(item.id, event.currentTarget, false)}
             onKeyDown={event => {
               event.stopPropagation();
               if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -56,13 +57,15 @@ export function NodeImagePreview({ nodeId, assets, active, grid, orderBy, locked
       </div>)}
     </div> : <div className="node-image-single" data-asset-id={active.id} role={opensSingle ? 'button' : undefined}
       tabIndex={opensSingle ? 0 : undefined} aria-label={opensSingle ? `查看 ${active.name}` : undefined} aria-haspopup={opensSingle ? 'dialog' : undefined}
-      onClick={opensSingle ? event => onFullscreen(active.id, event.currentTarget, event.detail === 0) : undefined}
+      onClick={opensSingle ? event => {
+        if (event.detail === 0) onFullscreen(active.id, event.currentTarget, true);
+      } : undefined}
       onKeyDown={opensSingle ? event => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault(); event.stopPropagation(); onFullscreen(active.id, event.currentTarget, true);
       } : undefined}
       onDoubleClick={event => {
-        if (!opensSingle && !(event.target as HTMLElement).closest('video,audio')) onFullscreen(active.id, event.currentTarget, false);
+        if (!(event.target as HTMLElement).closest('video,audio')) onFullscreen(active.id, event.currentTarget, false);
       }}>{renderMedia(active)}</div>}
     <div className="node-image-overlay nodrag nopan">
       <div className="node-image-top">

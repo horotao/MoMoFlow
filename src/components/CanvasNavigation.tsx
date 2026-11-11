@@ -1,13 +1,12 @@
 import { MapIcon, MinusSignIcon, PlusSignIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { MiniMap, Panel, useReactFlow, useStore, useStoreApi, type MiniMapNodeProps } from '@xyflow/react';
+import { Panel, useReactFlow, useStore } from '@xyflow/react';
 import { cubicBezier } from 'motion';
 import { motion, useSpring, useTransform, type MotionValue } from 'motion/react';
-import { createContext, memo, useContext, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type MutableRefObject } from 'react';
+import { memo, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type MutableRefObject } from 'react';
 import { spring } from '../lib/springs';
-import { NodeIcon } from '../nodes/NodeIcon';
-import { nodeIcons } from '../nodes/nodeIcons';
-import type { AppNode } from '../nodes/types';
+import { CanvasMinimap } from './CanvasMinimap';
+import { minimapSize } from './minimapGeometry';
 import './CanvasNavigation.css';
 
 export const canvasMinZoom = 0.01;
@@ -18,9 +17,7 @@ const zoomEase = cubicBezier(0.23, 1, 0.32, 1);
 const digitPlaces = [100, 10, 1];
 const minPercent = Math.round(canvasMinZoom * 100);
 const maxPercent = Math.round(canvasMaxZoom * 100);
-const minimapSize = { width: 200, height: 106 };
 const minimapLayout = { '--navigation-map-height': `${minimapSize.height + 2}px` } as CSSProperties;
-const MinimapScaleContext = createContext(0);
 const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 const getReducedMotion = () => reducedMotionQuery.matches;
 function subscribeReducedMotion(onChange: () => void) {
@@ -29,23 +26,6 @@ function subscribeReducedMotion(onChange: () => void) {
 }
 
 export type ZoomTarget = { value: number };
-const MapNode = memo(function MapNode({ id, x, y, width, height, selected }: MiniMapNodeProps) {
-  const type = useStore(state => state.nodeLookup.get(id)?.type);
-  const icon = type && type in nodeIcons ? type as keyof typeof nodeIcons : 'file';
-  const scale = useContext(MinimapScaleContext);
-  const side = width * 0.735;
-  const centerX = x + width / 2;
-  const centerY = y + height / 2;
-  const showIcon = width * scale >= 15;
-
-  return <g className="navigation-map-node" data-selected={selected}>
-    <rect x={centerX - side / 2} y={centerY - side / 2} width={side} height={side} rx={side * 0.22} />
-    {showIcon && <svg x={centerX} y={centerY} width="4.9%" height="8.82%" viewBox="0 0 24 24" overflow="visible">
-      <g transform="translate(-12 -12)"><NodeIcon nodeType={icon} /></g>
-    </svg>}
-  </g>;
-});
-
 const ZoomDigit = memo(function ZoomDigit({ place, position }: { place: number; position: MotionValue<number> }) {
   // Repeat zero at the end of the units strip so wrapping from 9 to 0 is seamless.
   const rows = place === 1 ? 11 : Math.floor(maxPercent / place) + 1;
@@ -141,43 +121,13 @@ function ZoomPercentage({ percent, reducedMotion, onChange }: {
 
 export function CanvasNavigation({ pendingZoom }: { pendingZoom: MutableRefObject<ZoomTarget | null> }) {
   const [mapOpen, setMapOpen] = useState(false);
-  const [mapProjection, setMapProjection] = useState<{ scale: number; frame: CSSProperties } | null>(null);
   const reducedMotion = useSyncExternalStore(subscribeReducedMotion, getReducedMotion);
   const zoom = useStore(state => state.transform[2]);
-  const store = useStoreApi();
-  const { getZoom, setCenter, zoomTo } = useReactFlow();
+  const { getZoom, zoomTo } = useReactFlow();
   const mapId = useId();
   const mapTrigger = useRef<HTMLButtonElement>(null);
-  const mapContainer = useRef<HTMLDivElement>(null);
   const percent = Math.round(zoom * 100);
   const zoomMotion = { duration: reducedMotion ? 0 : 220, ease: zoomEase };
-
-  useLayoutEffect(() => {
-    if (!mapOpen) return;
-    const svg = mapContainer.current?.querySelector<SVGSVGElement>('.react-flow__minimap-svg');
-    const mask = svg?.querySelector('.react-flow__minimap-mask');
-    if (!svg || !mask) return;
-
-    // Project the viewport into the minimap's centered SVG viewBox.
-    const updateProjection = () => {
-      const { x, y, width, height } = svg.viewBox.baseVal;
-      if (!width || !height) return;
-      const scale = Math.min(minimapSize.width / width, minimapSize.height / height);
-      const { width: canvasWidth, height: canvasHeight, transform: [panX, panY, zoom] } = store.getState();
-      setMapProjection({ scale, frame: {
-        left: (minimapSize.width - width * scale) / 2 - (panX / zoom + x) * scale,
-        top: (minimapSize.height - height * scale) / 2 - (panY / zoom + y) * scale,
-        width: canvasWidth / zoom * scale,
-        height: canvasHeight / zoom * scale,
-      } });
-    };
-    updateProjection();
-    const observer = new MutationObserver(updateProjection);
-    observer.observe(svg, { attributes: true, attributeFilter: ['viewBox'] });
-    // Panning can move the viewport without changing the minimap viewBox.
-    observer.observe(mask, { attributes: true, attributeFilter: ['d'] });
-    return () => observer.disconnect();
-  }, [mapOpen, store]);
 
   const changeZoom = (value: number) => {
     const target = { value: Math.min(canvasMaxZoom, Math.max(canvasMinZoom, value)) };
@@ -214,14 +164,9 @@ export function CanvasNavigation({ pendingZoom }: { pendingZoom: MutableRefObjec
     <div className="navigation-map-reveal" id={mapId} aria-hidden={!mapOpen}
       onPointerDownCapture={() => { pendingZoom.current = null; }}
       onWheelCapture={() => { pendingZoom.current = null; }}>
-      <div className="navigation-map" ref={mapContainer}>
-        <MinimapScaleContext.Provider value={mapProjection?.scale ?? 0}>
-          <MiniMap<AppNode> position="bottom-left" style={minimapSize}
-            ariaLabel="画布小地图" nodeComponent={MapNode} pannable zoomable
-            bgColor="transparent" maskColor="transparent" maskStrokeColor="transparent"
-            onClick={(_event, { x, y }) => void setCenter(x, y, { zoom: getZoom() })} />
-        </MinimapScaleContext.Provider>
-        {mapProjection && <div className="navigation-map-viewport" style={mapProjection.frame} aria-hidden="true" />}
+      <div className="navigation-map">
+        <CanvasMinimap motion={{ ...zoomMotion, duration: mapOpen ? zoomMotion.duration : 0 }}
+          minZoom={canvasMinZoom} maxZoom={canvasMaxZoom} />
       </div>
     </div>
   </Panel>;

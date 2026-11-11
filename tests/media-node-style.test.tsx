@@ -77,6 +77,17 @@ function check(condition: unknown, message: string): asserts condition {
 const node = (id: string) => document.querySelector<HTMLElement>(`[data-id="${id}"]`)!;
 const surface = (id: string) => node(id).querySelector<HTMLElement>(id === 'import' ? '.file-node-media' : '.sunburst-preview')!;
 const button = (id: string, label: string) => node(id).querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!;
+async function verifyAssistiveImageActivation(trigger: HTMLElement, label: string) {
+  // Screen-reader activation may send only click, without keydown or dblclick.
+  flushSync(() => trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 })));
+  const viewer = document.querySelector<HTMLElement>('.file-gallery');
+  check(viewer && viewer.querySelector<HTMLImageElement>('.file-gallery-stage img')?.alt === trigger.querySelector('img')?.alt,
+    `${label}: assistive click alone opens the corresponding image`);
+  await until(() => !viewer.hasAttribute('data-morphing'), `${label}: assistive entrance must settle`);
+  viewer.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await until(() => !viewer.isConnected, `${label}: assistive viewer must close`);
+  check(document.activeElement === trigger, `${label}: dismissal restores focus to the activating image`);
+}
 async function verifySingleImageFullscreen(id: string) {
   const isPreview = id === 'preview';
   const thumbnail = () => node(id).querySelector<HTMLImageElement>(isPreview ? '.preview-image > img' : '.node-image-single > img');
@@ -141,9 +152,15 @@ async function run() {
         const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
         const origin = thumb.getBoundingClientRect();
         flushSync(() => tile.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })));
+        check(!document.querySelector('.file-gallery'), 'One click selects an import thumbnail without opening the viewer');
+        check(tile.getAttribute('aria-pressed') === 'true', 'One click selects the clicked import thumbnail');
+        flushSync(() => {
+          tile.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
+          tile.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, detail: 2 }));
+        });
         const viewer = document.querySelector<HTMLElement>('.file-gallery');
         const image = viewer?.querySelector<HTMLImageElement>('.file-gallery-stage img');
-        check(viewer && image?.alt === thumb.alt, 'One click opens the viewer on the clicked thumbnail');
+        check(viewer && image?.alt === thumb.alt, 'Double click opens the viewer on the clicked thumbnail');
         if (!reducedMotion) {
           const first = image.getBoundingClientRect();
           check(viewer.hasAttribute('data-morphing') && (['x', 'y', 'width', 'height'] as const).every(key => Math.abs(first[key] - origin[key]) < 2),
@@ -167,6 +184,7 @@ async function run() {
         await until(() => !viewer.isConnected, 'Closing must unmount the viewer after the return animation');
         check(getComputedStyle(thumb).opacity === '1', 'The canvas thumbnail is visible after the return animation');
         check(document.activeElement === tile && !document.getElementById('root')!.inert, 'Closing restores focus and canvas input');
+        await verifyAssistiveImageActivation(tile, 'Import gallery');
       } else {
         tile.click(); await frame(); await frame();
         check(!document.querySelector('.file-gallery'), `${id}: result clicks select without opening a viewer`);
@@ -178,6 +196,18 @@ async function run() {
       await until(() => surface(id).clientHeight === 424, `${id}: gallery return keeps selected image`);
       if (id === 'import') {
         const single = surface(id).querySelector<HTMLElement>('.node-image-single')!;
+        check(!single.closest('.nodrag'), 'Import single image allows dragging the node');
+        check(getComputedStyle(single).cursor !== 'zoom-in', 'Import single image uses the node cursor instead of the zoom cursor');
+        flushSync(() => single.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 })));
+        check(!document.querySelector('.file-gallery'), 'One click on the import single image does not open the viewer');
+        flushSync(() => {
+          single.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 2 }));
+          single.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, detail: 2 }));
+        });
+        check(document.querySelector<HTMLImageElement>('.file-gallery-stage img')?.alt === single.querySelector('img')?.alt,
+          'Double click on the import single image opens the current image');
+        document.querySelector('.file-gallery')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await until(() => !document.querySelector('.file-gallery'), 'Double-clicked single image preview must close');
         single.focus();
         single.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
         await until(() => Boolean(document.querySelector('.file-gallery-stage img')), 'Enter must open single image preview');
@@ -190,6 +220,7 @@ async function run() {
         }
         await until(() => !viewer.isConnected, 'Escape must dismiss the single image preview');
         check(document.activeElement === single, 'Keyboard dismissal restores focus to the single image');
+        await verifyAssistiveImageActivation(single, 'Import single image');
         await api.setViewport({ x: 50, y: 40, zoom });
       }
       button(id, '全屏展开').click();

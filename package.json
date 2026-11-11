@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.check.json",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test src/nodes/*.test.ts src/persistence/*.test.ts server/*.test.ts scripts/*.test.ts",
+    "test": "node --experimental-strip-types --test src/components/*.test.ts src/nodes/*.test.ts src/persistence/*.test.ts server/*.test.ts scripts/*.test.ts",
     "check:docs": "node --experimental-strip-types scripts/check-node-docs.ts",
     "check:diff": "node --experimental-strip-types scripts/check-diff.ts",
     "check:quick": "npm run lint && npm run typecheck && npm run check:docs && npm run check:diff",
