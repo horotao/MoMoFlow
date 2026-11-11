@@ -157,7 +157,7 @@ export function SettingsMorphSelect({ value, choices, labels, label = 'Model', m
       <span className="settings-select-row">
         {leading}
         <span className="settings-select-label">{currentLabel}</span>
-        <img src={appearance === 'api' ? '/api-settings/chevron.svg' : '/gpt-sidebar/chevron.svg'} width={appearance === 'api' ? undefined : 18} height={appearance === 'api' ? undefined : 18} alt="" />
+        <img src="/api-settings/chevron.svg" width={20} height={20} alt="" />
       </span>
     </button>
     {placement && createPortal(<AnimatePresence initial={false}>
