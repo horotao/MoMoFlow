@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { Panel } from '@xyflow/react';
+import { animate, motion, useMotionValue, useReducedMotion, useTransform } from 'motion/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, ArrowDown01Icon, Delete02Icon, Tick02Icon, WorkflowSquare10Icon } from '@hugeicons/core-free-icons';
 import type { CanvasProject } from '../persistence/projectLibrary';
@@ -7,6 +8,10 @@ import { spring } from '../lib/springs';
 import './CanvasProjectHeader.css';
 
 const menuMotionStyle = { '--node-menu-duration': `${spring.moderate.duration}s` } as CSSProperties;
+// BeUI Select: a clamped half-turn follows the reveal spring, then eases back.
+// https://beui.dev/components/motion/select
+const chevronOpen = { type: 'spring', visualDuration: 0.2, bounce: 0.12 } as const;
+const chevronClose = { duration: 0.2, ease: [0.16, 1, 0.3, 1] } as const;
 
 export type CanvasProjectActions = {
   project: CanvasProject;
@@ -24,6 +29,18 @@ export function CanvasProjectHeader({ project, projects, refresh, open: openProj
 }) {
   const [open, setOpen] = useState(false);
   const [pointerMotion, setPointerMotion] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const chevronProgress = useMotionValue(0);
+  const chevronTransform = useTransform(chevronProgress, progress =>
+    `rotate(${Math.min(1, Math.max(0, progress)) * 180}deg)`);
+  useEffect(() => {
+    if (reduceMotion || !pointerMotion) {
+      chevronProgress.set(open ? 1 : 0);
+      return;
+    }
+    const animation = animate(chevronProgress, open ? 1 : 0, open ? chevronOpen : chevronClose);
+    return () => animation.stop();
+  }, [open, pointerMotion, reduceMotion, chevronProgress]);
   const [menuOrigin, setMenuOrigin] = useState(0);
   const [busy, setBusy] = useState(false);
   const working = useRef(false);
@@ -110,7 +127,9 @@ export function CanvasProjectHeader({ project, projects, refresh, open: openProj
           onDoubleClick={() => { setOpen(false); setName(project.name); setEditing(true); }}
           onKeyDown={event => { if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); showMenu(); } }}>
           <span className="canvas-project-name">{project.name}</span>
-          <HugeiconsIcon icon={ArrowDown01Icon} size={14} aria-hidden="true" />
+          <motion.span className="canvas-project-chevron" style={{ transform: chevronTransform }} aria-hidden="true">
+            <HugeiconsIcon icon={ArrowDown01Icon} size={14} strokeWidth={1.5} absoluteStrokeWidth />
+          </motion.span>
         </button>}
         <span className="canvas-project-count">节点 {nodeCount}</span>
         <span className="canvas-project-divider" aria-hidden="true" />

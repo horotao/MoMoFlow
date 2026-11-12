@@ -35,7 +35,7 @@
 | 预览（Preview）：查看上游图片与遮罩 | `preview` | [PreviewNode.tsx](./PreviewNode.tsx) | 单图片输入 `file`，无输出；实时显示上游图片 |
 | 坐标记录（Position Logger）：显示节点坐标的示例节点 | `position-logger` | [PositionLoggerNode.tsx](./PositionLoggerNode.tsx) | 左侧输入、右侧输出；不执行模型任务 |
 
-画布节点的默认标题使用中文，自定义名称与导入文件名保持原样；模型品牌名（如 GPT Image 2.6）保留英文。标题与重命名框使用相同默认文案，界面字体复用全局 `--font-ui`（英文 Inter、macOS 中文苹方、Windows 中文 Noto Sans SC）。
+画布节点的默认标题使用中文，自定义名称与导入文件名保持原样；模型品牌名（如 GPT Image 2.6）保留英文。标题与重命名框使用相同默认文案，界面字体通过 `--font-ui` 统一引用：全局字体栈优先使用 Inter、苹方及 Noto Sans SC 等中文回退字体；新版 `.node-frame` 在局部覆盖为 Inter / Noto Sans SC Variable，具体作用域见下方共享视觉约定。
 
 侧边栏、画布右键创建与拖线推荐共用 `NodeAddMenu`，以 `libraryItemLabel` 为基础显示名称，Figma 菜单中的 Resize 显示为“调节尺寸”；GPT Image 2.6 与 Nano Banana 的节点标题、设置面板和任务列表复用对应模型的名称常量，保持一致。菜单搜索同时匹配中文和原英文，端口说明仅翻译显示，不改变连接标识。拖线入口仍由 `connectionRecommendations` 按兼容端口筛选，同一节点的多个端口保持独立选择身份；提交前再次校验。新增节点入口或调整分组时同步维护 `nodeMenuCatalog.ts`，创建数据仍由 `createLibraryNode()` 提供。
 
@@ -45,11 +45,11 @@
 
 节点库的名称、分类和创建数据在 [libraryCatalog.ts](../components/libraryCatalog.ts) 中维护。只有提供 `nodeType` 的条目才能通过 `createLibraryNode` 创建节点；目录中的展示卡片不等于已实现的节点，不应为占位卡片生成替代节点。
 
-节点标题与侧栏卡片共用 [nodeIcons.ts](./nodeIcons.ts) 中的共享图标映射（通用节点使用 Hugeicons Stroke Rounded）；标题通过 [NodeIcon.tsx](./NodeIcon.tsx) 渲染并保留各节点原有尺寸。修改节点图标时更新共享映射，避免两处显示不一致。Nano Banana 与 Ideogram 4.5 使用 [modelBrandIcons.ts](./modelBrandIcons.ts) 中从 Weavy 对应模型卡片同步的原始 SVG 路径；Nano Banana 保留品牌紫色，Ideogram 随主题文字颜色变化，节点库、标题与设置面板共用同一图标。Router 仍根据输入内容切换文本、图片 / 蒙版、视频、音频、3D 或文件图标，未连接时使用路由图标。
+节点标题与侧栏卡片共用 [nodeIcons.ts](./nodeIcons.ts) 中的共享图标映射（通用节点使用 Hugeicons Stroke Rounded）；使用该映射的标题通过 [NodeIcon.tsx](./NodeIcon.tsx) 渲染并保留各节点原有尺寸；部分节点直接使用 Hugeicons 或下文列出的 Figma 原始 SVG。修改节点图标时更新共享映射，避免两处显示不一致。Nano Banana 与 Ideogram 4.5 使用 [modelBrandIcons.ts](./modelBrandIcons.ts) 中从 Weavy 对应模型卡片同步的原始 SVG 路径；Nano Banana 保留品牌紫色，Ideogram 随主题文字颜色变化，节点库、标题与设置面板共用同一图标。Router 仍根据输入内容切换文本、图片 / 蒙版、视频、音频、3D 或文件图标，未连接时使用路由图标。
 
 应用仅支持深色模式；不再提供浅色切换、制作或验收。历史画布中的浅色设置读取时按深色处理，重新保存时写入深色设置，节点、连线和素材内容不变。图片操作按钮为 24×24px、8px 圆角，默认透明，悬停背景按 Figma 使用 10% 白色（`rgba(255,255,255,0.1)`）。
 
-新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：外框、标题栏、颜色和尺寸变量按节点逐个接入；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、图像描述、绘图、GPT Image 2.6、Nano Banana、Ideogram 4.5 和文件导入使用新版外框；三个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。三个图片模型直接共用 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代沿用原有外观。新版外框内按 Figma 使用 Inter / Noto Sans SC，字体作用域不扩散到原有节点。图像描述复用 Text 的外框、标题栏、更多菜单和文本内容区样式，宽 454px、内边距 14px，空状态高 403px；底部提供添加图片输入与运行模型，进度和取消复用图片模型的 `ModelRunButton`。Text 与图像描述的标题、更多、加号、运行、下拉箭头与文本端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。三个图片模型的运行按钮使用本地 DM Mono 字体、固定 98px 宽度，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
+新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：`NodeFrame` 与 `NodeHeader` 共用外框、标题栏、颜色和尺寸变量，各节点通过局部样式设置差异；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、图像描述、绘图、图片模型、文件导入及其他已接入的工具节点使用共享外框；三个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。三个图片模型直接共用 [SunburstNode.tsx](./SunburstNode.tsx) 导出的 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代通过 `FileNode` 复用新版共享外框、端口和图库，保留迭代器专用内容与行为。共享外框内使用 Inter / Noto Sans SC Variable，字体覆盖限定在 `.node-frame` 内。图像描述复用 Text 的外框、标题栏、更多菜单和文本内容区样式，宽 454px、内边距 14px，空状态高 403px；底部提供添加图片输入与运行模型，进度和取消复用图片模型的 `ModelRunButton`。Text 与图像描述的标题、更多、加号、运行、下拉箭头与文本端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。三个图片模型的运行按钮使用本地 DM Mono 字体、固定 98px 宽度，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
 
 所有单值参数滑块共用 [shared/NodeRangeInput.tsx](./shared/NodeRangeInput.tsx)，基于已验收的 [Arc Elastic Slider](https://uiarc.dev/components/elastic-slider) 接入边界拉伸回弹、拖动数值标签和双向参数的零点吸附。色彩校正、模糊、蒙版扩缩、混合、绘图，以及绘图 / 调色板 / 合成器的颜色面板和合成器效果参数均复用它；色阶的多手柄轨道、图片对比的分隔线和二维选色区域保留专用交互。
 
@@ -79,18 +79,21 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 | [fileAsset.ts](./fileAsset.ts)、[fileCollection.ts](./fileCollection.ts)、[fileMedia.ts](./fileMedia.ts) | 文件导入、集合与输出类型、拆分文件、媒体预览及下载 |
 | [describerRun.ts](./describerRun.ts)、[sunburstRun.ts](./sunburstRun.ts) | 从画布解析输入、校验运行条件、建立任务输入快照；`imageOutput` 定义图片输出语义 |
 | [describerClient.ts](./describerClient.ts)、[sunburstClient.ts](./sunburstClient.ts) | 浏览器请求与响应处理；服务端接入位于根目录 `server/` |
-| [taskQueue.ts](./taskQueue.ts)、[DescriberPanel.tsx](../components/DescriberPanel.tsx)、[TaskManager.tsx](../components/TaskManager.tsx) | 任务状态与调度、实际请求和结果写回、任务列表及取消与重试 |
+| [workflowExecution.ts](./workflowExecution.ts)、[executionGraph.ts](./executionGraph.ts)、[useWorkflowExecution.ts](../components/useWorkflowExecution.ts) | 按依赖准备输入、校验与执行、结果复用、取消和结果写回 |
+| [taskQueue.ts](./taskQueue.ts)、[DescriberPanel.tsx](../components/DescriberPanel.tsx)、[TaskManager.tsx](../components/TaskManager.tsx) | 任务队列、运行入口与设置展示，以及任务列表、取消和重试界面 |
 | [ModelRunButton.tsx](../components/ModelRunButton.tsx)、[useModelTasks.ts](../components/useModelTasks.ts)、[ModelTasksProvider.tsx](../components/ModelTasksProvider.tsx) | 节点和任务面板共享临时运行状态，显示启动、旋转圆环、百分比和取消操作；不写入画布历史或持久化 |
 | [TextNodeMenu.tsx](./TextNodeMenu.tsx)、[cloneTextNode.ts](./cloneTextNode.ts)、[sunburstClipboard.ts](./sunburstClipboard.ts) | 节点菜单及现有类型的复制、粘贴与克隆处理 |
 | [assetResources.ts](./assetResources.ts)、[workflowStorage.ts](../persistence/workflowStorage.ts)、[useWorkflowPersistence.ts](../persistence/useWorkflowPersistence.ts) | 素材引用生命周期、IndexedDB 保存恢复及自动保存；撤销历史见 [useCanvasHistory.ts](../components/useCanvasHistory.ts) |
-| [index.css](../index.css)、[SunburstNode.css](./SunburstNode.css) | 共享节点样式、主题和 Sunburst 专用样式 |
+| [shared/NodeFrame.tsx](./shared/NodeFrame.tsx)、[shared/NodePort.tsx](./shared/NodePort.tsx)、[shared/nodeStyle.css](./shared/nodeStyle.css)、[shared/mediaNodeStyle.css](./shared/mediaNodeStyle.css) | 共享外框、标题、端口与媒体节点视觉基础 |
+| [NodeSettingsSection.tsx](../components/NodeSettingsSection.tsx)、[ParameterField.tsx](../components/ParameterField.tsx)、[NodeSettingsSidebar.css](../components/NodeSettingsSidebar.css) | 设置面板分组、参数行及共用样式 |
+| [index.css](../index.css)、[SunburstNode.css](./SunburstNode.css) | 全局基础样式、兼容样式及 Sunburst 专用样式 |
 
 ## 输入输出与交互约定
 
 - 连接规则由 `connectionRules.ts` 的 `canConnect` 统一校验，`App.tsx` 的 `isValidConnection` 和推荐菜单创建入口共用：拒绝自连接、环路、涉及锁定节点的连接和连接到 `model-input` 的输入。同一个文本变量输入或描述器、生成器、图像工具、Preview、Router 输入端口只保留一条边；将兼容的新输出拖到已连接的输入端口时，直接替换该端口的旧连线，保留其他端口与下游分支。校验与提交共用 `withoutReplacedInput`，只在有效连接提交时替换，取消或无效连接保留原图；替换可一次撤销/重做，重复连接同一输出不产生修改。
 - 主画布连线使用 [MagneticEdge.tsx](../edges/MagneticEdge.tsx) 与 [MagneticConnectionPreview.tsx](../edges/MagneticConnectionPreview.tsx)，和磁吸实验页共享融球、回弹及端口反馈实现。正式默认值集中在 [magneticTypes.ts](../edges/magneticTypes.ts)：100% 视图下吸附范围 86px、线宽 2px、拖线小球使用起始端口的已连接圆心半径（文本端口 2.5px、媒体 / Router / 调色板端口 3px）、刚性 50%、回弹力度与范围 100%、涟漪羽化 1px、速度 1×；调参滑块保留在实验页。低于 100% 时，吸附距离、融球与涟漪随视图等比例缩小（50% 时吸附距离为 43px），100% 以上保持原屏幕大小上限；拖线两端的小球始终随端口一起缩放，使尺寸与连接后的圆心一致，线宽仍保持屏幕像素粗细。静止曲率沿用主画布的 0.25；拖线预览直接读取起始端口作用域内的颜色变量，线身、起点小球、前端小球和磁场同色；起点小球固定在起拖端口中心，与前端小球共用端口的 `--node-port-dot-radius` 和缩放规则，仅在连接预览期间显示；输入端口反向拖线也沿用该端口颜色，悬停目标不会改变取色。Router 按透传类型动态取色，旧 File 媒体端口读取其 `--file-port`；已连接线保留原有类型颜色。成功吸附后小球沿松手时的实际半径缩入端口、线身回弹并展开柔光涟漪；180 屏幕像素内的邻线沿整条线身轻弹，随距离衰减。反馈由 [connectionEffects.ts](../edges/connectionEffects.ts) 独立管理，不写入节点、边、历史或工作流；撤销/重做清理反馈，恢复工作流不重播。端口效果通过实际 handle bounds 定位，兼容共享及旧节点；手势清理由 [useConnectionGesture.ts](../edges/useConnectionGesture.ts) 管理：Escape、失焦与触摸取消同步结束拖动和自动平移，并清理待完成的点击连接；下一次拖动或点击连接都重新开始。拖动中缩放或平移时刷新命中，预览与提交均按当前缩放校验吸附距离，避免使用起拖时的范围误替换输入。无效连接、锁定限制与输入替换仍遵守原连接规则，减少动态效果时跳过位移并使用短暂原位确认。
 - 将输入或输出把手拖到空白画布会打开可搜索的推荐菜单，按方向和端口类型筛选已实现节点；选中后才创建节点并连接正确端口，创建与连线作为一次撤销记录；从已连接的输入反向创建新节点时同样替换旧连接。Escape、点击外部或移动画布关闭菜单，取消不修改图数据。落在已有节点上仍使用普通连接规则。
-- 右键单击空白画布打开同一快捷创建菜单，显示节点库中全部已实现节点，不按端口筛选；选择后在右键对应的画布坐标创建并选中节点，不附加连线。搜索、键盘选择和关闭方式与拖线菜单一致；选择工具和手形工具均支持，右键拖动画布仍用于平移。
+- 右键单击空白画布打开同一快捷创建菜单，显示菜单目录中开放创建的节点，不按端口筛选；`model-input` 与 `position-logger` 保持隐藏，展示占位条目不创建节点；选择后在右键对应的画布坐标创建并选中节点，不附加连线。搜索、键盘选择和关闭方式与拖线菜单一致；选择工具和手形工具均支持，右键拖动画布仍用于平移。
 - 从图片/遮罩输入反向选择 Import 时，允许先创建并连接空 File，之后由用户添加图片；该特例只适用于本次新建的 Import，运行前仍必须通过已有图片校验。推荐 Image Describer 的 System Instructions 时会同时暴露该输入。未知或不兼容的媒体输出不推荐文本节点。
 - Prompt 的变量端口从 `variable-1` 开始，图片端口从 `image-0` 开始。沿用 `variableHandleId`、`variableIndex` 等辅助函数，避免混用编号。端口数量或位置变化后调用 `useUpdateNodeInternals`，使连线位置跟随更新。
 - 连接期间，文本值通过 `resolveTextValue` 从当前图数据动态解析，不持续复制到下游节点数据中。参数从外部输入切回 **Use local value** 时例外：Image Describer 会将当前解析值写回本地参数并移除对应连线；Sunburst 也会保存当前有效参数值，校验失败时保留原本地值。具体入口见 [DescriberPanel.tsx](../components/DescriberPanel.tsx) 和 [SunburstSettings.tsx](../components/SunburstSettings.tsx)。
@@ -111,7 +114,7 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 
 ## Text Iterator 文本迭代约定
 
-文本迭代位于工具 → 迭代器，搜索支持中文及 Text Iterator。节点沿用新版共享外框、标题、更多菜单和端口：454px 宽、28px 圆角、标题计数 `n/50`、带序号的独立文本条目和底部添加入口。文本/数组输入与紫色文本输出位于内容区两侧；长列表在节点内部滚动。默认一条空文本，最多 50 条；文本可换行，条目使用稳定 ID，支持删除、拖放排序及排序按钮的上下键、Home / End。新增条目聚焦输入框，中文输入与文本编辑保留原生按键行为；锁定后不能编辑、排序、增删、拖动或新建连接。菜单、独立副本、剪切粘贴、撤销重做和 IndexedDB 保存恢复复用画布机制。
+文本迭代位于工具 → 辅助工具节点 → 流程与批量，搜索支持中文及 Text Iterator。节点沿用新版共享外框、标题、更多菜单和端口：454px 宽、28px 圆角、标题计数 `n/50`、带序号的独立文本条目和底部添加入口。文本/数组输入与紫色文本输出位于内容区两侧；长列表在节点内部滚动。默认一条空文本，最多 50 条；文本可换行，条目使用稳定 ID，支持删除、拖放排序及排序按钮的上下键、Home / End。新增条目聚焦输入框，中文输入与文本编辑保留原生按键行为；锁定后不能编辑、排序、增删、拖动或新建连接。菜单、独立副本、剪切粘贴、撤销重做和 IndexedDB 保存恢复复用画布机制。
 
 输入连接存在时显示上游内容并只读，本地条目仍保留，断开后恢复。普通文本（包括换行）是一条；显式 JSON 字符串数组逐项展开，空列表、非文本成员、空白条目、超过 50 条或每条超过 32000 字符都给出明确错误。异常输入不阻止重命名、锁定、解锁或删除；只有创建副本和剪切等需要内容快照的操作才解析输入，并直接报告输入错误。当前没有新增独立 Array 节点或 CSV 列导入界面，可以在 Prompt 中提供 JSON 数组。动态模型生成的列表需先运行并设为手动文本，批量开始前确定实际条数。同一个目标依赖多个独立迭代器时拒绝运行，避免隐式进行组合；互相依赖的多选批量节点需只选择最终目标。
 
@@ -127,7 +130,7 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 
 ## Image Iterator 图片迭代约定
 
-图片迭代位于工具 → 迭代器，支持中文及 Image Iterator 搜索。节点沿用新版共享外框、标题、更多菜单及图片端口，宽 456px、圆角 28px，标题显示 `n/50`；空态为 424px 棋盘格、多选上传和图片链接；多图默认双列缩略图，可切换单图、前后浏览、按添加时间或名称排序，底部添加更多图片。右键图片可下载当前图片、下载全部、设为封面和复制图片；节点菜单提供清空、重命名、锁定、副本、剪切和删除。仅接受图片，最多 50 张；没有输入端口，绿色 `file` 输出可在列表为空时预先连接。没有图片时，下游显示共用的迭代警告并阻止运行。
+图片迭代位于工具 → 辅助工具节点 → 流程与批量，支持中文及 Image Iterator 搜索。节点沿用新版共享外框、标题、更多菜单及图片端口，宽 456px、圆角 28px，标题显示 `n/50`；空态为 424px 棋盘格、多选上传和图片链接；多图默认双列缩略图，可切换单图、前后浏览、按添加时间或名称排序，底部添加更多图片。右键图片可下载当前图片、下载全部、设为封面和复制图片；节点菜单提供清空、重命名、锁定、副本、剪切和删除。仅接受图片，最多 50 张；没有输入端口，绿色 `file` 输出可在列表为空时预先连接。没有图片时，下游显示共用的迭代警告并阻止运行。
 
 `ImageIteratorNode` 复用 `FileNode` 的导入、预览和图库，共享深灰节点外观；`imageIterator.ts` 负责图片列表与剪贴板校验。当前封面只用于画布预览，不改变批量范围。运行时 `workflowIterations` 按列表的显示顺序生成稳定图片身份，`iterationGraph` 为每个任务投影成只含对应图片的文件节点，原始列表保持不变。支持图像描述、GPT Image 2.6、Nano Banana、Ideogram，以及 Router / 本地图片处理 / 后续模型链；同一张图片的多个依赖共享本轮结果，跨图片和并发批次按身份匹配，不混用其他图片。与文本迭代共用运行次数，`3 张 × 2 次` 创建 6 个目标任务；同一目标只允许一个迭代器，多个图片列表或图片与文本列表同时汇入时先报错，不隐式组合请求。
 
@@ -239,13 +242,13 @@ Painter 在浏览器本地绘制，不运行模型或消耗额度。外框、标
 
 Image Describer 运行前需要至少一张有效的上游图片和非空模型值；当前实际接入的描述模型为 `deepseek-flash`。图片按输入端口编号排序，生成文本写回 `data.text`。
 
-Sunburst 运行前必须连接非空 Prompt，栅格输出时参考图片和 Mask 可选。SVG 输出仅支持 Prompt 文生图，连接参考图片或 Mask 会在执行任何上游模型前报错；每个请求 n=1，OpenAI SVG 请求显式使用 `svg.model: gpt-6.1-terra` 编写矢量 XML，顶层模型仍为所选 Flare / Sunburst；其他格式与 ZenMux 不附加此参数。`vectorSvg.ts` 使用 saxes 解析并验证纯矢量 XML，拒绝内嵌位图、脚本、动画及外部资源。服务端和客户端均校验，结果使用 image/svg+xml Blob 和 .svg 名称，预览、原文件下载、ZIP 与 IndexedDB 保留原始矢量字节，不经 Canvas 栅格化。SVG 不能直接作为模型图片参考输入。连接了 Image 时，上游必须已有图片；使用 Mask 时还必须连接参考图片，且 Mask 只能提供一张图片。图片格式、尺寸及参数限制由 `sunburst.ts`、`sunburstClient.ts` 和服务端共同校验，不应只依赖界面限制。成功结果追加到 `results`，并更新 `activeResultId`。多张结果时，页码前的图标可切换单张预览与全部图片；全部视图与文件导入共用 [shared/NodeImagePreview.tsx](./shared/NodeImagePreview.tsx) 的两列瀑布流（8px 内边距、4px 列距），点击缩略图选择输出结果，双击打开全屏。视图切换仅影响当前预览，不改变已选结果。下载按钮同样复用 File Node：单张视图下载当前图片，全部图片视图按当前排序将所有结果打包为 `images.zip`。
+Sunburst 运行前必须连接非空 Prompt，栅格输出时参考图片和 Mask 可选。SVG 输出仅支持 Prompt 文生图，连接参考图片或 Mask 会在执行任何上游模型前报错；每个请求 n=1，OpenAI SVG 请求显式使用 `svg.model: gpt-6.1-terra` 编写矢量 XML，顶层模型仍为所选 Flare / Sunburst；其他格式与 ZenMux 不附加此参数。`vectorSvg.ts` 使用 saxes 解析并验证纯矢量 XML，拒绝内嵌位图、脚本、动画及外部资源。服务端和客户端均校验，结果使用 image/svg+xml Blob 和 .svg 名称，预览、原文件下载、ZIP 与 IndexedDB 保留原始矢量字节，不经 Canvas 栅格化。SVG 不能直接作为模型图片参考输入。连接了 Image 时，执行器会先准备所需上游，提交图片模型请求前必须取得有效图片；使用 Mask 时还必须连接参考图片，且 Mask 只能提供一张图片。图片格式、尺寸及参数限制由 `sunburst.ts`、`sunburstClient.ts` 和服务端共同校验，不应只依赖界面限制。成功结果追加到 `results`，并更新 `activeResultId`。多张结果时，页码前的图标可切换单张预览与全部图片；全部视图与文件导入共用 [shared/NodeImagePreview.tsx](./shared/NodeImagePreview.tsx) 的两列瀑布流（8px 内边距、4px 列距），点击缩略图选择输出结果，双击打开全屏。视图切换仅影响当前预览，不改变已选结果。下载按钮同样复用 File Node：单张视图下载当前图片，全部图片视图按当前排序将所有结果打包为 `images.zip`。
 
 Sunburst 的单张预览框在生成前即按有效宽高比调整高度，支持预设、自定义尺寸及外接参数（含 Router）。节点宽度保持一致，高度随预览变化，并为输入端口保留最小空间。自动比例或无效的尺寸草稿使用当前结果的实际比例；无结果时使用正方形。已有结果在新比例内完整显示，尺寸调整不修改图片、下载或下游输出；全部图片视图保留网格布局。
 
 Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排序偏好保存在节点数据中；排序只改变预览顺序，不改变当前输出或原始结果顺序。全部视图中可将缩略图拖到空白画布，复用 `extractFileAsset` 将图片移至新的 File 节点；原节点至少保留一张结果，若移走当前输出则选中剩余的最新结果。创建与移出作为一次撤销记录，取消拖动、落在非画布区域、节点删除或锁定时不执行。
 
-两类模型共用 `DescriberPanel` 的任务入口：先对本次选择的节点进行准备阶段校验，再统一入队；准备阶段出现错误时，本次任务均不入队。这不代表所有校验都在入队前完成：描述器的 1–14 张图片数量限制，以及图片格式、体积、Mask 尺寸和透明区域等检查，在入队后的客户端请求流程中执行，服务端还会进一步校验。某个任务在这些后续检查中失败，不会阻止其他节点的任务提交，也不会回滚已提交的请求。
+描述器、GPT Image、Nano Banana 与 Ideogram 共用 `useWorkflowExecution` 的执行入口，`DescriberPanel` 负责触发运行和展示设置、任务。执行前检查必要依赖链的已知输入与参数，依赖运行后才能取得的动态值在请求提交前继续校验，客户端和服务端仍各自校验图片格式、体积及蒙版等约束。失败、并发与结果复用边界见下方“按依赖自动执行与结果复用”，不能将准备阶段校验理解为全部请求已通过验证。
 
 任务保存运行时的输入快照，同一节点的多次运行按顺序处理，不同节点可并行；已有活动任务时阻止重复运行。
 
@@ -259,8 +262,8 @@ Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排�
 
 1. 在 `types.ts` 定义明确的数据类型，并扩展 `AppNode`；组件使用对应的 `NodeProps` 类型。组件名采用 PascalCase，节点类型标识采用 kebab-case，遵循现有 TypeScript 风格。
 2. 在本目录创建组件，并在 `index.ts` 的 `nodeTypes` 注册。明确默认值来源；注册节点不代表需要加入 `initialNodes`。
-3. 需要出现在节点库时，在 `libraryCatalog.ts` 添加条目和创建数据，并检查侧栏点击与拖入入口。按需检查 `App.tsx` 中拖线到空白处的创建逻辑，不能假定它自动支持新类型。
-4. 定义稳定的输入输出端口 ID、允许连接的类型和单端口连接数量。按需扩展 `isValidConnection`、文本或图片解析逻辑，并验证动态端口布局。
+3. 需要出现在节点库时，在 `src/components/libraryCatalog.ts` 添加条目及 `createLibraryNode()` 创建数据，在 `src/components/nodeMenuCatalog.ts` 维护分组和搜索入口；检查 Dock、空白右键及拖线推荐菜单。拖线推荐还需核对 `connectionRecommendations.ts` 的兼容端口，不能假定注册后自动支持新类型。
+4. 定义稳定的输入输出端口 ID、允许连接的类型和单端口连接数量。按需扩展 `connectionRules.ts` 的统一校验和文本或图片解析逻辑，并验证动态端口布局。
 5. 需要设置面板或模型运行时，接入对应面板、运行前校验、任务状态、取消与结果写回流程。复用现有任务机制，避免在组件中另建一套请求和状态管理。
 6. 核对复制粘贴、克隆、删除、锁定与撤销重做。复用 `TextNodeMenu` 时，还需扩展其允许操作的节点类型判断，不能只挂载组件；菜单中的“保存节点”目前仍禁用，与画布自动保存是独立功能。需要持久化的数据放入节点数据；临时 UI 状态和请求控制器留在运行时。涉及新素材字段时，同时扩展素材引用收集与 `workflowStorage.ts` 的 `mapAssets`，验证保存恢复及资源释放。任务和撤销历史目前不跨刷新恢复，恢复画布也不会自动重发模型任务。
 7. 为新增行为选择合适的验证，并在同一次改动中更新本文的节点索引和受影响约定。删除节点或更改已保存数据、类型标识、端口 ID 时，还需考虑旧画布和剪贴板内容的兼容处理。
@@ -322,7 +325,7 @@ Worker 使用有界任务队列；拖动时 512px 草稿，释放时原尺寸 PN
 
 ## Router
 
-从 Tools → Helpers、搜索 Router 或拖线到空白处的推荐菜单添加；双击可连接的输出端口也会在其右侧创建并连接一个 Router，已有分支保留。复用新版共享外框、标题、更多菜单和端口，默认尺寸 250 × 56、28px 圆角，单行图标、名称和菜单，左右居中的 Input / Output；端口颜色与图标跟随输入类型，空节点使用中性色，沿用共享深灰节点外观。
+从工具 → 辅助工具节点 → 流程与批量、搜索 Router 或拖线到空白处的推荐菜单添加；双击可连接的输出端口也会在其右侧创建并连接一个 Router，已有分支保留。复用新版共享外框、标题、更多菜单和端口，默认尺寸 250 × 56、28px 圆角，单行图标、名称和菜单，左右居中的 Input / Output；端口颜色与图标跟随输入类型，空节点使用中性色，沿用共享深灰节点外观。
 
 Router 直接从当前图解析来源，不保存文本或素材副本，不运行模型。Input 只保留一条连线，拖入新来源会替换旧线并保留所有下游分支，替换前校验整个 Router 链的消费者；不允许用文本替换仍连接图片输入的来源，反向亦然。Output 可连接多个兼容输入，也可继续连接 Router。空 Router 可以先连接下游，之后接入的来源必须匹配下游要求；推荐菜单随输入和下游约束筛选。环路、自连接、无效端口和涉及锁定节点的新连接会被拒绝。
 

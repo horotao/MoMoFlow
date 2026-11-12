@@ -3,9 +3,7 @@
 .canvas-project-info { display: flex; align-items: center; gap: 8px; min-height: 32px; }
 .canvas-project-trigger { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; color: inherit; font: 600 13px/20px var(--font-ui); cursor: pointer; }
 .canvas-project-name { display: block; max-width: 88px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.canvas-project-trigger > svg { flex-shrink: 0; }
-.canvas-project-trigger[aria-expanded='true'] > svg { transform: rotate(180deg); }
-.canvas-project-header[data-pointer-motion] .canvas-project-trigger > svg { transition: transform var(--node-menu-duration) var(--dock-menu-ease-out); }
+.canvas-project-chevron { display: flex; flex-shrink: 0; }
 .canvas-project-trigger:hover, .canvas-project-trigger[aria-expanded='true'] { background: rgb(255 255 255 / 5%); }
 .canvas-project-count, .canvas-project-status { color: #919191; font: 500 11px/16px var(--font-ui); white-space: nowrap; }
 .canvas-project-count { font-variant-numeric: tabular-nums; }
@@ -54,7 +52,6 @@
 @media (max-width: 360px) { .canvas-project-name { max-width: 72px; } .canvas-project-info { gap: 6px; } }
 @media (prefers-reduced-motion: reduce) {
   .canvas-project-header[data-pointer-motion] .canvas-project-menu { transform: none; transition-property: opacity; }
-  .canvas-project-header[data-pointer-motion] .canvas-project-trigger > svg { transition: none; }
   @starting-style {
     .canvas-project-header[data-pointer-motion] .canvas-project-menu { transform: none; }
   }
