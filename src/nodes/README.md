@@ -51,6 +51,10 @@
 
 新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：外框、标题栏、颜色和尺寸变量按节点逐个接入；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、图像描述、绘图、GPT Image 2.6、Nano Banana、Ideogram 4.5 和文件导入使用新版外框；三个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。三个图片模型直接共用 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代沿用原有外观。新版外框内按 Figma 使用 Inter / Noto Sans SC，字体作用域不扩散到原有节点。图像描述复用 Text 的外框、标题栏、更多菜单和文本内容区样式，宽 454px、内边距 14px，空状态高 403px；底部提供添加图片输入与运行模型，进度和取消复用图片模型的 `ModelRunButton`。Text 与图像描述的标题、更多、加号、运行、下拉箭头与文本端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。三个图片模型的运行按钮使用本地 DM Mono 字体、固定 98px 宽度，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
 
+所有单值参数滑块共用 [shared/NodeRangeInput.tsx](./shared/NodeRangeInput.tsx)，基于已验收的 [Arc Elastic Slider](https://uiarc.dev/components/elastic-slider) 接入边界拉伸回弹、拖动数值标签和双向参数的零点吸附。色彩校正、模糊、蒙版扩缩、混合、绘图，以及绘图 / 调色板 / 合成器的颜色面板和合成器效果参数均复用它；色阶的多手柄轨道、图片对比的分隔线和二维选色区域保留专用交互。
+
+`NodeRangeInput` 接收数值回调：`onValueStart` 开始草稿，`onValueChange` 实时更新，`onValueCommit` 松手或键盘调节时提交，`onValueCancel` 放弃草稿。`resetKey` 在换图或更换编辑对象时取消未完成手势。无草稿管线的连续控制只传 `onValueChange`，取消时恢复起始值。锁定须显式传入 `disabled`（原生 fieldset 不会禁用自定义滑块）。控件不写入工作流；数字输入、范围、步长和颜色渐变由使用处维护。方向键微调、Shift / PageUp / PageDown 大步调节、Home / End 到边界；键盘不播放位移，减少动态时去除拉伸和标签摆动。指针位置按实际轨道尺寸换算，兼容画布缩放；数字框失焦先完成提交，再开始拖动。验证入口为 `/tests/node-range-input.html`；`/tests/node-range-nodes.html` 另验真实色彩校正、模糊与蒙版扩缩的草稿、输出、下游预览、历史和锁定。沿用 React 浏览器断言，无新依赖。
+
 反相、裁剪和模糊也使用新版共享外框、标题、更多菜单与图片端口，宽 456px、图片区域宽 424px。反相沿用预览节点的图片样式；裁剪保留选区与外侧拖动手柄，图片和遮罩单独裁切圆角；模糊复用色彩校正的参数行和 `NodeRangeInput` 滑条，类型与裁剪比例复用已有下拉菜单。图片处理、端口 ID 和保存数据不变。
 
 文件导入的单图和瀑布流图片可双击打开大图，单图区域使用节点的拖动光标，按住图片可直接移动未锁定节点；单击瀑布流图片只选择当前图片，图片从画布缩略图展开。文件导入、图片生成和预览节点的全屏按钮使用同一个图片查看器。查看器支持下载、缩放和翻页，键盘可用 Enter 或空格打开、方向键翻页。按 Esc 或点关闭按钮时，默认缩放下的大图会缩回可见的画布缩略图；关闭后焦点回到打开预览的位置。拖动缩略图到空白画布仍可拆分为独立文件节点。

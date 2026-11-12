@@ -1,3 +1,4 @@
+import { rangePointer } from './nodeRangeGesture';
 import { useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, addEdge, useNodesState, useEdgesState, type Edge } from '@xyflow/react';
@@ -65,7 +66,7 @@ function assert(condition: unknown, message: string): asserts condition { if (!c
 const node = () => nodesNow.find(node => node.id === 'matte') as Matte;
 const output = () => imageOutput(node(), 'result', nodesNow, edgesNow)[0];
 const field = () => find<HTMLInputElement>('.react-flow__node-matte-grow-shrink input[type="number"]');
-const slider = () => find<HTMLInputElement>('.react-flow__node-matte-grow-shrink input[type="range"]');
+const slider = () => find<HTMLElement>('.react-flow__node-matte-grow-shrink [role="slider"]');
 async function until(check: () => boolean, message: string) { const start = performance.now(); while (performance.now() - start < 20000) { if (check()) return; await settle(); } throw new Error(message); }
 async function verify(size: number, width = 640, height = 480) {
   await until(() => !!output() && node().data.settings.size === size && output().width === width, `Output size ${size}, ${width} px`);
@@ -84,20 +85,9 @@ async function edit(text: string, end: string | null = 'Enter') {
   const input = field(); input.focus(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, text);
   input.dispatchEvent(new Event('input', { bubbles: true })); await settle(); if (end) key(input, end); await settle();
 }
-async function startDrag() {
-  const input = slider();
-  // Synthetic pointer events cannot capture a native pointer. Only stub capture;
-  // the node's focus, blur, input, cancellation and history handlers run normally.
-  input.setPointerCapture = () => {};
-  try { input.dispatchEvent(new PointerEvent('pointerdown', { button: 0, pointerId: 1, bubbles: true })); }
-  finally { Reflect.deleteProperty(input, 'setPointerCapture'); }
-  await settle();
-}
-async function moveSlider(value: number) {
-  const input = slider(); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, String(value));
-  input.dispatchEvent(new Event('input', { bubbles: true })); await settle();
-}
-async function endDrag() { slider().dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, bubbles: true })); await settle(); }
+async function startDrag() { rangePointer(slider(), 'pointerdown'); await settle(); }
+async function moveSlider(value: number) { rangePointer(slider(), 'pointermove', value); await settle(); }
+async function endDrag() { rangePointer(slider(), 'pointerup'); await settle(); }
 async function verifyCompareMask() {
   const compare: AppNode = { id: 'compare', type: 'compare', position: { x: 0, y: 0 }, data: { mode: 'slider', split: .5 } };
   const generator: AppNode = { id: 'generator', type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, imageInputs: 1 } };
@@ -173,7 +163,7 @@ async function run() {
   await startDrag(); await moveSlider(60);
   replaceNodes(nodesNow.map(item => item.id === 'matte' ? { ...node(), data: { ...node().data, locked: true } } : item)); await settle();
   await endDrag();
-  assert(node().data.settings.size === 13 && slider().disabled, 'Lock cancels a pending drag');
+  assert(node().data.settings.size === 13 && slider().getAttribute('aria-disabled') === 'true', 'Lock cancels a pending drag');
   replaceNodes(nodesNow.map(item => item.id === 'matte' ? { ...node(), data: { ...node().data, locked: false } } : item)); await settle(); await verify(13);
   pass('Escape, window blur and locking cancel pending drags');
   await click('.react-flow__node-matte-grow-shrink [aria-label="更多选项"]');
@@ -184,7 +174,7 @@ async function run() {
   await until(() => !!imageOutput(copy, 'result', nodesNow, edgesNow)[0], 'Copy produces output');
   replaceNodes(nodesNow.filter(item => item.id !== copy.id)); await settle();
   replaceNodes(nodesNow.map(item => item.id === 'matte' ? { ...node(), data: { ...node().data, locked: true } } : item)); await settle();
-  assert(field().disabled && find<HTMLInputElement>('.react-flow__node-matte-grow-shrink input[type="range"]').disabled, 'Locked controls');
+  assert(field().disabled && slider().getAttribute('aria-disabled') === 'true', 'Locked controls');
   replaceNodes(nodesNow.map(item => item.id === 'matte' ? { ...node(), data: { ...node().data, locked: false } } : item)); await settle();
   pass('Independent duplicate and locked controls');
   const databaseName = `momoflow-matte-test-${crypto.randomUUID()}`, storage = new WorkflowStorage(databaseName);

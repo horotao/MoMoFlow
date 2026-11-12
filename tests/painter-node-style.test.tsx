@@ -103,7 +103,7 @@ async function run() {
   check(within<HTMLInputElement>('input[aria-label="颜色"]').value === '60A5FA', 'Panel HEX synchronizes brush color');
   input('.painter-design-picker input[aria-label="颜色选择器不透明度"]', '37'); await settle();
   check(within<HTMLInputElement>('input[aria-label="颜色不透明度"]').value === '37', 'Panel opacity synchronizes inline opacity');
-  input('.painter-design-picker input[aria-label="色相"]', '180'); await settle();
+  find('.painter-design-picker [role="slider"][aria-label="色相"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true })); await settle();
   check(within<HTMLInputElement>('input[aria-label="颜色"]').value !== '60A5FA', 'Hue slider changes actual color');
   picker.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
   check(!document.querySelector('.painter-design-picker') && document.activeElement === within('.painter-color-swatch'), 'Escape closes picker and restores focus');

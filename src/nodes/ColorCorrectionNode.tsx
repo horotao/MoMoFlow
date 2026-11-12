@@ -168,16 +168,16 @@ export function ColorCorrectionNode({ id, data, isConnectable }: NodeProps<Color
       {colorControls.map(control => <div className="color-setting" key={control.key}>
         <label htmlFor={`${id}-${control.key}`}>{control.label}</label>
         <NodeRangeInput id={`${id}-${control.key}`} aria-label={control.label} min={control.min} max={control.max} step={control.step}
-          value={settings[control.key]} disabled={data.locked || !ready}
-          onPointerDown={event => { cancelledGesture.current = false; dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); }}
-          onChange={event => {
+          value={settings[control.key]} disabled={data.locked || !ready} resetKey={revision} format={value => control.key === 'exposure' ? value.toFixed(2) : String(value)}
+          onValueStart={() => { cancelledGesture.current = false; dragging.current = true; }}
+          onValueChange={value => {
             if (cancelledGesture.current) return;
-            const next = { ...settings, [control.key]: Number(event.target.value) };
+            const next = { ...(draftRef.current ?? settings), [control.key]: value };
             if (dragging.current) { if (!draftRef.current) gesture.current++; draftRef.current = next; setDraft(next); }
             else patch({ settings: next });
           }}
-          onPointerUp={commitDraft} onPointerCancel={() => { cancelDraft(); cancelledGesture.current = false; }}
-          onLostPointerCapture={() => { if (dragging.current) cancelDraft(); cancelledGesture.current = false; }} />
+          onValueCommit={() => { if (dragging.current) commitDraft(); }}
+          onValueCancel={() => { cancelDraft(); cancelledGesture.current = false; }} />
         <ColorNumber control={control} value={settings[control.key]} disabled={Boolean(data.locked) || !ready}
           onCommit={value => patch({ settings: { ...data.settings, [control.key]: value } })} />
       </div>)}

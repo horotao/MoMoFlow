@@ -15,10 +15,10 @@ export function BlendControls({ settings, disabled, onDraft, onCommit, onCancel 
   return <div className="blend-controls nodrag nopan nowheel" onKeyDown={event => { if (!((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z')) event.stopPropagation(); if (event.key === 'Escape') cancel(); }}>
     <div className="blend-mode"><span>模式</span><DescriberModelSelect compact appearance="blend" fluidHover label="混合模式" menuLabel="Blend mode" value={settings.mode} choices={blendModes} separators={separators} disabled={disabled} onChange={mode => onCommit({ ...settings, mode: mode as BlendMode })} /></div>
     <div className="blend-opacity"><span>不透明度</span>
-      <NodeRangeInput aria-label="Opacity slider" min={0} max={100} step={1} value={percent} disabled={disabled}
-        onPointerDown={() => { dragging.current = true; draft.current = settings; }}
-        onChange={event => { const value = { ...settings, opacity: Number(event.target.value) / 100 }; draft.current = value; if (dragging.current) onDraft(value); else onCommit(value); }}
-        onPointerUp={() => { if (dragging.current) { dragging.current = false; onCommit(draft.current); } }} onPointerCancel={cancel} onLostPointerCapture={() => { if (dragging.current) cancel(); }} />
+      <NodeRangeInput aria-label="Opacity slider" min={0} max={100} step={1} value={percent} disabled={disabled} format={value => `${value}%`} resetKey={settings.mode}
+        onValueStart={() => { dragging.current = true; draft.current = settings; }}
+        onValueChange={opacity => { const value = { ...settings, opacity: opacity / 100 }; draft.current = value; if (dragging.current) onDraft(value); else onCommit(value); }}
+        onValueCommit={opacity => { if (dragging.current) { dragging.current = false; onCommit({ ...draft.current, opacity: opacity / 100 }); } }} onValueCancel={cancel} />
       <input type="text" autoComplete="off" data-1p-ignore="true" inputMode="decimal" role="spinbutton" aria-label="Opacity" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} aria-valuetext={`${percent}%`} value={text} disabled={disabled}
         onChange={event => setText(event.target.value)} onFocus={event => event.currentTarget.select()}
         onBlur={() => { const value = Number(text.trim().replace(/%$/, '')); if (!cancelled.current && text.trim() && Number.isFinite(value)) onCommit({ ...settings, opacity: Math.max(0, Math.min(100, value)) / 100 }); cancelled.current = false; setText(`${percent} %`); }}

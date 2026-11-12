@@ -46,7 +46,7 @@ async function run() {
   const frame = within('.node-frame'), preview = within('.color-image');
   check(frame.offsetWidth === 456 && preview.clientWidth === 424 && preview.clientHeight === 280, 'Shared 456px frame and 424×280 empty preview');
   check(getComputedStyle(preview).backgroundImage.includes('/image-node/checkerboard.svg'), 'Shared media checkerboard');
-  check(within<HTMLInputElement>('input[type="range"]').disabled, 'No input disables editing');
+  check(within('[role="slider"]').getAttribute('aria-disabled') === 'true', 'No input disables editing');
   check(frame.querySelectorAll('.node-range-input').length === 7, 'All seven controls reuse the shared slider');
   if (!frame.matches(':hover')) check(getComputedStyle(within('.node-port-label')).visibility === 'hidden', 'Idle port labels hidden');
   for (const image of frame.querySelectorAll('img')) await until(() => image.complete && image.naturalWidth > 0, `Local asset ${image.src}`);
@@ -75,10 +75,10 @@ async function run() {
     source.width = width; source.height = height; context.fillStyle = gradient; context.fillRect(0, 0, width, height);
     api.updateNodeData('color', { baseImage: { id: `color-source-${width}-${height}`, name: 'gradient.png', kind: 'image', url: source.toDataURL() } }); await exported();
     await until(() => Math.abs(preview.getBoundingClientRect().height - 424 * height / width) < 1, 'Decoded image ratio fills preview');
-    check(node().data.result?.width === width && node().data.result?.height === height, 'Native output dimensions');
+    await until(() => node().data.result?.width === width && node().data.result?.height === height, 'Native output dimensions');
   }
   pass('横图、竖图与方图适配；输出保留原尺寸');
-  await menu('lock'); check(within<HTMLInputElement>('input[type="range"]').disabled && within<HTMLInputElement>('input[type="number"]').disabled, 'Lock disables controls'); await menu('lock');
+  await menu('lock'); check(within('[role="slider"]').getAttribute('aria-disabled') === 'true' && within<HTMLInputElement>('input[type="number"]').disabled, 'Lock disables controls'); await menu('lock');
   await until(() => Boolean(document.querySelector('[data-id="preview"] img')), 'Downstream receives result');
   api.updateNode('color', { selected: true }); await settle(); check(getComputedStyle(frame).borderColor === 'rgb(82, 82, 82)', 'Shared selected border');
   check(getComputedStyle(within('.node-port-label')).visibility === 'visible', 'Selected port labels visible'); api.updateNode('color', { selected: false });

@@ -64,13 +64,25 @@ import { magneticDefaults } from './edges/magneticTypes';
 
 import { WorkflowStorage, type Workflow } from './persistence/workflowStorage';
 import { useWorkflowPersistence } from './persistence/useWorkflowPersistence';
+import { ProjectLibrary, type CanvasProject } from './persistence/projectLibrary';
+import { CanvasProjectHeader } from './components/CanvasProjectHeader';
 
 const defaultEdgeOptions = { type: 'default', pathOptions: curveOptions };
 type PendingNodeMenu = PendingConnection | (Pick<PendingConnection, 'screen' | 'position'> & { origin?: 'dock'; keyboard?: boolean });
 const creationChoices: NodeMenuChoice[] = items.filter(item => item.nodeType).map(item => ({ id: item.id, itemId: item.id }));
 const dockCreationChoices = creationChoices.filter(choice => !['position-logger', 'model-input'].includes(choice.itemId));
 
-export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Workflow | null }) {
+type ProjectSession = {
+  project: CanvasProject;
+  projects: CanvasProject[];
+  refresh: (workflow: Workflow) => Promise<void>;
+  open: (project: CanvasProject, workflow: Workflow) => Promise<void>;
+  create: (workflow: Workflow) => Promise<void>;
+  rename: (name: string) => Promise<void>;
+  remove: (project: CanvasProject, workflow: Workflow) => Promise<void>;
+};
+
+export function Flow({ storage, saved, projectSession }: { storage: WorkflowStorage; saved: Workflow | null; projectSession?: ProjectSession }) {
   const [apiSettingsOpen, setApiSettingsOpen] = useState(false);
   const colorMode = 'dark' as const;
   const [viewport, setViewport] = useState(saved?.viewport ?? { x: 0, y: 0, zoom: 1 });
@@ -82,6 +94,15 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
   const [edges, setEdges, onEdgesChange] = useEdgesState(saved?.edges ?? initialEdges);
   const workflow = useMemo(() => ({ nodes, edges, viewport, colorMode }), [nodes, edges, viewport, colorMode]);
   const persistence = useWorkflowPersistence(storage, workflow);
+  const withSavedWorkflow = async (action: (snapshot: Workflow) => Promise<void>) => {
+    // Keep edits from arriving after the final flush while the destination loads.
+    const canvas = canvasRef.current;
+    canvas?.setAttribute('inert', '');
+    try {
+      if (!await persistence.flush()) throw new Error('当前画布尚未保存，请重试保存后再切换项目。');
+      await action(workflow);
+    } finally { canvas?.removeAttribute('inert'); }
+  };
   const { screenToFlowPosition, getNodes, getEdges } = useReactFlow<AppNode>();
   const { value: connectionEffects, start: startConnectionEffects, clear: clearConnectionEffects,
     connected: playConnectionEffects, created: playNodeEntrance, cancelled: connectionCancelled, connectionRadius,
@@ -540,6 +561,12 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
       fitView={!saved}
     >
       <CanvasBackground />
+      {projectSession && <CanvasProjectHeader project={projectSession.project} projects={projectSession.projects}
+        nodeCount={nodes.length} status={persistence.status}
+        refresh={() => projectSession.refresh(workflow)}
+        open={project => withSavedWorkflow(snapshot => projectSession.open(project, snapshot))}
+        create={() => withSavedWorkflow(projectSession.create)} rename={projectSession.rename}
+        remove={project => withSavedWorkflow(snapshot => projectSession.remove(project, snapshot))} />}
       {pendingNodeMenu && <ConnectionMenu
         key={menuGeneration}
         screen={pendingNodeMenu.screen}
@@ -582,23 +609,48 @@ export function Flow({ storage, saved }: { storage: WorkflowStorage; saved: Work
   );
 }
 
-export default function App() {
-  const [loaded, setLoaded] = useState<{ storage: WorkflowStorage; saved: Workflow | null }>();
+export default function App({ projectLibrary }: { projectLibrary?: ProjectLibrary } = {}) {
+  const [library] = useState(() => projectLibrary ?? new ProjectLibrary());
+  const [projects, setProjects] = useState<CanvasProject[]>([]);
+  const [loaded, setLoaded] = useState<{ project: CanvasProject; storage: WorkflowStorage; saved: Workflow | null }>();
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    const storage = new WorkflowStorage();
+    let storage: WorkflowStorage | undefined;
     let cancelled = false;
     setError('');
-    void storage.load().then(saved => {
-      if (cancelled) { storage.dispose(); return; }
-      setLoaded({ storage, saved });
+    void library.restore().then(async restored => {
+      if (cancelled) return;
+      const next = library.storage(restored.active);
+      storage = next;
+      const saved = await next.load();
+      if (cancelled) { next.dispose(); return; }
+      setProjects(restored.projects);
+      setLoaded({ project: restored.active, storage: next, saved });
     }).catch(cause => {
-      storage.dispose();
+      storage?.dispose();
       if (!cancelled) setError(cause instanceof Error ? cause.message : '无法读取本地画布。');
     });
-    return () => { cancelled = true; storage.dispose(); };
-  }, [attempt]);
+    return () => { cancelled = true; };
+  }, [attempt, library]);
+  useEffect(() => () => loaded?.storage.dispose(), [loaded]);
+
+  const refresh = async (workflow: Workflow) => {
+    if (!loaded) return;
+    await library.updatePreview(loaded.project.id, workflow);
+    setProjects((await library.restore()).projects);
+  };
+  const open = async (project: CanvasProject) => {
+    const storage = library.storage(project);
+    try {
+      const saved = await storage.load();
+      if (!saved && project.id !== 'current') throw new Error('无法读取此项目的画布，原有数据已保留。');
+      await library.select(project.id);
+      const restored = await library.restore();
+      setProjects(restored.projects);
+      setLoaded({ project, storage, saved });
+    } catch (cause) { storage.dispose(); throw cause; }
+  };
 
   if (!loaded) return <div className="canvas-loading" role={error ? 'alert' : 'status'}>
     <p>{error ? `无法恢复画布：${error}` : '正在恢复画布…'}</p>
@@ -606,8 +658,35 @@ export default function App() {
       <button type="button" onClick={() => setAttempt(value => value + 1)}>重试恢复</button></>}
   </div>;
   return (
-    <ReactFlowProvider>
-      <ModelTasksProvider><Flow storage={loaded.storage} saved={loaded.saved} /></ModelTasksProvider>
+    <ReactFlowProvider key={loaded.project.id}>
+      <ModelTasksProvider><Flow storage={loaded.storage} saved={loaded.saved} projectSession={{
+        project: projects.find(project => project.id === loaded.project.id) ?? loaded.project,
+        projects, refresh,
+        open: async (project, workflow) => { await refresh(workflow); await open(project); },
+        create: async workflow => { await refresh(workflow); await open(await library.create()); },
+        rename: async name => {
+          await library.rename(loaded.project.id, name);
+          setProjects((await library.restore()).projects);
+        },
+        remove: async (project, workflow) => {
+          await refresh(workflow);
+          if (project.id !== loaded.project.id) {
+            await library.remove(project.id);
+            setProjects((await library.restore()).projects);
+            return;
+          }
+          const remaining = (await library.restore()).projects.filter(item => item.id !== project.id);
+          const fallback = remaining[0] ?? await library.create();
+          const storage = library.storage(fallback);
+          try {
+            const saved = await storage.load();
+            if (!saved && fallback.id !== 'current') throw new Error('无法读取下一个项目，当前项目已保留。');
+            await library.remove(project.id, fallback.id);
+            setProjects((await library.restore()).projects);
+            setLoaded({ project: fallback, storage, saved });
+          } catch (cause) { storage.dispose(); throw cause; }
+        },
+      }} /></ModelTasksProvider>
     </ReactFlowProvider>
   );
 }

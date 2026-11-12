@@ -59,12 +59,14 @@ CI 使用完整 Git 历史，PR 以目标分支基点、推送以事件的前一
 
 | 场景 | 入口与重点 |
 | --- | --- |
+| 画布项目菜单与独立保存 | `/tests/canvas-projects.html`；沿用 React 浏览器验收，无新增框架或依赖。使用独立数据库挂载真实 App，检查旧画布保留、新项目为空、节点 / 连线 / 视图 / 本地图片跨项目隔离、缩略图、上次项目恢复、长名称截断、键盘与 Esc 焦点，以及切换前等待保存和保存失败阻止离开。删除按钮与项目切换独立，左右方向键进入 / 离开删除按钮；覆盖删除其他 / 当前 / 最后项目，刷新后不恢复已删除条目，底层快照与素材保留。类型检查随 `npm run check` 执行，此页需单独运行；另用实际指针复验悬停图标切换、快速移入移出、减少动态效果、触屏删除入口、菜单、拖动、连线、缩放、小地图和刷新恢复，不调用真实模型 |
 | Compositor 渲染、Worker、PNG、键盘与保存恢复 | `/tests/compositor-browser.html`，点击页面的运行按钮 |
 | Compositor 实际交互、4K 与共享上游链 | `/tests/compositor-interaction.html`，链路场景加 `?chain=16`；具体流程见 [Compositor 文档](compositor.md) |
 | Color palette 编辑器 | `/tests/color-palette-picker.html` |
 | Color palette 原生拖动 | `/tests/color-palette-native-drag.html`，需真实鼠标与不同缩放验证 |
 | Resize 尺寸、透明区域、比例与持久化 | `/tests/resize.html` |
 | Figma 旋转与翻转节点 | `/tests/rotate-flip-node-style.html`；沿用 React 浏览器验收页，无新增框架或依赖。独立画布验证外框与控件尺寸、本地棋盘格和端口、右对齐菜单及遮挡层级、锁定、PNG 实际像素、双轴翻转、重置及按钮焦点下撤销/重做；类型检查随 `npm run check` 执行，浏览器页需单独运行，拖动、连线与缩放用实际指针复验 |
+| 共享 Elastic Slider | `src/nodes/nodeRange.test.ts` 随 `npm test` 检查小数步长、零点吸附边界与弹性阻力；运行 `npm run dev` 后访问 `/tests/node-range-input.html`，沿用现有 React 浏览器验收，无新增框架，检查实时草稿 / 单次提交、方向键与大步调节、53% / 100% / 150% 缩放、零点吸附、越界回弹、Esc / 指针取消 / 丢失捕获 / 失焦 / 锁定 / 换图 / 卸载清理及减少动态。`/tests/node-range-nodes.html` 通过真实色彩校正 / 模糊 / 蒙版扩缩节点验证草稿、下游预览、精确输出、单步历史与锁定。混合、绘图和调色板原有浏览器页同步使用新滑块；真实指针与下游预览另行验收 |
 | Figma 混合节点、紧凑滑块与可滚动模式菜单 | `/tests/blend-node-style.html`；沿用 React 浏览器验收页，无新增框架或依赖。启动 `npm run dev` 后访问，使用独立数据库，自动核对尺寸、18 种模式分组、末项键盘选择、菜单边界、百分比输入和共享锁定菜单；类型检查纳入 `npm run check`。`/tests/blend.html` 另验 Worker / PNG、4K、历史、连接和持久化；拖动、真实滑块与缩放需实际指针复验 |
 | Masks Extractor 选区、预览复用、PNG、4K、原图比例、取消、撤销及持久化 | `/tests/masks-extractor.html`；默认受控分割，不下载模型；覆盖重新计算后的焦点、从图片和控制区按 Escape 取消，以及迟到结果隔离；页面按钮可单独验证真实 SlimSAM / WebGPU，并测量悬停后连续添加的调用次数、耗时、蒙版摘要及 4K 导出帧间隔 |
 | Ideogram 4.5 参数、异步查询、结果、取消、失败和持久化 | `/tests/ideogram.html`；隔离数据库、模拟模型响应，无真实调用 |

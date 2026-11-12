@@ -1,3 +1,4 @@
+import { NodeRangeInput } from '../shared/NodeRangeInput';
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
 import { colorFromHex, colorToHex, normalizeHexColor } from '../colorPicker';
 import { EditorPopover } from './EditorPopover';
@@ -88,9 +89,9 @@ export function ColorField({ label, value, disabled, onChange, onDraft, onCancel
           }}>
           <span className="comp-color-thumb" style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, background: value }} />
         </div>
-        <input className="comp-color-hue" type="range" aria-label="Hue" min={0} max={360} step={1} value={hsv.h}
-          onPointerDown={begin} onChange={event => change({ ...hsv, h: Number(event.target.value) })}
-          onPointerUp={() => finish()} onPointerCancel={() => finish(true)} onLostPointerCapture={() => finish(true)} />
+        <NodeRangeInput className="comp-color-hue" aria-label="Hue" min={0} max={360} step={1} value={hsv.h}
+          onValueStart={() => { drag.current = { hsv, color: value, next: value }; }} onValueChange={h => change({ ...hsv, h })}
+          onValueCommit={() => finish()} onValueCancel={() => finish(true)} />
         <label className="comp-color-hex"><span>HEX</span><HexInput label="Picker hex color" value={value} onChange={onChange} /></label>
       </div>
     </EditorPopover>}

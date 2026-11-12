@@ -1,5 +1,4 @@
 import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
 import { Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { Eye, EyeOff, LockKeyhole } from 'lucide-react';
 import type { AppNode, MatteGrowShrinkNode as MatteGrowShrink } from './types';
@@ -191,29 +190,22 @@ export function MatteGrowShrinkNode({ id, data, isConnectable }: NodeProps<Matte
       {matteGrowShrinkControls.map(control => <div className="painter-field" key={control.key}>
         <label htmlFor={`${id}-${control.key}`}>{control.label}</label>
         <NodeRangeInput id={`${id}-${control.key}`} aria-label={control.label} min={control.min} max={control.max} step={control.step}
-          value={settings[control.key]} disabled={data.locked}
-          onPointerDown={event => {
-            if (event.button !== 0) return;
-            // Finish a focused number field's blur commit before starting this drag.
-            // Its revision effect must not cancel the new pointer gesture.
-            const slider = event.currentTarget;
-            if (document.activeElement !== slider) flushSync(() => slider.focus());
-            cancelledGesture.current = false; dragging.current = true; slider.setPointerCapture(event.pointerId);
-          }}
+          value={settings[control.key]} disabled={data.locked} resetKey={revision}
+          onValueStart={() => { cancelledGesture.current = false; dragging.current = true; }}
           onKeyDown={event => {
             if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && !event.nativeEvent.isComposing) {
               event.preventDefault(); event.stopPropagation(); cancelDraft();
               if (event.shiftKey) history.redo(); else history.undo();
             }
           }}
-          onChange={event => {
+          onValueChange={value => {
             if (cancelledGesture.current) return;
-            const next = { ...settings, [control.key]: Number(event.target.value) };
+            const next = { ...(draftRef.current ?? settings), [control.key]: value };
             if (dragging.current) { if (!draftRef.current) gesture.current++; draftRef.current = next; setDraft(next); }
             else patch({ settings: next });
           }}
-          onPointerUp={commitDraft} onPointerCancel={() => { cancelDraft(); cancelledGesture.current = false; }}
-          onLostPointerCapture={() => { if (dragging.current) cancelDraft(); cancelledGesture.current = false; }} />
+          onValueCommit={() => { if (dragging.current) commitDraft(); }}
+          onValueCancel={() => { cancelDraft(); cancelledGesture.current = false; }} />
         <MatteGrowShrinkNumber control={control} value={settings[control.key]} disabled={Boolean(data.locked)}
           onCommit={value => patch({ settings: { ...data.settings, [control.key]: value } })} />
       </div>)}

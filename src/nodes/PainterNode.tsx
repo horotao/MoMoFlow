@@ -21,8 +21,8 @@ import './PainterNode.css';
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-function Slider({ label, value, min = 0, max = 100, onChange, percent = false }: { label: string; value: number; min?: number; max?: number; onChange: (value: number) => void; percent?: boolean }) {
-  return <label className="painter-field"><span>{label}</span><NodeRangeInput aria-label={`${label}滑块`} min={min} max={max} value={value} onChange={e => onChange(Number(e.target.value))} /><input aria-label={label} type="number" min={min} max={max} value={value} onChange={e => onChange(clamp(Number(e.target.value), min, max))} /><span className="painter-unit">{percent ? '%' : ''}</span></label>;
+function Slider({ label, value, min = 0, max = 100, onChange, disabled = false, percent = false }: { disabled?: boolean; label: string; value: number; min?: number; max?: number; onChange: (value: number) => void; percent?: boolean }) {
+  return <label className="painter-field"><span>{label}</span><NodeRangeInput aria-label={`${label}滑块`} min={min} max={max} value={value} disabled={disabled} onValueChange={onChange} format={value => percent ? `${value}%` : String(value)} /><input aria-label={label} type="number" min={min} max={max} value={value} onChange={e => onChange(clamp(Number(e.target.value), min, max))} /><span className="painter-unit">{percent ? '%' : ''}</span></label>;
 }
 function ColorField({ label, color, opacity, disabled, onColor, onOpacity }: { label: string; color: string; opacity: number; disabled?: boolean; onColor: (value: string) => void; onOpacity: (value: number) => void }) {
   const [draft, setDraft] = useState(color.slice(1));
@@ -161,10 +161,10 @@ export function PainterNode({ id, data, isConnectable }: NodeProps<Painter>) {
         </button>
       </div><button className="painter-reset" type="button" onClick={() => patch({ strokes: [] })} disabled={data.locked || !data.strokes.length}>重置</button></div>
       <div className="painter-fields">
-        {tool === 'eraser' ? <Slider label="不透明度" value={Math.round(eraser.opacity * 100)} percent onChange={value => setEraser(current => ({ ...current, opacity: value / 100 }))} /> : <ColorField label="颜色" disabled={data.locked} color={color} opacity={opacity} onColor={setColor} onOpacity={setOpacity} />}
+        {tool === 'eraser' ? <Slider disabled={Boolean(data.locked)} label="不透明度" value={Math.round(eraser.opacity * 100)} percent onChange={value => setEraser(current => ({ ...current, opacity: value / 100 }))} /> : <ColorField label="颜色" disabled={data.locked} color={color} opacity={opacity} onColor={setColor} onOpacity={setOpacity} />}
         {tool !== 'shape' && <>
-          <Slider label="大小" min={1} value={controls.size} max={500} onChange={value => tool === 'eraser' ? setEraser(current => ({ ...current, size: value })) : setSize(value)} />
-          <Slider label="硬度" value={controls.hardness} onChange={value => tool === 'eraser' ? setEraser(current => ({ ...current, hardness: value })) : setHardness(value)} />
+          <Slider disabled={Boolean(data.locked)} label="大小" min={1} value={controls.size} max={500} onChange={value => tool === 'eraser' ? setEraser(current => ({ ...current, size: value })) : setSize(value)} />
+          <Slider disabled={Boolean(data.locked)} label="硬度" value={controls.hardness} onChange={value => tool === 'eraser' ? setEraser(current => ({ ...current, hardness: value })) : setHardness(value)} />
         </>}
       </div>
     </fieldset>

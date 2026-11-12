@@ -117,7 +117,7 @@ async function run() {
     await check(`${modifier} undo/redo works with dialog and range focus`, async () => {
       await open(); await input('123456'); key(find('[aria-label="Hex color"]'), 'Enter'); await settle();
       assert(committed === '#123456' && document.activeElement === find('.palette-picker'), 'Enter did not commit/focus dialog');
-      for (const selector of ['.palette-picker', 'input[aria-label="Hue"]']) {
+      for (const selector of ['.palette-picker', '[role="slider"][aria-label="Hue"]']) {
         const target = find(selector); target.focus();
         assert(key(target, 'z', { [modifier]: true }).defaultPrevented, 'Canvas undo not handled'); await settle();
         assert(committed === initial, 'Shortcut did not undo');

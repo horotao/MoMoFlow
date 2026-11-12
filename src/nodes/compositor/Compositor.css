@@ -200,12 +200,7 @@
 .comp-slider-row { display: grid; grid-template-columns: 70px minmax(0, 1fr) 38px; gap: 8px; align-items: center; min-height: 32px; }
 .comp-slider-row > .comp-number { padding: 0 3px; background: transparent; }
 .comp-slider-row .comp-number input { text-align: right; }
-.comp-slider-row > input[type="range"] { appearance: none; background: transparent; width: 100%; min-width: 0; height: 24px; margin: 0; cursor: ew-resize; outline: none; }
-.comp-slider-row > input[type="range"]::-webkit-slider-runnable-track { height: 4px; background: var(--comp-selected); border-radius: 4px; }
-.comp-slider-row > input[type="range"]::-webkit-slider-thumb { appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--comp-text); margin-top: -4px; box-shadow: 0 0 0 1px #8885; }
-.comp-slider-row > input[type="range"]::-moz-range-track { height: 4px; background: var(--comp-selected); border-radius: 4px; }
-.comp-slider-row > input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: var(--comp-text); }
-.comp-slider-row > input[type="range"]:focus-visible { outline: 1px solid #8cabf1; outline-offset: 0; border-radius: 4px; }
+.comp-slider-row > .node-range-input { height: 24px; }
 .comp-levels .comp-effect-select { margin-bottom: 4px; }
 .comp-levels-row { display: grid; grid-template-columns: 70px minmax(0, 1fr); gap: 8px; align-items: center; min-height: 32px; color: var(--comp-muted); }
 .comp-levels-track { position: relative; height: 24px; margin: 0 6px; touch-action: none; cursor: ew-resize; }

@@ -1,3 +1,4 @@
+import { NodeRangeInput } from '../shared/NodeRangeInput';
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, X } from 'lucide-react';
@@ -113,13 +114,12 @@ export function InspectorSelect({ label, value, options, onChange }: { label: st
 export function SliderField({ label, value, min, max, step, onDraft, onCommit, onCancel }: {
   label: string; value: number; min: number; max: number; step: number; onDraft: (value: number) => void; onCommit: (value: number) => void; onCancel: () => void;
 }) {
-  const dragging = useRef(false), latest = useRef(value); latest.current = value;
-  return <div className="comp-slider-row"><span>{label}</span><input type="range" aria-label={`${label} slider`} min={min} max={max} step={step} value={value}
-    onPointerDown={event => { if (event.button === 0) { dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); } }}
-    onChange={event => { latest.current = Number(event.target.value); if (dragging.current) onDraft(latest.current); else onCommit(latest.current); }}
-    onPointerUp={() => { if (dragging.current) { dragging.current = false; onCommit(latest.current); } }}
-    onPointerCancel={() => { dragging.current = false; onCancel(); }} onLostPointerCapture={() => { if (dragging.current) { dragging.current = false; onCancel(); } }}
-    onKeyDown={event => { if (event.key === 'Escape' && dragging.current) { event.preventDefault(); event.stopPropagation(); dragging.current = false; onCancel(); } }} />
+  const dragging = useRef(false);
+  return <div className="comp-slider-row"><span>{label}</span><NodeRangeInput aria-label={`${label} slider`} min={min} max={max} step={step} value={value}
+    onValueStart={() => { dragging.current = true; }}
+    onValueChange={next => { if (dragging.current) onDraft(next); else onCommit(next); }}
+    onValueCommit={next => { if (dragging.current) { dragging.current = false; onCommit(next); } }}
+    onValueCancel={() => { dragging.current = false; onCancel(); }} />
     <NumberField label={label} value={value} min={min} max={max} step={step} onChange={onCommit} />
   </div>;
 }

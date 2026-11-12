@@ -1,4 +1,5 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
+import { NodeRangeInput } from './shared/NodeRangeInput';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type PointerEvent, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { useViewport } from '@xyflow/react';
 import { colorFromHex as fromHex, colorToHex as toHex } from './colorPicker';
@@ -91,10 +92,10 @@ export function PainterColorPicker({ label, color, opacity, disabled, onColor, o
         <span className="painter-color-thumb" style={{ left: `clamp(9px, ${hsv.s * 100}%, calc(100% - 9px))`, top: `clamp(9px, ${(1 - hsv.v) * 100}%, calc(100% - 9px))` }} />
       </div>
       <div className="painter-color-sliders">
-        <input className="painter-hue" type="range" aria-label="色相" min="0" max="360" step="1" value={hsv.h} onChange={event => change({ ...hsv, h: Number(event.target.value) })} />
+        <NodeRangeInput className="painter-hue" aria-label="色相" min={0} max={360} step={1} value={hsv.h} onValueChange={h => change({ ...hsv, h })} />
         <div className="painter-alpha-track">
-          <input className="painter-alpha" type="range" aria-label="不透明度" min="0" max="100" value={Math.round(opacity * 100)}
-            style={{ background: `linear-gradient(to right, transparent, ${color})` }} onChange={event => onOpacity(Number(event.target.value) / 100)} />
+          <NodeRangeInput className="painter-alpha" aria-label="不透明度" min={0} max={100} value={Math.round(opacity * 100)}
+            style={{ '--elastic-background': `linear-gradient(to right, transparent, ${color})` } as CSSProperties} onValueChange={value => onOpacity(value / 100)} />
         </div>
       </div>
       <div className="painter-color-numbers">
@@ -113,8 +114,8 @@ export function PainterColorPicker({ label, color, opacity, disabled, onColor, o
           style={{ backgroundColor: value }} onClick={() => { const next = fromHex(value); change({ ...next, h: next.s ? next.h : hsv.h }); }} />)}
       </div>
       <div className="painter-color-accessible">
-        <label>饱和度<input type="range" min="0" max="100" value={hsv.s * 100} onChange={event => change({ ...hsv, s: Number(event.target.value) / 100 })} /></label>
-        <label>明度<input type="range" min="0" max="100" value={hsv.v * 100} onChange={event => change({ ...hsv, v: Number(event.target.value) / 100 })} /></label>
+        <label>饱和度<NodeRangeInput aria-label="饱和度" min={0} max={100} value={hsv.s * 100} onValueChange={value => change({ ...hsv, s: value / 100 })} /></label>
+        <label>明度<NodeRangeInput aria-label="明度" min={0} max={100} value={hsv.v * 100} onValueChange={value => change({ ...hsv, v: value / 100 })} /></label>
       </div>
     </div>, document.body)}
   </>;

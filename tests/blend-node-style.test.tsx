@@ -46,7 +46,7 @@ async function run() {
   check(frame.offsetWidth === 456 && frame.offsetHeight === 540, '456×540 empty frame');
   check(preview.clientWidth === 424 && preview.clientHeight === 424, '424×424 empty preview');
   check(within('.blend-controls').offsetHeight === 28 && within('[role="combobox"]').offsetWidth === 134, 'Compact horizontal parameter row');
-  check(within<HTMLInputElement>('input[type="range"]').offsetWidth === 110 && within<HTMLInputElement>('[aria-label="Opacity"]').offsetWidth === 56, 'Compact shared slider and value');
+  check(within('.node-range-input').offsetWidth === 110 && within<HTMLInputElement>('[aria-label="Opacity"]').offsetWidth === 56, 'Compact shared slider and value');
   check(getComputedStyle(frame).backgroundColor === 'rgb(34, 34, 34)' && getComputedStyle(frame).borderRadius === '28px', 'Shared dark frame and corners');
   for (const image of frame.querySelectorAll('img')) await until(() => image.complete && image.naturalWidth > 0, `Local SVG loads: ${image.src}`);
   check(frame.querySelectorAll('.node-port img').length === 3, 'Three shared image ports');
@@ -74,10 +74,10 @@ async function run() {
   within<HTMLButtonElement>('.node-options-trigger').click(); await settle();
   check(within<HTMLButtonElement>('[data-action="save"]').disabled, 'Save remains display-only');
   within<HTMLButtonElement>('[data-action="lock"]').click(); await settle();
-  check(within<HTMLInputElement>('input[type="range"]').disabled && within<HTMLButtonElement>('[role="combobox"]').disabled, 'Lock disables parameters');
+  check(within('[role="slider"]').getAttribute('aria-disabled') === 'true' && within<HTMLButtonElement>('[role="combobox"]').disabled, 'Lock disables parameters');
   within<HTMLButtonElement>('.node-options-trigger').click(); await settle();
   within<HTMLButtonElement>('[data-action="lock"]').click(); await settle();
-  check(!within<HTMLInputElement>('input[type="range"]').disabled, 'Unlock restores shared slider');
+  check(within('[role="slider"]').getAttribute('aria-disabled') !== 'true', 'Unlock restores shared slider');
   pass('百分比输入、取消、范围限制与共享更多菜单锁定');
   api.updateNodeData('blend', { settings: { mode: 'Normal', opacity: 1 } });
   await settle(); results.dataset.result = 'passed';

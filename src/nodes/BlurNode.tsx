@@ -191,16 +191,16 @@ export function BlurNode({ id, data, isConnectable }: NodeProps<Blur>) {
       {blurControls.map(control => <div className="color-setting" key={control.key}>
         <label htmlFor={`${id}-${control.key}`}>{control.label}</label>
         <NodeRangeInput id={`${id}-${control.key}`} aria-label={control.label} min={control.min} max={control.max} step={control.step}
-          value={settings[control.key]} disabled={data.locked}
-          onPointerDown={event => { cancelledGesture.current = false; dragging.current = true; event.currentTarget.setPointerCapture(event.pointerId); }}
-          onChange={event => {
+          value={settings[control.key]} disabled={data.locked} resetKey={revision}
+          onValueStart={() => { cancelledGesture.current = false; dragging.current = true; }}
+          onValueChange={value => {
             if (cancelledGesture.current) return;
-            const next = { ...settings, [control.key]: Number(event.target.value) };
+            const next = { ...(draftRef.current ?? settings), [control.key]: value };
             if (dragging.current) { if (!draftRef.current) gesture.current++; draftRef.current = next; setDraft(next); }
             else patch({ settings: next });
           }}
-          onPointerUp={commitDraft} onPointerCancel={() => { cancelDraft(); cancelledGesture.current = false; }}
-          onLostPointerCapture={() => { if (dragging.current) cancelDraft(); cancelledGesture.current = false; }} />
+          onValueCommit={() => { if (dragging.current) commitDraft(); }}
+          onValueCancel={() => { cancelDraft(); cancelledGesture.current = false; }} />
         <BlurNumber control={control} value={settings[control.key]} disabled={Boolean(data.locked)}
           onCommit={value => patch({ settings: { ...data.settings, [control.key]: value } })} />
       </div>)}

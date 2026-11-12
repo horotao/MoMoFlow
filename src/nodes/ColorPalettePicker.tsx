@@ -1,3 +1,4 @@
+import { NodeRangeInput } from './shared/NodeRangeInput';
 import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useViewport } from '@xyflow/react';
@@ -60,9 +61,6 @@ export function ColorPalettePicker({ color, disabled, onChange, inline = false }
   };
   const commit = () => { gesture.current = false; if (!disabled && latest.current !== color) onChange(latest.current); };
   const cancel = () => { gesture.current = false; hexEditing.current = false; latest.current = color; setDraft(color); setHex(color.slice(1)); setHsv(colorFromHex(color)); };
-  const commitRangeKey = (key: string) => {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(key)) commit();
-  };
   const pick = (event: PointerEvent<HTMLDivElement>) => {
     const box = event.currentTarget.getBoundingClientRect();
     change({ ...hsv, s: Math.max(0, Math.min(1, (event.clientX - box.left) / box.width)), v: 1 - Math.max(0, Math.min(1, (event.clientY - box.top) / box.height)) });
@@ -91,15 +89,15 @@ export function ColorPalettePicker({ color, disabled, onChange, inline = false }
         <span className="painter-color-thumb" style={{ left: `${hsv.s * 100}%`, top: `${(1 - hsv.v) * 100}%`, background: draft }} />
       </div>
       <div className="painter-color-sliders">
-        <input className="painter-hue" type="range" aria-label="Hue" min="0" max="360" step="1" value={hsv.h}
-          onChange={event => change({ ...hsv, h: Number(event.target.value) })} onPointerUp={commit} onKeyUp={event => commitRangeKey(event.key)} onPointerCancel={cancel} />
+        <NodeRangeInput className="painter-hue" aria-label="Hue" min={0} max={360} step={1} value={hsv.h}
+          onValueChange={h => change({ ...hsv, h })} onValueCommit={commit} onValueCancel={cancel} />
       </div>
       <div className="painter-color-numbers"><span>HEX</span><input aria-label="Hex color" value={hex} maxLength={7} spellCheck={false}
         onChange={event => { hexEditing.current = true; setHex(event.target.value); }} onBlur={commitHex}
         onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) { event.currentTarget.blur(); panel.current?.focus(); } }} /></div>
       <div className="painter-color-accessible">
-        <label>Saturation<input type="range" min="0" max="100" value={hsv.s * 100} onChange={event => change({ ...hsv, s: Number(event.target.value) / 100 })} onKeyUp={event => commitRangeKey(event.key)} /></label>
-        <label>Brightness<input type="range" min="0" max="100" value={hsv.v * 100} onChange={event => change({ ...hsv, v: Number(event.target.value) / 100 })} onKeyUp={event => commitRangeKey(event.key)} /></label>
+        <label>Saturation<NodeRangeInput aria-label="Saturation" min={0} max={100} value={hsv.s * 100} onValueChange={value => change({ ...hsv, s: value / 100 })} onValueCommit={commit} onValueCancel={cancel} /></label>
+        <label>Brightness<NodeRangeInput aria-label="Brightness" min={0} max={100} value={hsv.v * 100} onValueChange={value => change({ ...hsv, v: value / 100 })} onValueCommit={commit} onValueCancel={cancel} /></label>
       </div>
     </div>, document.body)}
   </>;
