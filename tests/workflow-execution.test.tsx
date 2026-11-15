@@ -121,7 +121,7 @@ async function run() {
   setNodes(() => [...savedGraph.nodes, { id: 'mask', type: 'masks-extractor', position: { x: 1000, y: 650 }, data: {} }]);
   setEdges(() => [...savedGraph.edges, { id: 'b-mask', source: 'b', sourceHandle: 'file', target: 'mask', targetHandle: 'image' }, { id: 'mask-g', source: 'mask', sourceHandle: 'mask', target: 'g', targetHandle: 'mask' }]); await settle();
   start(); await settle();
-  check(requests.length === 9 && document.querySelector('[role="alert"]')?.textContent?.includes('必要选区') && graph.nodes.find(node => node.id === 'mask')?.selected, 'Missing selection blocks every model request and focuses the problem node');
+  check(requests.length === 9 && document.querySelector('.describer-error[role="alert"]')?.textContent?.includes('必要选区') && graph.nodes.find(node => node.id === 'mask')?.selected, 'Missing selection blocks every model request and focuses the problem node');
   setNodes(() => savedGraph.nodes); setEdges(() => savedGraph.edges); await settle();
   // Exercise the real preview replaceable queue and formal-output contract.
   const renderer = new BlurRenderer(await createImageBitmap(canvas));
@@ -156,7 +156,7 @@ async function run() {
     check(output.length === 1 && Boolean(output[0].width && output[0].height), `${node.type}: formal output matches existing revision contract`);
     assetResources.discard(Object.values(patch).filter((value): value is FileAsset => Boolean(value && typeof value === 'object' && 'url' in value)).map(asset => asset.url));
   }
-  // A real mixed chain, including fresh model output and asynchronous workers.
+  // A real mixed chain reuses the selected generated image through asynchronous workers.
   const mixedNodes: AppNode[] = [
     { id: 'mixed-prompt', type: 'text', position: { x: -1000, y: 1400 }, data: { text: 'Mixed workflow' } },
     { id: 'mixed-image', type: 'sunburst', position: { x: -500, y: 1400 }, data: { ...defaultSunburstSettings, imageInputs: 1, results: [{ ...sample, id: 'legacy-generated-image' }], activeResultId: 'legacy-generated-image' } },
@@ -172,9 +172,23 @@ async function run() {
     { id: 'mixed-4', source: 'mixed-blur', sourceHandle: 'result', target: 'mixed-description', targetHandle: 'image-0' },
   ]); await settle();
   const beforeMixed = requests.length; count = store.getSnapshot().length; start('mixed-description'); await completed(count);
-  check(requests.length === beforeMixed + 2 && requests[beforeMixed].path === '/api/sunburst' && requests[beforeMixed + 1].path === '/api/describer' && store.getSnapshot().slice(count).every(task => task.state === 'Done'), 'Legacy image refresh → Resize → Blur → description waits for fresh formal output');
+  check(requests.length === beforeMixed + 1 && requests[beforeMixed].path === '/api/describer' && store.getSnapshot().slice(count).every(task => task.state === 'Done'), 'Existing image → Resize → Blur → description preserves the selected image without generating');
   const afterMixed = requests.length; count = store.getSnapshot().length; start('mixed-description'); await completed(count);
-  check(requests.length === afterMixed + 1 && requests[afterMixed].path === '/api/describer', 'Refreshed legacy image is reused on the next downstream run');
+  check(requests.length === afterMixed + 1 && requests[afterMixed].path === '/api/describer', 'Existing image is reused on repeated downstream runs');
+  const preservedImage = graph.nodes.find(node => node.id === 'mixed-image')!;
+  const originalGuard = sourceSignature(graph, preservedImage);
+  setNodes(all => all.map(node => node.id === 'mixed-prompt' ? { ...node, data: { text: 'Different draft prompt' } } as AppNode
+    : node.id === 'mixed-image' ? { ...node, data: { ...node.data, quality: 'high' } } as AppNode : node)); await settle();
+  const beforeDraft = requests.length; count = store.getSnapshot().length; start('mixed-description'); await completed(count);
+  check(sourceSignature(graph, graph.nodes.find(node => node.id === 'mixed-image')!) !== originalGuard && requests.length === beforeDraft + 1 && requests[beforeDraft].path === '/api/describer' && store.getSnapshot().slice(count).every(task => task.state === 'Done'), 'Edited prompt and image settings keep the selected image for downstream execution');
+  // Local image processing still applies the latest parameters.
+  setNodes(all => all.map(node => node.id === 'mixed-resize' && isResizeNode(node) ? { ...node, data: { ...node.data, settings: { width: 16, height: 12, lockAspectRatio: true } } } : node)); await settle();
+  const beforeResize = requests.length; count = store.getSnapshot().length; start('mixed-description'); await completed(count);
+  const changedResize = graph.nodes.find(node => node.id === 'mixed-resize')!;
+  check(isResizeNode(changedResize) && changedResize.data.result?.width === 16 && changedResize.data.result?.height === 12 && requests.length === beforeResize + 1 && requests[beforeResize].path === '/api/describer', 'Changed local processing parameters recompute pixels without rerunning the image model');
+  // An explicit image run replaces the output using the edited draft settings.
+  const beforeExplicit = requests.length; count = store.getSnapshot().length; start('mixed-image'); await completed(count);
+  check(requests.length === beforeExplicit + 1 && requests[beforeExplicit].path === '/api/sunburst' && requests[beforeExplicit].body.prompt === 'Different draft prompt' && requests[beforeExplicit].body.quality === 'high', 'Explicit image generation uses the latest draft prompt and settings');
   // Invalidate a real cached PNG without changing inputs/settings. The mounted
   // preview keeps its revision, so only the execution path can repair it.
   const cachedResize = graph.nodes.find(node => node.id === 'mixed-resize')!;
@@ -183,7 +197,7 @@ async function run() {
   setNodes(all => all.map(node => node.id === cachedResize.id ? { ...cachedResize, data: { ...cachedResize.data, result: { ...cachedResize.data.result!, url: expiredUrl } } } : node)); await settle();
   const beforeRepair = requests.length; count = store.getSnapshot().length; start('mixed-description'); await completed(count);
   const repairedResize = graph.nodes.find(node => node.id === cachedResize.id)!;
-  check(isResizeNode(repairedResize) && repairedResize.data.result?.url !== expiredUrl && repairedResize.data.result?.width === 32 && requests.length === beforeRepair + 1 && store.getSnapshot().slice(count).every(task => task.state === 'Done'), 'Expired local PNG rebuilds automatically before downstream without repeating the image model');
+  check(isResizeNode(repairedResize) && repairedResize.data.result?.url !== expiredUrl && repairedResize.data.result?.width === 16 && requests.length === beforeRepair + 1 && store.getSnapshot().slice(count).every(task => task.state === 'Done'), 'Expired local PNG rebuilds automatically before downstream without repeating the image model');
   // Compare's unused embedded input must never enter the remote snapshot plan.
   setNodes(all => [...all,
     { id: 'remote-compare', type: 'compare', position: { x: 0, y: 2200 }, data: { mode: 'slider', split: .5, input1: sample, input2: remoteAsset('unused') } },
@@ -200,7 +214,7 @@ async function run() {
   check(remoteReads.length === 0 && requests.length === beforeHistory + 1 && store.getSnapshot().slice(count).every(task => task.state === 'Done'), 'Unselected expired historical image is never fetched and current result is reused');
   setNodes(all => all.map(node => node.id === generated.id && isImageGeneratorNode(node) ? { ...node, data: { ...node.data, results: node.data.results!.map(asset => asset.id === selectedImage.id ? { ...asset, url: remoteAsset('expired-selected').url } : asset) } } as AppNode : node)); await settle();
   const beforeRemoteRepair = requests.length; count = store.getSnapshot().length; start('mixed-description'); await completed(count);
-  check(remoteReads.length === 1 && remoteReads[0] === remoteAsset('expired-selected').url && requests.length === beforeRemoteRepair + 2 && requests[beforeRemoteRepair].path === '/api/sunburst' && store.getSnapshot().slice(count).every(task => task.state === 'Done'), 'Expired selected remote result regenerates automatically while history remains untouched');
+  check(remoteReads.length === 1 && remoteReads[0] === remoteAsset('expired-selected').url && requests.length === beforeRemoteRepair && store.getSnapshot().slice(count).every(task => task.state === 'Failed' && task.error?.includes('已有图片无法读取')), 'Unreadable selected remote result stops with a recovery message and zero model requests');
   // A required remote input is snapshotted and passed to the model as local bytes.
   setNodes(all => all.map(node => node.id === 'remote-compare' ? { ...node, data: { mode: 'slider', split: .5, input1: remoteAsset('valid'), input2: remoteAsset('unused') } } as AppNode : node)); await settle();
   count = store.getSnapshot().length; start('remote-description'); await completed(count);

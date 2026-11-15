@@ -20,7 +20,7 @@ export type ExecutionIO = {
   discard: (assets: FileAsset[]) => void;
   patch: (id: string, data: Record<string, unknown>) => void;
 };
-type Root = { id: string; batchId: string; iteration?: WorkflowIteration; controller: AbortController; guard: string; tasks: string[]; memo: Map<string, Promise<void>>; remote: Map<string, FileAsset>; outputs: Map<string, Record<string, unknown>>; releases: (() => void)[]; done?: Promise<void> };
+type Root = { refreshImages: ReadonlySet<string>; id: string; batchId: string; iteration?: WorkflowIteration; controller: AbortController; guard: string; tasks: string[]; memo: Map<string, Promise<void>>; remote: Map<string, FileAsset>; outputs: Map<string, Record<string, unknown>>; releases: (() => void)[]; done?: Promise<void> };
 type LocalFlight = { controller: AbortController; consumers: Set<AbortSignal>; promise: Promise<Record<string, unknown>> };
 type Flight = { nodeId: string; taskId: string; controller: AbortController; consumers: Set<AbortSignal>; promise: Promise<Record<string, unknown>> };
 export function aborted(signal: AbortSignal) { if (signal.aborted) throw new Error(typeof signal.reason === 'string' ? signal.reason : '运行已取消。'); }
@@ -81,7 +81,7 @@ export class WorkflowExecution {
   observe(graph: ExecutionGraph) {
     this.graph = graph;
     for (const root of this.roots) {
-      try { if (graphGuard(graph, root.id, true) !== root.guard) root.controller.abort('输入或输出选择已变化，请重新运行。'); }
+      try { if (graphGuard({ ...graph, refreshImages: root.refreshImages }, root.id, true) !== root.guard) root.controller.abort('输入或输出选择已变化，请重新运行。'); }
       catch { root.controller.abort('依赖节点已删除或连接失效。'); }
     }
   }
@@ -89,13 +89,13 @@ export class WorkflowExecution {
     this.graph = { ...this.graph, nodes: this.graph.nodes.map(node => node.id === id ? { ...node, data: { ...node.data, ...data } } as AppNode : node) };
     // Only an engine-owned successful commit advances edit guards. Cancelled
     // roots stay cancelled, even when undo later restores the same input hash.
-    for (const root of this.roots) if (!root.controller.signal.aborted) root.guard = graphGuard(this.graph, root.id, true);
+    for (const root of this.roots) if (!root.controller.signal.aborted) root.guard = graphGuard({ ...this.graph, refreshImages: root.refreshImages }, root.id, true);
     this.io.patch(id, data);
   }
   private graphFor(root: Root): ExecutionGraph {
     // Select the item before mapping URL snapshots: distinct entries may share
     // a remote URL, so mapping the full list first would collapse their IDs.
-    const graph = iterationGraph({ ...this.graph, nodes: this.graph.nodes.map(node => root.outputs.has(node.id) ? { ...node, data: { ...node.data, ...root.outputs.get(node.id) } } as AppNode : node) }, root.iteration);
+    const graph = iterationGraph({ ...this.graph, refreshImages: root.refreshImages, nodes: this.graph.nodes.map(node => root.outputs.has(node.id) ? { ...node, data: { ...node.data, ...root.outputs.get(node.id) } } as AppNode : node) }, root.iteration);
     return { ...graph, nodes: mapAssets(graph.nodes, asset => root.remote.get(asset.url) ? { ...root.remote.get(asset.url)!, maskMode: asset.maskMode } : asset) };
   }
   run(ids: string[], runs: number, retry?: WorkflowIteration) {
@@ -103,11 +103,15 @@ export class WorkflowExecution {
     const targets = [...new Set(ids)];
     if (!targets.length) return Promise.resolve();
     if (targets.some(id => [...this.roots].some(root => root.id === id) || [...this.flights.values()].some(flight => flight.nodeId === id))) throw new Error('选中节点已有运行中的任务，请等待完成后再运行。');
-    const plans = planExecution(this.graph, targets, runs, retry);
+    const running = new Set([...this.roots].map(root => root.id).concat([...this.flights.values()].map(flight => flight.nodeId)));
+    const refreshImages = new Set(this.graph.nodes.filter(node => isImageGeneratorNode(node)
+      && (!selectedResult(node) || targets.includes(node.id) || running.has(node.id))).map(node => node.id));
+    const plannedGraph = { ...this.graph, refreshImages };
+    const plans = planExecution(plannedGraph, targets, runs, retry);
     const batchId = crypto.randomUUID();
     const roots = targets.flatMap(id => plans.get(id)!.map(iteration => {
       const tasks = Array.from({ length: runs }, () => this.placeholder(id, batchId, iteration));
-      const root: Root = { id, batchId, iteration, tasks: tasks.map(task => task.id), controller: new AbortController(), guard: graphGuard(this.graph, id, true), memo: new Map(), remote: new Map(), outputs: new Map(), releases: [] };
+      const root: Root = { refreshImages, id, batchId, iteration, tasks: tasks.map(task => task.id), controller: new AbortController(), guard: graphGuard(plannedGraph, id, true), memo: new Map(), remote: new Map(), outputs: new Map(), releases: [] };
       this.roots.add(root);
       this.store.update(current => [...current, ...tasks]);
       return root;
@@ -118,7 +122,17 @@ export class WorkflowExecution {
         const signal = root.controller.signal;
         const release = this.io.retain(this.graph);
         try {
-          await this.snapshotAssets(root, executionSourceAssets(this.graphFor(root), root.id, targets));
+          const initialGraph = this.graphFor(root);
+          const sources = executionSourceAssets(initialGraph, root.id, targets);
+          // Existing generated images are required assets. Check them before any
+          // upstream work, and never recover a missing image with a paid request.
+          for (const source of initialGraph.nodes) {
+            const result = selectedResult(source);
+            if (!targets.includes(source.id) && fixedOutput(source, initialGraph) && result && sources.some(asset => asset.url === result.url)) {
+              await this.verifyImageResult(root, source);
+            }
+          }
+          await this.snapshotAssets(root, sources);
           aborted(signal);
           const node = this.graph.nodes.find(item => item.id === root.id)!;
           await Promise.all(executionInputs(node, undefined, this.graphFor(root)).map(edge => this.ensureInput(root, node, edge)));
@@ -189,8 +203,8 @@ export class WorkflowExecution {
       this.pinOutput(root, id, output);
       return;
     }
-    if (fixedOutput(node)) {
-      await this.verifyOutput(root, isImageGeneratorNode(node) ? [selectedResult(node)!] : []);
+    if (fixedOutput(node, graph)) {
+      if (isImageGeneratorNode(node)) await this.verifyImageResult(root, node);
       this.pinOutput(root, id, modelOutput(node));
       return;
     }
@@ -201,7 +215,7 @@ export class WorkflowExecution {
       // Locked nodes may supply a proven result, but may never be executed.
       const unlocked = { ...graph, nodes: graph.nodes.map(item => item.id === id ? { ...item, data: { ...item.data, locked: false } } as AppNode : item) };
       const prepared = prepareModel(unlocked, id), signature = requestSignature(prepared, graph);
-      const iteration = root.iteration && workflowIterations(this.graph, id).find(item => item && sameIteration(item, root.iteration));
+      const iteration = root.iteration && workflowIterations({ ...this.graph, refreshImages: root.refreshImages }, id).find(item => item && sameIteration(item, root.iteration));
       const cached = reusableModelNode(node, signature, iteration);
       if (cached) {
         try {
@@ -230,6 +244,13 @@ export class WorkflowExecution {
       }
       if (isNodeLocked(node)) nodeProblem(node, '已锁定且没有有效输出。');
       await this.sharedLocal(root, node, graph, localSignature, handle);
+    }
+  }
+  private async verifyImageResult(root: Root, node: AppNode) {
+    try { await this.verifyOutput(root, [selectedResult(node)!]); }
+    catch {
+      aborted(root.controller.signal);
+      nodeProblem(node, '已有图片无法读取，请恢复图片或主动运行该生图节点重新生成。');
     }
   }
   private async snapshotAssets(root: Root, assets: FileAsset[]) {

@@ -78,7 +78,9 @@ async function run() {
   const handTool = find<HTMLButtonElement>('.canvas-sidebar [aria-label="抓手工具"]');
   handTool.click(); await settle();
   check(handTool.getAttribute('aria-pressed') === 'true' && selectTool.getAttribute('aria-pressed') === 'false' && find('.react-flow').classList.contains('canvas-tool-hand'), 'Dock hand selection updates the shared canvas tool');
-  check(getComputedStyle(handTool).borderRadius === '16px' && getComputedStyle(handTool).backgroundColor === 'rgb(47, 47, 47)', 'The active dock tool has a 16px radius and a lighter background');
+  const toolIndicator = find('.canvas-sidebar-tool-indicator');
+  check(getComputedStyle(toolIndicator).borderRadius === '16px' && getComputedStyle(toolIndicator).backgroundColor === 'rgb(56, 56, 56)'
+    && Math.abs(toolIndicator.getBoundingClientRect().top - handTool.getBoundingClientRect().top) < 0.5, 'The active dock tool has an aligned 16px-radius selection background');
   selectTool.click(); await settle();
   check(selectTool.getAttribute('aria-pressed') === 'true' && find('.react-flow').classList.contains('canvas-tool-select'), 'Dock selection tool restores normal node interaction');
   await open();

@@ -22,7 +22,12 @@ import { defaultIdeogramSettings, defaultIdeogramEditSettings, validateIdeogramS
 import { outputKind } from './router.ts';
 import type { PreviewTask } from './taskQueue';
 
-export type ExecutionGraph = { nodes: AppNode[]; edges: Edge[] };
+export type ExecutionGraph = {
+  nodes: AppNode[];
+  edges: Edge[];
+  // Keep the execution boundary stable while a batch creates its first results.
+  refreshImages?: ReadonlySet<string>;
+};
 export type GenerationRecord = { version: 1; inputSignature: string; outputSignature: string; iteration?: WorkflowIteration };
 export type OutputPolicy = { outputMode?: 'manual' | 'fixed'; sourceSignature?: string };
 export const isModelNode = (node: AppNode) => isDescriberNode(node) || isImageGeneratorNode(node);
@@ -34,9 +39,9 @@ export function selectedResult(node: AppNode) {
   if (!isImageGeneratorNode(node)) return undefined;
   return node.data.results?.find(asset => asset.id === node.data.activeResultId) ?? node.data.results?.[node.data.results.length - 1];
 }
-export function fixedOutput(node: AppNode) {
+export function fixedOutput(node: AppNode, graph: ExecutionGraph) {
   return isDescriberNode(node) ? node.data.outputMode === 'manual' && Boolean(node.data.text.trim())
-    : isImageGeneratorNode(node) && node.data.outputMode === 'fixed' && Boolean(selectedResult(node));
+    : isImageGeneratorNode(node) && !graph.refreshImages?.has(node.id) && Boolean(selectedResult(node));
 }
 export function executionInputs(node: AppNode, handle: string | null | undefined, graph: ExecutionGraph): Edge[] {
   const edges = graph.edges.filter(edge => edge.target === node.id);
@@ -68,7 +73,7 @@ export function executionSourceAssets(graph: ExecutionGraph, target: string, tar
     visited.add(key);
     const node = graph.nodes.find(item => item.id === id);
     if (!node) return;
-    if (!targets.includes(id) && fixedOutput(node)) { add(selectedResult(node)); return; }
+    if (!targets.includes(id) && fixedOutput(node, graph)) { add(selectedResult(node)); return; }
     const inputs = executionInputs(node, handle, graph);
     const connected = (port: string) => inputs.some(edge => edge.targetHandle === port);
     if (node.type === 'file') fileAssets(node.data).forEach(add);
@@ -130,8 +135,8 @@ export function graphGuard(graph: ExecutionGraph, id: string, force = false, han
     const key = JSON.stringify([nodeId, port ?? null, forced]);
     if (path.has(key)) nodeProblem(node, '检测到循环依赖。');
     if (records.has(key)) return key;
-    if (!forced && fixedOutput(node)) {
-      records.set(key, [node.type, isDescriberNode(node) ? node.data.text : assetIdentity(selectedResult(node)!), 'outputMode' in node.data ? node.data.outputMode : undefined]);
+    if (!forced && fixedOutput(node, graph)) {
+      records.set(key, [node.type, isDescriberNode(node) ? node.data.text : { resultId: selectedResult(node)!.id, ...assetIdentity(selectedResult(node)!) }, 'outputMode' in node.data ? node.data.outputMode : undefined]);
     } else {
       const inputs = executionInputs(node, port, graph).map(edge => [edge.targetHandle, edge.sourceHandle, visit(edge.source, edge.sourceHandle, false, new Set(path).add(key))]);
       records.set(key, [node.type, configuration(node, graph, port), inputs.sort((a, b) => String(a[0]).localeCompare(String(b[0])))]);
@@ -192,7 +197,7 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
     seen.add(key);
     const source = graph.nodes.find(item => item.id === id);
     if (!source) return false;
-    if (isModelNode(source)) return targets.includes(id) || !fixedOutput(source);
+    if (isModelNode(source)) return targets.includes(id) || !fixedOutput(source, graph);
     return executionInputs(source, handle, graph).some(edge => dynamic(edge.source, edge.sourceHandle, seen));
   };
   const inputs = executionInputs(node, undefined, graph);
@@ -247,7 +252,7 @@ function preflightSingle(graph: ExecutionGraph, targets: string[], runs: number)
       if (path.has(key)) nodeProblem(node, '检测到循环依赖。');
       if (all.has(key)) return;
       all.add(key);
-      if (!targets.includes(id) && fixedOutput(node)) return;
+      if (!targets.includes(id) && fixedOutput(node, graph)) return;
       if (id === target && (!isModelNode(node) || isNodeLocked(node))) nodeProblem(node, '节点已锁定或不能运行。');
       if (isMasksExtractorNode(node)) {
         if (!node.data.selection) nodeProblem(node, '请先完成必要选区。');
@@ -285,7 +290,7 @@ export function workflowIterations(graph: ExecutionGraph, target: string): (Work
     if (seen.has(key)) return;
     seen.add(key);
     const node = graph.nodes.find(item => item.id === id);
-    if (!node || (id !== target && fixedOutput(node))) return;
+    if (!node || (id !== target && fixedOutput(node, graph))) return;
     if (isTextIteratorNode(node) || isImageIteratorNode(node)) iterators.add(id);
     executionInputs(node, handle, graph).forEach(edge => visit(edge.source, edge.sourceHandle));
   };
@@ -305,7 +310,7 @@ export function workflowIterations(graph: ExecutionGraph, target: string): (Work
     if (path.has(id)) nodeProblem(node, '检测到循环依赖。');
     const input = graph.nodes.find(item => item.id === id);
     if (!input) nodeProblem(node, '连接的节点不存在。');
-    if (fixedOutput(input)) return;
+    if (fixedOutput(input, graph)) return;
     if (isModelNode(input)) nodeProblem(node, '请先运行上游文本模型，并将列表设为手动文本后再批量运行。');
     executionInputs(input, undefined, graph).forEach(edge => checkInput(edge.source, new Set(path).add(id)));
   };
@@ -328,7 +333,7 @@ export function iterationGraph(graph: ExecutionGraph, iteration?: WorkflowIterat
     } as AppNode : node),
   };
   return {
-    nodes: graph.nodes.map(node => node.id === iteration.nodeId ? {
+    ...graph, nodes: graph.nodes.map(node => node.id === iteration.nodeId ? {
       ...node, type: 'text', data: { text: iteration.text, label: node.data.label, locked: isNodeLocked(node) },
     } as AppNode : node),
     edges: graph.edges.filter(edge => edge.target !== iteration.nodeId).map(edge => edge.source === iteration.nodeId ? { ...edge, sourceHandle: null } : edge),

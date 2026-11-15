@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { WorkflowExecution, type ExecutionIO, type ExecutionStore } from './workflowExecution.ts';
-import { executionSourceAssets, graphGuard, preflight, prepareModel, requestSignature, sourceSignature, type ExecutionGraph } from './executionGraph.ts';
+import { executionSourceAssets, graphGuard, preflight, prepareModel, requestSignature, selectedResult, sourceSignature, type ExecutionGraph } from './executionGraph.ts';
 import { defaultPainterData, painterRevision } from './painter.ts';
 import { resizeRevision } from './resize.ts';
 import { defaultCompositorDocument } from './compositor.ts';
@@ -69,7 +69,7 @@ test('current model signatures reuse upstream results, including locked nodes', 
   }
 });
 
-test('model upgrades and changes to version, provider, input, size or output invalidate cached results', async () => {
+test('upstream image results survive model, provider, input and parameter changes', async () => {
   for (const change of ['model-upgrade', 'variant', 'provider', 'prompt', 'image', '2K', '4K', 'quality', 'output', 'signature', 'locked-size', 'openai-to-zenmux']) {
     const graph = recordedSunburstGraph(change === 'model-upgrade' ? 'legacy' : change === 'openai-to-zenmux' ? 'openai' : 'zenmux');
     graph.nodes = graph.nodes.map(node => {
@@ -85,17 +85,87 @@ test('model upgrades and changes to version, provider, input, size or output inv
       } } as AppNode;
     });
     const h = harness(graph); await h.engine.run(['downstream'], 1);
-    if (change === 'locked-size') {
-      assert.equal(h.requests.length, 0);
-      assert.match(h.store.getSnapshot()[0].error!, /已锁定且结果需要更新/);
-    } else {
-      assert.deepEqual(h.requests.map(task => task.nodeId), ['upstream', 'downstream'], change);
-      assert.deepEqual(h.requests[1].images, ['blob:generated']);
-      assert.ok(h.store.getSnapshot().every(task => task.state === 'Done'));
-    }
+    assert.deepEqual(h.requests.map(task => task.nodeId), ['downstream'], change);
+    assert.deepEqual(h.requests[0].images, ['blob:cached']);
+    assert.ok(h.store.getSnapshot().every(task => task.state === 'Done'));
     h.engine.dispose();
   }
 });
+test('existing image cuts off invalid or missing generation inputs; explicitly running it still validates', async () => {
+  for (const type of ['sunburst', 'nano-banana', 'ideogram'] as const) {
+    const graph: ExecutionGraph = { nodes: [
+      { ...generator('up'), type, data: { results: [generatedAsset('chosen')], activeResultId: 'chosen' } } as AppNode,
+      describer('down'),
+    ], edges: [edge('up', 'down', 'image-0', 'result')] };
+    const h = harness(graph);
+    await h.engine.run(['down'], 1);
+    assert.deepEqual(h.requests.map(task => task.nodeId), ['down']);
+    assert.deepEqual(h.requests[0].images, ['blob:chosen']);
+    assert.throws(() => h.engine.run(['up'], 1), /提示词/);
+    h.engine.dispose();
+  }
+});
+
+test('explicit image runs and selections use the new result; upstream settings do not invalidate downstream work', async () => {
+  for (const targets of [['upstream'], ['downstream', 'upstream']]) {
+    const h = harness(recordedSunburstGraph('openai'));
+    await h.engine.run(targets, 1);
+    assert.equal(h.requests.filter(task => task.nodeId === 'upstream').length, 1);
+    await h.engine.run(['downstream'], 1);
+    assert.deepEqual(h.requests[h.requests.length - 1]?.images, ['blob:generated']);
+    h.edit(graph => ({ ...graph, nodes: graph.nodes.map(node => node.id === 'upstream'
+      ? { ...node, data: { ...node.data, activeResultId: 'cached' } } as AppNode : node) }));
+    await h.engine.run(['downstream'], 1);
+    assert.deepEqual(h.requests[h.requests.length - 1]?.images, ['blob:cached']);
+    h.engine.dispose();
+  }
+  let resolve!: (text: string) => void;
+  let signal!: AbortSignal;
+  const h = harness(recordedSunburstGraph('openai'), (_task, current) => { signal = current; return new Promise(done => { resolve = done; }); });
+  const done = h.engine.run(['downstream'], 1);
+  await until(() => Boolean(resolve));
+  h.edit(graph => ({ ...graph, nodes: graph.nodes.map(node => node.id === 'prompt'
+    ? { ...node, data: { text: 'changed draft' } } as AppNode : node.id === 'upstream'
+      ? { ...node, data: { ...node.data, quality: 'high' } } as AppNode : node) }));
+  assert.equal(signal.aborted, false);
+  resolve('finished'); await done;
+  assert.equal(h.store.getSnapshot()[0].state, 'Done');
+  h.engine.dispose();
+});
+
+test('changing selected image cancels downstream even when history has identical content', async () => {
+  const graph = recordedSunburstGraph('openai');
+  const up = graph.nodes.find(node => node.id === 'upstream')!; assert.ok(isImageGeneratorNode(up));
+  up.data.results = [
+    { ...generatedAsset('cached'), contentHash: 'same-bytes' },
+    { ...generatedAsset('other'), contentHash: 'same-bytes' },
+  ];
+  let resolve!: (text: string) => void;
+  let signal!: AbortSignal;
+  const h = harness(graph, (_task, current) => { signal = current; return new Promise(done => { resolve = done; }); });
+  const done = h.engine.run(['downstream'], 1); await until(() => Boolean(resolve));
+  h.edit(current => ({ ...current, nodes: current.nodes.map(node => node.id === 'upstream'
+    ? { ...node, data: { ...node.data, activeResultId: 'other' } } as AppNode : node) }));
+  assert.ok(signal.aborted);
+  resolve('late'); await done;
+  assert.equal(h.store.getSnapshot()[0].state, 'Cancelled');
+  h.engine.dispose();
+});
+
+test('unreadable existing local image fails before unrelated upstream model submissions', async () => {
+  const graph = recordedSunburstGraph('openai');
+  graph.nodes.push(file('new-source'), describer('other-branch'));
+  graph.edges.push(edge('new-source', 'other-branch', 'image-0', 'file'), edge('other-branch', 'downstream', 'instructions'));
+  const h = harness(graph, undefined, undefined, { verify: async assets => {
+    if (assets.some(asset => asset.id === 'cached')) throw new Error('revoked blob');
+  } });
+  await h.engine.run(['downstream'], 1);
+  assert.equal(h.requests.length, 0);
+  assert.match(h.store.getSnapshot()[0].error!, /sunburst：已有图片无法读取/);
+  assert.equal(selectedResult(h.node('upstream'))?.id, 'cached');
+  h.engine.dispose();
+});
+
 async function until(check: () => boolean) { for (let i = 0; i < 100; i++) { if (check()) return; await new Promise(resolve => setTimeout(resolve, 1)); } assert.fail('condition not reached'); }
 const changeAsset = (graph: ExecutionGraph, id: string, assetId: string): ExecutionGraph => ({ ...graph, nodes: graph.nodes.map(node => node.id === id ? { ...file(id), data: { assets: [{ id: assetId, name: assetId, kind: 'image', url: `blob:${assetId}` }] } } as AppNode : node) });
 
@@ -230,7 +300,7 @@ test('legacy descriptions refresh automatically once, then reuse the recorded re
   assert.deepEqual(h.requests.slice(3).map(task => task.nodeId), ['g']);
 });
 
-test('legacy generated images refresh before downstream and subsequently reuse across all image models', async () => {
+test('existing images without generation metadata are reused across all image models', async () => {
   for (const type of ['sunburst', 'nano-banana', 'ideogram'] as const) {
     const graph = fixture();
     graph.nodes = graph.nodes.map(node => node.id === 'g' ? { ...node, type, data: { ...(type === 'sunburst' ? defaultSunburstSettings : type === 'nano-banana' ? defaultNanoBananaSettings : defaultIdeogramSettings), imageInputs: 1, results: [{ id: 'legacy', kind: 'image', name: 'legacy.png', url: 'blob:legacy' }], activeResultId: 'legacy' } } as AppNode : node);
@@ -238,13 +308,13 @@ test('legacy generated images refresh before downstream and subsequently reuse a
     graph.edges.push(edge('g', 'downstream', 'image-0', 'result'));
     const h = harness(graph);
     await h.engine.run(['downstream'], 1);
-    assert.deepEqual(h.requests.map(task => task.nodeId), ['da', 'db', 'g', 'downstream']);
-    assert.equal(h.requests[3].images?.[0], 'blob:generated');
+    assert.deepEqual(h.requests.map(task => task.nodeId), ['downstream']);
+    assert.equal(h.requests[0].images?.[0], 'blob:legacy');
     const imageNode = h.node('g'); assert.ok(isImageGeneratorNode(imageNode));
-    assert.equal(imageNode.data.results?.length, 2);
-    assert.notEqual(imageNode.data.activeResultId, 'legacy');
+    assert.equal(imageNode.data.results?.length, 1);
+    assert.equal(imageNode.data.activeResultId, 'legacy');
     await h.engine.run(['downstream'], 1);
-    assert.deepEqual(h.requests.slice(4).map(task => task.nodeId), ['downstream']);
+    assert.deepEqual(h.requests.slice(1).map(task => task.nodeId), ['downstream']);
   }
 });
 
@@ -345,7 +415,7 @@ test('source planning excludes unused Compare branches, overridden fallbacks and
   const models = fixture(); models.nodes.push(describer('downstream')); models.edges.push(edge('g', 'downstream', 'image-0', 'result'));
   const g = models.nodes.find(node => node.id === 'g')!; assert.ok(isImageGeneratorNode(g));
   g.data.results = [remote('history'), remote('current')]; g.data.activeResultId = 'current';
-  assert.deepEqual(executionSourceAssets(models, 'downstream').map(asset => asset.id).sort(), ['a', 'b']);
+  assert.deepEqual(executionSourceAssets(models, 'downstream').map(asset => asset.id), ['current']);
   g.data.outputMode = 'fixed';
   assert.deepEqual(executionSourceAssets(models, 'downstream').map(asset => asset.id), ['current']);
   assert.deepEqual(executionSourceAssets(models, 'downstream', ['g', 'downstream']).map(asset => asset.id).sort(), ['a', 'b']);
@@ -360,7 +430,7 @@ test('source planning excludes unused Compare branches, overridden fallbacks and
   assert.deepEqual(executionSourceAssets(composition, 'd').map(asset => asset.id).sort(), ['source', 'visible']);
 });
 
-test('expired selected remote model cache regenerates while unselected history is never fetched', async () => {
+test('unreadable selected remote image stops without regeneration or fetching history', async () => {
   const warm = harness(); await warm.engine.run(['g'], 1);
   const graph = warm.graph;
   const g = graph.nodes.find(node => node.id === 'g')!; assert.ok(isImageGeneratorNode(g));
@@ -373,10 +443,11 @@ test('expired selected remote model cache regenerates while unselected history i
   } });
   await h.engine.run(['downstream'], 1);
   assert.deepEqual(fetched, ['https://example.invalid/selected']);
-  assert.deepEqual(h.requests.map(task => task.nodeId), ['g', 'downstream']);
-  assert.equal(h.requests[1].images?.[0], 'blob:generated');
-  await h.engine.run(['downstream'], 1);
-  assert.equal(fetched.length, 1); assert.deepEqual(h.requests.slice(2).map(task => task.nodeId), ['downstream']);
+  assert.equal(h.requests.length, 0);
+  assert.equal(h.store.getSnapshot()[0].state, 'Failed');
+  assert.match(h.store.getSnapshot()[0].error!, /sunburst：已有图片无法读取.*重新生成/);
+  assert.equal(selectedResult(h.node('g'))?.url, 'https://example.invalid/selected');
+  h.engine.dispose(); warm.engine.dispose();
 });
 
 test('required remote source failure stops the plan before any model call', async () => {
@@ -631,7 +702,7 @@ test('overlapping iterator runs wait for the matching upstream item, including d
   }
 });
 
-test('completed iterator images are restored by item identity while siblings run and after reload', async () => {
+test('running iterator images stay paired; later runs use the selected result after reload', async () => {
   for (const kind of ['text', 'image']) {
     const graph = kind === 'text' ? iteratorGraph(['same', 'same', 'same']) : imageIteratorGraph();
     if (kind === 'image') graph.nodes = mapAssets(graph.nodes, asset => ({ ...asset, contentHash: 'identical-content' }));
@@ -656,10 +727,13 @@ test('completed iterator images are restored by item identity while siblings run
       try {
         await restored.engine.run(['final'], 1);
         assert.equal(restored.requests.filter(task => task.nodeId === 'g').length, 0, 'persisted generation metadata restores each item');
-        for (const task of restored.requests) assert.deepEqual(task.imageRequest?.images, [`blob:upstream-${task.iteration!.itemId}`]);
+        const selected = selectedResult(restored.node('g'))!;
+        for (const task of restored.requests) assert.deepEqual(task.imageRequest?.images, [selected.url]);
+        assert.equal(restored.requests.length, kind === 'text' ? 3 : 1, 'the selected image stops traversal to its own iterator');
         restored.edit(current => ({ ...current, nodes: current.nodes.map(node => node.id === 'g' ? { ...node, data: { ...node.data, quality: 'high' } } as AppNode : node) }));
         await restored.engine.run(['final'], 1);
-        assert.equal(restored.requests.filter(task => task.nodeId === 'g').length, 3, 'changed model settings invalidate every historical item');
+        assert.equal(restored.requests.filter(task => task.nodeId === 'g').length, 0, 'changed settings do not regenerate historical images');
+        for (const task of restored.requests) assert.deepEqual(task.imageRequest?.images, [selected.url]);
       } finally { restored.engine.dispose(); }
     } finally { h.engine.dispose(); }
   }

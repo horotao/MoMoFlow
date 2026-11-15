@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useRef, useState } from 'react';
+import { Fragment, useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { spring } from '../lib/springs';
 import { Tooltip, TooltipProvider } from './ui/tooltip';
@@ -27,11 +27,27 @@ type Props = {
 };
 const moreActions = [{ id: 'api-settings', label: 'API 设置', icon: Settings02Icon }];
 export function CanvasSidebar({ tool, onToolChange, addTrigger, menuOpen, onAddMenu, onApiSettings }: Props) {
+  const selectTrigger = useRef<HTMLButtonElement>(null);
+  const handTrigger = useRef<HTMLButtonElement>(null);
+  const toolIndicator = useRef<HTMLSpanElement>(null);
+  const pointerToolChange = useRef<CanvasTool | null>(null);
   const moreTrigger = useRef<HTMLButtonElement>(null);
   const [moreMenu, setMoreMenu] = useState<{ x: number; y: number; keyboard: boolean } | null>(null);
   const dismissMore = useCallback(() => setMoreMenu(null), []);
+  useLayoutEffect(() => {
+    const indicator = toolIndicator.current;
+    const button = (tool === 'select' ? selectTrigger : handTrigger).current;
+    if (indicator && button) {
+      // Only pointer changes travel; mount, shortcuts and keyboard clicks snap.
+      indicator.dataset.animate = String(pointerToolChange.current === tool);
+      indicator.style.transform = `translateY(${button.offsetTop}px)`;
+    }
+    pointerToolChange.current = null;
+  }, [tool]);
   return <div className="canvas-sidebar-positioner nodrag nopan nowheel">
     <nav className="canvas-sidebar" aria-label="画布工具栏">
+      <span ref={toolIndicator} className="canvas-sidebar-tool-indicator" aria-hidden="true"
+        style={{ transitionDuration: `${spring.moderate.duration}s` }} />
       <TooltipProvider disableHoverableContent>
         {dockItems.map(({ id, label, asset, shortcut, divider }) => <Fragment key={id}>
           {divider && <div className="canvas-sidebar-divider" aria-hidden="true" />}
@@ -41,7 +57,7 @@ export function CanvasSidebar({ tool, onToolChange, addTrigger, menuOpen, onAddM
             content={shortcut ? <span className="inline-flex items-center gap-2 whitespace-nowrap">
               {label}<kbd>{shortcut}</kbd>
             </span> : label}>
-            <button ref={id === 'add' ? addTrigger : id === 'more' ? moreTrigger : undefined} type="button"
+            <button ref={id === 'add' ? addTrigger : id === 'more' ? moreTrigger : id === 'select' ? selectTrigger : id === 'hand' ? handTrigger : undefined} type="button"
               className={`canvas-sidebar-button${id === 'add' ? ' canvas-sidebar-add' : ''}`}
               aria-label={label} aria-pressed={id === 'select' || id === 'hand' ? tool === id : undefined}
               aria-keyshortcuts={shortcut} aria-haspopup={id === 'add' ? 'dialog' : id === 'more' ? 'menu' : undefined}
@@ -53,7 +69,10 @@ export function CanvasSidebar({ tool, onToolChange, addTrigger, menuOpen, onAddM
                   setMoreMenu(current => current ? null : { x: bounds.right + 12, y: bounds.top, keyboard: event.detail === 0 });
                 } else setMoreMenu(null);
                 if (id === 'add') onAddMenu(event.detail === 0);
-                if (id === 'select' || id === 'hand') onToolChange(id);
+                if (id === 'select' || id === 'hand') {
+                  pointerToolChange.current = event.detail > 0 && tool !== id ? id : null;
+                  onToolChange(id);
+                }
               }}>
               <img src={`/canvas-menu/${asset}.svg`} alt="" draggable={false}
                 style={id === 'add' ? { transitionDuration: `${menuOpen ? spring.moderate.duration : spring.moderate.exit.duration}s` } : undefined} />
