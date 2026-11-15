@@ -1,3 +1,4 @@
+import { defaultSeedreamSettings } from './seedream.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { WorkflowExecution, type ExecutionIO, type ExecutionStore } from './workflowExecution.ts';
@@ -1096,6 +1097,29 @@ test('APIMart waits for its existing async task beyond the generic image deadlin
   const graph: ExecutionGraph = { nodes: [
     { id: 'prompt', type: 'text', position: { x: 0, y: 0 }, data: { text: 'An orange circle' } },
     { id: 'g', type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, provider: 'apimart', imageInputs: 1 } },
+  ], edges: [edge('prompt', 'g', 'prompt')] };
+  let requestSignal: AbortSignal | undefined;
+  const h = harness(graph, (_task, signal) => { requestSignal = signal; return new Promise(() => {}); });
+  const running = h.engine.run(['g'], 1);
+  for (let index = 0; index < 80; index++) await Promise.resolve();
+  assert.equal(h.requests.length, 1);
+  t.mock.timers.tick(620000);
+  for (let index = 0; index < 80; index++) await Promise.resolve();
+  assert.equal(requestSignal?.aborted, false);
+  assert.equal(h.store.getSnapshot()[0].state, 'Running');
+  assert.equal(h.requests.length, 1);
+  h.store.update(tasks => tasks.map(task => ({ ...task, state: 'Cancelled' })));
+  await running;
+  assert.equal(requestSignal?.aborted, true);
+  assert.equal(h.store.getSnapshot()[0].state, 'Cancelled');
+  h.engine.dispose();
+});
+
+test('Seedream 5.5 waits for its existing async task beyond the generic image deadline and still supports cancellation', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const graph: ExecutionGraph = { nodes: [
+    { id: 'prompt', type: 'text', position: { x: 0, y: 0 }, data: { text: 'An orange circle' } },
+    { id: 'g', type: 'seedream', position: { x: 0, y: 0 }, data: { ...defaultSeedreamSettings, imageInputs: 1 } },
   ], edges: [edge('prompt', 'g', 'prompt')] };
   let requestSignal: AbortSignal | undefined;
   const h = harness(graph, (_task, signal) => { requestSignal = signal; return new Promise(() => {}); });

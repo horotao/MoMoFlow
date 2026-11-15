@@ -8,7 +8,7 @@ import {
 } from '@hugeicons/core-free-icons';
 import type { IconSvgElement } from '@hugeicons/react';
 import type { OutputKind } from './router';
-import { ideogramBrandIcon, nanoBananaBrandIcon } from './modelBrandIcons';
+import { ideogramBrandIcon, nanoBananaBrandIcon, seedreamBrandIcon } from './modelBrandIcons';
 
 export const nodeIcons = {
   'text-iterator': RepeatIcon,
@@ -37,6 +37,7 @@ export const nodeIcons = {
   crop: CropIcon,
   painter: PaintBrush01Icon,
   'nano-banana': nanoBananaBrandIcon,
+  seedream: seedreamBrandIcon,
 } satisfies Record<string, IconSvgElement>;
 
 export const routerIcons: Record<OutputKind, IconSvgElement> = {

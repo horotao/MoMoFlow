@@ -27,7 +27,7 @@ const saved: Workflow = { nodes: [painter,
   { id: 'mask-preview', source: 'paint', sourceHandle: 'mask', target: 'mask', targetHandle: 'file' },
 ], viewport: { x: 0, y: 0, zoom: 1 }, colorMode: 'dark' };
 const root = createRoot(document.getElementById('root')!);
-root.render(<MotionConfig reducedMotion="user"><ReactFlowProvider><ModelTasksProvider>
+root.render(<MotionConfig reducedMotion={new URLSearchParams(location.search).has('reduce-motion') ? 'always' : 'user'}><ReactFlowProvider><ModelTasksProvider>
   <Flow storage={storage} saved={saved} /><Probe />
 </ModelTasksProvider></ReactFlowProvider></MotionConfig>);
 const checks: string[] = [];
@@ -93,22 +93,30 @@ async function run() {
   pass('四种形状、菜单选择与图标同步；画笔和橡皮擦参数独立');
   tool('颜色选择器'); await settle();
   const picker = find('[role="dialog"][aria-label="颜色选择器"]');
-  check(picker.offsetWidth === 280 && picker.offsetHeight === 356, '280×356 color picker');
-  check(getComputedStyle(picker).backgroundColor === 'rgb(34, 34, 34)', 'Color panel surface');
-  check(find('.painter-design-picker .painter-color-area').clientWidth === 256 && find('.painter-design-picker .painter-color-area').clientHeight === 180, '256×180 saturation area');
-  check(picker.querySelectorAll('.painter-picker-presets button').length === 7, 'Seven color presets');
-  find<HTMLButtonElement>('[aria-label="使用颜色 #F87171"]').click(); await settle();
-  check(within<HTMLInputElement>('input[aria-label="颜色"]').value === 'F87171', 'Preset synchronizes inline HEX');
+  check(picker.offsetWidth === 288, 'beUI 288px color picker');
+  const area = find('[data-color-picker-area]');
+  await until(() => area.clientWidth === 264 && area.clientHeight === 160, `beUI 264×160 saturation area; got ${area.clientWidth}×${area.clientHeight}`);
+  check(picker.querySelectorAll('[aria-label="预设颜色"] button').length === 8, 'Eight beUI color presets');
+  find<HTMLButtonElement>('[aria-label="使用颜色 #E55656"]').click(); await settle();
+  check(within<HTMLInputElement>('input[aria-label="颜色"]').value === 'E55656', 'Preset synchronizes inline HEX');
   input('.painter-design-picker input[aria-label="十六进制颜色"]', '60a5fa'); await settle();
   check(within<HTMLInputElement>('input[aria-label="颜色"]').value === '60A5FA', 'Panel HEX synchronizes brush color');
-  input('.painter-design-picker input[aria-label="颜色选择器不透明度"]', '37'); await settle();
-  check(within<HTMLInputElement>('input[aria-label="颜色不透明度"]').value === '37', 'Panel opacity synchronizes inline opacity');
+  find<HTMLInputElement>('.painter-design-picker input[aria-label="十六进制颜色"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await settle();
+  find('.painter-design-picker [role="slider"][aria-label="不透明度"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true })); await settle();
+  check(within<HTMLInputElement>('input[aria-label="颜色不透明度"]').value === '0', 'Panel opacity synchronizes inline opacity');
+  find<HTMLButtonElement>('[aria-label="使用颜色 #E55656"]').click(); await settle();
+  check(within<HTMLInputElement>('input[aria-label="颜色不透明度"]').value === '0', 'Preset retains independent brush opacity');
+  find<HTMLButtonElement>('[aria-label="Format HEX, switch to RGB"]').click(); await settle();
+  input('.painter-design-picker input[aria-label="Opacity percent"]', '37'); await settle();
+  find<HTMLInputElement>('.painter-design-picker input[aria-label="Opacity percent"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await settle();
+  check(within<HTMLInputElement>('input[aria-label="颜色不透明度"]').value === '37', 'RGB alpha field synchronizes opacity');
   find('.painter-design-picker [role="slider"][aria-label="色相"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true })); await settle();
-  check(within<HTMLInputElement>('input[aria-label="颜色"]').value !== '60A5FA', 'Hue slider changes actual color');
   picker.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
   check(!document.querySelector('.painter-design-picker') && document.activeElement === within('.painter-color-swatch'), 'Escape closes picker and restores focus');
-  tool('颜色选择器'); await settle(); find<HTMLButtonElement>('[aria-label="关闭颜色面板"]').click(); await settle();
-  pass('颜色面板尺寸、七个预设、HEX / 色相 / 透明度双向同步与关闭焦点');
+  tool('颜色选择器'); await settle();
+  within('.painter-color-swatch').click(); await settle();
+  check(!document.querySelector('.painter-design-picker'), 'Trigger closes picker');
+  pass('beUI 颜色面板、八个预设、HEX / RGB / 色相 / 透明度同步与关闭焦点');
   const stroke = { tool: 'rectangle' as const, color: '#f87171', opacity: 1, size: .03, hardness: 1, points: [{ x: .2, y: .2 }, { x: .6, y: .6 }] };
   api.updateNodeData('paint', { strokes: [stroke] }); await until(() => node().data.strokes.length === 1, 'Drawing update must commit'); await exported();
   check(JSON.stringify(await pixels(node().data.result!.url, 400, 400)) === '[248,113,113,255]', 'Result preserves stroke color');

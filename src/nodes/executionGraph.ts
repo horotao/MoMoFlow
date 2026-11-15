@@ -7,11 +7,13 @@ import { isImageIteratorNode, isTextIteratorNode } from './types.ts';
 import { validateIteratorItems } from './textIterator.ts';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, FileAsset } from './types';
-import { isDescriberNode, isImageGeneratorNode, isNodeLocked, isCompositorNode, isMasksExtractorNode, isCompareNode, isBlendNode } from './types.ts';
+import { isDescriberNode, isImageGeneratorNode, isNodeLocked, isCompositorNode, isMasksExtractorNode, isCompareNode, isBlendNode, isSeedreamNode } from './types.ts';
 import { hasVariable } from './textDocument.ts';
 import { fileAssets, orderedAssets } from './fileCollection.ts';
 import { imageOutput } from './sunburstRun.ts';
 import { apimartFixedSettings, sunburstParameterDefaults, validateSunburstProvider, validateSunburstImageInputs, defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
+import { defaultSeedreamSettings, isSeedreamExactSize, validateSeedreamSettings } from './seedream.ts';
+import { effectiveSeedreamSettings, prepareSeedreamRun } from './seedreamRun.ts';
 import { defaultNanoBananaSettings, validateNanoBananaSettings } from './nanoBanana.ts';
 import { resolveTextValue } from './textVariables.ts';
 import { effectiveSunburstSettings, prepareSunburstRun } from './sunburstRun.ts';
@@ -52,6 +54,7 @@ export function executionInputs(node: AppNode, handle: string | null | undefined
   if (node.type === 'model-input' || node.type === 'image-iterator' || node.type === 'file' || node.type === 'color-palette') return [];
   // Legacy edges for removed controls must not schedule upstream model calls.
   if (node.type === 'sunburst') return edges.filter(edge => !Object.keys(apimartFixedSettings).includes(edge.targetHandle ?? ''));
+  if (isSeedreamNode(node) && isSeedreamExactSize(node.data.size) && !edges.some(edge => edge.targetHandle === 'size')) return edges.filter(edge => edge.targetHandle !== 'resolution');
   if (node.type === 'ideogram') {
     const edit = edges.some(edge => edge.targetHandle === 'image-0');
     const fields: readonly string[] = edit ? ideogramEditFields : ideogramGenerationFields;
@@ -158,7 +161,7 @@ export function sourceSignature(graph: ExecutionGraph, node: AppNode) {
 export function prepareModel(graph: ExecutionGraph, id: string): PreviewTask {
   const node = graph.nodes.find(item => item.id === id);
   if (!node) throw new ExecutionProblem(id, '节点已删除。');
-  const prepare = node.type === 'image-describer' ? prepareDescriberRun : node.type === 'sunburst' ? prepareSunburstRun : node.type === 'nano-banana' ? prepareNanoBananaRun : prepareIdeogramRun;
+  const prepare = node.type === 'image-describer' ? prepareDescriberRun : node.type === 'sunburst' ? prepareSunburstRun : node.type === 'nano-banana' ? prepareNanoBananaRun : node.type === 'seedream' ? prepareSeedreamRun : prepareIdeogramRun;
   const result = prepare(graph.nodes, graph.edges, [id], 1);
   if (result.error || !result.tasks[0]) nodeProblem(node, result.error ?? '节点已锁定或不能运行。');
   if (node.type === 'image-describer' && result.tasks[0].model !== 'deepseek-flash') nodeProblem(node, '请选择 deepseek-flash；其他模型尚未接入。');
@@ -182,7 +185,7 @@ export function requestSignature(task: PreviewTask, graph: ExecutionGraph) {
   }
   const replace = (value: unknown): unknown => typeof value === 'string' && assets.has(value) ? assets.get(value)
     : Array.isArray(value) ? value.map(replace) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replace(item)])) : value;
-  return stableSignature(['model-input-v1', task.model, replace(task.imageRequest ?? task.nanoBananaRequest ?? task.ideogramRequest ?? { instructions: task.instructions, images: task.images })]);
+  return stableSignature(['model-input-v1', task.model, replace(task.seedreamRequest ?? task.imageRequest ?? task.nanoBananaRequest ?? task.ideogramRequest ?? { instructions: task.instructions, images: task.images })]);
 }
 export function reusable(node: AppNode, signature: string) {
   if (isDescriberNode(node)) return Boolean(node.data.text.trim() && node.data.generation?.version === 1 && node.data.generation.inputSignature === signature && node.data.generation.outputSignature === stableSignature(node.data.text));
@@ -230,6 +233,8 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
       const validated = validateSunburstSettings(settings);
       validateSunburstImageInputs(String(settings.outputFormat), images.length > 0, masked, validateSunburstProvider(settings.provider), validated.channelModel);
       if (masked && !images.length) throw new Error('使用 Mask 时必须连接 Image。');
+    } else if (node.type === 'seedream') {
+      validateSeedreamSettings(knownSettings(effectiveSeedreamSettings(node, graph.nodes, graph.edges), defaultSeedreamSettings));
     } else if (node.type === 'nano-banana') {
       validateNanoBananaSettings(knownSettings(effectiveNanoBananaSettings(node, graph.nodes, graph.edges), defaultNanoBananaSettings));
     } else if (node.type === 'ideogram') {

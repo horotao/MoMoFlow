@@ -3,6 +3,7 @@ import { readImageIteratorData } from './nodes/imageIterator';
 import { readTextIteratorData } from './nodes/textIterator';
 import { restoreIdeogramData } from './nodes/ideogramClipboard';
 import { restoreMasksData } from './nodes/masksExtractor';
+import { restoreSeedreamData } from './nodes/seedreamClipboard';
 import { restoreNanoBananaData } from './nodes/nanoBananaClipboard';
 import { outputColor, outputKind, routerFromOutput } from './nodes/router';
 import { restoreBlendData } from './nodes/blend';
@@ -302,6 +303,14 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
           if (!data) return;
           event.preventDefault();
           setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'ideogram', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
+          return;
+        }
+        if (saved.format === 'momoflow-seedream-node' && saved.node?.type === 'seedream'
+          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
+          const data = restoreSeedreamData(saved.node.data);
+          if (!data) return;
+          event.preventDefault();
+          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'seedream', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
           return;
         }
         if (saved.format === 'momoflow-nano-banana-node' && saved.node?.type === 'nano-banana'

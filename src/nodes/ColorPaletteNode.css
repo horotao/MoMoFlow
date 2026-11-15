@@ -51,6 +51,4 @@
 .palette-settings input:focus { outline: none; border-color: var(--panel-border); }
 .describer-panel .palette-remove { padding: 0; width: 24px; height: 24px; }
 .describer-panel .palette-add { margin-top: 6px; height: 24px; padding: 0 4px; gap: 0; }
-.palette-picker .painter-color-numbers { grid-template-columns: 42px minmax(0, 1fr); }
-.palette-picker .painter-color-sliders { padding: 12px 0; }
 @media (hover: none) { .palette-color-row .palette-grip, .palette-color-row .palette-remove { opacity: var(--palette-row-opacity, 1); pointer-events: auto; } }

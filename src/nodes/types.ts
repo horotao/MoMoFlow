@@ -1,6 +1,7 @@
 import type { GenerationRecord, OutputPolicy } from './executionGraph';
 import type { IdeogramEditSettings, IdeogramField, IdeogramSettings } from './ideogram';
 import type { MasksExtractorData } from './masksExtractor';
+import type { SeedreamSettings } from './seedream';
 import type { NanoBananaSettings } from './nanoBanana';
 import type { BlendData } from './blend';
 import type { CompareData } from './compare';
@@ -38,15 +39,17 @@ export type FileAsset = {
 };
 export type FileNode = Node<{ label?: string; locked?: boolean; asset?: FileAsset; assets?: FileAsset[]; activeAssetId?: string; viewMode?: 'single' | 'all'; orderBy?: 'date' | 'name' }, 'file'>;
 export type ImageDescriberNode = Node<OutputPolicy & { generation?: GenerationRecord; label?: string; locked?: boolean; text: string; model: string; instructions: string; imageInputs: number; exposed?: ('model' | 'instructions')[] }, 'image-describer'>;
-export type ModelInputNode = Node<{ label?: string; locked?: boolean; model: string; options?: string[]; parameter?: SunburstParameter | keyof NanoBananaSettings | IdeogramField }, 'model-input'>;
+export type ModelInputNode = Node<{ label?: string; locked?: boolean; model: string; options?: string[]; parameter?: keyof SeedreamSettings | SunburstParameter | keyof NanoBananaSettings | IdeogramField }, 'model-input'>;
 export type SunburstNode = Node<SunburstSettings & OutputPolicy & { provider?: SunburstProvider; variant?: 'Sunburst' | 'Flare'; label?: string; locked?: boolean; imageInputs: number; exposed?: SunburstParameter[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'sunburst'>;
 export const isSunburstNode = (node: AppNode): node is SunburstNode => node.type === 'sunburst';
 export type NanoBananaNode = Node<NanoBananaSettings & OutputPolicy & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof NanoBananaSettings)[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'nano-banana'>;
 export type IdeogramNode = Node<IdeogramSettings & Partial<IdeogramEditSettings> & OutputPolicy & { label?: string; locked?: boolean; imageInputs: number; exposed?: IdeogramField[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'ideogram'>;
 export const isIdeogramNode = (node: AppNode): node is IdeogramNode => node.type === 'ideogram';
-export type ImageGeneratorNode = SunburstNode | NanoBananaNode | IdeogramNode;
+export type SeedreamNode = Node<SeedreamSettings & OutputPolicy & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof SeedreamSettings)[]; results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name' }, 'seedream'>;
+export const isSeedreamNode = (node: AppNode): node is SeedreamNode => node.type === 'seedream';
+export type ImageGeneratorNode = SunburstNode | NanoBananaNode | IdeogramNode | SeedreamNode;
 export const isNanoBananaNode = (node: AppNode): node is NanoBananaNode => node.type === 'nano-banana';
-export const isImageGeneratorNode = (node: AppNode): node is ImageGeneratorNode => isSunburstNode(node) || isNanoBananaNode(node) || isIdeogramNode(node);
+export const isImageGeneratorNode = (node: AppNode): node is ImageGeneratorNode => isSeedreamNode(node) || isSunburstNode(node) || isNanoBananaNode(node) || isIdeogramNode(node);
 export type MasksExtractorNode = Node<MasksExtractorData, 'masks-extractor'>;
 export const isMasksExtractorNode = (node: AppNode | undefined): node is MasksExtractorNode => node?.type === 'masks-extractor';
 export type PainterNode = Node<PainterData, 'painter'>;
@@ -75,7 +78,7 @@ export const isCompareNode = (node: AppNode | undefined): node is CompareNode =>
 export type BlendNode = Node<BlendData, 'blend'>;
 export const isBlendNode = (node: AppNode | undefined): node is BlendNode => node?.type === 'blend';
 export type RouterNode = Node<{ label?: string; locked?: boolean }, 'router'>;
-export type AppNode = ImageIteratorNode | TextIteratorNode | IdeogramNode | MatteGrowShrinkNode | MasksExtractorNode | NanoBananaNode | RouterNode | BlendNode | CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
+export type AppNode = SeedreamNode | ImageIteratorNode | TextIteratorNode | IdeogramNode | MatteGrowShrinkNode | MasksExtractorNode | NanoBananaNode | RouterNode | BlendNode | CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
 
 export const isDescriberNode = (node: AppNode): node is ImageDescriberNode => node.type === 'image-describer' && 'imageInputs' in node.data;
 

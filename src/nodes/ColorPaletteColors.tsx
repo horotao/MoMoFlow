@@ -127,7 +127,7 @@ export function ColorPaletteColors({ node, inline = false }: { node: Pick<ColorP
           }
           start(color.id);
         }} onDragEnd={event => { event.stopPropagation(); cancel(); }}>
-        {inline && <span className="palette-color-fill" style={{ backgroundColor: color.hex }} aria-hidden="true" />}
+        {inline && <span className="palette-color-fill" aria-hidden="true" />}
         <button type="button" className="palette-grip" aria-label={`Move color ${index + 1}`} title="Drag to reorder · ↑ / ↓" disabled={locked}
           onPointerDown={event => {
             if (event.pointerType === 'mouse' || event.button !== 0 || locked || colors.length < 2) return;

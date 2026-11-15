@@ -4,6 +4,9 @@ import { ExecutionProblem } from '../nodes/executionGraph';
 import { IdeogramSettings } from './IdeogramSettings';
 import { ideogramName } from '../nodes/ideogram';
 import { isIdeogramNode } from '../nodes/types';
+import { SeedreamSettings } from './SeedreamSettings';
+import { seedreamName } from '../nodes/seedream';
+import { isSeedreamNode } from '../nodes/types';
 import { NanoBananaSettings } from './NanoBananaSettings';
 import { nanoBananaName } from '../nodes/nanoBanana';
 import { ModelOptionsSettings } from './ModelOptionsSettings';
@@ -57,7 +60,7 @@ export function DescriberPanel() {
   };
   const runnable = nodes.filter((node) => (isDescriberNode(node) || isImageGeneratorNode(node)) && node.selected && !node.data.locked);
   const selectedImage = nodes.find((node) => isImageGeneratorNode(node) && node.selected);
-  const providerName = selectedImage && isIdeogramNode(selectedImage) ? 'WaveSpeed' : selectedImage && isSunburstNode(selectedImage) ? sunburstProviderLabels[selectedImage.data.provider ?? 'zenmux'] : 'ZenMux';
+  const providerName = selectedImage && isSeedreamNode(selectedImage) ? 'APIMart' : selectedImage && isIdeogramNode(selectedImage) ? 'WaveSpeed' : selectedImage && isSunburstNode(selectedImage) ? sunburstProviderLabels[selectedImage.data.provider ?? 'zenmux'] : 'ZenMux';
   const selected = nodes.find((n): n is ImageDescriberNode => n.type === 'image-describer' && Boolean(n.selected));
   const selectedModel = nodes.find((n): n is ModelInputNode => n.type === 'model-input' && Boolean(n.selected));
   const panelOpen = Boolean(selected || selectedModel || selectedImage);
@@ -108,10 +111,11 @@ export function DescriberPanel() {
   return <>
     {/* Presence retains the last settings and full-height shell until the exit finishes. */}
     <AnimatePresence initial={false}>
-      {panelOpen && <NodeSettingsSidebar key="node-settings" sunburst={sunburstPanel} label={selectedImage ? `${selectedImage.type === 'ideogram' ? ideogramName : selectedImage.type === 'nano-banana' ? nanoBananaName : sunburstName} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => e.stopPropagation()}>
+      {panelOpen && <NodeSettingsSidebar key="node-settings" sunburst={sunburstPanel} label={selectedImage ? `${selectedImage.type === 'seedream' ? seedreamName : selectedImage.type === 'ideogram' ? ideogramName : selectedImage.type === 'nano-banana' ? nanoBananaName : sunburstName} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => e.stopPropagation()}>
         {selectedModel && !selectedImage && <ModelOptionsSettings key={selectedModel.id} node={selectedModel} onChange={data => updateNodeData(selectedModel.id, data)} />}
         {selectedImage && isSunburstNode(selectedImage) && <SunburstSettings key={selectedImage.id} node={selectedImage} />}
         {selectedImage && isIdeogramNode(selectedImage) && <IdeogramSettings key={selectedImage.id} node={selectedImage} />}
+        {selectedImage && isSeedreamNode(selectedImage) && <SeedreamSettings key={selectedImage.id} node={selectedImage} />}
         {selectedImage && isNanoBananaNode(selectedImage) && <NanoBananaSettings key={selectedImage.id} node={selectedImage} />}
         {selected && !selectedImage && <>
           <NodeSettingsSection title="Image Describer" icon={<NodeIcon nodeType="image-describer" size={20} />} key={selected.id}>

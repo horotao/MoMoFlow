@@ -92,7 +92,7 @@ async function run() {
   const ids = searchableNodeMenuEntries.map(entry => entry.nodeId).sort();
   check(JSON.stringify(ids) === JSON.stringify(Object.keys(nodeTypes).filter(id => !['model-input', 'position-logger'].includes(id)).sort()), 'Public nodes are searchable; model-input and position-logger stay hidden');
   const categorized = Object.values(nodeMenuCategories).flatMap(groups => groups.flatMap(group => group.entries.map(entry => entry.id)));
-  check(new Set(categorized).size === categorized.length && ids.every(id => ['sunburst', 'ideogram', 'nano-banana'].includes(id!) || categorized.includes(id!)), 'Every non-model node has one tool category');
+  check(new Set(categorized).size === categorized.length && ids.every(id => ['sunburst', 'ideogram', 'nano-banana', 'seedream'].includes(id!) || categorized.includes(id!)), 'Every non-model node has one tool category');
   check(!categorized.some(id => ['model-input', 'position-logger'].includes(id)), 'Hidden helper nodes have no add-menu category');
   const dock = find('.canvas-sidebar').getBoundingClientRect();
   check(dock.width === 50 && dock.height === 338, 'Dock matches the Figma 50 × 338 geometry');
@@ -109,7 +109,7 @@ async function run() {
   await Promise.all(images.map(img => img.decode()));
   check(images.every(img => img.naturalWidth === 18 && img.getBoundingClientRect().width === 18 && img.getBoundingClientRect().height === 18), 'Figma row icons retain their original 18px geometry');
   check(['openai', 'gemini', 'ideogram', 'jimeng', 'deepmind'].every(name => images.some(img => img.src.endsWith(`/${name}.svg`))), 'OpenAI, Gemini, Ideogram, Jimeng and DeepMind assets are present');
-  find<HTMLButtonElement>('[title="Seedance 2.0（尚未接入）"]').click(); await settle();
+  find<HTMLButtonElement>('[title="Lyria 3（尚未接入）"]').click(); await settle();
   check(api.getNodes().length === 0, 'Unimplemented model entries cannot create placeholder nodes');
 
   point(category('editing'));

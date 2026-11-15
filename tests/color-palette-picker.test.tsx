@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { MotionConfig } from 'motion/react';
 import { createRoot } from 'react-dom/client';
 import { ReactFlow, ReactFlowProvider, useNodesState, type Edge } from '@xyflow/react';
 import { CanvasHistoryContext, useCanvasHistory } from '../src/components/useCanvasHistory';
@@ -48,7 +49,7 @@ function key(target: HTMLElement, value: string, options: KeyboardEventInit = {}
   return event;
 }
 async function reset(zoom = 1, multiple = false) {
-  root.render(<ReactFlowProvider key={++revision}><Harness zoom={zoom} multiple={multiple} /></ReactFlowProvider>);
+  root.render(<MotionConfig reducedMotion={new URLSearchParams(location.search).has('reduce-motion') ? 'always' : 'user'}><ReactFlowProvider key={++revision}><Harness zoom={zoom} multiple={multiple} /></ReactFlowProvider></MotionConfig>);
   // React Flow publishes controlled nodes to its store in an effect, after the
   // React tree mounts. Wait for that publication before exercising the node.
   for (let frame = 0; frame < 60; frame++) {
@@ -145,6 +146,72 @@ async function run() {
     await travel('undo'); assert(committed === initial, 'Second undo lost original');
     await travel('redo'); await travel('redo'); assert(committed === '#654321', 'Sequential redo failed');
   });
+  await check('beUI panel exposes formats, presets and an opaque palette output', async () => {
+    await open();
+    assert(find('.palette-picker').offsetWidth === 288, 'beUI panel width');
+    assert(find('[data-color-picker-area]').clientHeight === 160, 'beUI saturation area');
+    assert(!document.querySelector('[aria-label="Opacity"]'), 'Palette exposed unsupported alpha');
+    assert(find('[aria-label="预设颜色"]').querySelectorAll('button').length === 8, 'Eight beUI presets');
+    find<HTMLButtonElement>('[aria-label="使用颜色 #3478F6"]').click(); await settle();
+    assert(committed === '#3478F6', 'Preset not committed as opaque HEX');
+    await outside(); await oneUndo('#3478F6');
+  });
+  for (const format of ['RGB', 'HSL']) {
+    await check(`${format} input commits on outside dismissal as one history step`, async () => {
+      await open();
+      find<HTMLButtonElement>('[aria-label="Format HEX, switch to RGB"]').click(); await settle();
+      if (format === 'HSL') { find<HTMLButtonElement>('[aria-label="Format RGB, switch to HSL"]').click(); await settle(); }
+      const element = find<HTMLInputElement>(format === 'RGB' ? '[aria-label="Red"]' : 'input[aria-label="Lightness"]');
+      element.focus();
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(element, format === 'RGB' ? '25' : '75');
+      element.dispatchEvent(new Event('input', { bubbles: true })); await settle();
+      assert(committed === initial, 'Typing escaped the picker draft before commit');
+      await outside(); const changed = committed;
+      assert(changed !== initial && /^#[0-9A-F]{6}$/.test(changed), 'Channels did not produce opaque HEX');
+      await oneUndo(changed);
+    });
+  }
+  await check('Escape cancels a pending RGB field without committing its blur', async () => {
+    await open(); find<HTMLButtonElement>('[aria-label="Format HEX, switch to RGB"]').click(); await settle();
+    const element = find<HTMLInputElement>('[aria-label="Red"]'); element.focus();
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(element, '25');
+    element.dispatchEvent(new Event('input', { bubbles: true })); await settle();
+    key(element, 'Escape'); await settle();
+    assert(committed === initial && find<HTMLButtonElement>('[data-test="undo"]').disabled, 'Escape committed RGB on blur');
+  });
+  await check('Escape during a spectrum gesture rejects a late pointer release', async () => {
+    await open();
+    const area = find('[data-color-picker-area]'), rect = area.getBoundingClientRect();
+    const options = { bubbles: true, pointerId: 1, button: 0, clientX: rect.left + 50, clientY: rect.top + 50 };
+    area.dispatchEvent(new PointerEvent('pointerdown', options)); await settle();
+    key(find('.palette-picker'), 'Escape'); await settle();
+    area.dispatchEvent(new PointerEvent('pointerup', options)); await settle();
+    assert(committed === initial && find<HTMLButtonElement>('[data-test="undo"]').disabled, 'Late release committed after Escape');
+  });
+  for (const zoom of [0.53, 1, 1.5]) {
+    await check(`beUI spectrum drag previews and commits once at ${zoom * 100}%`, async () => {
+      await open();
+      const area = find('[data-color-picker-area]');
+      const rect = area.getBoundingClientRect();
+      const pointer = (type: string, x: number, y: number) => area.dispatchEvent(new PointerEvent(type, {
+        bubbles: true, cancelable: true, pointerId: 1, button: 0, clientX: rect.left + x * rect.width, clientY: rect.top + y * rect.height,
+      }));
+      pointer('pointerdown', .2, .2); await settle();
+      pointer('pointermove', .8, .4); await settle();
+      assert(committed === initial, 'Drag added history before release');
+      pointer('pointerup', .8, .4); await settle(); const changed = committed;
+      assert(changed !== initial, 'Drag did not commit');
+      await outside(); await oneUndo(changed);
+    }, zoom);
+    await check(`beUI spectrum cancellation has no history at ${zoom * 100}%`, async () => {
+      await open();
+      const area = find('[data-color-picker-area]'), rect = area.getBoundingClientRect();
+      area.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, button: 0, clientX: rect.left + 50, clientY: rect.top + 50 })); await settle();
+      area.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 })); await settle();
+      await outside();
+      assert(committed === initial && find<HTMLButtonElement>('[data-test="undo"]').disabled, 'Canceled drag committed');
+    }, zoom);
+  }
   for (const zoom of [0.53, 1, 1.5]) {
     await check(`Two-column drop targets at ${zoom * 100}% distinguish the right cell and insertion edge`, async () => {
       const list = find('.palette-canvas .palette-color-list');
@@ -201,6 +268,6 @@ async function run() {
     }, zoom, true);
   }
   results.dataset.result = 'passed';
-  results.textContent += `\n${passed.length} checks passed`;
+  results.textContent = `${passed.length} checks passed\n${results.textContent}`;
 }
-void run().catch(error => { results.dataset.result = 'failed'; results.textContent += `\nFAIL ${error instanceof Error ? error.message : String(error)}`; });
+void run().catch(error => { results.dataset.result = 'failed'; results.textContent = `FAIL ${error instanceof Error ? error.message : String(error)}\n${results.textContent}`; });

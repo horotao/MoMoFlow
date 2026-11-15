@@ -92,7 +92,7 @@ React Flow CSS 通过 `src/index.css` 中的 `layer(base)` 在 Tailwind 之后�
 
 ## BYOK API 设置
 
-左侧 Dock 的“更多 → API 设置”按渠道保存 Base URL 与 API Key。GPT Image 使用节点所选的 OpenAI / ZenMux / APIMart 配置，Nano Banana 使用 ZenMux，图像描述使用 DeepSeek，Ideogram 使用 WaveSpeed。未配置的渠道继续使用 `.env.local` 中原有的 Key；清空当前渠道的 Key 后保存，即可恢复服务端默认地址和 Key。保存的配置在后续模型请求开始时生效，密钥独立于画布与工作流数据保存。
+左侧 Dock 的“更多 → API 设置”按渠道保存 Base URL 与 API Key。GPT Image 使用节点所选的 OpenAI / ZenMux / APIMart 配置，Seedream 使用 APIMart，Nano Banana 使用 ZenMux，图像描述使用 DeepSeek，Ideogram 使用 WaveSpeed。未配置的渠道继续使用 `.env.local` 中原有的 Key；清空当前渠道的 Key 后保存，即可恢复服务端默认地址和 Key。保存的配置在后续模型请求开始时生效，密钥独立于画布与工作流数据保存。
 
 “测试连接”检查当前填写的配置，Key 留空时检查该渠道的服务端默认配置。OpenAI / DeepSeek 读取模型列表，WaveSpeed 读取余额，APIMart 读取令牌余额，ZenMux 读取一个固定不存在的生成记录以检查认证，避免公开模型目录对无效 Key 返回成功。连接检查不创建生成任务。错误区分认证、地址、限流、网络与超时，取消弹窗或修改输入会中止本次检查。
 
@@ -152,6 +152,12 @@ SVG 输出：GPT Image 2.6 的 Sunburst / Flare 可选择 SVG，使用 `/images/
 
 `src/persistence/workflowSignature.test.ts` 验证恢复初始化与临时 UI 状态不触发保存，以及文本、连线、位置、参数、素材和视图变化仍可触发保存，随 `npm test` 运行。多标签页浏览器验收包括无修改打开/选中不改写版本、原页面继续自动保存、真实编辑冲突保护、保存中撤销及失败重试。
 
+
+## Seedream 5.5（APIMart）
+
+菜单中的 Seedance 2.0 占位已替换为 Seedream 5.5，复用 Jimeng 图标。按[指定文档](https://docs.apimart.ai/cn/api-reference/images/seedream-5-5/generation)使用 `seedream-5-5`，默认 1.5K、PNG、自动背景、`nsfw_check: false`、无水印；可切换 2K / JPEG，透明背景须使用 PNG。宽高比默认自动，可选 1:1、4:3、3:4、16:9、9:16、3:2、2:3、21:9、2:1、1:2，以及精确像素。精确宽高须为正整数，总像素 921,600–4,624,220，比例 1:16–16:1，无 16 倍数限制。宽高停止输入 250ms 后会自动调整为符合限制的整数尺寸，尽量保持比例；按 Enter 或离开尺寸输入区也可立即确认；精确尺寸模式不传分辨率档位。不提供 1K 和图层拆分。
+
+接入 Prompt 后可文生图，可选连接最多 10 张参考图；单张 30 MiB、合计 46 MiB。复用 APIMart API 设置或 `APIMART_API_KEY`，通过本地 `/api/apimart/seedream` 提交一次并查询任务。失败不自动重新提交，取消停止本地等待；结果支持预览、下载、下游及保存恢复。模拟验收页为 `/tests/seedream.html`，不调用真实模型。
 
 ## Nano Banana 2.1（ZenMux 本地接入）
 

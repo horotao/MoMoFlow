@@ -2,6 +2,7 @@ import { defaultImageIteratorData } from '../nodes/imageIterator';
 import { defaultTextIteratorData } from '../nodes/textIterator';
 import { defaultIdeogramEditSettings, defaultIdeogramSettings, ideogramName } from '../nodes/ideogram';
 import { defaultMatteGrowShrinkSettings } from '../nodes/matteGrowShrink';
+import { defaultSeedreamSettings, seedreamName } from '../nodes/seedream';
 import { defaultNanoBananaSettings, nanoBananaName } from '../nodes/nanoBanana';
 import { defaultBlendSettings } from '../nodes/blend';
 import { defaultCompareData } from '../nodes/compare';
@@ -15,7 +16,7 @@ import { defaultCropData } from '../nodes/crop';
 import { defaultPainterData } from '../nodes/painter';
 import { apimartFixedSettings, defaultSunburstSettings, sunburstName } from '../nodes/sunburst';
 import {
-  AiBackgroundEraserIcon, AiChipIcon, AiVideoIcon, Album01Icon, Bookmark02Icon,
+  AiBackgroundEraserIcon, AiChipIcon, Album01Icon, Bookmark02Icon,
   HistoryIcon, Image02Icon, ImageUpscaleIcon, PlaySquareIcon, Search01Icon, ToolCaseIcon,
 } from '@hugeicons/core-free-icons';
 import { nodeIcons } from '../nodes/nodeIcons';
@@ -68,7 +69,7 @@ export const items: Item[] = [
   { id: 'crop', label: 'Crop', icon: nodeIcons['crop'], category: 'Tools', group: 'Editing', nodeType: 'crop' },
   { id: 'painter', label: 'Painter', icon: nodeIcons['painter'], category: 'Tools', group: 'Editing', nodeType: 'painter' },
   { id: 'nano-banana', nodeType: 'nano-banana', label: nanoBananaName, icon: nodeIcons['nano-banana'], category: 'Image', group: 'Generate from text' },
-  { id: 'seedance', label: 'Seedance', icon: AiVideoIcon, color: '#6bc9ca', category: 'Video', group: 'Generate from text or image' },
+  { id: 'seedream', nodeType: 'seedream', label: seedreamName, icon: nodeIcons.seedream, category: 'Image', group: 'Generate from text or image' },
   { id: 'kling', label: 'Kling Video', icon: PlaySquareIcon, color: '#b1e65b', category: 'Video', group: 'Generate from text or image' },
   { id: 'background', label: 'Background Removal', icon: AiBackgroundEraserIcon, color: '#9b7cde', category: 'Models', group: 'Community models' },
   { id: 'upscale', label: 'Image Upscale', icon: ImageUpscaleIcon, category: 'Models', group: 'Community models' },
@@ -77,6 +78,6 @@ export const items: Item[] = [
 export function createLibraryNode(id: string, position: { x: number; y: number }): AppNode | undefined {
   const item = items.find(candidate => candidate.id === id);
   if (!item?.nodeType) return;
-  const data = id === 'image-iterator' ? defaultImageIteratorData() : id === 'text-iterator' ? defaultTextIteratorData() : id === 'ideogram' ? { ...defaultIdeogramSettings, ...defaultIdeogramEditSettings, imageInputs: 1 } : id === 'matte-grow-shrink' ? { settings: { ...defaultMatteGrowShrinkSettings } } : id === 'blend' ? { settings: { ...defaultBlendSettings } } : id === 'compare' ? { ...defaultCompareData } : id === 'resize' ? { settings: { ...defaultResizeSettings } } : id === 'color-palette' ? { colors: defaultPaletteColors() } : id === 'compositor' ? { document: defaultCompositorDocument() } : id === 'rotate-flip' ? { settings: { ...defaultRotateFlipSettings } } : id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'nano-banana' ? { ...defaultNanoBananaSettings, imageInputs: 1 } : id === 'sunburst' ? { ...defaultSunburstSettings, ...apimartFixedSettings, provider: 'apimart', channelModel: 'gpt-image-2.6-ext', variant: 'Sunburst', imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'masks-extractor' || id === 'router' || id === 'invert' || id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
+  const data = id === 'seedream' ? { ...defaultSeedreamSettings, imageInputs: 1 } : id === 'image-iterator' ? defaultImageIteratorData() : id === 'text-iterator' ? defaultTextIteratorData() : id === 'ideogram' ? { ...defaultIdeogramSettings, ...defaultIdeogramEditSettings, imageInputs: 1 } : id === 'matte-grow-shrink' ? { settings: { ...defaultMatteGrowShrinkSettings } } : id === 'blend' ? { settings: { ...defaultBlendSettings } } : id === 'compare' ? { ...defaultCompareData } : id === 'resize' ? { settings: { ...defaultResizeSettings } } : id === 'color-palette' ? { colors: defaultPaletteColors() } : id === 'compositor' ? { document: defaultCompositorDocument() } : id === 'rotate-flip' ? { settings: { ...defaultRotateFlipSettings } } : id === 'levels' ? { channel: 'RGB', settings: structuredClone(defaultLevelsSettings) } : id === 'blur' ? { settings: { ...defaultBlurSettings } } : id === 'color-correction' ? { settings: { ...defaultColorSettings } } : id === 'crop' ? { ...defaultCropData, rect: { ...defaultCropData.rect } } : id === 'painter' ? { ...defaultPainterData, strokes: [] } : id === 'nano-banana' ? { ...defaultNanoBananaSettings, imageInputs: 1 } : id === 'sunburst' ? { ...defaultSunburstSettings, ...apimartFixedSettings, provider: 'apimart', channelModel: 'gpt-image-2.6-ext', variant: 'Sunburst', imageInputs: 1 } : id === 'text' ? { text: defaultTextNodeText } : id === 'image-describer' ? { text: '', model: 'deepseek-flash', instructions: defaultInstructions, imageInputs: 1 } : id === 'model-input' ? { model: 'deepseek-flash' } : id === 'masks-extractor' || id === 'router' || id === 'invert' || id === 'file' || id === 'preview' ? {} : { label: item.label, category: item.category };
   return { id: crypto.randomUUID(), type: item.nodeType, position, data, selected: true } as AppNode;
 }

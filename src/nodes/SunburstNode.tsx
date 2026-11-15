@@ -52,7 +52,7 @@ export function ImageGenerationNode({ id, type, data, isConnectable, name, icon,
   const requestedSize = useStore(state => {
     const field = 'size' in data ? 'size' : 'aspectRatio';
     const edge = state.edges.find(item => item.target === id && item.targetHandle === field);
-    return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : 'size' in data ? data.size : data.aspectRatio;
+    return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : 'size' in data ? data.size : 'aspectRatio' in data ? data.aspectRatio : 'auto';
   });
   const [renaming, setRenaming] = useState(false); const [draft, setDraft] = useState('');
   const [gallery, setGallery] = useState<FileGalleryTrigger & { assetId: string }>();

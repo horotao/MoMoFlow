@@ -1,0 +1,19 @@
+<!doctype html>
+<html class="dark">
+  <head>
+    <meta charset="utf-8">
+    <title>Color picker return and switching regression</title>
+    <style>
+      html, body { margin: 0; height: 100%; }
+      #root { height: calc(100vh - 100px); }
+      #results { box-sizing: border-box; height: 100px; overflow: auto; white-space: pre-line; padding: 10px 16px; background: #222; color: #eee; font: 12px/1.5 monospace; }
+      #results[data-result='passed'] { border-left: 4px solid #72d99f; }
+      #results[data-result='failed'] { border-left: 4px solid #f77; }
+    </style>
+  </head>
+  <body>
+    <div id="results" role="status">Checking return animation and palette switching…</div>
+    <div id="root"></div>
+    <script type="module" src="./color-picker-motion.test.tsx"></script>
+  </body>
+</html>

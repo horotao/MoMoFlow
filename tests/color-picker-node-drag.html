@@ -1,0 +1,21 @@
+<!doctype html>
+<html class="dark">
+  <head>
+    <meta charset="utf-8">
+    <title>Color picker node movement regression</title>
+    <style>
+      html, body { margin: 0; height: 100%; }
+      #root { height: calc(100vh - 114px); }
+      #manual { height: 24px; color: #eee; background: #222; font: 12px/24px monospace; }
+      #results { box-sizing: border-box; height: 90px; overflow: auto; white-space: pre-line; padding: 10px 16px; background: #222; color: #eee; font: 12px/1.5 monospace; }
+      #results[data-result='passed'] { border-left: 4px solid #72d99f; }
+      #results[data-result='failed'] { border-left: 4px solid #f77; }
+    </style>
+  </head>
+  <body>
+    <div id="results" role="status">Checking color chips during node movement…</div>
+    <div id="manual" role="status">Drag either node header to check native movement.</div>
+    <div id="root"></div>
+    <script type="module" src="./color-picker-node-drag.test.tsx"></script>
+  </body>
+</html>

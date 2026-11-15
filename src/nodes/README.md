@@ -18,6 +18,7 @@
 | GPT Image 2.6：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`、`image-0` 起、`mask` 及暴露的参数输入；`result` 输出当前选中的结果图片 |
 | Ideogram 4.5：生成或编辑图片 | `ideogram` | [IdeogramNode.tsx](./IdeogramNode.tsx) | 必需的 `prompt`；`image-0` 原图、`image-1` 起参考图、`mask` 及暴露的生成/编辑参数输入；`result` 输出选中图片 |
 | Nano Banana：生成或编辑图片 | `nano-banana` | [NanoBananaNode.tsx](./NanoBananaNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起与暴露的 `aspectRatio` / `imageSize` / `outputFormat` 输入；`result` 输出选中图片 |
+| Seedream 5.5：生成或编辑图片 | `seedream` | [SeedreamNode.tsx](./SeedreamNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起与暴露的参数输入；`result` 输出选中图片 |
 | 调色板（Color palette）：制作最多十色色板 | `color-palette` | [ColorPaletteNode.tsx](./ColorPaletteNode.tsx) | 无输入；`image`（Image）输出纯色条 PNG，`text`（Text）输出按顺序以 `*` 连接的 HEX 色值 |
 | 合成器（Compositor）：图片、文本与矢量图层合成 | `compositor` | [CompositorNode.tsx](./compositor/CompositorNode.tsx) | `background`、`layer-1` 起的动态图片输入；`result`（Output）输出实际合成 PNG；独立图层编辑器见[使用与架构](../../docs/compositor.md) |
 | 色彩校正（Color correction）：本地图片调色 | `color-correction` | [ColorCorrectionNode.tsx](./ColorCorrectionNode.tsx) | 单图片输入 `file`（File）；`result` 输出调色后的 PNG |
@@ -45,13 +46,13 @@
 
 节点库的名称、分类和创建数据在 [libraryCatalog.ts](../components/libraryCatalog.ts) 中维护。只有提供 `nodeType` 的条目才能通过 `createLibraryNode` 创建节点；目录中的展示卡片不等于已实现的节点，不应为占位卡片生成替代节点。
 
-节点标题与侧栏卡片共用 [nodeIcons.ts](./nodeIcons.ts) 中的共享图标映射（通用节点使用 Hugeicons Stroke Rounded）；使用该映射的标题通过 [NodeIcon.tsx](./NodeIcon.tsx) 渲染并保留各节点原有尺寸；部分节点直接使用 Hugeicons 或下文列出的 Figma 原始 SVG。修改节点图标时更新共享映射，避免两处显示不一致。Nano Banana 与 Ideogram 4.5 使用 [modelBrandIcons.ts](./modelBrandIcons.ts) 中从 Weavy 对应模型卡片同步的原始 SVG 路径；Nano Banana 保留品牌紫色，Ideogram 随主题文字颜色变化，节点库、标题与设置面板共用同一图标。Router 仍根据输入内容切换文本、图片 / 蒙版、视频、音频、3D 或文件图标，未连接时使用路由图标。
+节点标题与侧栏卡片共用 [nodeIcons.ts](./nodeIcons.ts) 中的共享图标映射（通用节点使用 Hugeicons Stroke Rounded）；使用该映射的标题通过 [NodeIcon.tsx](./NodeIcon.tsx) 渲染并保留各节点原有尺寸；部分节点直接使用 Hugeicons 或下文列出的 Figma 原始 SVG。修改节点图标时更新共享映射，避免两处显示不一致。Seedream 复用菜单原有的 Jimeng 品牌图标；Nano Banana 与 Ideogram 4.5 使用 [modelBrandIcons.ts](./modelBrandIcons.ts) 中从 Weavy 对应模型卡片同步的原始 SVG 路径；Nano Banana 保留品牌紫色，Ideogram 随主题文字颜色变化，节点库、标题与设置面板共用同一图标。Router 仍根据输入内容切换文本、图片 / 蒙版、视频、音频、3D 或文件图标，未连接时使用路由图标。
 
 应用仅支持深色模式；不再提供浅色切换、制作或验收。历史画布中的浅色设置读取时按深色处理，重新保存时写入深色设置，节点、连线和素材内容不变。图片操作按钮为 24×24px、8px 圆角，默认透明，悬停背景按 Figma 使用 10% 白色（`rgba(255,255,255,0.1)`）。
 
-新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：`NodeFrame` 与 `NodeHeader` 共用外框、标题栏、颜色和尺寸变量，各节点通过局部样式设置差异；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、图像描述、绘图、图片模型、文件导入及其他已接入的工具节点使用共享外框；三个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。三个图片模型直接共用 [SunburstNode.tsx](./SunburstNode.tsx) 导出的 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代通过 `FileNode` 复用新版共享外框、端口和图库，保留迭代器专用内容与行为。共享外框内使用 Inter / Noto Sans SC Variable，字体覆盖限定在 `.node-frame` 内。图像描述复用 Text 的外框、标题栏、更多菜单和文本内容区样式，宽 454px、内边距 14px，空状态高 403px；底部提供添加图片输入与运行模型，进度和取消复用图片模型的 `ModelRunButton`。Text 与图像描述的标题、更多、加号、运行、下拉箭头与文本端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。三个图片模型的运行按钮使用本地 DM Mono 字体、固定 98px 宽度，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
+新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：`NodeFrame` 与 `NodeHeader` 共用外框、标题栏、颜色和尺寸变量，各节点通过局部样式设置差异；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、图像描述、绘图、图片模型、文件导入及其他已接入的工具节点使用共享外框；四个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。四个图片模型直接共用 [SunburstNode.tsx](./SunburstNode.tsx) 导出的 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代通过 `FileNode` 复用新版共享外框、端口和图库，保留迭代器专用内容与行为。共享外框内使用 Inter / Noto Sans SC Variable，字体覆盖限定在 `.node-frame` 内。图像描述复用 Text 的外框、标题栏、更多菜单和文本内容区样式，宽 454px、内边距 14px，空状态高 403px；底部提供添加图片输入与运行模型，进度和取消复用图片模型的 `ModelRunButton`。Text 与图像描述的标题、更多、加号、运行、下拉箭头与文本端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。四个图片模型的运行按钮使用本地 DM Mono 字体、固定 98px 宽度，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
 
-所有单值参数滑块共用 [shared/NodeRangeInput.tsx](./shared/NodeRangeInput.tsx)，基于已验收的 [Arc Elastic Slider](https://uiarc.dev/components/elastic-slider) 接入边界拉伸回弹、拖动数值标签和双向参数的零点吸附。色彩校正、模糊、蒙版扩缩、混合、绘图，以及绘图 / 调色板 / 合成器的颜色面板和合成器效果参数均复用它；色阶的多手柄轨道、图片对比的分隔线和二维选色区域保留专用交互。
+所有单值参数滑块共用 [shared/NodeRangeInput.tsx](./shared/NodeRangeInput.tsx)，基于已验收的 [Arc Elastic Slider](https://uiarc.dev/components/elastic-slider) 接入边界拉伸回弹、拖动数值标签和双向参数的零点吸附。色彩校正、模糊、蒙版扩缩、混合、绘图参数、合成器的颜色面板与效果参数均复用它；绘图 / 调色板的颜色面板使用下述 beUI 专用滑块，色阶的多手柄轨道、图片对比的分隔线和二维选色区域保留专用交互。
 
 `NodeRangeInput` 接收数值回调：`onValueStart` 开始草稿，`onValueChange` 实时更新，`onValueCommit` 松手或键盘调节时提交，`onValueCancel` 放弃草稿。`resetKey` 在换图或更换编辑对象时取消未完成手势。无草稿管线的连续控制只传 `onValueChange`，取消时恢复起始值。锁定须显式传入 `disabled`（原生 fieldset 不会禁用自定义滑块）。控件不写入工作流；数字输入、范围、步长和颜色渐变由使用处维护。方向键微调、Shift / PageUp / PageDown 大步调节、Home / End 到边界；键盘不播放位移，减少动态时去除拉伸和标签摆动。指针位置按实际轨道尺寸换算，兼容画布缩放；数字框失焦先完成提交，再开始拖动。验证入口为 `/tests/node-range-input.html`；`/tests/node-range-nodes.html` 另验真实色彩校正、模糊与蒙版扩缩的草稿、输出、下游预览、历史和锁定。沿用 React 浏览器断言，无新依赖。
 
@@ -153,7 +154,9 @@ Color palette 位于 Tools → Editing，新建时使用 Figma 的五种预设�
 
 每次添加、删除、排序、HEX 提交或颜色选择手势各记录一次撤销；颜色选择器拖动时先在弹窗预览，松开提交。派生图片不增加撤销记录。支持重命名、锁定、副本、剪切粘贴和 IndexedDB 恢复；颜色顺序和 PNG 素材随画布保存，素材引用复用现有生命周期。数据与纯函数见 [colorPalette.ts](./colorPalette.ts)，颜色列表和弹窗见 `ColorPaletteColors.tsx` / `ColorPalettePicker.tsx`。`colorPalette.test.ts` 使用现有 Node.js 测试运行器，随 `npm test` 检查十色上限、排序、文本、输出失效、双端口连接、剪贴板校验和素材映射。
 
-选色弹窗的 HEX 在 Enter、失焦或点击外部关闭时提交合法值；无效值与 Escape 不产生修改。弹窗及滑块上的 Cmd/Ctrl+Z、Cmd/Ctrl+Shift+Z 操作画布历史，HEX 输入框保留原生文本撤销。浏览器回归测试在 `tests/color-palette-picker.test.tsx`，沿用项目现有的浏览器测试页方式，无新增测试依赖：运行 `npm run dev` 后打开 `/tests/color-palette-picker.html`，页面自动挂载真实节点、弹窗和画布历史并报告结果，并验证选中调色板与打开选色弹窗时不出现参数侧栏。覆盖外部关闭保存、HEX 规范化、取消、重复提交、弹窗/滑块撤销重做、文本撤销与中文输入保护，以及连续编辑的历史边界；另覆盖 53% / 100% / 150% 缩放下的合成拖拽事件、预览图片加载、取消、双列横向落点及上下半区插入线、落点排序、单步撤销重做；测试使用独立状态，不读写已保存的工作流。
+调色板与绘图的选色弹窗共用 [shared/NodeColorPicker.tsx](./shared/NodeColorPicker.tsx)，适配 [beUI Color Picker](https://beui.dev/components/motion/color-picker) 的色块展开、拖动放大取色提示、HEX / RGB / HSL 格式切换、屏幕取色与八个预设颜色；调色板始终输出不透明六位 HEX，不显示透明度控件。面板通过固定定位 Portal 避免节点裁切，并随画布缩放、平移与窗口变化更新位置；减少动态效果时禁用形变、放大提示与预设位移。选色弹窗的 HEX 在 Enter、失焦或点击外部关闭时提交合法值；无效值与 Escape 不产生修改。弹窗及滑块上的 Cmd/Ctrl+Z、Cmd/Ctrl+Shift+Z 操作画布历史，HEX 输入框保留原生文本撤销。浏览器回归测试在 `tests/color-palette-picker.test.tsx`，沿用项目现有的浏览器测试页方式，无新增测试依赖：运行 `npm run dev` 后打开 `/tests/color-palette-picker.html`，页面自动挂载真实节点、弹窗和画布历史并报告结果，并验证选中调色板与打开选色弹窗时不出现参数侧栏。覆盖外部关闭保存、HEX 规范化、取消、重复提交、弹窗/滑块撤销重做、文本撤销与中文输入保护，以及连续编辑的历史边界；另覆盖 53% / 100% / 150% 缩放下的合成拖拽事件、预览图片加载、取消、双列横向落点及上下半区插入线、落点排序、单步撤销重做；测试使用独立状态，不读写已保存的工作流。
+
+节点内的色样保持静态布局，节点拖动与画布移动由 React Flow 直接更新。弹窗使用 `#282828` 深灰底色，仅作用于选色面板。展开与收回由 [shared/useColorPickerMorph.ts](./shared/useColorPickerMorph.ts) 在固定定位弹出层中完成，收回目标每帧读取色样的当前屏幕位置，视图更新不重启动画；中键持续平移时也能完成收回并显示节点色样，避免被按钮裁切或留下旧选色区。所有取色器共享当前打开对象，连续切色时旧面板收回、新面板展开；快速重开会打断并反转当前动画。`/tests/color-picker-motion.html`（入口 `color-picker-motion.test.tsx`）逐帧检查两种节点在三档缩放下的可见收回路径、原位置、退出清理、连续 / 快速 / 同批次切色及收回中重开；使用合成中键事件驱动真实 React Flow 平移，检查打开中开始平移、关闭后立即平移及松键前恢复色样，`?pan-only` 单独运行这些平移用例。支持 `?reduce-motion`，使用独立节点状态。`/tests/color-picker-node-drag.html`（入口 `color-picker-node-drag.test.tsx`）在 53% / 100% / 150% 视图下逐帧比较调色板和绘图色样与按钮的位置，检查面板收回后继续拖动，并提供真实鼠标拖动的偏移量检查；支持 `?reduce-motion`，使用独立节点状态，不读写保存的画布。
 
 原生拖拽验收页为 `/tests/color-palette-native-drag.html`（入口 `tests/color-palette-native-drag.test.tsx`），同样通过 Vite 运行且不读写用户工作流。用真实鼠标在节点中拖动，页面检查可信 `dragstart`、透传原生 `setDragImage`、已加载的 1×1 透明图片和可信 `dragend`；`Broken canvas control` 使用旧实现作负例，必须失败，`Fixed image` 应通过。分别检查 53% / 100% / 150%，拖出及 Escape 取消后顺序/历史不变，落点后节点顺序更新且可单步撤销重做。原生预览使用预加载的离屏 `HTMLImageElement`，不可用没有布局的 canvas 替代。页面的 PASS 仅代表原生调用及图片有效，浏览器页面截图不包含系统拖拽图层；大色条是否消失仍必须用系统目视或能包含该图层的录屏对照确认，不得用合成事件或页面截图代替。
 
@@ -233,7 +236,7 @@ Crop 位于 Tools → Editing，也出现在图片连接的推荐菜单中。Inp
 
 Painter 在浏览器本地绘制，不运行模型或消耗额度。外框、标题、更多菜单和端口复用新版共享组件；默认宽 456px、高 656px，绘图区为 424×424px，随实际图片比例调整。底部工具栏仅保留画笔、形状、形状下拉和橡皮擦，移除画板按钮及其参数区；形状提供矩形、圆形、三角形、星形，选择后同步工具栏图标。画笔支持颜色、透明度、大小和硬度，橡皮擦拥有独立参数；“重置”清除绘制层，保留底图和已有画布设置，可撤销。新建节点默认为 1024×1024 的透明背景，已有节点保存的背景、透明度与尺寸不改写；连接图片后按原图尺寸绘制。
 
-颜色面板由 `PainterColorPicker.tsx` / `PainterColorPicker.css` 提供，使用独立样式作用域，不改变色板节点现有选色器。面板宽 280px、高 356px，支持连续拖动饱和度 / 明度、色相、透明度、HEX 和七个预设颜色，与底部颜色参数同步；支持关闭按钮、Escape、外部点击和锁定关闭。形状菜单复用 `NodeMenu` 的键盘导航与共用悬停高亮，图标来自 `public/painter-node/` 的 Figma 原始 SVG。
+颜色面板由 `PainterColorPicker.tsx` 接入共享的 beUI 选色器（`shared/BeuiColorPicker.tsx` / `shared/NodeColorPicker.tsx` / `shared/NodeColorPicker.css`），宽 288px、选色区 264×160px，高度随格式与透明度控件变化。支持连续拖动饱和度 / 明度、色相、透明度、HEX / RGB / HSL、屏幕取色及八个预设颜色，与底部颜色参数实时同步；更换预设保留画笔透明度，透明度仍与六位笔画颜色独立存储。支持色样按钮切换、Escape、外部点击和锁定关闭；Escape、指针取消、丢失捕获与窗口失焦放弃未完成手势。形状菜单复用 `NodeMenu` 的键盘导航与共用悬停高亮，图标来自 `public/painter-node/` 的 Figma 原始 SVG。
 
 笔画使用归一化坐标保存；预览、Result、黑白 Mask 和供 Sunburst 使用的透明 Mask 由同一绘制层生成，橡皮擦只移除绘制内容。白色 Mask 表示绘制区域，与笔画颜色无关；连接到 Sunburst 的 Mask 输入时使用对应的透明 PNG，保持现有 API 的透明区域编辑语义。输入缺失、导出未完成或上游变化时不可使用旧输出。源图片必须允许浏览器跨域读取。
 
@@ -338,6 +341,18 @@ Router 直接从当前图解析来源，不保存文本或素材副本，不运�
 
 支持重命名、锁定、副本、剪切粘贴、撤销重做和 IndexedDB 保存恢复；单独复制 Router 不复制上游内容和连线。创建并连接、替换输入各算一次撤销。数据解析及快捷创建在 `router.ts`；`router.test.ts` 使用现有 Node.js 测试运行器随 `npm test` 验证透传、集合、分支、替换、环路、类型限制、遮罩和保存恢复。浏览器验收入口为 `/tests/router.html`（`tests/router.test.tsx`），运行 `npm run dev` 后打开，使用独立数据库和真实画布检查菜单、文本 / 图片透传、历史与持久化，也可手动检查拖动、连线、缩放和小地图。
 
+
+## Seedream 5.5（APIMart）
+
+替换 Dock / 右键菜单中的 Seedance 2.0 占位入口，归入图像分类；搜索和拖线推荐同样可创建。依据[接入文档](https://docs.apimart.ai/cn/api-reference/images/seedream-5-5/generation)，模型为 `seedream-5-5`。
+
+[seedream.ts](./seedream.ts) 定义分辨率 1.5K / 2K、JPEG / PNG、内容审核与水印；默认 1.5K、PNG、自动背景、审核关闭、水印关闭。宽高比默认自动，保留原有只发送分辨率档位的行为；可选 1:1、4:3、3:4、16:9、9:16、3:2、2:3、21:9、2:1、1:2，选择比例时同时发送 `size` 和 `resolution`。精确像素在同一菜单中切换，输入正整数宽高，总像素须为 921,600–4,624,220、比例为 1:16–16:1，不要求 16 的倍数。宽高编辑使用本地草稿；停止输入 250ms 后自动取整并校正，不要求失焦或回车。连续输入会重置等待，清空输入及中文合成期间不启动自动校正；离开整个尺寸输入区或按 Enter 仍立即确认，优先等比缩放，超出比例范围时调整至最近的允许比例，再选择符合面积和比例限制的整数尺寸。合法尺寸不变，清空或非正数恢复该边上次提交的数值；校正作为一次参数修改参与撤销，锁定、外部值变化、切换模式及切换节点会清理草稿和待执行的校正，不触发模型运行。外部参数和直接 API 请求仍严格校验。只发送像素 `size`，分辨率控件停用并保留之前的档位。旧画布缺少 `size` 时按自动恢复，未生成图片时预览随比例或精确尺寸变化，已有结果继续按实际尺寸显示。背景可选自动、透明、不透明，文生图和图生图均支持透明；透明背景必须使用 PNG。切换透明背景时将本地输出格式改为 PNG；外部参数中的冲突在运行前阻止。不支持 `layer_decomposition` 和 Mask；提示词优化使用默认标准模式。六个参数可暴露为文本输入，返回本地设置保留有效值；本地精确尺寸下不执行分辨率参数的上游任务。
+
+必须连接非空提示词（应用限制 32000 字符）；参考图片按端口顺序展开集合，最多 10 张，单张 30 MiB，合计 46 MiB。支持文档列出的 JPEG / PNG / WebP / BMP / TIFF / GIF / HEIC / HEIF，读取与尺寸校验仍受浏览器解码能力限制。参考图总像素不超过 3600 万，按宽高乘积判断，不限制单边 6000 像素。结果原始字节、实际尺寸、图库、下游输出、复制、锁定、撤销及保存恢复复用图片生成节点约定。
+
+[seedreamRun.ts](./seedreamRun.ts) 建立不可变任务快照，[seedreamClient.ts](./seedreamClient.ts) 将参考图转成 Data URI，请求 `/api/apimart/seedream`。服务端 [seedream.ts](../../server/seedream.ts) 先校验参数，再由现有 [apimart.ts](../../server/apimart.ts) 异步接口提交一次；参考图直接使用文档支持的 `image_urls` Data URI，无需额外上传。复用 API 设置中的 APIMart BYOK 配置或 `APIMART_API_KEY`，开发和预览均可运行。每 4 秒查询相同任务，查询超时继续等待；失败保留任务编号且不自动重新提交，取消停止本地等待，不代表供应商任务已撤回。
+
+`seedream.test.ts`、`seedreamClient.test.ts` 和 `server/seedream.test.ts` 随 `npm test` / `npm run check` 执行。独立浏览器入口 `/tests/seedream.html` 使用隔离数据库和模拟响应，覆盖参数、端口、生成、下游、失败、取消、锁定、撤销与保存恢复，不调用真实模型。自动检查、浏览器模拟验收与真实付费生图是独立结果。
 
 ## Nano Banana
 

@@ -2,6 +2,7 @@ import { ImageIteratorNode } from './ImageIteratorNode';
 import { TextIteratorNode } from './TextIteratorNode';
 import { IdeogramNode } from './IdeogramNode';
 import { MasksExtractorNode } from './MasksExtractorNode';
+import { SeedreamNode } from './SeedreamNode';
 import { NanoBananaNode } from './NanoBananaNode';
 import { RouterNode } from './RouterNode';
 import { BlendNode } from './BlendNode';
@@ -51,6 +52,7 @@ export const nodeTypes = {
   painter: PainterNode,
   sunburst: SunburstNode,
   'nano-banana': NanoBananaNode,
+  seedream: SeedreamNode,
   text: TextNode,
   'image-describer': ImageDescriberNode,
   'model-input': ModelInputNode,

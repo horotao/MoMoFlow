@@ -16,7 +16,7 @@ export type NodeMenuGroup = { label?: string; entries: NodeMenuEntry[] };
 export type NodeMenuCategory = 'editing' | 'helpers';
 
 const assets: Record<string, string> = {
-  text: 'text', sunburst: 'openai', 'nano-banana': 'gemini', ideogram: 'ideogram',
+  text: 'text', sunburst: 'openai', 'nano-banana': 'gemini', ideogram: 'ideogram', seedream: 'jimeng',
   'color-palette': 'paint-board', compositor: 'layers01', resize: 'arrow-expand01',
   'rotate-flip': 'rotate01', 'color-correction': 'sliders-vertical', levels: 'chart-histogram',
   invert: 'contrast', blur: 'blur', crop: 'crop', painter: 'paint-brush01',
@@ -31,7 +31,6 @@ function node(id: string): NodeMenuEntry {
   };
 }
 const group = (label: string, ids: string[]): NodeMenuGroup => ({ label, entries: ids.map(node) });
-const seedance: NodeMenuEntry = { id: 'seedance', label: 'Seedance 2.0', asset: 'jimeng' };
 const lyria: NodeMenuEntry = { id: 'lyria', label: 'Lyria 3', asset: 'deepmind' };
 
 export const nodeMenuCategories: Record<NodeMenuCategory, NodeMenuGroup[]> = {
@@ -46,13 +45,12 @@ export const nodeMenuCategories: Record<NodeMenuCategory, NodeMenuGroup[]> = {
   ],
 };
 export const nodeMenuGroups: NodeMenuGroup[] = [
-  { entries: [...['text', 'sunburst', 'nano-banana', 'ideogram'].map(node), seedance, lyria] },
+  { entries: [...['text', 'sunburst', 'nano-banana', 'ideogram', 'seedream'].map(node), lyria] },
   { label: '工具', entries: [
     { id: 'editing', label: '图像编辑节点', asset: 'ai-image-edit' },
     { id: 'helpers', label: '辅助工具节点', asset: 'tool-case' },
   ] },
-  group('图像', ['sunburst']),
-  { label: '视频', entries: [seedance] },
+  group('图像', ['sunburst', 'seedream']),
   { label: '音频', entries: [
     { id: 'voiceover', label: '配音', asset: 'mic01' },
     { id: 'voice-change', label: '更换声音', asset: 'voice' },

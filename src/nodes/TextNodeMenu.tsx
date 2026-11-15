@@ -34,7 +34,7 @@ export function TextNodeMenu({ id, locked, onRename, onClear, children, appearan
 
   const act = async (action: string) => {
     const node = getNode(id);
-    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'nano-banana' && node.type !== 'ideogram' && node.type !== 'masks-extractor' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop' && node.type !== 'color-correction' && node.type !== 'matte-grow-shrink' && node.type !== 'blur' && node.type !== 'levels' && node.type !== 'invert' && node.type !== 'rotate-flip' && node.type !== 'blend' && node.type !== 'compare' && node.type !== 'resize' && node.type !== 'compositor' && node.type !== 'color-palette' && node.type !== 'router' && node.type !== 'text-iterator' && node.type !== 'image-iterator' && node.type !== 'position-logger')) return false;
+    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'seedream' && node.type !== 'nano-banana' && node.type !== 'ideogram' && node.type !== 'masks-extractor' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop' && node.type !== 'color-correction' && node.type !== 'matte-grow-shrink' && node.type !== 'blur' && node.type !== 'levels' && node.type !== 'invert' && node.type !== 'rotate-flip' && node.type !== 'blend' && node.type !== 'compare' && node.type !== 'resize' && node.type !== 'compositor' && node.type !== 'color-palette' && node.type !== 'router' && node.type !== 'text-iterator' && node.type !== 'image-iterator' && node.type !== 'position-logger')) return false;
     setError('');
     let writingClipboard = false;
     try {
@@ -47,7 +47,7 @@ export function TextNodeMenu({ id, locked, onRename, onClear, children, appearan
         const copy: AppNode = isTextNode(node) ? cloneTextNode(node) : {
           ...copied, id: `${node.type}-${crypto.randomUUID()}`, selected: true,
           position: { x: node.position.x + 40, y: node.position.y + 40 },
-          data: { ...copied.data, locked: false, ...(node.type === 'image-describer' || node.type === 'sunburst' || node.type === 'nano-banana' || node.type === 'ideogram' ? { exposed: [] } : {}) },
+          data: { ...copied.data, locked: false, ...(node.type === 'image-describer' || node.type === 'sunburst' || node.type === 'seedream' || node.type === 'nano-banana' || node.type === 'ideogram' ? { exposed: [] } : {}) },
         } as AppNode;
         setNodes((nodes) => [...nodes.map((item) => ({ ...item, selected: false })), copy]);
       } else if (action === 'cut' && !locked) {
