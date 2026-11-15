@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
+import { MotionConfig } from 'motion/react';
 import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, addEdge, useNodesState, useEdgesState, type Edge } from '@xyflow/react';
 import { CanvasHistoryContext, useCanvasHistory } from '../src/components/useCanvasHistory';
 import { CompareNode } from '../src/nodes/CompareNode';
@@ -81,17 +82,30 @@ async function run() {
   const context = canvas.getContext('2d')!; context.filter = 'brightness(1.55)'; context.drawImage(img, 0, 0);
   const blob = await new Promise<Blob>(resolve => canvas.toBlob(value => resolve(value!), 'image/png'));
   second.url = assetResources.create(blob);
-  createRoot(document.getElementById('root')!).render(<ReactFlowProvider><Harness sources={[first, second]} /></ReactFlowProvider>);
+  createRoot(document.getElementById('root')!).render(<MotionConfig reducedMotion="user"><ReactFlowProvider><Harness sources={[first, second]} /></ReactFlowProvider></MotionConfig>);
   await until(() => Boolean(document.querySelector('.compare-slider')) && Array.from(document.querySelectorAll<HTMLImageElement>('.compare-image img')).every(img => img.complete && img.naturalWidth), 'Images must load');
   const checks: string[] = [];
   const check = (value: unknown, message: string) => { assert(value, message); checks.push(message); };
   check(imageOutput(node(), 'output-1', nodesNow, edgesNow)[0] === first && imageOutput(node(), 'output-2', nodesNow, edgesNow)[0] === second, 'Two native images pass through independently');
   check(find('.compare-image').getBoundingClientRect().height / find('.compare-image').getBoundingClientRect().width > 1.79, 'Portrait ratio follows Input 1');
-  find('.compare-slider').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); await settle();
+  find('.compare-slider [role="slider"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); await settle();
   check(node().data.split === .51, 'Keyboard divider adjustment');
   find<HTMLButtonElement>('[data-test="undo"]').click(); await settle(); check(node().data.split === .5, 'Undo divider');
   find<HTMLButtonElement>('[data-test="redo"]').click(); await settle(); check(node().data.split === .51, 'Redo divider');
   find<HTMLButtonElement>('.compare-reset').click(); await settle(); check(node().data.split === .5 && find<HTMLButtonElement>('.compare-reset').disabled, 'Reset centers and disables');
+  const key = async (key: string, shiftKey = false) => { find('.compare-slider [role="slider"]').dispatchEvent(new KeyboardEvent('keydown', { key, shiftKey, bubbles: true })); await settle(); };
+  for (const [keyName, shift, expected] of [['ArrowUp', true, .6], ['PageDown', false, .5], ['End', false, 1], ['Home', false, 0]] as const) {
+    await key(keyName, shift);
+    check(Math.abs(node().data.split - expected) < .00001, `${keyName}: accessible divider adjustment`);
+    const cut = getComputedStyle(find('.before-after-first')).clipPath;
+    if (expected === 0 || expected === 1) check(cut === `inset(0px ${100 - expected * 100}% 0px 0px)`, `${keyName}: entire native layer is revealed or hidden`);
+  }
+  await patch({ split: .5 });
+  check(find('.before-after-handle').getAttribute('tabindex') === '0' && find('.before-after-handle').getAttribute('aria-valuenow') === '50', 'Centered beUI handle owns keyboard focus and accessible value');
+  check(find('.before-after-label-first').textContent === 'Image 1' && find('.before-after-label-second').textContent === 'Image 2', 'Comparison labels preserve input identities');
+  const localWidth = find('.compare-slider').clientWidth;
+  check(Math.abs(find('.compare-slider').getBoundingClientRect().width / localWidth - .65) < .001, 'Fixture exercises a zoomed canvas');
+  check(getComputedStyle(find('.before-after-first')).clipPath.includes(String(localWidth / 2)), 'Curved clipping uses local width rather than zoomed screen width');
   find<HTMLButtonElement>('.compare-controls [role="combobox"]').click(); await settle();
   Array.from(document.querySelectorAll<HTMLElement>('[role="option"]')).find(option => option.textContent?.includes('Toggle'))!.click(); await settle();
   check(node().data.mode === 'toggle' && !document.querySelector('.compare-reset'), 'Toggle has no Reset');
@@ -112,7 +126,7 @@ async function run() {
   replaceEdges(initialEdges); await settle();
   check(Boolean(document.querySelector('.compare-slider')), 'Reconnect restores comparison');
   await patch({ locked: true });
-  check(find<HTMLButtonElement>('.compare-controls button').disabled && find('.compare-slider').getAttribute('aria-disabled') === 'true', 'Locked node disables editing');
+  check(find<HTMLButtonElement>('.compare-controls button').disabled && find('.compare-slider [role="slider"]').getAttribute('aria-disabled') === 'true', 'Locked node disables editing');
   await patch({ locked: false, split: .5 });
   const wide = await sample(3840, 2160);
   replaceNodes(nodesNow.map(item => item.id === 'file1' ? { ...item, data: { assets: [wide] } } as AppNode : item)); await settle();
@@ -134,7 +148,7 @@ async function run() {
   }
   await patch({ mode: 'slider' });
   replaceNodes(nodesNow.map(item => item.id === 'file1' ? { ...item, data: { assets: [first] } } as AppNode : item)); await settle();
-  check(getComputedStyle(find('.compare-layer')).backgroundImage.includes('/compare-node/checkerboard.svg'), 'Transparent previews preserve checkerboard');
+  check(getComputedStyle(find('.before-after-layer')).backgroundImage.includes('/compare-node/checkerboard.svg'), 'Transparent previews preserve checkerboard');
   find('#results').dataset.result = 'passed'; find('#results').textContent = `${checks.length} checks passed — Slider / Toggle, history, storage, 4K, connections, locks and transparency.`;
 }
 void run().catch(error => { find('#results').dataset.result = 'failed'; find('#results').textContent = String(error); console.error(error); });

@@ -244,6 +244,8 @@ Image Describer 运行前需要至少一张有效的上游图片和非空模型�
 
 Sunburst 运行前必须连接非空 Prompt，栅格输出时参考图片和 Mask 可选。SVG 输出仅支持 Prompt 文生图，连接参考图片或 Mask 会在执行任何上游模型前报错；每个请求 n=1，OpenAI SVG 请求显式使用 `svg.model: gpt-6.1-terra` 编写矢量 XML，顶层模型仍为所选 Flare / Sunburst；其他格式与 ZenMux 不附加此参数。`vectorSvg.ts` 使用 saxes 解析并验证纯矢量 XML，拒绝内嵌位图、脚本、动画及外部资源。服务端和客户端均校验，结果使用 image/svg+xml Blob 和 .svg 名称，预览、原文件下载、ZIP 与 IndexedDB 保留原始矢量字节，不经 Canvas 栅格化。SVG 不能直接作为模型图片参考输入。连接了 Image 时，执行器会先准备所需上游，提交图片模型请求前必须取得有效图片；使用 Mask 时还必须连接参考图片，且 Mask 只能提供一张图片。图片格式、尺寸及参数限制由 `sunburst.ts`、`sunburstClient.ts` 和服务端共同校验，不应只依赖界面限制。成功结果追加到 `results`，并更新 `activeResultId`。多张结果时，页码前的图标可切换单张预览与全部图片；全部视图与文件导入共用 [shared/NodeImagePreview.tsx](./shared/NodeImagePreview.tsx) 的两列瀑布流（8px 内边距、4px 列距），点击缩略图选择输出结果，双击打开全屏。视图切换仅影响当前预览，不改变已选结果。下载按钮同样复用 File Node：单张视图下载当前图片，全部图片视图按当前排序将所有结果打包为 `images.zip`。
 
+GPT Image 2.6 的 Sunburst / Flare 在 OpenAI 和 ZenMux 渠道的生图、编辑请求均由服务端显式附加 `moderation: 'low'`，新旧节点统一生效；画质、背景、尺寸及输出格式沿用原有设置。
+
 Sunburst 的单张预览框在生成前即按有效宽高比调整高度，支持预设、自定义尺寸及外接参数（含 Router）。节点宽度保持一致，高度随预览变化，并为输入端口保留最小空间。自动比例或无效的尺寸草稿使用当前结果的实际比例；无结果时使用正方形。已有结果在新比例内完整显示，尺寸调整不修改图片、下载或下游输出；全部图片视图保留网格布局。
 
 Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排序偏好保存在节点数据中；排序只改变预览顺序，不改变当前输出或原始结果顺序。全部视图中可将缩略图拖到空白画布，复用 `extractFileAsset` 将图片移至新的 File 节点；原节点至少保留一张结果，若移走当前输出则选中剩余的最新结果。创建与移出作为一次撤销记录，取消拖动、落在非画布区域、节点删除或锁定时不执行。
@@ -300,7 +302,7 @@ Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排�
 
 ## Compare
 
-从 Tools → Helpers 或搜索 Compare 添加。Slider 左侧显示 Input 1，右侧显示 Input 2；拖动分割线实时对比，松开时提交一次历史记录。Reset 恢复 50%，居中时禁用；方向键微调，Shift 加大步长，Home / End 到两端，Escape 取消拖动。Toggle 默认显示 Image 2，按住左上角眼睛（或 Space / Enter）显示 Image 1，松开、失焦或取消时恢复；与 Weavy 的按住预览行为一致。切换模式时分割线回到中间。
+从 Tools → Helpers 或搜索 Compare 添加。Slider 左侧显示 Input 1，右侧显示 Input 2；使用 [beUI Before After Slider](https://beui.dev/components/motion/before-after-slider) 的本地适配组件 `shared/BeforeAfterSlider.tsx`，保留弯曲分割线、居中圆形手柄的悬停 / 按压反馈和两侧图片标签。拖动直接跟随指针，点击图片可平滑定位；裁切和分割线按节点本地尺寸同步计算，兼容画布缩放。松开时提交一次历史记录，Escape、窗口失焦、指针取消、丢失捕获、锁定和换图取消草稿；减少动态效果时去除弯曲、缩放和定位动画。画布内不播放首次提示扫动。Reset 恢复 50%，居中时禁用；方向键微调，Shift / PageUp / PageDown 加大步长，Home / End 到两端，Escape 取消拖动。Toggle 默认显示 Image 2，按住左上角眼睛（或 Space / Enter）显示 Image 1，松开、失焦或取消时恢复；与 Weavy 的按住预览行为一致。切换模式时分割线回到中间。
 
 预览按第一张可用图片比例布局，两张图等比例居中；仅一路可用时显示该图，无输入时显示棋盘格。左右端口分别位于 89 / 149px，每个输入只允许一条图片连线；支持两路连接同一来源，拒绝环路、锁定节点及非图片输入。两个输出分别透传原始图片，保留原生尺寸、透明度、资源标识和素材上的灰度蒙版标识（包括 Painter / MasksExtractor 的 Mask、Invert 和 Matte Grow / Shrink 输出），不导出对比拼图；模式、拖动与临时预览不改变输出。
 

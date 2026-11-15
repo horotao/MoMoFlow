@@ -87,6 +87,7 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
         if (images.length) {
           assert.ok(options?.body instanceof FormData);
           assert.equal(options.body.get('model'), `gpt-image-2.6-${variant.toLowerCase()}`);
+          assert.equal(options.body.get('moderation'), 'low');
           assert.equal(options.body.getAll('image[]').length, 2);
           assert.equal(await (options.body.get('mask') as File).text(), 'hello');
           assert.equal(options.body.has('provider'), false);
@@ -94,6 +95,7 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
           assert.equal(typeof options?.body, 'string');
           const body = JSON.parse(options!.body as string);
           assert.equal(body.model, `gpt-image-2.6-${variant.toLowerCase()}`);
+          assert.equal(body.moderation, 'low');
           assert.equal('provider' in body, false);
         }
         return Response.json({ data: [{ b64_json: 'aGVsbG8=' }] });
@@ -186,7 +188,7 @@ test('multipart edits preserve ordered image bytes, MIME types, mask and all sel
   assert.deepEqual(await Promise.all(uploads.map(file => file.text())), ['hello', 'world']);
   const mask = payload.body.get('mask') as File;
   assert.equal(mask.type, 'image/png'); assert.equal(await mask.text(), 'hello');
-  for (const [name, value] of Object.entries({ model: sunburstModel, prompt: input.prompt, n: '1', quality: 'high', background: 'auto', size: '864x1536', output_format: 'webp' })) assert.equal(payload.body.get(name), value);
+  for (const [name, value] of Object.entries({ model: sunburstModel, prompt: input.prompt, n: '1', moderation: 'low', quality: 'high', background: 'auto', size: '864x1536', output_format: 'webp' })) assert.equal(payload.body.get(name), value);
   assert.equal(payload.body.has('images'), false);
   const wire = new Request('https://example.invalid/images/edits', { method: 'POST', body: payload.body });
   assert.match(wire.headers.get('content-type') ?? '', /^multipart\/form-data; boundary=/);
@@ -310,6 +312,13 @@ test('missing provider uses OpenAI and both 2.6 versions use exact IDs on each c
       const request = buildSunburstRequest({ ...input, provider, variant, images });
       assert.equal(request.provider, provider ?? 'openai');
       assert.equal(request.body.model, `${provider === 'zenmux' ? 'openai/' : ''}gpt-image-2.6-${variant.toLowerCase()}`);
+      const payload = buildSunburstPayload(request);
+      const expected = { model: request.body.model, prompt: input.prompt, n: 1, moderation: 'low',
+        quality: input.quality, background: input.background, size: input.size, output_format: input.outputFormat };
+      if (payload.body instanceof FormData) {
+        const settings = Object.fromEntries([...payload.body.entries()].filter(([name]) => name !== 'image[]'));
+        assert.deepEqual(settings, { ...expected, n: '1' });
+      } else assert.deepEqual(JSON.parse(payload.body), expected);
     }
   }
   assert.throws(() => buildSunburstRequest({ ...input, variant: 'gpt-image-2.5-sunburst' }), /模型版本/);
@@ -322,6 +331,7 @@ test('SVG requests use generations with n=1 and preserve actual vector XML bytes
       assert.equal(url, 'https://api.openai.com/v1/images/generations');
       const body = JSON.parse(options!.body as string);
       assert.equal(body.n, 1); assert.equal(body.output_format, 'svg');
+      assert.equal(body.moderation, 'low');
       assert.deepEqual(body.svg, { model: 'gpt-6.1-terra' });
       assert.equal(body.model, `gpt-image-2.6-${variant.toLowerCase()}`);
       return Response.json({ data: [{ b64_json: Buffer.from(xml).toString('base64') }], output_format: 'svg' });

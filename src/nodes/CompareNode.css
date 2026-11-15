@@ -2,19 +2,9 @@
 .compare-node-frame .node-title { gap: 6px; }
 .compare-node-frame .text-node-rename { width: 100%; min-width: 0; height: 24px; font: inherit; }
 .react-flow .compare-node-frame .compare-image { border-radius: var(--node-inset-radius); corner-shape: superellipse(1.25); background: var(--node-inset) url('/compare-node/checkerboard.svg') 0 0 / 424px 424px; }
-.compare-layer, .compare-slider { position: absolute; inset: 0; }
+.compare-layer { position: absolute; inset: 0; }
 .compare-layer { background: inherit; }
 .compare-layer img { width: 100%; height: 100%; object-fit: contain; display: block; user-select: none; }
-.compare-slider { cursor: ew-resize; touch-action: none; outline: none; }
-.compare-slider[aria-disabled="true"] { cursor: default; }
-.compare-divider { position: absolute; top: 0; bottom: 0; width: 1px; background: #fff9; box-shadow: 0 0 0 1px #0003; pointer-events: none; }
-.compare-grip { position: absolute; left: 0; transform: translate(-50%, -50%); width: 24px; height: 24px; color: #ffffffb3; opacity: 0; }
-.compare-grip > svg { display: block; width: 24px; height: 24px; }
-.compare-image-label { position: absolute; top: 50%; transform: translateY(-50%); padding: 0 4px; border-radius: 2px; background: #0e0e1366; color: #ffffffe5; font-size: 9px; font-weight: 500; line-height: 14px; white-space: nowrap; }
-.compare-image-label-first { right: 40px; }
-.compare-image-label-second { left: 40px; }
-.compare-slider:hover .compare-grip, .compare-slider.is-dragging .compare-grip, .compare-slider:focus-visible .compare-grip { opacity: 1; }
-.compare-slider:focus-visible .compare-grip { color: #fff; filter: drop-shadow(0 0 2px #0009); }
 .compare-toggle { position: absolute; left: 8px; top: 8px; display: flex; align-items: center; color: white; }
 .compare-toggle .file-icon-button { color: white; }
 .compare-toggle > span { padding: 1px 4px; border-radius: 2px; background: #0005; font-size: 9px; line-height: 12px; }

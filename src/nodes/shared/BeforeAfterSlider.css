@@ -1,0 +1,18 @@
+.before-after-slider { position: absolute; inset: 0; isolation: isolate; overflow: hidden; background: inherit; cursor: ew-resize; touch-action: none; user-select: none; }
+.before-after-slider.is-dragging { cursor: grabbing; }
+.before-after-slider[data-disabled] { cursor: default; }
+.before-after-layer { position: absolute; inset: 0; background: inherit; }
+.before-after-layer img { display: block; width: 100%; height: 100%; object-fit: contain; user-select: none; }
+.before-after-labels { pointer-events: none; }
+.before-after-label { position: absolute; top: 12px; padding: 4px 10px; border-radius: 999px; background: rgb(0 0 0 / 45%); color: #fff; font: 500 12px/16px var(--font-ui); backdrop-filter: blur(4px); }
+.before-after-label-first { left: 12px; }
+.before-after-label-second { right: 12px; }
+.before-after-line { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.before-after-handle-track { position: absolute; inset: 0; pointer-events: none; }
+.before-after-handle-anchor { position: absolute; top: 50%; left: 0; transform: translate(-50%, -50%); }
+.before-after-handle { position: relative; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: #fff; color: #171717; box-shadow: 0 0 0 1px rgb(0 0 0 / 12%); outline: none; pointer-events: auto; }
+.before-after-handle::before { content: ''; position: absolute; inset: -6px; border-radius: inherit; }
+.before-after-handle:focus-visible { outline: 2px solid #fff; outline-offset: 3px; box-shadow: 0 0 0 3px rgb(0 0 0 / 35%); }
+.before-after-chevron { display: flex; }
+.before-after-chevron:first-child { margin-right: -4px; }
+.before-after-chevron:last-child { margin-left: -4px; }

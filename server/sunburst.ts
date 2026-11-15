@@ -38,6 +38,7 @@ export function buildSunburstRequest(value: unknown) {
     endpoint: images.length ? 'edits' : 'generations',
     body: {
       model: sunburstModelForProvider(provider, validateSunburstVariant(input.variant)), prompt: input.prompt, n: 1,
+      moderation: 'low',
       quality: settings.quality, background: settings.background, size: settings.size, output_format: settings.outputFormat,
       ...(provider === 'openai' && settings.outputFormat === 'svg' ? { svg: { model: svgAuthorModel } } : {}),
       ...(images.length ? { images, ...(mask ? { mask } : {}) } : {}),
