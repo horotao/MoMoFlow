@@ -1,5 +1,5 @@
 import { isFileAsset } from './fileCollection.ts';
-import { validateSunburstVariant, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
+import { apimartChannelModels, apimartSvgModels, apimartSvgEfforts, imageModerations, validateSunburstVariant, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
 import type { SunburstNode } from './types';
 
 export function restoreSunburstData(value: unknown): SunburstNode['data'] | undefined {
@@ -15,6 +15,11 @@ export function restoreSunburstData(value: unknown): SunburstNode['data'] | unde
   const results = data.results ?? [];
   if (!Array.isArray(results) || !results.every(isFileAsset)) return;
   return {
+    ...(apimartChannelModels.some(value => value === data.channelModel) ? { channelModel: data.channelModel as SunburstNode['data']['channelModel'] } : {}),
+    ...(imageModerations.some(value => value === data.moderation) ? { moderation: data.moderation as SunburstNode['data']['moderation'] } : {}),
+    ...(typeof data.frameCount === 'number' && Number.isInteger(data.frameCount) && data.frameCount >= 2 && data.frameCount <= 16 ? { frameCount: data.frameCount } : {}),
+    ...(apimartSvgModels.some(value => value === data.svgModel) ? { svgModel: data.svgModel as SunburstNode['data']['svgModel'] } : {}),
+    ...(apimartSvgEfforts.some(value => value === data.svgEffort) ? { svgEffort: data.svgEffort as SunburstNode['data']['svgEffort'] } : {}),
     ...settings, size: data.size, imageInputs: count, results,
     ...(data.provider !== undefined ? { provider } : {}),
     ...(data.variant !== undefined ? { variant: validateSunburstVariant(data.variant) } : {}),

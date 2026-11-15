@@ -19,7 +19,7 @@ import './TextNode.css';
 import './shared/mediaNodeStyle.css';
 import './ImageDescriberNode.css';
 
-const parameterTitles = { complexity: '复杂度', provider: '渠道商', variant: '模型版本', editQuality: '编辑质量', editPrecision: '编辑精度', editSize: '编辑尺寸', resolution: '分辨率', enablePromptExpansion: '提示词扩展', aspectRatio: '宽高比', imageSize: '分辨率', quality: '画质', background: '背景', size: '宽高比', outputFormat: '输出格式' };
+const parameterTitles = { channelModel: '渠道模型', moderation: '内容审核', frameCount: '帧数', svgModel: 'SVG 模型', svgEffort: 'Effort', complexity: '复杂度', provider: '渠道商', variant: '模型版本', editQuality: '编辑质量', editPrecision: '编辑精度', editSize: '编辑尺寸', resolution: '分辨率', enablePromptExpansion: '提示词扩展', aspectRatio: '宽高比', imageSize: '分辨率', quality: '画质', background: '背景', size: '宽高比', outputFormat: '输出格式' };
 
 export function ModelInputNode({ id, data, isConnectable }: NodeProps<ModelInput>) {
   const edges = useEdges();

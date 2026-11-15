@@ -4,7 +4,8 @@ import { providerConnection } from './apiCredentials.ts';
 import { byokFetch } from './byokFetch.ts';
 import { diagnosticText, readErrorDiagnostic, trusted } from './zenmuxShared.ts';
 import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
-import { sunburstFormats, validateSunburstImageInputs, validateSunburstSettings, validateSunburstVariant } from '../src/nodes/sunburst.ts';
+import { imageFormats, sunburstModelForProvider, validateSunburstImageInputs, validateSunburstSettings, validateSunburstVariant } from '../src/nodes/sunburst.ts';
+import { validateVectorSvg } from '../src/nodes/vectorSvg.ts';
 
 const maxBody = 64 * 1024 * 1024;
 const taskIdPattern = /^[a-zA-Z0-9_-]{1,200}$/;
@@ -17,22 +18,39 @@ export function buildApimartRequest(value: unknown) {
   const settings = validateSunburstSettings(input);
   if (typeof input.prompt !== 'string' || !input.prompt.trim() || input.prompt.length > 32000) throw new Error('请连接非空 Prompt，最多 32000 个字符。');
   if (!Array.isArray(input.images) || input.images.length > 16) throw new Error('最多支持 16 张参考图片。');
-  validateSunburstImageInputs(settings.outputFormat, input.images.length > 0, Boolean(input.mask), 'apimart');
+  const standard = settings.channelModel === 'gpt-image-2.6';
+  validateSunburstImageInputs(settings.outputFormat, input.images.length > 0, Boolean(input.mask), 'apimart', settings.channelModel);
   if (['width', 'height', 'markup', 'markup_url'].some(field => input[field] !== undefined)) throw new Error('APIMart 不支持自定义宽高或标注引导编辑。');
   const images: InputImage[] = input.images.map((url, index) => {
     if (typeof url !== 'string' || !/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/.test(url)) throw new Error('APIMart 参考图片需为 PNG、JPEG、WebP 或 GIF。');
     const mime = url.slice(5, url.indexOf(';'));
-    if (mime === 'image/gif' && settings.resolution !== '1K') throw new Error('APIMart 2K / 4K 参考图不支持 GIF，请使用 PNG、JPEG 或 WebP。');
+    if (!standard && mime === 'image/gif' && settings.resolution !== '1K') throw new Error('APIMart 2K / 4K 参考图不支持 GIF，请使用 PNG、JPEG 或 WebP。');
     const bytes = Buffer.from(url.slice(url.indexOf(',') + 1), 'base64');
     if (bytes.length > 20 * 1024 * 1024) throw new Error('APIMart 单张参考图片不能超过 20 MiB。');
     return { blob: new Blob([new Uint8Array(bytes)], { type: mime }), filename: `reference-${index + 1}.${mime.slice(6)}` };
   });
-  return { images, body: {
-    model: 'gpt-image-2.6-ext', version: validateSunburstVariant(input.variant).toLowerCase(),
-    prompt: input.prompt, size: settings.size, resolution: settings.resolution!.toLowerCase(),
+  let mask: string | undefined;
+  if (input.mask !== undefined) {
+    if (typeof input.mask !== 'string' || !/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(input.mask)) throw new Error('Mask 必须为 PNG 图片。');
+    if (!images.length) throw new Error('使用 Mask 时必须连接 Image。');
+    if (Buffer.from(input.mask.slice(input.mask.indexOf(',') + 1), 'base64').length > 32 * 1024 * 1024) throw new Error('Mask 不能超过 32 MiB。');
+    mask = input.mask;
+  }
+  const body: Record<string, unknown> = {
+    model: sunburstModelForProvider('apimart', validateSunburstVariant(input.variant), settings.channelModel),
+    ...(!standard ? { version: validateSunburstVariant(input.variant).toLowerCase() } : {}),
+    prompt: input.prompt, size: settings.size,
+    ...(!standard || (settings.outputFormat !== 'gif' && !settings.size.includes('x')) ? { resolution: settings.resolution!.toLowerCase() } : {}),
     quality: settings.quality, output_format: settings.outputFormat, n: 1, nsfw_check: false,
     ...(settings.complexity !== 'auto' ? { complexity: settings.complexity } : {}),
-  } };
+    ...(standard ? { background: settings.background, moderation: settings.moderation } : {}),
+    ...(mask ? { mask_url: mask } : {}),
+    ...(standard && settings.outputFormat === 'gif' ? { frame_count: settings.frameCount } : {}),
+    ...(standard && settings.outputFormat === 'svg' ? { svg: { model: settings.svgModel,
+      ...(settings.svgEffort !== 'auto' ? { reasoning: { effort: settings.svgEffort } } : {}),
+    } } : {}),
+  };
+  return { images, body };
 }
 
 async function readLimited(response: Response, limit: number): Promise<Buffer> {
@@ -81,7 +99,7 @@ export function apimartPlugin(defaultKey: string, providerFetch: typeof fetch = 
         if (path === '/api/apimart/images') generation = buildApimartRequest(input);
         else {
           if (!input || typeof input.taskId !== 'string' || !taskIdPattern.test(input.taskId)) throw new Error('无效的 APIMart 任务编号。');
-          if (!sunburstFormats('apimart').some(format => format === input.outputFormat)) throw new Error('不支持的 APIMart 输出格式。');
+          if (!imageFormats.some(format => format === input.outputFormat)) throw new Error('不支持的 APIMart 输出格式。');
           taskId = input.taskId;
         }
       } catch (error) { return send(400, { error: error instanceof Error ? error.message : '请求格式错误。' }); }
@@ -135,12 +153,13 @@ export function apimartPlugin(defaultKey: string, providerFetch: typeof fetch = 
       const download = await (providerFetch === fetch ? byokFetch : providerFetch)(url, { signal: controller.signal, redirect: 'error' });
       if (!download.ok) { await download.body?.cancel(); throw new Error('无法下载 APIMart 结果，请通过任务编号检查结果。'); }
       const mime = download.headers.get('content-type')?.split(';')[0];
-      const format = mime === 'image/jpeg' ? 'jpeg' : mime?.slice('image/'.length);
-      if (mime !== `image/${format}` || !sunburstFormats('apimart').some(item => item === format) || format !== input.outputFormat) {
+      const format = mime === 'image/svg+xml' ? 'svg' : mime?.slice('image/'.length);
+      if (mime !== `image/${format === 'svg' ? 'svg+xml' : format}` || !imageFormats.some(item => item === format) || format !== input.outputFormat) {
         await download.body?.cancel(); throw new Error('APIMart 返回的图片格式与请求不符。');
       }
       const outputBytes = await readLimited(download, 32 * 1024 * 1024);
       if (!outputBytes.length) throw new Error('APIMart 返回空图片。');
+      if (format === 'svg') validateVectorSvg(new TextDecoder('utf-8', { fatal: true }).decode(outputBytes));
       send(200, { image: `data:${mime};base64,${outputBytes.toString('base64')}`, format });
     } catch (error) {
       send(502, { error: controller.signal.aborted ? 'APIMart 请求超时或已取消，不会自动重新提交。'

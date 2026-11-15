@@ -1,5 +1,5 @@
 import { ideogramFieldLabels, ideogramImageInputCount } from './ideogram.ts';
-import { sunburstFieldLabels } from './sunburst.ts';
+import { sunburstFieldLabels, sunburstHiddenParameters } from './sunburst.ts';
 import { nanoBananaFieldLabels } from './nanoBanana.ts';
 import type { Connection, Edge } from '@xyflow/react';
 import type { AppNode } from './types';
@@ -106,10 +106,13 @@ function canConnectDirect(connection: Connection | Edge, nodes: AppNode[], curre
   if (target?.type === 'model-input') return false;
   if (target && isImageGeneratorNode(target)) {
     if (target.type === 'sunburst') {
-      const providerEdge = currentEdges.find(edge => edge.target === target.id && edge.targetHandle === 'provider');
-      const provider = providerEdge ? resolveTextValue(providerEdge.source, nodes, currentEdges).trim() : target.data.provider;
-      if (provider === 'apimart' && ['mask', 'background'].includes(connection.targetHandle ?? '')) return false;
-      if (provider !== 'apimart' && ['resolution', 'complexity'].includes(connection.targetHandle ?? '')) return false;
+      const parameter = (field: 'provider' | 'channelModel' | 'outputFormat') => {
+        const edge = currentEdges.find(edge => edge.target === target.id && edge.targetHandle === field);
+        return edge ? resolveTextValue(edge.source, nodes, currentEdges).trim() : target.data[field];
+      };
+      const provider = parameter('provider'), channelModel = parameter('channelModel'), outputFormat = parameter('outputFormat');
+      if (connection.targetHandle === 'mask' && provider === 'apimart' && (channelModel !== 'gpt-image-2.6' || ['gif', 'svg'].includes(outputFormat ?? ''))) return false;
+      if (sunburstHiddenParameters(provider, channelModel, outputFormat).includes(connection.targetHandle ?? '')) return false;
     }
     if (currentEdges.some(edge => edge.target === target.id && edge.targetHandle === connection.targetHandle)) return false;
     if (connection.targetHandle === 'prompt' || (target.data.exposed ?? []).some(field => field in (target.type === 'sunburst' ? sunburstFieldLabels : target.type === 'ideogram' ? ideogramFieldLabels : nanoBananaFieldLabels) && field === connection.targetHandle)) {

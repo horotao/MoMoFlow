@@ -5,7 +5,7 @@ import { Position, useEdges, useReactFlow, useStore, useUpdateNodeInternals, typ
 import { ArrowRight, Plus } from 'lucide-react';
 import type { AppNode, ImageGeneratorNode as Generator, SunburstNode as Sunburst } from './types';
 import { isNodeLocked } from './types';
-import { apimartAspectRatios, sunburstName, sunburstFieldLabels, validateSunburstSize } from './sunburst';
+import { apimartStandardAspectRatios, sunburstHiddenParameters, sunburstName, sunburstFieldLabels, validateSunburstSize } from './sunburst';
 import { nanoBananaAspectRatios } from './nanoBanana';
 import { resolveTextValue } from './textVariables';
 import { ModelRunButton } from '../components/ModelRunButton';
@@ -29,10 +29,18 @@ export function SunburstNode(props: NodeProps<Sunburst>) {
     const edge = state.edges.find(item => item.target === props.id && item.targetHandle === 'size');
     return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : props.data.size;
   });
+  const channelModel = useStore(state => {
+    const edge = state.edges.find(item => item.target === props.id && item.targetHandle === 'channelModel');
+    return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : props.data.channelModel;
+  });
+  const outputFormat = useStore(state => {
+    const edge = state.edges.find(item => item.target === props.id && item.targetHandle === 'outputFormat');
+    return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : props.data.outputFormat;
+  });
   const apimart = provider === 'apimart';
-  return <ImageGenerationNode {...props} name={sunburstName} icon={<NodeIcon nodeType="sunburst" />} fieldLabels={sunburstFieldLabels} maxImages={16} mask={!apimart}
-    hiddenParameters={apimart ? ['background'] : ['resolution', 'complexity']}
-    previewAspectRatio={apimart ? apimartAspectRatios.some(item => item === ratio) && ratio !== 'auto' ? ratio.replace(':', ' / ') : null : undefined} />;
+  return <ImageGenerationNode {...props} name={sunburstName} icon={<NodeIcon nodeType="sunburst" />} fieldLabels={sunburstFieldLabels} maxImages={16} mask={!apimart || channelModel === 'gpt-image-2.6' && !['gif', 'svg'].includes(outputFormat)}
+    hiddenParameters={sunburstHiddenParameters(provider, channelModel, outputFormat)}
+    previewAspectRatio={apimart ? apimartStandardAspectRatios.some(item => item === ratio) && ratio !== 'auto' ? ratio.replace(':', ' / ') : /^\d+x\d+$/.test(ratio) ? ratio.replace('x', ' / ') : null : undefined} />;
 }
 
 type GenerationProps = NodeProps<Generator> & { name: string; icon: ReactNode; fieldLabels: Record<string, string>; maxImages: number; mask?: boolean; imageLabels?: string[]; addImageLabel?: string; previewAspectRatio?: string | null; hiddenParameters?: string[] };
@@ -65,7 +73,8 @@ export function ImageGenerationNode({ id, type, data, isConnectable, name, icon,
   } catch { /* Incomplete or invalid custom sizes use the result ratio or a square. */ }
   const preview = useImagePreviewHeight(aspectRatio, grid);
   const patch = (value: Partial<Generator['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
-  useEffect(() => internals(id), [id, data.imageInputs, data.exposed, showMask, mask, aspectRatio, grid, internals]);
+  const hiddenParameterKey = hiddenParameters.join(',');
+  useEffect(() => internals(id), [id, data.imageInputs, data.exposed, showMask, mask, hiddenParameterKey, aspectRatio, grid, internals]);
   const ports = [
     { id: 'prompt', label: 'Prompt', kind: 'prompt', top: 89 },
     ...Array.from({ length: data.imageInputs }, (_, i) => ({ id: `image-${i}`, label: imageLabels?.[i] ?? (data.imageInputs === 1 ? 'Image' : `Image ${i + 1}`), kind: 'image', top: 149 + i * 60 })),

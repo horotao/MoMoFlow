@@ -33,6 +33,76 @@ test('APIMart uses only the documented Ext parameters for both versions and ever
   assert.equal(buildApimartRequest({ ...input, complexity: 'high' }).body.complexity, 'high');
 });
 
+const standardInput = { ...input, channelModel: 'gpt-image-2.6' };
+test('APIMart standard routes both variants and sends exact static editing parameters', async () => {
+  for (const variant of ['Sunburst', 'Flare']) {
+    const requests: Record<string, unknown>[] = [];
+    const result = await invoke({ ...standardInput, variant, images: [png], mask: png, size: '1600x1200', background: 'transparent', moderation: 'auto', complexity: 'low' }, async (url, init) => {
+      if (String(url).includes('/uploads/images')) return Response.json({ url: 'https://cdn.example/reference.png' });
+      requests.push(JSON.parse(String(init?.body)));
+      return Response.json({ data: [{ task_id: 'task_standard' }] });
+    });
+    assert.equal(result.status, 200);
+    assert.deepEqual(requests, [{ model: `gpt-image-2.6-${variant.toLowerCase()}`, prompt: input.prompt, size: '1600x1200', quality: 'medium', output_format: 'png', n: 1, nsfw_check: false,
+      background: 'transparent', moderation: 'auto', complexity: 'low', mask_url: png, image_urls: ['https://cdn.example/reference.png'] }]);
+  }
+  const ratio = buildApimartRequest({ ...standardInput, size: '9:21', resolution: '4K' }).body;
+  assert.equal(ratio.size, '9:21'); assert.equal(ratio.resolution, '4k');
+});
+
+test('APIMart standard GIF forwards 2–16 frames and references without SVG or compression fields', () => {
+  for (const frameCount of [2, 9, 16]) {
+    assert.deepEqual(buildApimartRequest({ ...standardInput, outputFormat: 'gif', images: [png], size: '512x512', frameCount, svgModel: 'gpt-6.1-sol', svgEffort: 'max' }).body,
+      { model: 'gpt-image-2.6-sunburst', prompt: input.prompt, size: '512x512', quality: 'medium', output_format: 'gif', n: 1, nsfw_check: false, background: 'auto', moderation: 'low', frame_count: frameCount });
+  }
+  assert.equal(buildApimartRequest({ ...standardInput, outputFormat: 'gif' }).body.frame_count, 9);
+});
+
+test('APIMart standard SVG always sends the author model and only its supported effort', () => {
+  for (const svgModel of ['gpt-6-luna', 'gpt-6.1-sol']) for (const svgEffort of ['auto', 'low', 'medium', 'high', 'xhigh', 'max', ...(svgModel === 'gpt-6-luna' ? ['none'] : [])]) {
+    assert.deepEqual(buildApimartRequest({ ...standardInput, outputFormat: 'svg', images: [png], svgModel, svgEffort, frameCount: 16 }).body,
+      { model: 'gpt-image-2.6-sunburst', prompt: input.prompt, size: 'auto', resolution: '1k', quality: 'medium', output_format: 'svg', n: 1, nsfw_check: false, background: 'auto', moderation: 'low',
+        svg: { model: svgModel, ...(svgEffort === 'auto' ? {} : { reasoning: { effort: svgEffort } }) } });
+  }
+  assert.deepEqual(buildApimartRequest({ ...standardInput, outputFormat: 'svg' }).body.svg, { model: 'gpt-6-luna' });
+  assert.equal('svg' in buildApimartRequest({ ...standardInput, svgModel: 'gpt-6.1-sol', svgEffort: 'high' }).body, false);
+});
+
+test('APIMart standard rejects incompatible parameters before any upload or paid task', async () => {
+  for (const patch of [
+    { channelModel: 'unknown' }, { size: '1000x1000' }, { size: '4096x2048' }, { moderation: 'high' },
+    { mask: png }, { images: [png], mask: 'data:image/jpeg;base64,aGVsbG8=' },
+    { outputFormat: 'jpeg', background: 'transparent' }, { outputFormat: 'gif', background: 'transparent' },
+    ...[1, 17, 2.5, '2.5', null].map(frameCount => ({ outputFormat: 'gif', frameCount })),
+    ...['1:1', '1024x1024', '768x768'].map(size => ({ outputFormat: 'gif', frameCount: 16, size })),
+    ...['gif', 'svg'].map(outputFormat => ({ outputFormat, images: [png], mask: png })),
+    { outputFormat: 'svg', svgModel: 'gpt-6.1-sol', svgEffort: 'none' },
+    { outputFormat: 'svg', svgModel: 'gpt-6-luna', svgEffort: 'minimal' },
+    { outputFormat: 'svg', svgModel: 'unknown' },
+  ]) {
+    const result = await invoke({ ...standardInput, ...patch }, async () => assert.fail(`Must not submit ${JSON.stringify(patch)}`));
+    assert.equal(result.status, 400, JSON.stringify(patch));
+  }
+});
+
+test('APIMart SVG polling preserves validated vector bytes and rejects raster or unsafe results', async () => {
+  const xml = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200"><path d="M0 0h10v10z"/></svg>';
+  for (const [mime, output, success] of [
+    ['image/svg+xml; charset=utf-8', xml, true],
+    ['image/svg+xml', '<svg xmlns="http://www.w3.org/2000/svg"><image href="https://evil.example/a.png"/></svg>', false],
+    ['image/png', 'raster', false],
+  ] as const) {
+    const result = await invoke({ taskId: 'task_svg', outputFormat: 'svg' }, async url => String(url).includes('/tasks/')
+      ? Response.json({ data: { status: 'completed', result: { images: [{ url: ['https://cdn.example/result.svg'] }] } } })
+      : new Response(output, { headers: { 'content-type': mime } }), { path: '/api/apimart/task' });
+    assert.equal(result.status, success ? 200 : 502);
+    if (success) {
+      assert.equal(result.body.format, 'svg');
+      assert.equal(result.body.image, `data:image/svg+xml;base64,${Buffer.from(xml).toString('base64')}`);
+    }
+  }
+});
+
 test('unsupported APIMart settings fail before uploads or task creation', async () => {
   const noFetch: typeof fetch = async () => assert.fail('Must not call provider');
   for (const bad of [null, {}, { ...input, size: '1024x1024' }, { ...input, size: '2:1' }, { ...input, resolution: '8K' }, { ...input, complexity: 'max' },
@@ -109,7 +179,7 @@ test('APIMart failures stop immediately, preserve task IDs and redact secrets', 
   }
   const timeout = await invoke({ taskId: 'task_test', outputFormat: 'png' }, async () => new Response('', { status: 504 }), { path: '/api/apimart/task' });
   assert.equal(timeout.body.code, 'MODEL_TIMEOUT'); assert.equal(timeout.body.taskId, 'task_test');
-  for (const body of [{ taskId: '../secret', outputFormat: 'png' }, { taskId: 'task_test', outputFormat: 'svg' }]) assert.equal((await invoke(body, async () => assert.fail('Invalid poll'), { path: '/api/apimart/task' })).status, 400);
+  for (const body of [{ taskId: '../secret', outputFormat: 'png' }, { taskId: 'task_test', outputFormat: 'bmp' }]) assert.equal((await invoke(body, async () => assert.fail('Invalid poll'), { path: '/api/apimart/task' })).status, 400);
 });
 
 test('APIMart rejects untrusted clients and malformed successes without resubmitting', async () => {

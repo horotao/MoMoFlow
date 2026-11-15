@@ -11,7 +11,7 @@ import { isDescriberNode, isImageGeneratorNode, isNodeLocked, isCompositorNode, 
 import { hasVariable } from './textDocument.ts';
 import { fileAssets, orderedAssets } from './fileCollection.ts';
 import { imageOutput } from './sunburstRun.ts';
-import { validateSunburstProvider, validateSunburstImageInputs, defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
+import { sunburstParameterDefaults, validateSunburstProvider, validateSunburstImageInputs, defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
 import { defaultNanoBananaSettings, validateNanoBananaSettings } from './nanoBanana.ts';
 import { resolveTextValue } from './textVariables.ts';
 import { effectiveSunburstSettings, prepareSunburstRun } from './sunburstRun.ts';
@@ -220,9 +220,12 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
     const masked = inputs.some(edge => edge.targetHandle === 'mask');
     const images = inputs.filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''));
     if (node.type === 'sunburst') {
-      const settings = knownSettings(effectiveSunburstSettings(node, graph.nodes, graph.edges), { ...defaultSunburstSettings, provider: 'openai', variant: 'Sunburst', resolution: '1K', complexity: 'auto' });
-      validateSunburstSettings(settings);
-      validateSunburstImageInputs(String(settings.outputFormat), images.length > 0, masked, validateSunburstProvider(settings.provider));
+      const settings = knownSettings(effectiveSunburstSettings(node, graph.nodes, graph.edges), { ...defaultSunburstSettings, ...sunburstParameterDefaults });
+      // A model-produced channel choice is unknown until execution. Use the
+      // broader capabilities here, then validate its real value before submit.
+      if (unknown.has('channelModel') && settings.provider === 'apimart') settings.channelModel = 'gpt-image-2.6';
+      const validated = validateSunburstSettings(settings);
+      validateSunburstImageInputs(String(settings.outputFormat), images.length > 0, masked, validateSunburstProvider(settings.provider), validated.channelModel);
       if (masked && !images.length) throw new Error('使用 Mask 时必须连接 Image。');
     } else if (node.type === 'nano-banana') {
       validateNanoBananaSettings(knownSettings(effectiveNanoBananaSettings(node, graph.nodes, graph.edges), defaultNanoBananaSettings));

@@ -43,7 +43,7 @@ export function initializeConnectionParameter(node: AppNode, pending: PendingCon
     return field ? { ...node, data: nanoBananaParameterData(field, target.data[field]) } : node;
   }
   const field = target.data.exposed?.find(item => item === pending.handleId);
-  return field ? { ...node, data: sunburstParameterData(field, sunburstLocalParameter(target.data, field), target.data.provider) } : node;
+  return field ? { ...node, data: sunburstParameterData(field, sunburstLocalParameter(target.data, field), target.data.provider, target.data) } : node;
 }
 
 function directConnectionChoices(pending: PendingConnection, nodes: AppNode[]): ConnectionChoice[] {

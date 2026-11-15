@@ -20,12 +20,12 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
   const provider = validateSunburstProvider(input.provider);
   const apimart = provider === 'apimart';
   const credentialHeaders = apiCredentialHeaders(provider);
-  validateSunburstImageInputs(input.outputFormat, input.images.length > 0, Boolean(input.mask), provider);
+  validateSunburstImageInputs(input.outputFormat, input.images.length > 0, Boolean(input.mask), provider, input.channelModel);
   if (apimart) validateSunburstSettings(input);
   const { maskMode, ...request } = input;
   const blobs: Blob[] = []; let total = 0;
   for (const url of input.images) {
-    const blob = await readImage(url, signal, false, apimart && (input.resolution ?? '1K') === '1K' ? ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] : undefined); total += blob.size;
+    const blob = await readImage(url, signal, false, apimart && (input.channelModel === 'gpt-image-2.6' || (input.resolution ?? '1K') === '1K') ? ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] : undefined); total += blob.size;
     if (apimart && blob.size > 20 * 1024 * 1024) throw new Error('APIMart 单张参考图片不能超过 20 MiB。');
     if (total > 46 * 1024 * 1024) throw new Error('输入图片总大小不能超过 46 MiB。');
     blobs.push(blob);
