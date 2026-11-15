@@ -2,24 +2,26 @@ import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import type { AppNode, SunburstNode } from '../nodes/types';
 import { isNodeLocked, isSunburstNode } from '../nodes/types';
 import { effectiveSunburstSettings } from '../nodes/sunburstRun';
-import { sunburstVariants, validateSunburstVariant, defaultSunburstSettings, imageBackgrounds, imageFormats, imageQualityLabels, sunburstLocalParameter, sunburstName, sunburstParameterData, sunburstProviderLabels, sunburstProviders, sunburstQualities, validateSunburstProvider, validateSunburstSettings, type SunburstParameter, type SunburstSettings as Settings } from '../nodes/sunburst';
+import { apimartAspectRatios, apimartComplexities, sunburstResolutions, sunburstFormats, sunburstProviderSettings, sunburstVariants, validateSunburstVariant, defaultSunburstSettings, imageBackgrounds, imageQualityLabels, sunburstLocalParameter, sunburstName, sunburstParameterData, sunburstProviderLabels, sunburstProviders, sunburstQualities, validateSunburstProvider, validateSunburstSettings, type SunburstParameter, type SunburstSettings as Settings } from '../nodes/sunburst';
 import { DescriberModelSelect } from './DescriberModelSelect';
 import { ParameterField } from './ParameterField';
 import { SunburstSizeSelect } from './SunburstSizeSelect';
 import { NodeSettingsSection } from './NodeSettingsSection';
 import { ParameterExposeButton } from './ParameterExposeButton';
 
-const fieldLabels: Record<SunburstParameter, string> = { provider: '渠道商', variant: '模型版本', quality: '画质', background: '背景', size: '宽高比', outputFormat: '输出格式' };
+const fieldLabels: Record<SunburstParameter, string> = { provider: '渠道商', variant: '模型版本', quality: '画质', background: '背景', size: '宽高比', outputFormat: '输出格式', resolution: '分辨率', complexity: '复杂度' };
 
 export function SunburstSettings({ node }: { node: SunburstNode }) {
   const { getNode, getNodes, getEdges, setNodes, setEdges, updateNodeData } = useReactFlow<AppNode>();
   const nodes = useNodes<AppNode>(); const edges = useEdges();
   const effective = effectiveSunburstSettings(node, nodes, edges);
-  const provider = effective.provider === 'zenmux' ? 'zenmux' : 'openai';
+  const provider = effective.provider === 'apimart' ? 'apimart' : effective.provider === 'zenmux' ? 'zenmux' : 'openai';
+  const apimart = provider === 'apimart';
   const qualities = sunburstQualities(provider);
   const change = (field: keyof Settings, value: string) => {
     if (isNodeLocked(getNode(node.id))) return;
     updateNodeData(node.id, { [field]: value,
+      ...(apimart && field === 'outputFormat' && value === 'gif' ? { size: 'auto' } : {}),
       ...(field === 'background' && value === 'transparent' && node.data.outputFormat === 'jpeg' ? { outputFormat: 'png' } : {}),
       ...(field === 'outputFormat' && value === 'jpeg' && node.data.background === 'transparent' ? { background: 'opaque' } : {}),
     });
@@ -38,10 +40,10 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
           value = validateSunburstVariant(resolved.variant);
         } else value = validateSunburstSettings({ ...defaultSunburstSettings, provider,
           [field]: resolved[field],
-        })[field];
+        })[field] ?? value;
       } catch { /* Invalid input keeps the previous local fallback. */ }
       updateNodeData(node.id, { [field]: value, exposed: exposed.filter(item => item !== field),
-        ...(field === 'provider' && !sunburstQualities(validateSunburstProvider(value)).includes(current.data.quality) ? { quality: 'high' } : {}),
+        ...(field === 'provider' ? sunburstProviderSettings(current.data, validateSunburstProvider(value)) : {}),
       });
       setEdges(all => all.filter(edge => !(edge.target === node.id && edge.targetHandle === field)));
       return;
@@ -58,10 +60,10 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
     const exposed = Boolean(node.data.exposed?.includes(field));
     return <ParameterExposeButton label={label} exposed={exposed} disabled={node.data.locked} onClick={() => expose(field)} />;
   };
-  const selectField = (field: 'quality' | 'background' | 'outputFormat', choices: readonly string[], labels: readonly string[]) => <ParameterField label={fieldLabels[field]} exposeButton={exposeButton(field)}
-    labelHint={field === 'outputFormat' ? 'SVG 仅支持文字生成，下载保留矢量路径。' : undefined}>
+  const selectField = (field: keyof Settings, choices: readonly string[], labels: readonly string[], disabled = false) => <ParameterField label={fieldLabels[field]} exposeButton={exposeButton(field)}
+    labelHint={field === 'outputFormat' ? apimart ? 'GIF 仅支持文字生成，宽高比使用自动。' : 'SVG 仅支持文字生成，下载保留矢量路径。' : undefined}>
     <DescriberModelSelect appearance="settings" fluidHover compact label={fieldLabels[field]} value={String(effective[field] ?? '')}
-      choices={choices} labels={labels} disabled={node.data.locked || node.data.exposed?.includes(field)} onChange={value => change(field, value)} />
+      choices={choices} labels={labels} disabled={disabled || node.data.locked || node.data.exposed?.includes(field)} onChange={value => change(field, value)} />
   </ParameterField>;
   return <NodeSettingsSection title={sunburstName} icon={<img src="/gpt-sidebar/brand.svg" width={20} height={20} alt="" />} className="sunburst-settings" fieldsClassName="sunburst-parameter-list">
       <ParameterField label="渠道商" exposeButton={exposeButton('provider')}>
@@ -70,7 +72,7 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
           disabled={node.data.locked || node.data.exposed?.includes('provider')} onChange={value => {
             if (isNodeLocked(getNode(node.id))) return;
             const next = validateSunburstProvider(value);
-            updateNodeData(node.id, { provider: next, ...(!sunburstQualities(next).includes(node.data.quality) ? { quality: 'high' } : {}) });
+            updateNodeData(node.id, { provider: next, ...sunburstProviderSettings(node.data, next) });
           }} />
       </ParameterField>
       <ParameterField label="模型版本" exposeButton={exposeButton('variant')}>
@@ -81,9 +83,13 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
           }} />
       </ParameterField>
       {selectField('quality', qualities, qualities.map(quality => imageQualityLabels[quality]))}
-      {selectField('background', imageBackgrounds, ['自动', '透明', '不透明'])}
-      <SunburstSizeSelect appearance="settings" value={String(effective.size ?? '')} disabled={node.data.locked || node.data.exposed?.includes('size')}
-        onChange={value => change('size', value)} exposeButton={exposeButton('size')} resolutionExposeButton={exposeButton('size', '分辨率')} />
-      {selectField('outputFormat', imageFormats, ['PNG', 'JPEG', 'WebP', 'SVG'])}
+      {!apimart && selectField('background', imageBackgrounds, ['自动', '透明', '不透明'])}
+      {apimart ? <>
+        {selectField('size', apimartAspectRatios, apimartAspectRatios.map(value => value === 'auto' ? '自动' : value), effective.outputFormat === 'gif')}
+        {selectField('resolution', sunburstResolutions, sunburstResolutions)}
+        {selectField('complexity', apimartComplexities, ['自动', '低', '中', '高'])}
+      </> : <SunburstSizeSelect appearance="settings" value={String(effective.size ?? '')} disabled={node.data.locked || node.data.exposed?.includes('size')}
+        onChange={value => change('size', value)} exposeButton={exposeButton('size')} resolutionExposeButton={exposeButton('size', '分辨率')} />}
+      {selectField('outputFormat', sunburstFormats(provider), sunburstFormats(provider).map(value => value === 'webp' ? 'WebP' : value.toUpperCase()))}
   </NodeSettingsSection>;
 }

@@ -2,6 +2,7 @@ import test, { type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { requestSunburst } from './sunburstClient.ts';
 import { defaultSunburstSettings } from './sunburst.ts';
+import { ModelRequestCancelled } from './modelRequestError.ts';
 
 test('client preserves provider details and request ID in the task error without retrying', async (context) => {
   const error = 'ZenMux 请求失败（500），不会自动重试。\n错误类型：provider_api_error\n服务商说明：Image editing failed\nRequest ID：mock-edit-123';
@@ -137,4 +138,23 @@ test('SVG client keeps UTF-8 XML as an SVG blob without decoding to a bitmap', a
     const blob = await (await nativeFetch(asset.url)).blob();
     assert.equal(blob.type, 'image/svg+xml'); assert.equal(await blob.text(), xml);
   } finally { URL.revokeObjectURL(asset.url); }
+});
+
+test('APIMart remote cancellation stops polling and keeps the task ID without another generation', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const paths: string[] = [];
+  t.mock.method(globalThis, 'fetch', async (url: string, init?: RequestInit) => {
+    paths.push(url);
+    if (url === '/api/apimart/images') return Response.json({ taskId: 'task_remote_cancelled' });
+    assert.equal(url, '/api/apimart/task');
+    assert.deepEqual(JSON.parse(String(init?.body)), { taskId: 'task_remote_cancelled', outputFormat: 'png' });
+    return Response.json({ status: 'cancelled', taskId: 'task_remote_cancelled' });
+  });
+  const pending = requestSunburst({ ...defaultSunburstSettings, provider: 'apimart', prompt: 'A circle', images: [] }, new AbortController().signal);
+  for (let index = 0; index < 80; index++) await Promise.resolve();
+  assert.deepEqual(paths, ['/api/apimart/images']);
+  t.mock.timers.tick(4000);
+  await assert.rejects(pending, error => error instanceof ModelRequestCancelled && /task_remote_cancelled/.test(error.message));
+  t.mock.timers.tick(40000);
+  assert.deepEqual(paths, ['/api/apimart/images', '/api/apimart/task']);
 });

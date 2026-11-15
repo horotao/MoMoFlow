@@ -1,6 +1,7 @@
 export const modelTimeoutCode = 'MODEL_TIMEOUT';
 
 export class ModelRequestTimeout extends Error {}
+export class ModelRequestCancelled extends Error {}
 
 export const isTimeoutStatus = (status?: number) => status === 408 || status === 504;
 

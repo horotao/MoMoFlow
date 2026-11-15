@@ -1,6 +1,7 @@
 export const apiProviders = [
   { id: 'openai', label: 'OpenAI 官方', baseUrl: 'https://api.openai.com/v1' },
   { id: 'zenmux', label: 'ZenMux', baseUrl: 'https://zenmux.ai/api/v1' },
+  { id: 'apimart', label: 'APIMart', baseUrl: 'https://api.apimart.ai/v1' },
   { id: 'deepseek', label: 'DeepSeek', baseUrl: 'https://api.deepseek.com' },
   { id: 'wavespeed', label: 'WaveSpeed', baseUrl: 'https://api.wavespeed.ai/api/v3' },
 ] as const;

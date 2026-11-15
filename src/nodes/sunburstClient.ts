@@ -1,19 +1,32 @@
 import { apiCredentialHeaders } from '../components/apiSettings.ts';
-import { modelRequestError } from './modelRequestError.ts';
+import { ModelRequestCancelled, modelTimeoutCode, modelRequestError } from './modelRequestError.ts';
 import { readImage, dataUrl } from './imageGenerationClient.ts';
 import { assetResources } from './assetResources.ts';
 import type { FileAsset } from './types';
-import { validateSunburstImageInputs, validateSunburstProvider, type SunburstRequest } from './sunburst.ts';
+import { validateSunburstSettings, validateSunburstImageInputs, validateSunburstProvider, type SunburstRequest } from './sunburst.ts';
 import { validateVectorSvg } from './vectorSvg.ts';
 
 
+function waitForApimartPoll(signal: AbortSignal): Promise<void> {
+  signal.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const abort = () => { clearTimeout(timer); reject(signal.reason); };
+    const timer = setTimeout(() => { signal.removeEventListener('abort', abort); resolve(); }, 4000);
+    signal.addEventListener('abort', abort, { once: true });
+  });
+}
+
 export async function requestSunburst(input: SunburstRequest, signal: AbortSignal): Promise<FileAsset> {
-  const credentialHeaders = apiCredentialHeaders(validateSunburstProvider(input.provider));
-  validateSunburstImageInputs(input.outputFormat, input.images.length > 0, Boolean(input.mask));
+  const provider = validateSunburstProvider(input.provider);
+  const apimart = provider === 'apimart';
+  const credentialHeaders = apiCredentialHeaders(provider);
+  validateSunburstImageInputs(input.outputFormat, input.images.length > 0, Boolean(input.mask), provider);
+  if (apimart) validateSunburstSettings(input);
   const { maskMode, ...request } = input;
   const blobs: Blob[] = []; let total = 0;
   for (const url of input.images) {
-    const blob = await readImage(url, signal); total += blob.size;
+    const blob = await readImage(url, signal, false, apimart && (input.resolution ?? '1K') === '1K' ? ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] : undefined); total += blob.size;
+    if (apimart && blob.size > 20 * 1024 * 1024) throw new Error('APIMart 单张参考图片不能超过 20 MiB。');
     if (total > 46 * 1024 * 1024) throw new Error('输入图片总大小不能超过 46 MiB。');
     blobs.push(blob);
   }
@@ -54,13 +67,32 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
     } finally { first.close(); }
   }
   signal.throwIfAborted();
-  const response = await fetch('/api/sunburst', {
+  let response = await fetch(apimart ? '/api/apimart/images' : '/api/sunburst', {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...credentialHeaders }, signal,
     body: JSON.stringify({ ...request, images: await Promise.all(blobs.map(dataUrl)), ...(mask ? { mask: await dataUrl(mask) } : {}) }),
   });
-  const result = await response.json().catch(() => { throw new Error('本地图片 API 不可用，请通过 npm run dev 启动服务。'); });
+  let result = await response.json().catch(() => { throw new Error('本地图片 API 不可用，请通过 npm run dev 启动服务。'); });
+  if (apimart && response.ok) {
+    const taskId: unknown = result.taskId;
+    if (typeof taskId !== 'string' || !/^[a-zA-Z0-9_-]{1,200}$/.test(taskId)) throw new Error('APIMart 未返回有效任务编号，请检查请求记录。');
+    // Keep polling the submitted task even when a status request times out.
+    // Only the initial request can create a billable generation.
+    for (;;) {
+      await waitForApimartPoll(signal);
+      response = await fetch('/api/apimart/task', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...credentialHeaders }, signal,
+        body: JSON.stringify({ taskId, outputFormat: input.outputFormat }),
+      });
+      result = await response.json().catch(() => { throw new Error(`无法读取 APIMart 任务 ${taskId}，请检查请求记录。`); });
+      if (!response.ok && result.code === modelTimeoutCode) continue;
+      if (!response.ok) { result.error = `${result.error || 'APIMart 查询失败。'}\n任务编号：${taskId}`; break; }
+      if (result.status === 'cancelled') throw new ModelRequestCancelled(`APIMart 任务已取消。\n任务编号：${taskId}`);
+      if (typeof result.image === 'string') break;
+      if (!['submitted', 'pending', 'processing'].includes(result.status)) throw new Error(`APIMart 任务状态无效，任务编号：${taskId}`);
+    }
+  }
   if (!response.ok) throw modelRequestError(result.error || '图片生成失败。', response.status, result.code);
-  if (typeof result.image !== 'string' || !/^data:image\/(png|jpeg|webp|svg\+xml);base64,/.test(result.image)) throw new Error('未返回有效图片。');
+  if (typeof result.image !== 'string' || !/^data:image\/(png|jpeg|webp|gif|svg\+xml);base64,/.test(result.image)) throw new Error('未返回有效图片。');
   const blob = await (await fetch(result.image, { signal })).blob();
   const svg = blob.type === 'image/svg+xml';
   if ((input.outputFormat === 'svg') !== svg || (result.format === 'svg') !== svg) throw new Error('返回格式与请求不符，未取得 SVG 矢量结果。');

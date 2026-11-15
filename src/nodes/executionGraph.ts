@@ -11,7 +11,7 @@ import { isDescriberNode, isImageGeneratorNode, isNodeLocked, isCompositorNode, 
 import { hasVariable } from './textDocument.ts';
 import { fileAssets, orderedAssets } from './fileCollection.ts';
 import { imageOutput } from './sunburstRun.ts';
-import { validateSunburstImageInputs, defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
+import { validateSunburstProvider, validateSunburstImageInputs, defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
 import { defaultNanoBananaSettings, validateNanoBananaSettings } from './nanoBanana.ts';
 import { resolveTextValue } from './textVariables.ts';
 import { effectiveSunburstSettings, prepareSunburstRun } from './sunburstRun.ts';
@@ -220,9 +220,9 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
     const masked = inputs.some(edge => edge.targetHandle === 'mask');
     const images = inputs.filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''));
     if (node.type === 'sunburst') {
-      const settings = knownSettings(effectiveSunburstSettings(node, graph.nodes, graph.edges), { ...defaultSunburstSettings, provider: 'openai', variant: 'Sunburst' });
+      const settings = knownSettings(effectiveSunburstSettings(node, graph.nodes, graph.edges), { ...defaultSunburstSettings, provider: 'openai', variant: 'Sunburst', resolution: '1K', complexity: 'auto' });
       validateSunburstSettings(settings);
-      validateSunburstImageInputs(String(settings.outputFormat), images.length > 0, masked);
+      validateSunburstImageInputs(String(settings.outputFormat), images.length > 0, masked, validateSunburstProvider(settings.provider));
       if (masked && !images.length) throw new Error('使用 Mask 时必须连接 Image。');
     } else if (node.type === 'nano-banana') {
       validateNanoBananaSettings(knownSettings(effectiveNanoBananaSettings(node, graph.nodes, graph.edges), defaultNanoBananaSettings));

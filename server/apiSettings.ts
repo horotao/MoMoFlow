@@ -4,7 +4,7 @@ import { apiProviders, validApiKey, validBaseUrl, type ApiProvider } from '../sr
 import { trusted } from './zenmuxShared.ts';
 import { ApiConfigurationError, byokFetch } from './byokFetch.ts';
 
-type ServerKeys = Record<ApiProvider, string>;
+type ServerKeys = Record<Exclude<ApiProvider, 'apimart'>, string> & { apimart?: string };
 
 async function readConnectionResponse(response: Response): Promise<Record<string, unknown>> {
   const reader = response.body?.getReader();
@@ -31,7 +31,7 @@ async function readConnectionResponse(response: Response): Promise<Record<string
 }
 
 export function connectionTestPath(provider: ApiProvider): string {
-  if (provider === 'wavespeed') return '/balance';
+  if (provider === 'wavespeed' || provider === 'apimart') return '/balance';
   // ZenMux's model catalog is public, including with an invalid key. An
   // authenticated read of a deliberately absent generation verifies the key
   // without creating or billing a generation.
@@ -58,6 +58,8 @@ export async function checkApiConnection(provider: ApiProvider, baseUrl: string,
     if (provider === 'wavespeed') {
       const data = body.data as { balance?: unknown } | undefined;
       if (body.code !== 200 || typeof data?.balance !== 'number' || !Number.isFinite(data.balance)) throw new ApiConfigurationError('地址未返回有效余额响应');
+    } else if (provider === 'apimart') {
+      if (body.success !== true || (body.unlimited_quota !== true && (typeof body.remain_balance !== 'number' || !Number.isFinite(body.remain_balance)))) throw new ApiConfigurationError('地址未返回有效令牌余额响应');
     } else if (provider === 'zenmux') {
       // A normal result is also accepted for compatible gateways implementing
       // the read endpoint, provided its authenticated result shape is present.

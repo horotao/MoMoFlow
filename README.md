@@ -92,9 +92,9 @@ React Flow CSS 通过 `src/index.css` 中的 `layer(base)` 在 Tailwind 之后�
 
 ## BYOK API 设置
 
-左侧 Dock 的“更多 → API 设置”按渠道保存 Base URL 与 API Key。GPT Image 使用节点所选的 OpenAI / ZenMux 配置，Nano Banana 使用 ZenMux，图像描述使用 DeepSeek，Ideogram 使用 WaveSpeed。未配置的渠道继续使用 `.env.local` 中原有的 Key；清空当前渠道的 Key 后保存，即可恢复服务端默认地址和 Key。保存的配置在后续模型请求开始时生效，密钥独立于画布与工作流数据保存。
+左侧 Dock 的“更多 → API 设置”按渠道保存 Base URL 与 API Key。GPT Image 使用节点所选的 OpenAI / ZenMux / APIMart 配置，Nano Banana 使用 ZenMux，图像描述使用 DeepSeek，Ideogram 使用 WaveSpeed。未配置的渠道继续使用 `.env.local` 中原有的 Key；清空当前渠道的 Key 后保存，即可恢复服务端默认地址和 Key。保存的配置在后续模型请求开始时生效，密钥独立于画布与工作流数据保存。
 
-“测试连接”检查当前填写的配置，Key 留空时检查该渠道的服务端默认配置。OpenAI / DeepSeek 读取模型列表，WaveSpeed 读取余额，ZenMux 读取一个固定不存在的生成记录以检查认证，避免公开模型目录对无效 Key 返回成功。连接检查不创建生成任务。错误区分认证、地址、限流、网络与超时，取消弹窗或修改输入会中止本次检查。
+“测试连接”检查当前填写的配置，Key 留空时检查该渠道的服务端默认配置。OpenAI / DeepSeek 读取模型列表，WaveSpeed 读取余额，APIMart 读取令牌余额，ZenMux 读取一个固定不存在的生成记录以检查认证，避免公开模型目录对无效 Key 返回成功。连接检查不创建生成任务。错误区分认证、地址、限流、网络与超时，取消弹窗或修改输入会中止本次检查。
 
 BYOK Base URL 支持公开 HTTPS 网关。服务端校验并固定 DNS 解析结果，阻止本机/内网目标与重定向。ZenMux 的 Base URL 使用 OpenAI 兼容格式（默认 `https://zenmux.ai/api/v1`），Nano Banana 自动切换到同一网关路径前缀下的 `vertex-ai/v1` 协议。
 
@@ -112,7 +112,7 @@ Tasks 显示实际排队、运行、成功或失败状态。每次 Run 都可能
 
 此入口用于 `npm run dev` 和 `npm run preview` 本地测试。单独部署 `dist/` 不包含 API 服务；生产部署需要独立后端、身份验证与用量限制。
 
-## GPT Image 2.6 Sunburst（OpenAI / ZenMux）
+## GPT Image 2.6（OpenAI / ZenMux / APIMart）
 
 在已忽略的 `.env.local` 配置所需渠道的密钥：OpenAI 官方使用 `OPENAI_API_KEY`，ZenMux 使用 `ZENMUX_API_KEY`，然后重启 `npm run dev`。默认密钥由本地服务读取，浏览器只请求 `/api/sunburst`。此接口同样支持 `npm run preview`，单独发布 `dist/` 不提供后端。
 
@@ -120,13 +120,17 @@ Tasks 显示实际排队、运行、成功或失败状态。每次 Run 都可能
 
 Mask 必须连接一张带透明区域的 PNG，并与第一张参考图尺寸一致；透明区域表示要编辑的部分。支持 PNG / JPEG / WebP 输入，每张不超过 32 MiB，全部输入合计不超过 46 MiB。浏览器会读取连接的图片后传给本地服务。
 
-选中同一个 GPT Image 2.6 节点后，右侧可选择渠道商 **OpenAI 官方 / ZenMux**，并设置模型版本（Sunburst / Flare）、画质、背景、宽高比、分辨率、输出格式。新节点及未保存渠道的旧节点默认 OpenAI；渠道随节点保存、复制与撤销/重做，每次运行将渠道加入任务快照。服务端只读取所选渠道的密钥，缺少密钥或请求失败不会切换到另一渠道。OpenAI 使用 `https://api.openai.com/v1` 和 `gpt-image-2.6-sunburst` / `gpt-image-2.6-flare`，ZenMux 使用 `https://zenmux.ai/api/v1` 和 `openai/gpt-image-2.6-sunburst` / `openai/gpt-image-2.6-flare`。OpenAI 画质支持自动（auto）、低（low）、中（medium）、高（high）、超高（xhigh）、最高（max）；ZenMux 保留现有 auto / low / medium / high。切到 ZenMux 时，本地 xhigh / max 改为 high，可一并撤销；连接的画质参数保持原值，不支持时在运行前报错。暴露画质或反向创建参数节点时，选项按目标渠道初始化。默认 medium / auto / Auto / png。尺寸依据 [OpenAI 官方图像文档](https://developers.openai.com/api/docs/guides/image-generation#size-and-quality-options)：提供 Auto、14 种常用比例（含 16:9、9:16、4:3、3:4、21:9）与 Custom 宽高。分辨率可选自动、1K、2K、4K 或自定义；选择预设后，切换比例保留分辨率档位。1K 保留旧比例尺寸；2K 长边不超过 2048，4K 长边不超过 3840 且总像素不超过 8,294,400，所有预设严格保持比例与 16 像素对齐。例如 2K 正方形为 2048×2048、2K 16:9 为 2048×1152、4K 16:9 为 3840×2160、4K 9:16 为 2160×3840，4K 正方形受像素上限限制为 2880×2880（不支持 4096×4096）。自动或非预设自定义尺寸切换档位时使用正方形，可再改宽高比。分辨率与画质互相独立：提高画质不会自动增大尺寸。自定义尺寸的宽高必须为 16 的倍数、比例在 1:3–3:1 之间、边长不超过 3840、总像素在 655,360–8,294,400 之间；官方将超过 2560×1440 总像素的尺寸列为实验分辨率。尺寸字符串原样传递给所选渠道，服务商实际接受情况尚需真实生成验证。选择透明背景时自动切换到 PNG；透明背景下选择 JPEG 会将背景改为 opaque。
+选中同一个 GPT Image 2.6 节点后，右侧可选择渠道商 **OpenAI 官方 / ZenMux / APIMart**，并设置模型版本（Sunburst / Flare）、画质、背景、宽高比、分辨率、输出格式。新节点及未保存渠道的旧节点默认 OpenAI；渠道随节点保存、复制与撤销/重做，每次运行将渠道加入任务快照。服务端只读取所选渠道的密钥，缺少密钥或请求失败不会切换到另一渠道。OpenAI 使用 `https://api.openai.com/v1` 和 `gpt-image-2.6-sunburst` / `gpt-image-2.6-flare`，ZenMux 使用 `https://zenmux.ai/api/v1` 和 `openai/gpt-image-2.6-sunburst` / `openai/gpt-image-2.6-flare`。OpenAI 画质支持自动（auto）、低（low）、中（medium）、高（high）、超高（xhigh）、最高（max）；ZenMux 保留现有 auto / low / medium / high。切到 ZenMux 时，本地 xhigh / max 改为 high，可一并撤销；连接的画质参数保持原值，不支持时在运行前报错。暴露画质或反向创建参数节点时，选项按目标渠道初始化。默认 medium / auto / Auto / png。尺寸依据 [OpenAI 官方图像文档](https://developers.openai.com/api/docs/guides/image-generation#size-and-quality-options)：提供 Auto、14 种常用比例（含 16:9、9:16、4:3、3:4、21:9）与 Custom 宽高。分辨率可选自动、1K、2K、4K 或自定义；选择预设后，切换比例保留分辨率档位。1K 保留旧比例尺寸；2K 长边不超过 2048，4K 长边不超过 3840 且总像素不超过 8,294,400，所有预设严格保持比例与 16 像素对齐。例如 2K 正方形为 2048×2048、2K 16:9 为 2048×1152、4K 16:9 为 3840×2160、4K 9:16 为 2160×3840，4K 正方形受像素上限限制为 2880×2880（不支持 4096×4096）。自动或非预设自定义尺寸切换档位时使用正方形，可再改宽高比。分辨率与画质互相独立：提高画质不会自动增大尺寸。自定义尺寸的宽高必须为 16 的倍数、比例在 1:3–3:1 之间、边长不超过 3840、总像素在 655,360–8,294,400 之间；官方将超过 2560×1440 总像素的尺寸列为实验分辨率。尺寸字符串原样传递给所选渠道，服务商实际接受情况尚需真实生成验证。选择透明背景时自动切换到 PNG；透明背景下选择 JPEG 会将背景改为 opaque。
 
 参数行悬停后点击 Set as input，会创建与 Model Name 共用样式的紧凑下拉参数节点，保留当前值并自动连线。所有下拉参数节点选中后统一显示 Options 单选列表，可编辑选项并 Add another item；宽高比与分辨率统一保存为 `size` 的 `宽x高`，不会向 API 发送单独的 `resolution` 参数。暴露尺寸时，宽高比与分辨率控件同时禁用；参数节点包含各档尺寸预设，生成节点本身仍支持 Custom 宽高输入。旧的文本参数连接继续可用。
 
 Run Model 和 Run selected 使用共享 Tasks 队列及 Runs 次数。每次运行保存输入快照，同一节点的多次运行依次提交，重复点击不会重复提交运行中的节点。结果追加到节点，支持切换、下载、全屏查看和下游连接，也会出现在 Assets。锁定节点不能修改参数或运行。
 
 请求不自动重试。取消或五分钟超时会停止等待，但已提交的请求仍可能计费；手动 Retry 会按当前参数和 Runs 重新提交。费用由所选渠道实际用量决定，界面不模拟余额或固定 credits。画布、渠道选择及生成图片通过 IndexedDB 保存并在刷新后恢复。
+
+APIMart：在 API 设置中保存 APIMart 的 Base URL（默认 `https://api.apimart.ai/v1`）与 Key，或在 `.env.local` 配置 `APIMART_API_KEY`。依据 [Ext 生成文档](https://docs.apimart.ai/cn/api-reference/images/gpt-image-2.6-ext/generation)，模型固定为 `gpt-image-2.6-ext`，`version` 传 `sunburst` / `flare`，`n: 1`，`nsfw_check: false`。画质支持六档；尺寸只接受自动与 1:1、3:2、2:3、4:3、3:4、5:4、4:5、16:9、9:16、21:9，分辨率单独传 `1k` / `2k` / `4k`，不传像素宽高。复杂度可选自动（省略参数）、低、中、高。输出提供 PNG / JPEG / WebP / GIF；文档明确警告暂不支持 SVG，因此该渠道不提供 SVG。GIF 仅支持文生图且比例须为自动。APIMart 不提供背景和 Mask 控件，也不发送 `background`、`moderation`、`mask`、`markup` 或 `markup_url`；已有 Mask 连线保留禁用端口供断开，并在运行前报错，切换渠道不删除原有连线。
+
+APIMart 参考图编辑：单张不超过 20 MiB，支持 PNG / JPEG / WebP；1K 可额外使用 GIF。浏览器先读取本地素材，服务端按顺序通过 [图片上传接口](https://docs.apimart.ai/cn/api-reference/uploads/images) `POST /uploads/images?retention_days=3` 上传带文件名的 multipart `file`，直接取顶层 `url`，再用 `image_urls` 提交 `/images/generations`（不走 `/images/edits`）。上传采用显式 3 天保存档，费用及额度按账户设置执行。生成提交返回任务号，浏览器每 4 秒通过本地 `/api/apimart/task` 查询已有任务，服务端固定请求 `GET /v1/tasks/{task_id}?language=zh`（[任务查询文档](https://docs.apimart.ai/cn/api-reference/tasks/status)），保留中文失败原因；排队和处理中继续轮询，完成后下载结果，服务商返回 `cancelled` 时任务及依赖分支显示已取消。查询超时继续查同一任务，本地取消会停止查询；生成不会自动重提或切换渠道。完成后服务端下载公网结果（不向结果 CDN 发送密钥），转为本地素材供预览、下载与持久化；失败保留上游原因及任务号。`/tests/apimart-provider.html` 使用隔离存储与受控响应验证渠道差异、外部参数、保存恢复和异步任务，不调用真实服务。
 
 SVG 输出：GPT Image 2.6 的 Sunburst / Flare 可选择 SVG，使用 `/images/generations`，每个任务 `n: 1`。OpenAI 请求同时显式传入 `svg.model: gpt-6.1-terra` 编写矢量内容，顶层 Flare / Sunburst 负责参考图；PNG/JPEG/WebP 和 ZenMux 请求不附加该参数。参考图片或蒙版连接会在运行前报错，避免提交不支持的编辑请求。服务端与客户端使用 `saxes` 解析 XML，拒绝内嵌位图、脚本、动画、外部资源和格式不符的结果；通过校验后以 `image/svg+xml` 保留原始 UTF-8 XML，预览、下载和 IndexedDB 保存不转 PNG。下载得到真正的 `.svg` 文件。SVG 不可直接作为模型的栅格参考图。接口与约束见 [官方 SVG 文档](https://developers.openai.com/api/docs/guides/image-generation#generate-svg-output)。自动验收使用模拟响应；此前以 OpenAI Flare / low / 1024×1024、SVG 编写模型 gpt-6.1-sol 完成一次真实 SVG 验证，返回 HTTP 200 和纯 `<rect>` / `<circle>` 矢量内容（无内嵌位图）；切换到 gpt-6.1-terra 后尚未再次执行真实生图。
 

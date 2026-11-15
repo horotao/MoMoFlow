@@ -5,7 +5,7 @@ import type { Connection, Edge } from '@xyflow/react';
 import type { AppNode } from './types';
 import { isCompositorNode, isNodeLocked, isImageGeneratorNode } from './types.ts';
 import { fileAssets, fileOutputKind } from './fileCollection.ts';
-import { variableIndex } from './textVariables.ts';
+import { resolveTextValue, variableIndex } from './textVariables.ts';
 import { outputKind, resolveOutputSource } from './router.ts';
 
 const singleInputTypes = new Set([
@@ -105,6 +105,12 @@ function canConnectDirect(connection: Connection | Edge, nodes: AppNode[], curre
   }
   if (target?.type === 'model-input') return false;
   if (target && isImageGeneratorNode(target)) {
+    if (target.type === 'sunburst') {
+      const providerEdge = currentEdges.find(edge => edge.target === target.id && edge.targetHandle === 'provider');
+      const provider = providerEdge ? resolveTextValue(providerEdge.source, nodes, currentEdges).trim() : target.data.provider;
+      if (provider === 'apimart' && ['mask', 'background'].includes(connection.targetHandle ?? '')) return false;
+      if (provider !== 'apimart' && ['resolution', 'complexity'].includes(connection.targetHandle ?? '')) return false;
+    }
     if (currentEdges.some(edge => edge.target === target.id && edge.targetHandle === connection.targetHandle)) return false;
     if (connection.targetHandle === 'prompt' || (target.data.exposed ?? []).some(field => field in (target.type === 'sunburst' ? sunburstFieldLabels : target.type === 'ideogram' ? ideogramFieldLabels : nanoBananaFieldLabels) && field === connection.targetHandle)) {
       if (!source || !(paletteText || ['text-iterator', 'text', 'image-describer', 'model-input'].includes(source.type ?? ''))) return false;

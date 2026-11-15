@@ -27,6 +27,7 @@ export function buildSunburstRequest(value: unknown) {
   const settings = validateSunburstSettings(value);
   const input = value as Record<string, unknown>;
   const provider = validateSunburstProvider(input.provider);
+  if (provider === 'apimart') throw new Error('APIMart 请使用独立的异步图片接口。');
   if (typeof input.prompt !== 'string' || !input.prompt.trim() || input.prompt.length > 32000) throw new Error('请连接非空 Prompt，最多 32000 个字符。');
   if (!Array.isArray(input.images) || input.images.length > 16) throw new Error('最多支持 16 张参考图片。');
   validateSunburstImageInputs(settings.outputFormat, input.images.length > 0, Boolean(input.mask));
@@ -70,7 +71,7 @@ export function buildSunburstPayload(request: ReturnType<typeof buildSunburstReq
 }
 
 
-export function sunburstPlugin(apiKeys: Record<SunburstProvider, string>, providerFetch: typeof fetch = fetch): Plugin {
+export function sunburstPlugin(apiKeys: Record<Exclude<SunburstProvider, 'apimart'>, string>, providerFetch: typeof fetch = fetch): Plugin {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (req.url?.split('?')[0] !== '/api/sunburst') return next();
     const send = (status: number, value: object) => {
@@ -80,7 +81,7 @@ export function sunburstPlugin(apiKeys: Record<SunburstProvider, string>, provid
     if (req.method !== 'POST') return send(405, { error: 'Method not allowed' });
     if (!trusted(req)) return send(403, { error: 'Host or Origin not allowed' });
     if (!req.headers['content-type']?.startsWith('application/json')) return send(415, { error: 'Expected application/json' });
-    let provider: SunburstProvider = 'openai';
+    let provider: Exclude<SunburstProvider, 'apimart'> = 'openai';
     let apiKey = '';
     const controller = new AbortController();
     const startedAt = Date.now();

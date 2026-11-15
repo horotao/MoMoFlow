@@ -5,7 +5,7 @@ import { Position, useEdges, useReactFlow, useStore, useUpdateNodeInternals, typ
 import { ArrowRight, Plus } from 'lucide-react';
 import type { AppNode, ImageGeneratorNode as Generator, SunburstNode as Sunburst } from './types';
 import { isNodeLocked } from './types';
-import { sunburstName, sunburstFieldLabels, validateSunburstSize } from './sunburst';
+import { apimartAspectRatios, sunburstName, sunburstFieldLabels, validateSunburstSize } from './sunburst';
 import { nanoBananaAspectRatios } from './nanoBanana';
 import { resolveTextValue } from './textVariables';
 import { ModelRunButton } from '../components/ModelRunButton';
@@ -21,13 +21,26 @@ import { NodeImagePreview } from './shared/NodeImagePreview';
 import './shared/mediaNodeStyle.css';
 
 export function SunburstNode(props: NodeProps<Sunburst>) {
-  return <ImageGenerationNode {...props} name={sunburstName} icon={<NodeIcon nodeType="sunburst" />} fieldLabels={sunburstFieldLabels} maxImages={16} mask />;
+  const provider = useStore(state => {
+    const edge = state.edges.find(item => item.target === props.id && item.targetHandle === 'provider');
+    return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : props.data.provider;
+  });
+  const ratio = useStore(state => {
+    const edge = state.edges.find(item => item.target === props.id && item.targetHandle === 'size');
+    return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : props.data.size;
+  });
+  const apimart = provider === 'apimart';
+  return <ImageGenerationNode {...props} name={sunburstName} icon={<NodeIcon nodeType="sunburst" />} fieldLabels={sunburstFieldLabels} maxImages={16} mask={!apimart}
+    hiddenParameters={apimart ? ['background'] : ['resolution', 'complexity']}
+    previewAspectRatio={apimart ? apimartAspectRatios.some(item => item === ratio) && ratio !== 'auto' ? ratio.replace(':', ' / ') : null : undefined} />;
 }
 
-type GenerationProps = NodeProps<Generator> & { name: string; icon: ReactNode; fieldLabels: Record<string, string>; maxImages: number; mask?: boolean; imageLabels?: string[]; addImageLabel?: string; previewAspectRatio?: string | null };
-export function ImageGenerationNode({ id, type, data, isConnectable, name, icon, fieldLabels, maxImages, mask = false, imageLabels, addImageLabel = '添加图片输入', previewAspectRatio }: GenerationProps) {
+type GenerationProps = NodeProps<Generator> & { name: string; icon: ReactNode; fieldLabels: Record<string, string>; maxImages: number; mask?: boolean; imageLabels?: string[]; addImageLabel?: string; previewAspectRatio?: string | null; hiddenParameters?: string[] };
+export function ImageGenerationNode({ id, type, data, isConnectable, name, icon, fieldLabels, maxImages, mask = false, imageLabels, addImageLabel = '添加图片输入', previewAspectRatio, hiddenParameters = [] }: GenerationProps) {
   const { getNode, updateNodeData } = useReactFlow<AppNode>();
   const edges = useEdges(); const internals = useUpdateNodeInternals();
+  // Keep unsupported connected ports visible so their old edges can be removed.
+  const showMask = mask || (type === 'sunburst' && edges.some(edge => edge.target === id && edge.targetHandle === 'mask'));
   const requestedSize = useStore(state => {
     const field = 'size' in data ? 'size' : 'aspectRatio';
     const edge = state.edges.find(item => item.target === id && item.targetHandle === field);
@@ -52,12 +65,12 @@ export function ImageGenerationNode({ id, type, data, isConnectable, name, icon,
   } catch { /* Incomplete or invalid custom sizes use the result ratio or a square. */ }
   const preview = useImagePreviewHeight(aspectRatio, grid);
   const patch = (value: Partial<Generator['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
-  useEffect(() => internals(id), [id, data.imageInputs, data.exposed, aspectRatio, grid, internals]);
+  useEffect(() => internals(id), [id, data.imageInputs, data.exposed, showMask, mask, aspectRatio, grid, internals]);
   const ports = [
     { id: 'prompt', label: 'Prompt', kind: 'prompt', top: 89 },
     ...Array.from({ length: data.imageInputs }, (_, i) => ({ id: `image-${i}`, label: imageLabels?.[i] ?? (data.imageInputs === 1 ? 'Image' : `Image ${i + 1}`), kind: 'image', top: 149 + i * 60 })),
-    ...(mask ? [{ id: 'mask', label: 'Mask', kind: 'mask', top: 149 + data.imageInputs * 60 }] : []),
-    ...(data.exposed ?? []).map((field, index) => ({ id: field, label: fieldLabels[field], kind: 'parameter', top: (mask ? 209 : 149) + (data.imageInputs + index) * 60 })),
+    ...(showMask ? [{ id: 'mask', label: 'Mask', kind: 'mask', top: 149 + data.imageInputs * 60 }] : []),
+    ...(data.exposed ?? []).filter(field => !hiddenParameters.includes(field) || edges.some(edge => edge.target === id && edge.targetHandle === field)).map((field, index) => ({ id: field, label: fieldLabels[field], kind: 'parameter', top: (showMask ? 209 : 149) + (data.imageInputs + index) * 60 })),
   ];
   // Fit the lowest handle, including its 16px radius, 15px padding and 1px border.
   const minHeight = ports[ports.length - 1].top + 32;
@@ -80,7 +93,9 @@ export function ImageGenerationNode({ id, type, data, isConnectable, name, icon,
     <div className="sunburst-actions">{maxImages > 0 && <button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= maxImages} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />{addImageLabel}</button>}<ModelRunButton appearance="image-node" nodeId={id} className="sunburst-run nodrag nopan" disabled={data.locked} onRun={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('describer-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</ModelRunButton></div>
     <IterationSummary nodeId={id} />
     {ports.map(port => <div className={`media-port-${port.kind}`} key={port.id}>
-      <NodePort label={port.label} id={port.id} type="target" position={Position.Left} top={port.top} isConnectable={isConnectable && !data.locked}>
+      <NodePort label={port.label} id={port.id} type="target" position={Position.Left} top={port.top}
+        title={((port.id === 'mask' && !mask) || hiddenParameters.includes(port.id)) ? `${port.label} · 当前渠道不支持，可断开或切换渠道` : undefined}
+        isConnectable={isConnectable && !data.locked && !(port.id === 'mask' && !mask) && !hiddenParameters.includes(port.id)}>
         <img width={32} height={32} alt="" src={port.kind === 'image' ? '/image-node/port-image.svg' : port.kind === 'mask' ? '/image-node/port-mask.svg' : `/node-style/port-text${edges.some(edge => edge.target === id && edge.targetHandle === port.id) ? '-connected' : ''}.svg`} />
         {(port.kind === 'image' || port.kind === 'mask') && edges.some(edge => edge.target === id && edge.targetHandle === port.id) && <span className="media-port-dot" />}
       </NodePort>

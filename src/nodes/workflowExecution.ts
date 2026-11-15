@@ -3,7 +3,7 @@ import { resolveOutputSource } from './router.ts';
 import type { AppNode, FileAsset } from './types';
 import type { PreviewTask } from './taskQueue';
 import { isActiveTask } from './taskQueue.ts';
-import { ModelRequestTimeout } from './modelRequestError.ts';
+import { ModelRequestCancelled, ModelRequestTimeout } from './modelRequestError.ts';
 import { isDescriberNode, isImageGeneratorNode, isNodeLocked } from './types.ts';
 import { executionInputs, executionSourceAssets, fixedOutput, graphGuard, isModelNode, iterationGraph, nodeProblem, planExecution, prepareModel, requestSignature, reusable, selectedResult, stableSignature, workflowIterations, type ExecutionGraph } from './executionGraph.ts';
 import { sameIteration, type WorkflowIteration } from './workflowIteration.ts';
@@ -154,7 +154,7 @@ export class WorkflowExecution {
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : '工作流执行失败。';
-          const state = signal.aborted ? 'Cancelled' : error instanceof ModelRequestTimeout ? 'TimedOut' : 'Failed';
+          const state = signal.aborted || error instanceof ModelRequestCancelled ? 'Cancelled' : error instanceof ModelRequestTimeout ? 'TimedOut' : 'Failed';
           for (const taskId of root.tasks) this.state(taskId, { state, error: message, notice: undefined });
         } finally {
           root.controller.abort('本次运行已结束。');
@@ -349,7 +349,9 @@ export class WorkflowExecution {
       aborted(signal); aborted(controller.signal);
       releaseSlot = await this.acquireModelSlot(controller.signal);
       aborted(controller.signal);
-      timeout = setTimeout(() => controller.abort(new ModelRequestTimeout('请求超时；不会自动重试。')), isDescriberNode(this.graph.nodes.find(node => node.id === id)!) ? 130000 : 310000);
+      // APIMart returns a task ID and keeps polling it; a total deadline would
+      // discard a still-running task and tempt a duplicate paid submission.
+      if (prepared.imageRequest?.provider !== 'apimart') timeout = setTimeout(() => controller.abort(new ModelRequestTimeout('请求超时；不会自动重试。')), isDescriberNode(this.graph.nodes.find(node => node.id === id)!) ? 130000 : 310000);
       const queued = this.store.getSnapshot().find(task => task.id === taskId)!;
       const task = { ...prepared, id: taskId, label: queued.label, iteration: queued.iteration, notice: undefined, state: 'Running' as const, started: Date.now() };
       // Retain the caller's batch identity and user-visible label.
@@ -383,7 +385,7 @@ export class WorkflowExecution {
     } catch (error) {
       const deadline = controller.signal.reason instanceof ModelRequestTimeout;
       const failure = deadline ? controller.signal.reason : error;
-      const state = deadline ? 'TimedOut' : controller.signal.aborted || signal.aborted ? 'Cancelled' : failure instanceof ModelRequestTimeout ? 'TimedOut' : 'Failed';
+      const state = deadline ? 'TimedOut' : controller.signal.aborted || signal.aborted || failure instanceof ModelRequestCancelled ? 'Cancelled' : failure instanceof ModelRequestTimeout ? 'TimedOut' : 'Failed';
       this.state(taskId, { state, error: failure instanceof Error ? failure.message : '执行失败。', notice: undefined });
       throw failure;
     } finally {

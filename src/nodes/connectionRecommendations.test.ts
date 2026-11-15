@@ -103,12 +103,12 @@ test('parameter initialization leaves ordinary model nodes and other recommendat
 });
 test('reverse quality parameter creation includes the selected provider quality levels', () => {
   const model: AppNode = { id: 'model', type: 'model-input', position: { x: 0, y: 0 }, data: { model: 'deepseek-flash' } };
-  for (const provider of ['openai', 'zenmux'] as const) {
+  for (const provider of ['openai', 'zenmux', 'apimart'] as const) {
     const target: SunburstNode = { ...generator, data: { ...generator.data, provider, exposed: ['quality'] } };
     const created = initializeConnectionParameter(model, pending(target.id, 'target', 'quality'), [target]);
     assert.equal(created.type, 'model-input');
     assert.ok('options' in created.data);
-    assert.deepEqual(created.data.options, provider === 'openai' ? ['auto', 'low', 'medium', 'high', 'xhigh', 'max'] : ['auto', 'low', 'medium', 'high']);
+    assert.deepEqual(created.data.options, provider !== 'zenmux' ? ['auto', 'low', 'medium', 'high', 'xhigh', 'max'] : ['auto', 'low', 'medium', 'high']);
   }
 });
 
@@ -129,7 +129,7 @@ test('Compare quick creation appears once in either direction and preserves the 
 
 test('reverse channel and model-version inputs inherit defaults and connect to their exposed ports', () => {
   const target: SunburstNode = { ...generator, data: { ...generator.data, provider: 'openai', variant: 'Flare', exposed: ['provider', 'variant'] } };
-  for (const [field, value, choices] of [['provider', 'openai', ['openai', 'zenmux']], ['variant', 'Flare', ['Sunburst', 'Flare']]] as const) {
+  for (const [field, value, choices] of [['provider', 'openai', ['openai', 'zenmux', 'apimart']], ['variant', 'Flare', ['Sunburst', 'Flare']]] as const) {
     const start = pending(target.id, 'target', field);
     const choice = connectionChoices(start, [target], []).find(item => item.itemId === 'model-input');
     assert.ok(choice);

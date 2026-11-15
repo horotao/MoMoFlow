@@ -6,6 +6,7 @@ import { defaultPainterData, painterRevision } from './painter.ts';
 import { resizeRevision } from './resize.ts';
 import { defaultCompositorDocument } from './compositor.ts';
 import { defaultSunburstSettings } from './sunburst.ts';
+import { ModelRequestCancelled } from './modelRequestError.ts';
 import { defaultNanoBananaSettings } from './nanoBanana.ts';
 import { defaultIdeogramSettings } from './ideogram.ts';
 import { isDescriberNode, isImageGeneratorNode, type AppNode, type FileAsset } from './types.ts';
@@ -1088,4 +1089,45 @@ test('SVG reference input rejects the whole workflow before any upstream model r
   assert.throws(() => h.engine.run(['g'], 1), /SVG.*文字生成/);
   assert.equal(h.requests.length, 0);
   h.engine.dispose();
+});
+
+test('APIMart waits for its existing async task beyond the generic image deadline and still supports cancellation', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const graph: ExecutionGraph = { nodes: [
+    { id: 'prompt', type: 'text', position: { x: 0, y: 0 }, data: { text: 'An orange circle' } },
+    { id: 'g', type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, provider: 'apimart', imageInputs: 1 } },
+  ], edges: [edge('prompt', 'g', 'prompt')] };
+  let requestSignal: AbortSignal | undefined;
+  const h = harness(graph, (_task, signal) => { requestSignal = signal; return new Promise(() => {}); });
+  const running = h.engine.run(['g'], 1);
+  for (let index = 0; index < 80; index++) await Promise.resolve();
+  assert.equal(h.requests.length, 1);
+  t.mock.timers.tick(620000);
+  for (let index = 0; index < 80; index++) await Promise.resolve();
+  assert.equal(requestSignal?.aborted, false);
+  assert.equal(h.store.getSnapshot()[0].state, 'Running');
+  assert.equal(h.requests.length, 1);
+  h.store.update(tasks => tasks.map(task => ({ ...task, state: 'Cancelled' })));
+  await running;
+  assert.equal(requestSignal?.aborted, true);
+  assert.equal(h.store.getSnapshot()[0].state, 'Cancelled');
+  h.engine.dispose();
+});
+
+test('provider-cancelled APIMart tasks and their dependents end as Cancelled and preserve prior outputs', async () => {
+  const previous: FileAsset = { id: 'previous', name: 'previous.png', kind: 'image', url: 'blob:previous' };
+  for (const downstream of [false, true]) {
+    const graph: ExecutionGraph = { nodes: [
+      { id: 'prompt', type: 'text', position: { x: 0, y: 0 }, data: { text: 'A circle' } },
+      { id: 'g', type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, provider: 'apimart', imageInputs: 1, ...(downstream ? {} : { results: [previous] }) } },
+      ...(downstream ? [describer('d')] : []),
+    ], edges: [edge('prompt', 'g', 'prompt'), ...(downstream ? [edge('g', 'd', 'image-0', 'result')] : [])] };
+    const h = harness(graph, async () => { throw new ModelRequestCancelled('APIMart 任务已取消。任务编号：task_cancelled'); });
+    await h.engine.run([downstream ? 'd' : 'g'], 1);
+    assert.equal(h.requests.length, 1);
+    assert.ok(h.store.getSnapshot().every(task => task.state === 'Cancelled'));
+    assert.ok(h.store.getSnapshot().every(task => task.error?.includes('task_cancelled')));
+    if (!downstream) assert.equal(selectedResult(h.node('g'))?.id, 'previous');
+    h.engine.dispose();
+  }
 });

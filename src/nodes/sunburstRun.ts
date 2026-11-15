@@ -228,7 +228,7 @@ export function imageOutput(node: AppNode | undefined, handle?: string | null, n
 }
 
 export function effectiveSunburstSettings(node: SunburstNode, nodes: AppNode[], edges: Edge[]): Record<string, unknown> {
-  const settings = Object.fromEntries(Object.entries({ ...node.data, provider: node.data.provider, variant: node.data.variant ?? 'Sunburst' }).filter(([field]) => ['quality', 'background', 'size', 'outputFormat', 'provider', 'variant'].includes(field)).map(([field, value]) => {
+  const settings = Object.fromEntries(Object.entries({ ...node.data, provider: node.data.provider, variant: node.data.variant ?? 'Sunburst', resolution: node.data.resolution ?? '1K', complexity: node.data.complexity ?? 'auto' }).filter(([field]) => ['quality', 'background', 'size', 'outputFormat', 'provider', 'variant', 'resolution', 'complexity'].includes(field)).map(([field, value]) => {
     const edge = edges.find(item => item.target === node.id && item.targetHandle === field);
     return [field, edge ? resolveTextValue(edge.source, nodes, edges).trim() : value];
   }));
@@ -247,7 +247,7 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
       const variant = validateSunburstVariant(effective.variant);
       const settings = validateSunburstSettings(effective);
       const inputs = edges.filter(edge => edge.target === id);
-      validateSunburstImageInputs(settings.outputFormat, inputs.some(edge => edge.targetHandle?.startsWith('image-')), inputs.some(edge => edge.targetHandle === 'mask'));
+      validateSunburstImageInputs(settings.outputFormat, inputs.some(edge => edge.targetHandle?.startsWith('image-')), inputs.some(edge => edge.targetHandle === 'mask'), provider);
       const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
       const prompt = promptEdge ? resolveTextValue(promptEdge.source, nodes, edges).trim() : '';
       if (!prompt || prompt.length > 32000) throw new Error('请为每个选中节点连接非空 Prompt，最多 32000 个字符。');
