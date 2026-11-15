@@ -75,6 +75,7 @@
 }
 
 .model-queue-list {
+  position: relative;
   display: grid;
   gap: 4px;
   max-height: min(326px, 55vh);
@@ -83,6 +84,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+
+/* The departing row must not introduce a scrollbar as it leaves the window. */
+.model-queue-list:has(> .model-queue-item[aria-hidden='true']) { overflow-y: hidden; }
 
 .model-queue-empty {
   display: grid;
@@ -104,6 +108,7 @@
 }
 
 .model-queue-item { min-width: 0; }
+.model-queue-item[aria-hidden='true'] { pointer-events: none; }
 .model-queue-item .task-error {
   padding: 0 8px 6px;
   color: var(--queue-muted);

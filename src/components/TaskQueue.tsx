@@ -1,5 +1,5 @@
-import { useId, useRef } from 'react';
-import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react';
+import { forwardRef, useContext, useId, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
+import { AnimatePresence, MotionConfigContext, motion, useComposedRefs, useIsPresent } from 'motion/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon, Clock01Icon, ClockAlertIcon, ExclamationMarkIcon, RefreshIcon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { spring } from '../lib/springs';
@@ -28,6 +28,23 @@ const stateLabels: Record<QueueState, string> = {
 };
 
 const outcomeIcons = { done: Tick02Icon, failed: ExclamationMarkIcon, timeout: ClockAlertIcon };
+const rowExit = { ...spring.moderate.exit, ease: [0.23, 1, 0.32, 1] as const };
+const visibleTaskLimit = 3;
+const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
+const getReducedMotion = () => window.matchMedia(reducedMotionQuery).matches;
+const getServerReducedMotion = () => false;
+
+function subscribeReducedMotion(onChange: () => void) {
+  const media = window.matchMedia(reducedMotionQuery);
+  media.addEventListener('change', onChange);
+  return () => media.removeEventListener('change', onChange);
+}
+
+function useQueueReducedMotion() {
+  const preference = useSyncExternalStore(subscribeReducedMotion, getReducedMotion, getServerReducedMotion);
+  const { reducedMotion } = useContext(MotionConfigContext);
+  return preference || reducedMotion === 'always';
+}
 
 const isActive = (task: QueueTask) => task.state === 'running' || task.state === 'queued';
 const asset = (name: string) => `${import.meta.env.BASE_URL}task-queue/${name}.svg`;
@@ -55,10 +72,17 @@ function QueueRunIcon({ progress, state }: { progress: number; state: 'running' 
   </span>;
 }
 
-function QueueRow({ task, onCancel, onRetry, onFocus, onRemove }: {
+const QueueRow = forwardRef<HTMLLIElement, {
   task: QueueTask;
-} & Pick<Props, 'onCancel' | 'onRetry' | 'onFocus' | 'onRemove'>) {
-  const reducedMotion = useReducedMotion();
+  onExitFocus: () => void;
+} & Pick<Props, 'onCancel' | 'onRetry' | 'onFocus' | 'onRemove'>>(function QueueRow({ task, onCancel, onRetry, onFocus, onRemove, onExitFocus }, ref) {
+  const item = useRef<HTMLLIElement>(null);
+  const itemRef = useComposedRefs(ref, item);
+  const isPresent = useIsPresent();
+  const reducedMotion = useQueueReducedMotion();
+  useLayoutEffect(() => {
+    if (!isPresent && item.current?.contains(document.activeElement)) onExitFocus();
+  }, [isPresent, onExitFocus]);
   const { state } = task;
   const running = state === 'running';
   const standalone = state === 'queued' || state === 'cancelled';
@@ -72,7 +96,13 @@ function QueueRow({ task, onCancel, onRetry, onFocus, onRemove }: {
     <span className="model-queue-name">{task.label}</span>
     <span className="model-queue-status">{status}</span>
   </>;
-  return <li className="model-queue-item">
+  return <motion.li ref={itemRef} className="model-queue-item" data-task-id={task.id}
+    {...(!isPresent ? { inert: '', 'aria-hidden': true } : {})}
+    layout={reducedMotion ? false : 'position'}
+    initial={{ opacity: 0, transform: reducedMotion ? 'none' : 'translateY(-12px)' }}
+    animate={{ opacity: 1, transform: 'none' }}
+    exit={{ opacity: 0, transform: reducedMotion ? 'none' : 'translateY(12px)', transition: rowExit }}
+    transition={{ ...spring.moderate, layout: spring.moderate }}>
     <div className="model-queue-row" data-state={state}>
       <QueueProgress progress={task.progress} label={`${task.label}预估进度`} hidden={!running}
         className={running ? 'is-running' : state === 'done' ? 'is-done' : 'is-inactive'} />
@@ -96,23 +126,26 @@ function QueueRow({ task, onCancel, onRetry, onFocus, onRemove }: {
       </button>}
     </div>
     {task.error && <p className="task-error" role="alert">{task.error}</p>}
-  </li>;
-}
+  </motion.li>;
+});
 
-function QueueBody({ id, tasks, ...actions }: Pick<Props, 'tasks' | 'onCancel' | 'onRetry' | 'onFocus' | 'onRemove'> & { id: string }) {
+function QueueBody({ id, tasks, ...actions }: Pick<Props, 'tasks' | 'onCancel' | 'onRetry' | 'onFocus' | 'onRemove'> & { id: string; onExitFocus: () => void }) {
   const isPresent = useIsPresent();
-  const reducedMotion = useReducedMotion();
+  const reducedMotion = useQueueReducedMotion();
   return <motion.div id={id} className="model-queue-body"
     {...(!isPresent ? { inert: '', 'aria-hidden': true } : {})}
     initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
     transition={reducedMotion ? { duration: 0 } : spring.moderate}>
     {tasks.length ? <ul className="model-queue-list" aria-label="任务">
-      {tasks.map(task => <QueueRow key={task.id} task={task} {...actions} />)}
+      <AnimatePresence initial={false} mode="popLayout">
+        {tasks.slice(0, visibleTaskLimit).map(task => <QueueRow key={task.id} task={task} {...actions} />)}
+      </AnimatePresence>
     </ul> : <p className="model-queue-empty">无活动任务</p>}
   </motion.div>;
 }
 
 type Props = {
+  /** All tasks, newest first. Only the first three are displayed. */
   tasks: QueueTask[];
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
@@ -147,7 +180,7 @@ export function TaskQueue({ tasks, expanded, onExpandedChange, canClear, onClear
         title="清除已结束的任务" disabled={!(canClear ?? active.length < tasks.length)} onClick={onClear}>清除</button>}
     </header>
     <AnimatePresence initial={false}>
-      {expanded && <QueueBody key="body" id={bodyId} tasks={tasks} {...actions} />}
+      {expanded && <QueueBody key="body" id={bodyId} tasks={tasks} onExitFocus={() => toggle.current?.focus({ preventScroll: true })} {...actions} />}
     </AnimatePresence>
   </section>;
 }

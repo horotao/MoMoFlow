@@ -9,7 +9,7 @@ import { SunburstNode } from '../src/nodes/SunburstNode';
 import { ImageDescriberNode } from '../src/nodes/ImageDescriberNode';
 import { TextNode } from '../src/nodes/TextNode';
 import { defaultSunburstSettings } from '../src/nodes/sunburst';
-import { isActiveTask } from '../src/nodes/taskQueue';
+import { isActiveTask, type PreviewTask } from '../src/nodes/taskQueue';
 import type { AppNode, FileAsset } from '../src/nodes/types';
 import { isSunburstNode } from '../src/nodes/types';
 import '@xyflow/react/dist/style.css';
@@ -176,6 +176,45 @@ async function run() {
   respond(requests[6]);
   find('.model-queue-clear').click();
   await until(() => store.getSnapshot().length === 0 && Boolean(document.querySelector('.model-queue-empty')), 'Clear did not remove terminal tasks');
+
+  // Seed terminal tasks directly: exercise the real manager's ordering and
+  // replacement without scheduling any model calls or touching saved canvases.
+  const createdAt = Date.now();
+  const queueTask = (index: number, offset: number): PreviewTask => ({
+    id: `queue-window-${index}`, batchId: 'queue-window', nodeId: 'image', model: 'sunburst',
+    createdAt: createdAt + offset, label: `窗口任务 ${index}`, state: 'Done', progress: 100, started: 0,
+  });
+  const visibleIds = () => [...document.querySelectorAll<HTMLElement>('.model-queue-item:not([aria-hidden="true"])')]
+    .map(row => row.dataset.taskId).join(',');
+  store.update(() => [queueTask(1, 10), queueTask(2, 30), queueTask(3, 20), queueTask(4, 30), queueTask(5, 15)]);
+  await until(() => visibleIds() === 'queue-window-4,queue-window-2,queue-window-3', 'Latest three tasks not ordered by creation time');
+  check(store.getSnapshot().length === 5, 'Three-row display retains older tasks in the store');
+  check(visibleIds() === 'queue-window-4,queue-window-2,queue-window-3', 'Creation time and insertion order determine the latest three, including timestamp ties');
+  store.update(all => all.map(task => task.id === 'queue-window-4' ? { ...task, state: 'Failed' } : task));
+  await until(() => Boolean(document.querySelector('[data-task-id="queue-window-4"] [data-state="failed"]')), 'Status did not update');
+  check(visibleIds() === 'queue-window-4,queue-window-2,queue-window-3', 'Task status updates do not reorder the visible window');
+  find<HTMLButtonElement>('[data-task-id="queue-window-3"] [aria-label^="清除 "]').focus();
+  store.update(all => [...all, queueTask(6, 40)]);
+  await until(() => visibleIds() === 'queue-window-6,queue-window-4,queue-window-2', 'New task did not replace the oldest visible task');
+  await until(() => document.activeElement === queueToggle, 'Removed task did not restore keyboard focus');
+  check(document.activeElement === queueToggle, 'Replacing a focused row restores focus to the queue toggle');
+  const exiting = document.querySelector<HTMLElement>('[data-task-id="queue-window-3"]');
+  check(!exiting || (exiting.hasAttribute('inert') && exiting.getAttribute('aria-hidden') === 'true'
+    && getComputedStyle(exiting).pointerEvents === 'none'), 'Exiting rows cannot receive input or appear in the accessible task list');
+  for (let index = 7; index <= 12; index++) {
+    store.update(all => [...all, queueTask(index, index * 10)]);
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  }
+  await until(() => visibleIds() === 'queue-window-12,queue-window-11,queue-window-10'
+    && document.querySelectorAll('.model-queue-item').length === 3, 'Rapid replacements left stale rows');
+  check(visibleIds() === 'queue-window-12,queue-window-11,queue-window-10', 'Rapid replacements settle on the newest three without stale rows');
+  find('[data-task-id="queue-window-12"] [aria-label^="清除 "]').click();
+  await until(() => visibleIds() === 'queue-window-11,queue-window-10,queue-window-9', 'Removing a task did not fill the visible window');
+  check(store.getSnapshot().length === 11, 'Removing a visible task only removes that task and reveals the next newest');
+  find('.model-queue-clear').click();
+  await until(() => store.getSnapshot().length === 0 && Boolean(document.querySelector('.model-queue-empty')), 'Clear did not remove hidden finished tasks');
+  check(store.getSnapshot().length === 0, 'Clear removes both visible and hidden finished tasks');
+
   // Keep a fresh mock run available for visual/mouse/zoom acceptance.
   start();
   await until(() => requests.length === 9, 'Visual demo did not start');

@@ -1,6 +1,6 @@
 import { useLayoutEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { clearFinishedTasks, isActiveTask, taskGroups, type PreviewTask, type TaskState } from '../nodes/taskQueue';
+import { clearFinishedTasks, isActiveTask, type PreviewTask, type TaskState } from '../nodes/taskQueue';
 import { ideogramName } from '../nodes/ideogram';
 import { nanoBananaName } from '../nodes/nanoBanana';
 import { sunburstName } from '../nodes/sunburst';
@@ -34,6 +34,9 @@ export function TaskManager({ sidebarOpen, onFocus, onRetry }: Props) {
   const store = useModelTaskStore();
   const [expanded, setExpanded] = useState(false);
   const reduceMotion = useReducedMotion();
+  // The store appends tasks. Reverse first so equally timed batch items also
+  // show the newest additions first, independently of their execution state.
+  const newestTasks = [...tasks].reverse().sort((a, b) => b.createdAt - a.createdAt);
   useLayoutEffect(() => {
     let previous = new Set<string>();
     const openOnStart = () => {
@@ -49,7 +52,7 @@ export function TaskManager({ sidebarOpen, onFocus, onRetry }: Props) {
     layout={reduceMotion ? false : 'position'} layoutDependency={sidebarOpen}
     transition={{ layout: nodeSettingsSpring }}
     onKeyDown={event => event.stopPropagation()}>
-    <TaskQueue tasks={taskGroups(tasks).flat().map(queueTask)} expanded={expanded} onExpandedChange={setExpanded}
+    <TaskQueue tasks={newestTasks.map(queueTask)} expanded={expanded} onExpandedChange={setExpanded}
       canClear={clearFinishedTasks(tasks).length < tasks.length}
       onClear={() => store.update(clearFinishedTasks)}
       onCancel={id => store.update(all => all.map(task => task.id === id && isActiveTask(task) ? { ...task, state: 'Cancelled', notice: undefined } : task))}
