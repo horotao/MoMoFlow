@@ -4,7 +4,7 @@ import { apimartAspectRatios, apimartSvgModelEfforts, defaultSunburstSettings, s
 import { prepareSunburstRun } from './sunburstRun.ts';
 import { restoreSunburstData } from './sunburstClipboard.ts';
 import { canConnect } from './connectionRules.ts';
-import { preflight, requestSignature } from './executionGraph.ts';
+import { graphGuard, preflight, requestSignature, type ExecutionGraph } from './executionGraph.ts';
 import type { AppNode, SunburstNode, ModelInputNode } from './types';
 
 const generator: SunburstNode = { id: 'g', type: 'sunburst', position: { x: 400, y: 0 }, data: { ...defaultSunburstSettings, provider: 'apimart', variant: 'Flare', size: '16:9', resolution: '4K', complexity: 'high', imageInputs: 1 } };
@@ -12,11 +12,11 @@ const prompt: AppNode = { id: 'p', type: 'text', position: { x: 0, y: 0 }, data:
 const edge = { id: 'prompt', source: 'p', target: 'g', targetHandle: 'prompt' };
 const graph = { nodes: [generator, prompt], edges: [edge] };
 
-test('APIMart freezes resolution, complexity, provider and version in queued requests and signatures', () => {
+test('APIMart freezes resolution, fixed settings, provider and version in queued requests and signatures', () => {
   const result = prepareSunburstRun(graph.nodes, graph.edges, ['g'], 2);
   assert.equal(result.error, undefined);
   assert.equal(result.tasks[0].model, 'gpt-image-2.6-ext');
-  assert.deepEqual(result.tasks[0].imageRequest, { ...defaultSunburstSettings, channelModel: 'gpt-image-2.6-ext', provider: 'apimart', variant: 'Flare', size: '16:9', resolution: '4K', complexity: 'high', prompt: 'a red circle', images: [], mask: undefined });
+  assert.deepEqual(result.tasks[0].imageRequest, { ...defaultSunburstSettings, channelModel: 'gpt-image-2.6-ext', provider: 'apimart', variant: 'Flare', size: '16:9', resolution: '4K', complexity: 'auto', moderation: 'low', prompt: 'a red circle', images: [], mask: undefined });
 });
 
 test('APIMart external parameters, clipboard and provider transitions preserve valid values', () => {
@@ -28,7 +28,7 @@ test('APIMart external parameters, clipboard and provider transitions preserve v
   assert.equal(result.tasks[0].imageRequest?.resolution, '2K');
   const restored = restoreSunburstData(JSON.parse(JSON.stringify(generator.data)));
   assert.equal(restored?.provider, 'apimart'); assert.equal(restored?.variant, 'Flare');
-  assert.equal(restored?.size, '16:9'); assert.equal(restored?.resolution, '4K'); assert.equal(restored?.complexity, 'high');
+  assert.equal(restored?.size, '16:9'); assert.equal(restored?.resolution, '4K'); assert.equal(restored?.complexity, 'auto');
   assert.deepEqual(sunburstParameterData('size', '16:9', 'apimart').options, apimartAspectRatios);
   assert.deepEqual(sunburstFormats('apimart'), ['png', 'jpeg', 'webp', 'gif']);
   assert.deepEqual(sunburstFormats('openai'), ['png', 'jpeg', 'webp', 'svg']);
@@ -48,13 +48,38 @@ test('APIMart run and workflow preflight reject masks and incompatible connected
   assert.match(prepareSunburstRun([bad, prompt], [edge], ['g'], 1).error!, /不支持自定义/);
 });
 
-test('APIMart resolution, complexity and version changes invalidate reusable results', () => {
+test('APIMart resolution and version changes invalidate reusable results', () => {
   const base = prepareSunburstRun(graph.nodes, graph.edges, ['g'], 1).tasks[0];
   const signature = requestSignature(base, graph);
-  for (const patch of [{ resolution: '2K' }, { complexity: 'low' }, { variant: 'Sunburst' }]) {
+  for (const patch of [{ resolution: '2K' }, { variant: 'Sunburst' }]) {
     const nodes = [{ ...generator, data: { ...generator.data, ...patch } } as SunburstNode, prompt];
     const task = prepareSunburstRun(nodes, [edge], ['g'], 1).tasks[0];
     assert.notEqual(requestSignature(task, { nodes, edges: [edge] }), signature);
+  }
+});
+
+test('removed APIMart controls ignore legacy values and do not schedule connected upstream models', () => {
+  for (const channelModel of ['gpt-image-2.6-ext', 'gpt-image-2.6'] as const) {
+    const node: SunburstNode = { ...generator, data: { ...generator.data, channelModel, moderation: 'auto', exposed: ['complexity', 'moderation'] } };
+    // This model has no image input and would fail preflight if still scheduled.
+    const legacy: AppNode = { id: 'legacy', type: 'image-describer', position: { x: 0, y: 0 }, data: { text: 'high', model: 'deepseek-flash', instructions: '', imageInputs: 1 } };
+    const edges = [edge, ...['complexity', 'moderation'].map(field => ({ id: field, source: legacy.id, target: node.id, targetHandle: field }))];
+    const nodes: AppNode[] = [node, prompt, legacy];
+    const connected = { nodes, edges };
+    const dependencies = preflight(connected, ['g'], 1).get('g')!;
+    assert.ok([...dependencies].every(key => !key.startsWith('legacy:')));
+    const prepared = prepareSunburstRun(nodes, edges, ['g'], 1);
+    assert.equal(prepared.error, undefined);
+    assert.equal(prepared.tasks[0].imageRequest?.complexity, 'auto');
+    assert.equal(prepared.tasks[0].imageRequest?.moderation, 'low');
+    for (const targetHandle of ['complexity', 'moderation']) {
+      assert.equal(canConnect({ source: 'p', sourceHandle: null, target: 'g', targetHandle }, nodes, []), false);
+    }
+    const changed: SunburstNode = { ...node, data: { ...node.data, complexity: 'low', moderation: 'low' } };
+    const nextGraph: ExecutionGraph = { nodes: [changed, prompt], edges: [edge] };
+    const next = prepareSunburstRun(nextGraph.nodes, nextGraph.edges, ['g'], 1).tasks[0];
+    assert.equal(requestSignature(next, nextGraph), requestSignature(prepared.tasks[0], connected));
+    assert.equal(graphGuard(nextGraph, 'g', true), graphGuard(connected, 'g', true));
   }
 });
 
@@ -110,7 +135,7 @@ test('APIMart standard settings survive clipboard and GIF sheet limits follow fr
     const restored = restoreSunburstData({ ...data, provider });
     assert.equal(restored?.channelModel, 'gpt-image-2.6');
     assert.equal(restored?.svgModel, 'gpt-6.1-sol'); assert.equal(restored?.svgEffort, 'max');
-    assert.equal(restored?.frameCount, 16); assert.equal(restored?.moderation, 'auto');
+    assert.equal(restored?.frameCount, 16); assert.equal(restored?.moderation, provider === 'apimart' ? 'low' : 'auto');
     assert.equal(restored?.size, '1600x1200');
   }
   for (let count = 2; count <= 16; count++) assert.equal(validateApimartGifSize('512x512', count), '512x512');

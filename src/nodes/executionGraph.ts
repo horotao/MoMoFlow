@@ -11,7 +11,7 @@ import { isDescriberNode, isImageGeneratorNode, isNodeLocked, isCompositorNode, 
 import { hasVariable } from './textDocument.ts';
 import { fileAssets, orderedAssets } from './fileCollection.ts';
 import { imageOutput } from './sunburstRun.ts';
-import { sunburstParameterDefaults, validateSunburstProvider, validateSunburstImageInputs, defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
+import { apimartFixedSettings, sunburstParameterDefaults, validateSunburstProvider, validateSunburstImageInputs, defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
 import { defaultNanoBananaSettings, validateNanoBananaSettings } from './nanoBanana.ts';
 import { resolveTextValue } from './textVariables.ts';
 import { effectiveSunburstSettings, prepareSunburstRun } from './sunburstRun.ts';
@@ -50,6 +50,8 @@ export function executionInputs(node: AppNode, handle: string | null | undefined
   if (node.type === 'compare') return edges.filter(edge => edge.targetHandle === (handle === 'output-2' ? 'input-2' : 'input-1'));
   if (isTextNode(node) && node.data.content) return edges.filter(edge => hasVariable(node.data.content!, edge.targetHandle ?? 'variable-1'));
   if (node.type === 'model-input' || node.type === 'image-iterator' || node.type === 'file' || node.type === 'color-palette') return [];
+  // Legacy edges for removed controls must not schedule upstream model calls.
+  if (node.type === 'sunburst') return edges.filter(edge => !Object.keys(apimartFixedSettings).includes(edge.targetHandle ?? ''));
   if (node.type === 'ideogram') {
     const edit = edges.some(edge => edge.targetHandle === 'image-0');
     const fields: readonly string[] = edit ? ideogramEditFields : ideogramGenerationFields;
@@ -108,6 +110,7 @@ export function nodeProblem(node: AppNode, message: string): never {
 function configuration(node: AppNode, graph: ExecutionGraph, handle?: string | null) {
   const data = { ...node.data } as Record<string, unknown>;
   for (const key of ['label', 'exposed', 'imageInputs', 'variableCount', 'displayMode', 'orderBy', 'viewMode', 'generation', 'sourceSignature', 'outputRevision', 'executionSignature', 'result', 'mask', 'alphaMask']) delete data[key];
+  if (node.type === 'sunburst') for (const field of Object.keys(apimartFixedSettings)) delete data[field];
   if (node.type === 'image-iterator') return { locked: data.locked, assets: orderedAssets(node.data).map(assetIdentity) };
   if (node.type === 'file') return { locked: data.locked, assets: fileAssets(node.data).map(assetIdentity) };
   if (isImageGeneratorNode(node)) {

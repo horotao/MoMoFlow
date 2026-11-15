@@ -2,7 +2,7 @@ import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import type { AppNode, SunburstNode } from '../nodes/types';
 import { isNodeLocked, isSunburstNode } from '../nodes/types';
 import { effectiveSunburstSettings } from '../nodes/sunburstRun';
-import { apimartChannelModels, apimartSvgModels, apimartSvgModelEfforts, imageModerations, sunburstChoices, validateSunburstSize, validateApimartChannelModel, apimartComplexities, sunburstFormats, sunburstProviderSettings, sunburstVariants, validateSunburstVariant, defaultSunburstSettings, imageBackgrounds, imageQualityLabels, sunburstLocalParameter, sunburstName, sunburstParameterData, sunburstProviderLabels, sunburstProviders, sunburstQualities, validateSunburstProvider, validateSunburstSettings, type SunburstParameter, type SunburstSettings as Settings } from '../nodes/sunburst';
+import { apimartChannelModels, apimartSvgModels, apimartSvgModelEfforts, sunburstChoices, validateSunburstSize, validateApimartChannelModel, sunburstFormats, sunburstProviderSettings, sunburstVariants, validateSunburstVariant, defaultSunburstSettings, imageBackgrounds, imageQualityLabels, sunburstLocalParameter, sunburstName, sunburstParameterData, sunburstProviderLabels, sunburstProviders, sunburstQualities, validateSunburstProvider, validateSunburstSettings, type SunburstParameter, type SunburstSettings as Settings } from '../nodes/sunburst';
 import { DescriberModelSelect } from './DescriberModelSelect';
 import { ParameterField } from './ParameterField';
 import { SunburstSizeSelect } from './SunburstSizeSelect';
@@ -104,8 +104,6 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
         <ApimartSizeSelect value={String(effective.size)} resolution={String(effective.resolution)} standard={standard} gif={effective.outputFormat === 'gif'} frameCount={Number(effective.frameCount)}
           disabled={node.data.locked || node.data.exposed?.includes('size')} resolutionDisabled={node.data.locked || node.data.exposed?.includes('resolution')}
           onChange={value => change('size', value)} onResolutionChange={value => change('resolution', value)} exposeButton={exposeButton('size')} resolutionExposeButton={exposeButton('resolution')} />
-        {selectField('complexity', apimartComplexities, ['自动', '低', '中', '高'])}
-        {standard && selectField('moderation', imageModerations, ['低', '自动'])}
       </> : <SunburstSizeSelect appearance="settings" value={String(effective.size ?? '')} disabled={node.data.locked || node.data.exposed?.includes('size')}
         onChange={value => change('size', value)} exposeButton={exposeButton('size')} resolutionExposeButton={exposeButton('size', '分辨率')} />}
       {selectField('outputFormat', sunburstFormats(provider, channelModel), sunburstFormats(provider, channelModel).map(value => value === 'webp' ? 'WebP' : value.toUpperCase()))}

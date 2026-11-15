@@ -85,7 +85,10 @@ async function run() {
   const storage = new WorkflowStorage(db); await storage.load();
   createRoot(document.getElementById('root')!).render(<ReactFlowProvider><Flow storage={storage} saved={workflow} /><Probe /></ReactFlowProvider>);
   await until(() => Boolean(document.querySelector('[aria-label="渠道商"]')), 'Settings did not mount');
-  check(find('[aria-label="渠道商"]').textContent?.includes('OpenAI 官方'), 'Default nodes use OpenAI');
+  check(find('[aria-label="渠道商"]').textContent?.includes('APIMart')
+    && find('[aria-label="渠道模型"]').textContent === 'GPT Image 2.6 EXT'
+    && find('[aria-label="模型版本"]').textContent === 'Sunburst'
+    && find('[aria-label="画质"]').textContent === '中', 'Default nodes use APIMart GPT Image 2.6 EXT, Sunburst and medium quality');
   await chooseProvider('ZenMux');
   await new Promise(resolve => setTimeout(resolve, 800)); // Separate edits across the history coalescing window.
   check((await qualityOptions()).join(',') === '自动,低,中,高', 'ZenMux retains its four quality options');

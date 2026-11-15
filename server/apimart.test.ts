@@ -30,7 +30,7 @@ test('APIMart uses only the documented Ext parameters for both versions and ever
     const request = buildApimartRequest({ ...input, variant, size, resolution, quality, background: 'transparent', moderation: 'low', seed: 5 });
     assert.deepEqual(request.body, { model: 'gpt-image-2.6-ext', version: variant.toLowerCase(), prompt: input.prompt, size, resolution: resolution.toLowerCase(), quality, output_format: 'png', n: 1, nsfw_check: false });
   }
-  assert.equal(buildApimartRequest({ ...input, complexity: 'high' }).body.complexity, 'high');
+  assert.equal(buildApimartRequest({ ...input, complexity: 'high' }).body.complexity, undefined);
 });
 
 const standardInput = { ...input, channelModel: 'gpt-image-2.6' };
@@ -44,7 +44,7 @@ test('APIMart standard routes both variants and sends exact static editing param
     });
     assert.equal(result.status, 200);
     assert.deepEqual(requests, [{ model: `gpt-image-2.6-${variant.toLowerCase()}`, prompt: input.prompt, size: '1600x1200', quality: 'medium', output_format: 'png', n: 1, nsfw_check: false,
-      background: 'transparent', moderation: 'auto', complexity: 'low', mask_url: png, image_urls: ['https://cdn.example/reference.png'] }]);
+      background: 'transparent', moderation: 'low', mask_url: png, image_urls: ['https://cdn.example/reference.png'] }]);
   }
   const ratio = buildApimartRequest({ ...standardInput, size: '9:21', resolution: '4K' }).body;
   assert.equal(ratio.size, '9:21'); assert.equal(ratio.resolution, '4k');
@@ -70,7 +70,7 @@ test('APIMart standard SVG always sends the author model and only its supported 
 
 test('APIMart standard rejects incompatible parameters before any upload or paid task', async () => {
   for (const patch of [
-    { channelModel: 'unknown' }, { size: '1000x1000' }, { size: '4096x2048' }, { moderation: 'high' },
+    { channelModel: 'unknown' }, { size: '1000x1000' }, { size: '4096x2048' },
     { mask: png }, { images: [png], mask: 'data:image/jpeg;base64,aGVsbG8=' },
     { outputFormat: 'jpeg', background: 'transparent' }, { outputFormat: 'gif', background: 'transparent' },
     ...[1, 17, 2.5, '2.5', null].map(frameCount => ({ outputFormat: 'gif', frameCount })),
@@ -105,7 +105,7 @@ test('APIMart SVG polling preserves validated vector bytes and rejects raster or
 
 test('unsupported APIMart settings fail before uploads or task creation', async () => {
   const noFetch: typeof fetch = async () => assert.fail('Must not call provider');
-  for (const bad of [null, {}, { ...input, size: '1024x1024' }, { ...input, size: '2:1' }, { ...input, resolution: '8K' }, { ...input, complexity: 'max' },
+  for (const bad of [null, {}, { ...input, size: '1024x1024' }, { ...input, size: '2:1' }, { ...input, resolution: '8K' },
     { ...input, width: 1024 }, { ...input, markup: png }, { ...input, images: [png], mask: png }, { ...input, outputFormat: 'svg' },
     { ...input, outputFormat: 'gif', size: '1:1' }, { ...input, outputFormat: 'gif', images: [png] },
     { ...input, images: ['data:image/gif;base64,aGVsbG8='], resolution: '2K' }, { ...input, images: Array(17).fill(png) }]) {

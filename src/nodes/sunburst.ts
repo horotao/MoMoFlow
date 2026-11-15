@@ -3,7 +3,7 @@ export const sunburstProviders = ['openai', 'zenmux', 'apimart'] as const;
 export type SunburstProvider = typeof sunburstProviders[number];
 export const sunburstProviderLabels: Record<SunburstProvider, string> = { zenmux: 'ZenMux', openai: 'OpenAI 官方', apimart: 'APIMart' };
 
-// New nodes and older nodes without a saved provider use OpenAI.
+// Older nodes without a saved provider keep using OpenAI.
 export function validateSunburstProvider(value: unknown): SunburstProvider {
   if (value === undefined) return 'openai';
   if (value === 'zenmux' || value === 'openai' || value === 'apimart') return value;
@@ -97,7 +97,8 @@ export type SunburstSettings = {
 };
 export type SunburstParameter = keyof SunburstSettings | 'provider' | 'variant';
 export const sunburstFieldLabels: Record<SunburstParameter, string> = { provider: 'Provider', variant: 'Model Version', quality: 'Quality', background: 'Background', size: 'Aspect Ratio', outputFormat: 'Output Format', resolution: 'Resolution', complexity: 'Complexity', channelModel: 'Channel Model', moderation: 'Moderation', frameCount: 'Frame Count', svgModel: 'SVG Model', svgEffort: 'SVG Effort' };
-export const sunburstParameterDefaults = { provider: 'openai', variant: 'Sunburst', resolution: '1K', complexity: 'auto', channelModel: 'gpt-image-2.6-ext', moderation: 'low', frameCount: 9, svgModel: 'gpt-6-luna', svgEffort: 'auto' } as const;
+export const apimartFixedSettings = { complexity: 'auto', moderation: 'low' } as const;
+export const sunburstParameterDefaults = { provider: 'openai', variant: 'Sunburst', resolution: '1K', ...apimartFixedSettings, channelModel: 'gpt-image-2.6-ext', frameCount: 9, svgModel: 'gpt-6-luna', svgEffort: 'auto' } as const;
 export function sunburstLocalParameter(data: SunburstSettings & { provider?: SunburstProvider; variant?: string }, field: SunburstParameter): string {
   return String(data[field] ?? (field in sunburstParameterDefaults ? sunburstParameterDefaults[field as keyof typeof sunburstParameterDefaults] : 'auto'));
 }
@@ -124,17 +125,14 @@ export function validateSunburstSettings(value: unknown): SunburstSettings {
   if (provider === 'apimart') {
     if (!standard && !apimartAspectRatios.some(v => v === input.size)) throw new Error('APIMart EXT 仅支持预设宽高比，不支持自定义宽高或像素尺寸。');
     const resolution = input.resolution ?? '1K';
-    const complexity = input.complexity ?? 'auto';
     if (!sunburstResolutions.some(v => v === resolution)) throw new Error('APIMart 分辨率仅支持 1K、2K 或 4K。');
-    if (!apimartComplexities.some(v => v === complexity)) throw new Error('不支持的 APIMart 复杂度。');
-    const settings = { quality: input.quality, background: 'auto', size: input.size, outputFormat: input.outputFormat, resolution, complexity, channelModel } as SunburstSettings;
+    // Removed controls cannot be overridden by older saved values or requests.
+    const settings = { quality: input.quality, background: 'auto', size: input.size, outputFormat: input.outputFormat, resolution, ...apimartFixedSettings, channelModel } as SunburstSettings;
     if (!standard) {
       if (input.outputFormat === 'gif' && input.size !== 'auto') throw new Error('GIF 输出的宽高比只能选择自动。');
       return settings;
     }
-    const moderation = input.moderation ?? 'low';
-    if (!imageModerations.some(v => v === moderation)) throw new Error('不支持的内容审核强度。');
-    const extras: Partial<SunburstSettings> = { background: input.background as SunburstSettings['background'], moderation: moderation as SunburstSettings['moderation'] };
+    const extras: Partial<SunburstSettings> = { background: input.background as SunburstSettings['background'] };
     if (input.background === 'transparent' && !['png', 'webp', 'svg'].includes(String(input.outputFormat))) throw new Error('透明背景需要 PNG、WebP 或 SVG 格式。');
     if (input.outputFormat === 'gif') {
       const frameCount = input.frameCount === undefined ? 9 : typeof input.frameCount === 'string' && /^\d+$/.test(input.frameCount) ? Number(input.frameCount) : input.frameCount;
@@ -229,12 +227,12 @@ export function sunburstProviderSettings(data: SunburstSettings, provider: Sunbu
   }
   return { size, ...(!sunburstQualities(provider).includes(data.quality) ? { quality: 'high' } : {}),
     ...(!sunburstFormats(provider, channelModel).includes(data.outputFormat) ? { outputFormat: 'png' } : {}),
-    ...(provider === 'apimart' ? { resolution: preset?.resolution ?? data.resolution ?? '1K' } : {}),
+    ...(provider === 'apimart' ? { resolution: preset?.resolution ?? data.resolution ?? '1K', ...apimartFixedSettings } : {}),
   };
 }
 
 export function sunburstHiddenParameters(provider: unknown, channelModel: unknown, outputFormat: unknown): string[] {
   if (provider !== 'apimart') return ['channelModel', 'resolution', 'complexity', 'moderation', 'frameCount', 'svgModel', 'svgEffort'];
-  if (channelModel !== 'gpt-image-2.6') return ['background', 'moderation', 'frameCount', 'svgModel', 'svgEffort'];
-  return [...(outputFormat === 'gif' ? ['resolution'] : ['frameCount']), ...(outputFormat !== 'svg' ? ['svgModel', 'svgEffort'] : [])];
+  if (channelModel !== 'gpt-image-2.6') return ['background', 'complexity', 'moderation', 'frameCount', 'svgModel', 'svgEffort'];
+  return ['complexity', 'moderation', ...(outputFormat === 'gif' ? ['resolution'] : ['frameCount']), ...(outputFormat !== 'svg' ? ['svgModel', 'svgEffort'] : [])];
 }

@@ -31,7 +31,7 @@ import type { AppNode, FileAsset, SunburstNode } from './types';
 import { isNodeLocked, isSunburstNode, isImageGeneratorNode } from './types.ts';
 import { fileAssets } from './fileCollection.ts';
 import { resolveTextValue } from './textVariables.ts';
-import { sunburstParameterDefaults, sunburstFieldLabels, validateSunburstImageInputs, validateSunburstVariant, sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
+import { apimartFixedSettings, sunburstParameterDefaults, sunburstFieldLabels, validateSunburstImageInputs, validateSunburstVariant, sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
 import type { SunburstRequest } from './sunburst';
 import type { PreviewTask } from './taskQueue';
 
@@ -229,6 +229,7 @@ export function imageOutput(node: AppNode | undefined, handle?: string | null, n
 
 export function effectiveSunburstSettings(node: SunburstNode, nodes: AppNode[], edges: Edge[]): Record<string, unknown> {
   const settings = Object.fromEntries(Object.entries({ ...sunburstParameterDefaults, ...node.data, provider: node.data.provider }).filter(([field]) => field in sunburstFieldLabels).map(([field, value]) => {
+    if (field in apimartFixedSettings) return [field, apimartFixedSettings[field as keyof typeof apimartFixedSettings]];
     const edge = edges.find(item => item.target === node.id && item.targetHandle === field);
     return [field, edge ? resolveTextValue(edge.source, nodes, edges).trim() : value];
   }));

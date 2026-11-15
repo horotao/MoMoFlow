@@ -82,7 +82,7 @@ async function run() {
   const workflow: Workflow = { nodes: [
     { id: 'prompt', type: 'text', position: { x: 70, y: 80 }, data: { text: 'A product on a table' } },
     { id: 'reference', type: 'file', position: { x: 70, y: 500 }, data: { assets: [{ id: 'ref', name: 'ref.png', kind: 'image', url: png, width: 160, height: 90 }] } },
-    { ...node, id: 'image', selected: true, data: { ...node.data, size: '3840x2160', quality: 'max' } } as SunburstNode,
+    { ...node, id: 'image', selected: true, data: { ...node.data, provider: 'openai', size: '3840x2160', quality: 'max' } } as SunburstNode,
   ], edges: [{ id: 'prompt-image', source: 'prompt', target: 'image', targetHandle: 'prompt' }], colorMode: 'dark', viewport: { x: 0, y: 120, zoom: .7 } };
   createRoot(find('#root')).render(<MotionConfig reducedMotion="user"><ModelTasksProvider><ReactFlowProvider><Flow storage={storage} saved={workflow} /><Probe /></ReactFlowProvider></ModelTasksProvider></MotionConfig>);
   await until(() => Boolean(document.querySelector('[aria-label="渠道商"]')), 'Settings did not mount');
@@ -95,7 +95,8 @@ async function run() {
   check((await options('分辨率')).join(',') === '1K,2K,4K', 'Resolution has exactly 1K, 2K, 4K');
   check((await options('画质')).length === 6, 'APIMart retains all six qualities');
   check((await options('输出格式')).join(',') === 'PNG,JPEG,WebP,GIF', 'APIMart offers raster formats and GIF, with SVG excluded');
-  await choose('模型版本', 'Flare'); await choose('分辨率', '2K'); await choose('复杂度', '高');
+  check(!document.querySelector('[aria-label="复杂度"]') && !document.querySelector('[aria-label="内容审核"]'), 'EXT hides fixed complexity and moderation controls');
+  await choose('模型版本', 'Flare'); await choose('分辨率', '2K');
   find('[aria-label="将分辨率设为输入"]').click(); await settle();
   check(find<HTMLButtonElement>('[aria-label="分辨率"]').disabled, 'Exposed resolution disables the local selector');
   const resolutionSource = api.getEdges().find(edge => edge.target === 'image' && edge.targetHandle === 'resolution')!.source;
@@ -108,7 +109,7 @@ async function run() {
   find('.sunburst-run').click();
   await until(() => Boolean(read().data.results?.length), 'Async generation did not finish');
   check(requests.length === 1 && polls === 2, 'A timed out status query polls the existing task without another generation');
-  check(requests[0].provider === 'apimart' && requests[0].variant === 'Flare' && requests[0].resolution === '4K' && requests[0].complexity === 'high', 'Actual run snapshots APIMart version, resolution and complexity');
+  check(requests[0].provider === 'apimart' && requests[0].variant === 'Flare' && requests[0].resolution === '4K' && requests[0].complexity === 'auto' && requests[0].moderation === 'low', 'Actual run snapshots APIMart version, resolution and complexity');
   check(read().data.results![0].width === 160 && read().data.results![0].height === 90, 'Downloaded result keeps actual image dimensions');
   await closeTasks();
   api.addEdges({ id: 'ref-image', source: 'reference', target: 'image', sourceHandle: 'file', targetHandle: 'image-0' }); await settle();
@@ -120,7 +121,7 @@ async function run() {
   await roundtrip.save({ ...workflow, nodes: api.getNodes(), edges: api.getEdges() });
   const reload = new WorkflowStorage(`${db}-roundtrip`); const restored = await reload.load();
   const saved = restored!.nodes.find(item => item.id === 'image') as SunburstNode;
-  check(saved.data.provider === 'apimart' && saved.data.variant === 'Flare' && saved.data.resolution === '4K' && saved.data.complexity === 'high', 'IndexedDB restores APIMart settings');
+  check(saved.data.provider === 'apimart' && saved.data.variant === 'Flare' && saved.data.resolution === '4K' && saved.data.complexity === 'auto' && saved.data.moderation === 'low', 'IndexedDB restores APIMart settings');
   check(saved.data.results?.length === 2 && (await nativeFetch(saved.data.results[1].url)).ok, 'IndexedDB restores generated image bytes');
   reload.dispose(); roundtrip.dispose();
   api.addEdges({ id: 'invalid-mask', source: 'reference', target: 'image', sourceHandle: 'file', targetHandle: 'mask' }); await settle();
@@ -133,7 +134,7 @@ async function run() {
   check(read().data.provider === 'openai' && read().data.size === '3840x2160', 'Redo restores OpenAI provider and dimensions together');
   await choose('渠道商', 'APIMart');
   api.setEdges(edges => edges.filter(edge => edge.id !== 'invalid-mask')); api.updateNodeData('image', { locked: true }); await settle();
-  check(find<HTMLButtonElement>('[aria-label="渠道商"]').disabled && find<HTMLButtonElement>('[aria-label="复杂度"]').disabled, 'Locked APIMart settings cannot be edited');
+  check(find<HTMLButtonElement>('[aria-label="渠道商"]').disabled && find<HTMLButtonElement>('[aria-label="分辨率"]').disabled, 'Locked APIMart settings cannot be edited');
   api.updateNodeData('image', { locked: false }); await settle();
   const controller = new AbortController();
   const cancelled = requestSunburst({ ...read().data, provider: 'apimart', prompt: 'cancel', images: [] }, controller.signal);
@@ -153,13 +154,14 @@ async function run() {
   check((await options('宽高比')).includes('9:21') && (await options('宽高比')).includes('自定义'), 'Standard offers all 15 ratios and custom pixel size');
   await choose('宽高比', '自定义'); await fillNumber('图像宽度', '1600'); await fillNumber('图像高度', '1200');
   check(read().data.size === '1600x1200', 'Custom pixel inputs save 1600x1200');
-  await choose('背景', '透明'); await choose('内容审核', '自动');
+  check(!document.querySelector('[aria-label="复杂度"]') && !document.querySelector('[aria-label="内容审核"]'), 'Standard hides fixed complexity and moderation controls');
+  await choose('背景', '透明');
   canvas.getContext('2d')!.clearRect(0, 0, 80, 90);
   const mask = canvas.toDataURL('image/png');
   api.addNodes({ id: 'mask-file', type: 'file', position: { x: 60, y: 800 }, data: { assets: [{ id: 'mask-asset', name: 'mask.png', kind: 'image', url: mask, width: 160, height: 90 }] } });
   api.addEdges({ id: 'standard-mask', source: 'mask-file', sourceHandle: 'file', target: 'image', targetHandle: 'mask' }); await settle();
   find('.sunburst-run').click(); await until(() => read().data.results?.length === 3, 'Standard masked generation did not finish');
-  check(requests[4].channelModel === 'gpt-image-2.6' && requests[4].size === '1600x1200' && requests[4].background === 'transparent' && requests[4].moderation === 'auto' && String(requests[4].mask).startsWith('data:image/png;'), 'Standard run snapshots channel model, custom size, background, moderation and PNG mask');
+  check(requests[4].channelModel === 'gpt-image-2.6' && requests[4].size === '1600x1200' && requests[4].background === 'transparent' && requests[4].moderation === 'low' && requests[4].complexity === 'auto' && String(requests[4].mask).startsWith('data:image/png;'), 'Standard run snapshots channel model, custom size, background, moderation and PNG mask');
   await closeTasks();
   api.setEdges(edges => edges.filter(edge => edge.id !== 'standard-mask')); await settle();
   await choose('输出格式', 'GIF');
