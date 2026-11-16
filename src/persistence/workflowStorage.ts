@@ -4,6 +4,7 @@ import { isBlendNode } from '../nodes/types.ts';
 import { isCompareNode } from '../nodes/types.ts';
 import { isColorPaletteNode, isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isMatteGrowShrinkNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from '../nodes/types.ts';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources.ts';
+import { migrateSunburstNodes } from '../nodes/sunburstMigration.ts';
 import type { Edge, Viewport } from '@xyflow/react';
 import type { AppNode, FileAsset, FileNode, ImageGeneratorNode } from '../nodes/types';
 
@@ -21,7 +22,7 @@ const documentKey = 'current';
 export function workflowSnapshot(workflow: Workflow): StoredWorkflow {
   return {
     ...workflow, version: 1, colorMode: 'dark',
-    nodes: workflow.nodes.map(node => ({
+    nodes: migrateSunburstNodes(workflow.nodes, workflow.edges).map(node => ({
       ...node, selected: undefined, dragging: undefined, measured: undefined, resizing: undefined,
     })),
     edges: workflow.edges.map(edge => ({ ...edge, selected: undefined })),
@@ -121,7 +122,7 @@ export class WorkflowStorage {
     this.storedKeys = new Set(keys.result as string[]);
     const blobs = new Map(keys.result.map((key, index) => [key, assets.result[index] as Blob]));
     const urls = new Map<string, string>();
-    const nodes = mapAssets(saved.nodes, asset => {
+    const nodes = mapAssets(migrateSunburstNodes(saved.nodes, saved.edges), asset => {
       if (!asset.url.startsWith('blob:')) return asset;
       const key = asset.url;
       let url = urls.get(key);

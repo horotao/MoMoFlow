@@ -5,9 +5,10 @@ import { EventEmitter } from 'node:events';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { buildSunburstPayload, buildSunburstRequest, sunburstPlugin } from './sunburst.ts';
 import { captureMiddleware } from './testMiddleware.ts';
-import { defaultSunburstSettings, sunburstModel, imageQualities } from '../src/nodes/sunburst.ts';
+import { defaultSunburstSettings, imageQualities } from '../src/nodes/sunburst.ts';
 const png = 'data:image/png;base64,aGVsbG8=';
-const input = { ...defaultSunburstSettings, provider: 'zenmux', prompt: 'A green circle', images: [] };
+const sunburstModel = 'gpt-image-2.6-sunburst';
+const input = { ...defaultSunburstSettings, provider: 'openai', prompt: 'A green circle', images: [] };
 
 test('all six official qualities reach generation and edit payloads without rewriting', () => {
   for (const quality of imageQualities) for (const images of [[], [png]]) {
@@ -15,10 +16,6 @@ test('all six official qualities reach generation and edit payloads without rewr
     const payload = buildSunburstPayload(request);
     const actual = payload.body instanceof FormData ? payload.body.get('quality') : JSON.parse(payload.body).quality;
     assert.equal(actual, quality);
-  }
-  for (const quality of ['xhigh', 'max']) {
-    assert.throws(() => buildSunburstRequest({ ...input, quality }), /ZenMux.*画质参数/);
-    assert.throws(() => buildSunburstRequest({ ...input, provider: 'zenmux', quality }), /ZenMux.*画质参数/);
   }
   assert.throws(() => buildSunburstRequest({ ...input, provider: 'openai', quality: 'ultra' }), /参数/);
 });
@@ -55,21 +52,21 @@ test('generation and edit normalization use the exact model, endpoint and images
   assert.equal(edit.body.size, '1536x1024'); assert.equal(edit.body.quality, 'high');
 });
 test('invalid settings and source data never reach the provider', () => {
-  for (const bad of [null, {}, { ...input, prompt: '' }, { ...input, prompt: 'a'.repeat(32001) }, { ...input, quality: 'max' },
+  for (const bad of [null, {}, { ...input, prompt: '' }, { ...input, prompt: 'a'.repeat(32001) }, { ...input, quality: 'ultra' },
     { ...input, background: 'transparent', outputFormat: 'jpeg' }, { ...input, size: 'unverified' },
     { ...input, images: ['http://localhost/private'] }, { ...input, images: Array(17).fill(png) },
     { ...input, mask: png }, { ...input, images: [png], mask: 'data:image/jpeg;base64,aGVsbG8=' }]) assert.throws(() => buildSunburstRequest(bad));
 });
-async function invoke({ hook = 'configureServer', headers = {}, body = input, key = 'test-only', openaiKey = 'test-openai-only', provider = async () => new Response(JSON.stringify({ data: [{ b64_json: 'aGVsbG8=' }] })), method = 'POST' }: {
-  hook?: 'configureServer' | 'configurePreviewServer'; headers?: Record<string, string | undefined>; body?: unknown; key?: string; openaiKey?: string; provider?: typeof fetch; method?: string;
+async function invoke({ hook = 'configureServer', headers = {}, body = input, openaiKey = 'test-openai-only', provider = async () => new Response(JSON.stringify({ data: [{ b64_json: 'aGVsbG8=' }] })), method = 'POST' }: {
+  hook?: 'configureServer' | 'configurePreviewServer'; headers?: Record<string, string | undefined>; body?: unknown; openaiKey?: string; provider?: typeof fetch; method?: string;
 } = {}) {
-  const handler = captureMiddleware(sunburstPlugin({ zenmux: key, openai: openaiKey }, provider), hook);
+  const handler = captureMiddleware(sunburstPlugin(openaiKey, provider), hook);
   const req = Object.assign(Readable.from([Buffer.from(JSON.stringify(body))]), { url: '/api/sunburst', method, headers: { host: 'localhost:5173', 'content-type': 'application/json', ...headers }, socket: {} });
   let status = 0; let text = '';
   const res = Object.assign(new EventEmitter(), { destroyed: false, writableEnded: false, writeHead(code: number) { status = code; }, end(value: string) { text = value; this.writableEnded = true; } });
   const logs: Record<string, unknown>[] = [];
   const logger = mock.method(console, 'error', (prefix: string, entry: string) => {
-    assert.ok(['[zenmux-sunburst]', '[openai-sunburst]'].includes(prefix));
+    assert.equal(prefix, '[openai-sunburst]');
     logs.push(JSON.parse(entry));
   });
   try { await handler(req as unknown as IncomingMessage, res as unknown as ServerResponse, () => assert.fail('unexpected next')); }
@@ -80,7 +77,7 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
   test(`${hook}: OpenAI generation and masked edits use only the official model, host and key`, async () => {
     for (const variant of ['Sunburst', 'Flare'] as const) for (const images of [[], [png, png]]) {
       let calls = 0;
-      const result = await invoke({ hook, key: '', body: { ...input, provider: 'openai', variant, images, ...(images.length ? { mask: png } : {}) }, provider: async (url, options) => {
+      const result = await invoke({ hook, body: { ...input, provider: 'openai', variant, images, ...(images.length ? { mask: png } : {}) }, provider: async (url, options) => {
         calls++;
         assert.equal(url, `https://api.openai.com/v1/images/${images.length ? 'edits' : 'generations'}`);
         assert.equal(new Headers(options?.headers).get('Authorization'), 'Bearer test-openai-only');
@@ -113,8 +110,7 @@ test('selected provider requires its own key, rejects unknown providers and neve
   const missing = await invoke({ body: { ...input, provider: 'openai' }, openaiKey: '', provider });
   assert.equal(missing.status, 503);
   assert.match(missing.body.error, /OPENAI_API_KEY/);
-  assert.equal((await invoke({ body: { ...input, provider: 'zenmux' }, key: '', provider })).status, 503);
-  for (const invalid of ['other', '', null, {}, 'https://evil.example']) {
+  for (const invalid of ['zenmux', 'other', '', null, {}, 'https://evil.example']) {
     assert.equal((await invoke({ body: { ...input, provider: invalid }, provider })).status, 400);
   }
 });
@@ -139,9 +135,9 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
     for (const images of [[], [png]]) {
       let calls = 0;
       const result = await invoke({ hook, body: { ...input, images }, provider: async (url, options) => {
-        calls++; assert.equal(url, `https://zenmux.ai/api/v1/images/${images.length ? 'edits' : 'generations'}`);
+        calls++; assert.equal(url, `https://api.openai.com/v1/images/${images.length ? 'edits' : 'generations'}`);
         assert.ok(options);
-        assert.equal(new Headers(options.headers).get('Authorization'), 'Bearer test-only');
+        assert.equal(new Headers(options.headers).get('Authorization'), 'Bearer test-openai-only');
         if (images.length) {
           assert.ok(options.body instanceof FormData);
           assert.equal(options.body.get('model'), sunburstModel);
@@ -156,22 +152,22 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
         return new Response(JSON.stringify({ data: [{ b64_json: 'aGVsbG8=' }], output_format: 'webp' }));
       } });
       assert.equal(calls, 1); assert.equal(result.status, 200); assert.equal(result.body.image, 'data:image/webp;base64,aGVsbG8=');
-      assert.equal(JSON.stringify(result).includes('test-only'), false);
+      assert.equal(JSON.stringify(result).includes('test-openai-only'), false);
     }
   });
   test(`${hook}: rejects cross-origin, rebinding, malformed hosts and missing keys before fetch`, async () => {
     const provider = async () => { assert.fail('must not submit'); };
     for (const headers of [{ origin: 'https://evil.example' }, { host: 'evil.example' }, { host: 'localhost.evil.example' }, { host: 'localhost:65536' }, { origin: 'null' }, { origin: 'http://localhost:5174' }]) assert.equal((await invoke({ hook, headers, provider })).status, 403);
-    assert.equal((await invoke({ hook, key: '', provider })).status, 503);
+    assert.equal((await invoke({ hook, openaiKey: '', provider })).status, 503);
     assert.equal((await invoke({ hook, method: 'GET', provider })).status, 405);
     assert.equal((await invoke({ hook, body: {}, provider })).status, 400);
   });
 }
 test('provider errors, malformed successes and transport errors do not retry or expose credentials', async () => {
-  for (const response of [() => new Response('Bearer test-only', { status: 401 }), () => new Response('{"data":[]}'), () => new Response('bad json')]) {
+  for (const response of [() => new Response('Bearer test-openai-only', { status: 401 }), () => new Response('{"data":[]}'), () => new Response('bad json')]) {
     let calls = 0;
     const result = await invoke({ provider: async () => { calls++; return response(); } });
-    assert.equal(result.status, 502); assert.equal(calls, 1); assert.equal(JSON.stringify(result).includes('test-only'), false);
+    assert.equal(result.status, 502); assert.equal(calls, 1); assert.equal(JSON.stringify(result).includes('test-openai-only'), false);
   }
   let calls = 0;
   assert.equal((await invoke({ provider: async () => { calls++; throw new Error('secret upstream'); } })).status, 502);
@@ -201,20 +197,20 @@ test('multipart edits preserve ordered image bytes, MIME types, mask and all sel
 test('failed edits retain provider status, concrete error and header request ID without retrying', async () => {
   let calls = 0;
   const result = await invoke({ body: { ...input, images: [png, png] }, provider: async (url) => {
-    calls++; assert.equal(url, 'https://zenmux.ai/api/v1/images/edits');
+    calls++; assert.equal(url, 'https://api.openai.com/v1/images/edits');
     return Response.json({ error: { type: 'provider_api_error', code: 'invalid_size', message: 'Unsupported size for image editing' }, request_id: 'body-id' }, {
-      status: 500, headers: { 'X-ZenMux-RequestId': 'request-edit-123', 'X-Request-ID': 'secondary-id' },
+      status: 500, headers: { 'X-Request-ID': 'request-edit-123' },
     });
   } });
   assert.equal(calls, 1);
   assert.equal(result.status, 502);
   assert.deepEqual(result.body.diagnostic, { status: 500, requestId: 'request-edit-123', type: 'provider_api_error', code: 'invalid_size', message: 'Unsupported size for image editing' });
-  for (const text of ['provider_api_error', 'invalid_size', 'Unsupported size for image editing', 'Request ID：request-edit-123', 'ZenMux HTTP：500']) assert.ok(result.body.error.includes(text));
+  for (const text of ['provider_api_error', 'invalid_size', 'Unsupported size for image editing', 'Request ID：request-edit-123', 'OpenAI HTTP：500']) assert.ok(result.body.error.includes(text));
 });
 
 test('diagnostics redact keys and image payloads and ignore unrelated response fields', async () => {
   const key = 'configured-private-token';
-  const result = await invoke({ key, provider: async () => Response.json({
+  const result = await invoke({ openaiKey: key, provider: async () => Response.json({
     error: { type: 'provider_error', code: 500, message: `Failed ${key} Bearer another-token sk-ai-secret ${png}` },
     images: [png], authorization: key, debug: 'private-debug-context',
   }, { status: 500 }) });
@@ -252,10 +248,10 @@ test('transport logs preserve nested network codes without logging private error
   const cause = Object.assign(new Error(privateMessage), { code: 'ECONNRESET', headers: { authorization: key } });
   const error = new TypeError(privateMessage, { cause: new AggregateError([cause], privateMessage) });
   let calls = 0;
-  const result = await invoke({ key, provider: async () => { calls++; throw error; } });
+  const result = await invoke({ openaiKey: key, provider: async () => { calls++; throw error; } });
   assert.equal(calls, 1);
   assert.equal(result.status, 502);
-  assert.equal(result.body.error, '无法取得 ZenMux 结果；请检查网络及用量后再手动重试。');
+  assert.equal(result.body.error, '无法取得 OpenAI 结果；请检查网络及用量后再手动重试。');
   assert.equal(result.body.diagnostic, undefined);
   assert.equal(result.logs.length, 1);
   const log = result.logs[0];
@@ -295,23 +291,23 @@ test('logs redact identifier credentials and bound circular error causes', async
   const key = 'configured-private-token';
   const error = Object.assign(new Error('private'), { code: key, cause: undefined as unknown });
   error.cause = error;
-  const transport = await invoke({ key, provider: async () => { throw error; } });
+  const transport = await invoke({ openaiKey: key, provider: async () => { throw error; } });
   assert.equal(transport.logs.length, 1);
   assert.equal(JSON.stringify(transport.logs).includes(key), false);
   assert.ok(JSON.stringify(transport.logs).length < 2000);
-  const http = await invoke({ key, provider: async () => Response.json({ error: {
+  const http = await invoke({ openaiKey: key, provider: async () => Response.json({ error: {
     type: key, code: 'https://private.example/?token=secret', message: key,
   } }, { status: 500, headers: { 'x-request-id': key } }) });
   assert.equal(http.logs.length, 1);
   for (const secret of [key, 'private.example', 'token=secret']) assert.equal(JSON.stringify(http.logs).includes(secret), false);
 });
 
-test('missing provider uses OpenAI and both 2.6 versions use exact IDs on each channel', () => {
-  for (const variant of ['Sunburst', 'Flare'] as const) for (const provider of [undefined, 'openai', 'zenmux']) {
+test('missing provider uses OpenAI and both 2.6 versions use exact OpenAI IDs', () => {
+  for (const variant of ['Sunburst', 'Flare'] as const) for (const provider of [undefined, 'openai']) {
     for (const images of [[], [png]]) {
       const request = buildSunburstRequest({ ...input, provider, variant, images });
       assert.equal(request.provider, provider ?? 'openai');
-      assert.equal(request.body.model, `${provider === 'zenmux' ? 'openai/' : ''}gpt-image-2.6-${variant.toLowerCase()}`);
+      assert.equal(request.body.model, `gpt-image-2.6-${variant.toLowerCase()}`);
       const payload = buildSunburstPayload(request);
       const expected = { model: request.body.model, prompt: input.prompt, n: 1, moderation: 'low',
         quality: input.quality, background: input.background, size: input.size, output_format: input.outputFormat };
@@ -356,15 +352,15 @@ test('SVG rejects image editing before provider submission and rejects disguised
 });
 
 
-test('SVG author is added only to official SVG generations, never raster or retained ZenMux requests', () => {
-  for (const provider of ['openai', 'zenmux']) for (const outputFormat of ['png', 'jpeg', 'webp', 'svg']) {
-    const request = buildSunburstRequest({ ...input, provider, outputFormat });
+test('SVG author is added only to official SVG generations', () => {
+  for (const outputFormat of ['png', 'jpeg', 'webp', 'svg']) {
+    const request = buildSunburstRequest({ ...input, outputFormat });
     const payload = buildSunburstPayload(request);
     assert.equal(typeof payload.body, 'string');
     const wire = JSON.parse(payload.body as string);
-    assert.deepEqual(wire.svg, provider === 'openai' && outputFormat === 'svg' ? { model: 'gpt-6.1-terra' } : undefined);
+    assert.deepEqual(wire.svg, outputFormat === 'svg' ? { model: 'gpt-6.1-terra' } : undefined);
     if (outputFormat !== 'svg') {
-      const edit = buildSunburstPayload(buildSunburstRequest({ ...input, provider, outputFormat, images: [png] }));
+      const edit = buildSunburstPayload(buildSunburstRequest({ ...input, outputFormat, images: [png] }));
       assert.ok(edit.body instanceof FormData);
       assert.equal(edit.body.has('svg'), false);
     }

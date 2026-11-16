@@ -57,6 +57,12 @@ async function run() {
   // Every model request stays in this isolated page; no credentials or paid calls.
   window.fetch = async (url, init) => {
     const path = typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
+    if (path === '/api/apimart/images') {
+      requests.push(JSON.parse(String(init?.body)));
+      return Response.json({ taskId: 'migrated-task' });
+    }
+    if (path === '/api/apimart/task') return Response.json({ status: 'completed', format: 'png', imageUrl: 'https://cdn.example/migrated.png' });
+    if (path === 'https://cdn.example/migrated.png') return originalFetch(image);
     if (path === '/api/sunburst') {
       const request = JSON.parse(String(init?.body)); requests.push(request);
       if (fail) return Response.json({ error: 'OpenAI mock failure · sunburst-provider-qa' }, { status: 502 });
@@ -71,6 +77,8 @@ async function run() {
     return originalFetch(url, init);
   };
   const node = createLibraryNode('sunburst', { x: 650, y: 80 }) as SunburstNode;
+  check(node.data.provider === 'apimart' && node.data.channelModel === 'gpt-image-2.6-ext'
+    && node.data.variant === 'Sunburst' && node.data.quality === 'medium', 'New nodes still use the default APIMart EXT settings');
   const workflow: Workflow = {
     nodes: [
       { id: 'prompt', type: 'text', position: { x: 70, y: 80 }, data: { text: 'A violet circle' } },
@@ -83,20 +91,44 @@ async function run() {
   };
   const db = `momoflow-sunburst-provider-qa-${crypto.randomUUID()}`;
   const storage = new WorkflowStorage(db); await storage.load();
-  createRoot(document.getElementById('root')!).render(<ReactFlowProvider><Flow storage={storage} saved={workflow} /><Probe /></ReactFlowProvider>);
+  // Seed a pre-migration document by bypassing the current snapshot writer.
+  await new Promise<void>((resolve, reject) => {
+    const open = indexedDB.open(db);
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const transaction = open.result.transaction('workflows', 'readwrite');
+      transaction.oncomplete = () => { open.result.close(); resolve(); };
+      transaction.onabort = () => { open.result.close(); reject(transaction.error); };
+      const nodes = workflow.nodes.map(item => item.id === 'image'
+        ? { ...item, data: { ...item.data, provider: 'zenmux', size: '2048x1152' } } : item);
+      transaction.objectStore('workflows').put({ ...workflow, version: 1, nodes }, 'current');
+    };
+  });
+  const migrated = await storage.load();
+  createRoot(document.getElementById('root')!).render(<ReactFlowProvider><Flow storage={storage} saved={migrated} /><Probe /></ReactFlowProvider>);
   await until(() => Boolean(document.querySelector('[aria-label="渠道商"]')), 'Settings did not mount');
   check(find('[aria-label="渠道商"]').textContent?.includes('APIMart')
-    && find('[aria-label="渠道模型"]').textContent === 'GPT Image 2.6 EXT'
+    && find('[aria-label="渠道模型"]').textContent === 'GPT Image 2.6'
     && find('[aria-label="模型版本"]').textContent === 'Sunburst'
-    && find('[aria-label="画质"]').textContent === '中', 'Default nodes use APIMart GPT Image 2.6 EXT, Sunburst and medium quality');
-  await chooseProvider('ZenMux');
+    && find('[aria-label="画质"]').textContent === '中'
+    && read().data.provider === 'apimart' && read().data.size === '2048x1152', 'Opening the saved legacy node migrates it to APIMart and keeps its pixel size and quality');
+  find('[aria-label="将渠道商设为输入"]').click(); await settle();
+  const providerSource = api.getEdges().find(edge => edge.target === 'image' && edge.targetHandle === 'provider')!.source;
+  const providerInput = api.getNode(providerSource);
+  check(providerInput?.type === 'model-input' && 'options' in providerInput.data
+    && providerInput.data.options?.join(',') === 'openai,apimart', 'New provider inputs offer only OpenAI and APIMart');
+  find('[aria-label="渠道商使用本地值"]').click(); await settle();
+  const providerSelect = find('[aria-label="渠道商"]');
+  providerSelect.click(); await settle();
+  const providerMenu = find('[role="listbox"][aria-label="渠道商"]');
+  check([...providerMenu.querySelectorAll('[role="option"]')].map(item => item.textContent).join(',') === 'OpenAI 官方,APIMart', 'The sidebar omits ZenMux even when it was saved on the node');
+  providerMenu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
   await new Promise(resolve => setTimeout(resolve, 800)); // Separate edits across the history coalescing window.
-  check((await qualityOptions()).join(',') === '自动,低,中,高', 'ZenMux retains its four quality options');
   await chooseProvider('OpenAI 官方');
   check(read().data.provider === 'openai' && read().type === 'sunburst', 'Official channel uses the same Sunburst node');
   check(find('[aria-label="渠道商"]').textContent?.includes('OpenAI 官方') && find('.sunburst-settings h2').textContent === 'GPT Image 2.6', 'Provider selector updates within the redesigned GPT sidebar');
   canvasHistoryShortcut('undo'); await settle();
-  check((read().data.provider ?? 'openai') === 'zenmux', 'Undo restores previous channel');
+  check(read().data.provider === 'apimart', 'Undo restores the migrated APIMart channel');
   canvasHistoryShortcut('redo'); await settle();
   check(read().data.provider === 'openai', 'Redo restores OpenAI');
   check((await qualityOptions()).join(',') === '自动,低,中,高,超高,最高', 'OpenAI offers all six official quality options');
@@ -120,6 +152,7 @@ async function run() {
   check(parameter && 'options' in parameter.data && JSON.stringify(parameter.data.options) === JSON.stringify(['auto', 'low', 'medium', 'high', 'xhigh', 'max']), 'Exposed OpenAI quality parameter includes xhigh and max');
   find('[aria-label="画质使用本地值"]').click(); await settle();
   check(read().data.quality === 'max', 'Returning quality to local preserves max');
+  await chooseSetting('分辨率', '自动');
   await chooseSetting('分辨率', '2K');
   check(read().data.size === '2048x2048' && find('[aria-label="宽高比"]').textContent?.includes('1:1'), '2K from auto selects an explicit 2048 square');
   await chooseSetting('宽高比', '16:9');
@@ -136,13 +169,9 @@ async function run() {
   check(requests[0].quality === 'max', 'Maximum quality reaches the generation request');
   check(requests[0].size === '2048x2048', '2K dimensions reach the generation request');
   await closeTasks();
-  await chooseProvider('ZenMux');
-  check(read().data.quality === 'high', 'Switching to ZenMux changes unsupported local quality to high');
-  canvasHistoryShortcut('undo'); await settle();
-  check(read().data.provider === 'openai' && read().data.quality === 'max', 'One undo restores channel and max quality together');
-  canvasHistoryShortcut('redo'); await settle();
-  runButton().click(); await until(() => read().data.results?.length === 2, 'ZenMux mock generation did not finish');
-  check(requests[1].provider === 'zenmux', 'Switching back routes the next request to ZenMux');
+  await chooseProvider('APIMart');
+  runButton().click(); await until(() => read().data.results?.length === 2, 'APIMart mock generation did not finish');
+  check(requests[1].provider === 'apimart' && requests[1].channelModel === 'gpt-image-2.6', 'The migrated channel model submits to APIMart and receives a result');
   await closeTasks(); await chooseProvider('OpenAI 官方');
   await chooseSetting('画质', '超高');
   await chooseSetting('分辨率', '4K');
@@ -191,8 +220,8 @@ async function run() {
     const sizeSource = api.getEdges().find(edge => edge.target === 'image' && edge.targetHandle === 'size')!.source;
     const qualitySource = api.getEdges().find(edge => edge.target === 'image' && edge.targetHandle === 'quality')!.source;
     api.updateNodeData(sizeSource, { model: size }); await settle();
-    await chooseProvider('ZenMux');
-    check(Boolean(prepareSunburstRun(api.getNodes(), api.getEdges(), ['image'], 1).error), `${quality} still blocks ZenMux before detaching ${tier}`);
+    api.updateNodeData(qualitySource, { model: 'ultra' }); await settle();
+    check(Boolean(prepareSunburstRun(api.getNodes(), api.getEdges(), ['image'], 1).error), `An invalid connected quality blocks the run before detaching ${tier}`);
     find('[aria-label="宽高比使用本地值"]').click(); await settle();
     check(read().data.size === size && find('[aria-label="分辨率"]').textContent === tier, `Returning ${tier} to local preserves size despite unsupported ${quality}`);
     const preservedSource = api.getNode(sizeSource);

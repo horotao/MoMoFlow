@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { providerConnection } from './apiCredentials.ts';
 import { apimartInputUrl, apimartResultUrl } from '../src/nodes/apimartResult.ts';
-import { diagnosticText, readErrorDiagnostic, trusted } from './zenmuxShared.ts';
+import { diagnosticText, readErrorDiagnostic, trusted } from './providerDiagnostics.ts';
 import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 import { imageFormats, sunburstModelForProvider, validateSunburstImageInputs, validateSunburstSettings, validateSunburstVariant } from '../src/nodes/sunburst.ts';
 import { buildNanoBananaRequest } from './nanoBanana.ts';

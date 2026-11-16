@@ -5,7 +5,7 @@ import { Position, useEdges, useReactFlow, useStore, useUpdateNodeInternals, typ
 import { ArrowRight, Plus } from 'lucide-react';
 import type { AppNode, ImageGeneratorNode as Generator, SunburstNode as Sunburst } from './types';
 import { isNodeLocked } from './types';
-import { apimartStandardAspectRatios, sunburstHiddenParameters, sunburstName, sunburstFieldLabels, validateSunburstSize } from './sunburst';
+import { apimartStandardAspectRatios, migrateSunburstProvider, sunburstHiddenParameters, sunburstName, sunburstFieldLabels, validateSunburstSize } from './sunburst';
 import { nanoBananaAspectRatios } from './nanoBanana';
 import { resolveTextValue } from './textVariables';
 import { ModelRunButton } from '../components/ModelRunButton';
@@ -21,17 +21,19 @@ import { NodeImagePreview } from './shared/NodeImagePreview';
 import './shared/mediaNodeStyle.css';
 
 export function SunburstNode(props: NodeProps<Sunburst>) {
-  const provider = useStore(state => {
+  const rawProvider = useStore(state => {
     const edge = state.edges.find(item => item.target === props.id && item.targetHandle === 'provider');
     return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : props.data.provider;
   });
+  const migrated = migrateSunburstProvider(rawProvider);
+  const provider = migrated?.provider ?? rawProvider;
   const ratio = useStore(state => {
     const edge = state.edges.find(item => item.target === props.id && item.targetHandle === 'size');
     return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : props.data.size;
   });
   const channelModel = useStore(state => {
     const edge = state.edges.find(item => item.target === props.id && item.targetHandle === 'channelModel');
-    return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : props.data.channelModel;
+    return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges).trim() : migrated?.channelModel ?? props.data.channelModel;
   });
   const outputFormat = useStore(state => {
     const edge = state.edges.find(item => item.target === props.id && item.targetHandle === 'outputFormat');

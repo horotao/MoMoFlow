@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mapAssets, workflowSnapshot, WorkflowStorage, type Workflow } from './workflowStorage.ts';
-import type { FileAsset, FileNode, SunburstNode } from '../nodes/types';
+import type { FileAsset, FileNode, ModelInputNode, SunburstNode } from '../nodes/types';
 
 const asset: FileAsset = { id: 'image', kind: 'image', name: 'local.png', url: 'blob:old' };
 const file: FileNode = { id: 'file', type: 'file', position: { x: 10, y: 20 }, data: { asset, assets: [asset], activeAssetId: asset.id, locked: true } };
@@ -39,6 +39,28 @@ test('asset restoration covers legacy uploads, collections and generated results
   assert.equal(restored.data.activeAssetId, asset.id);
   assert.equal((nodes[1] as SunburstNode).data.activeResultId, asset.id);
   assert.equal(file.data.asset?.url, 'blob:old');
+});
+
+test('workflow snapshots migrate local and routed channel selections without losing assets or links', () => {
+  const legacy = { ...result, id: 'legacy', data: { ...result.data, provider: 'zenmux', locked: true } };
+  const connected: SunburstNode = { ...result, data: { ...result.data, provider: 'openai', exposed: ['provider'] } };
+  const input: ModelInputNode = { id: 'input', type: 'model-input', position: result.position, data: {
+    model: 'zenmux', parameter: 'provider', options: ['openai', 'zenmux', 'apimart'],
+  } };
+  const edges = [
+    { id: 'in', source: 'input', target: 'router', targetHandle: 'input' },
+    { id: 'out', source: 'router', sourceHandle: 'output', target: connected.id, targetHandle: 'provider' },
+  ];
+  const saved = workflowSnapshot({
+    nodes: [legacy as unknown as SunburstNode, connected, input, { id: 'router', type: 'router', position: result.position, data: {} }],
+    edges, viewport: { x: 0, y: 0, zoom: 1 }, colorMode: 'dark',
+  });
+  assert.deepEqual(saved.nodes[0].data, { ...legacy.data, provider: 'apimart', channelModel: 'gpt-image-2.6' });
+  assert.deepEqual(saved.nodes[1].data, { ...connected.data, channelModel: 'gpt-image-2.6' });
+  assert.deepEqual(saved.nodes[2].data, { ...input.data, model: 'apimart', options: ['openai', 'apimart'] });
+  assert.deepEqual(saved.edges, edges.map(edge => ({ ...edge, selected: undefined })));
+  assert.equal(input.data.model, 'zenmux');
+  assert.deepEqual(workflowSnapshot(saved), saved);
 });
 
 test('an intentionally empty workflow is still a versioned snapshot', () => {

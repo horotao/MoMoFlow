@@ -31,7 +31,7 @@ import type { AppNode, FileAsset, SunburstNode } from './types';
 import { isNodeLocked, isSunburstNode, isImageGeneratorNode } from './types.ts';
 import { fileAssets } from './fileCollection.ts';
 import { resolveTextValue } from './textVariables.ts';
-import { apimartFixedSettings, sunburstParameterDefaults, sunburstFieldLabels, validateSunburstImageInputs, validateSunburstVariant, sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
+import { apimartFixedSettings, migrateSunburstProvider, sunburstParameterDefaults, sunburstFieldLabels, validateSunburstImageInputs, validateSunburstVariant, sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
 import type { SunburstRequest } from './sunburst';
 import type { PreviewTask } from './taskQueue';
 
@@ -233,7 +233,10 @@ export function effectiveSunburstSettings(node: SunburstNode, nodes: AppNode[], 
     const edge = edges.find(item => item.target === node.id && item.targetHandle === field);
     return [field, edge ? resolveTextValue(edge.source, nodes, edges).trim() : value];
   }));
-  return settings;
+  const migrated = migrateSunburstProvider(settings.provider);
+  if (!migrated) return settings;
+  const channelModelConnected = edges.some(edge => edge.target === node.id && edge.targetHandle === 'channelModel');
+  return { ...settings, ...migrated, ...(channelModelConnected ? { channelModel: settings.channelModel } : {}) };
 }
 
 export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[], runs: number): { tasks: PreviewTask[]; error?: string } {

@@ -11,10 +11,7 @@ export default defineConfig(({ mode }) => ({
     openai: loadEnv(mode, process.cwd(), 'OPENAI_').OPENAI_API_KEY ?? '',
     apimart: loadEnv(mode, process.cwd(), 'APIMART_').APIMART_API_KEY ?? '',
     deepseek: loadEnv(mode, process.cwd(), 'DEEPSEEK_').DEEPSEEK_API_KEY ?? '',
-  }), react(), tailwindcss(), deepseekPlugin(loadEnv(mode, process.cwd(), 'DEEPSEEK_').DEEPSEEK_API_KEY ?? ''), sunburstPlugin({
-    zenmux: loadEnv(mode, process.cwd(), 'ZENMUX_').ZENMUX_API_KEY ?? '',
-    openai: loadEnv(mode, process.cwd(), 'OPENAI_').OPENAI_API_KEY ?? '',
-  })],
+  }), react(), tailwindcss(), deepseekPlugin(loadEnv(mode, process.cwd(), 'DEEPSEEK_').DEEPSEEK_API_KEY ?? ''), sunburstPlugin(loadEnv(mode, process.cwd(), 'OPENAI_').OPENAI_API_KEY ?? '')],
   worker: { format: 'es' },
   optimizeDeps: { include: ['@huggingface/transformers'] },
   resolve: {

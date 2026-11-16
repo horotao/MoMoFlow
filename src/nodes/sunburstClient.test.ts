@@ -5,7 +5,7 @@ import { defaultSunburstSettings } from './sunburst.ts';
 import { ModelRequestCancelled } from './modelRequestError.ts';
 
 test('client preserves provider details and request ID in the task error without retrying', async (context) => {
-  const error = 'ZenMux 请求失败（500），不会自动重试。\n错误类型：provider_api_error\n服务商说明：Image editing failed\nRequest ID：mock-edit-123';
+  const error = 'OpenAI 请求失败（500），不会自动重试。\n错误类型：provider_api_error\n服务商说明：Image editing failed\nRequest ID：mock-edit-123';
   let calls = 0;
   context.mock.method(globalThis, 'fetch', async (url: string) => {
     calls++;

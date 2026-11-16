@@ -1,10 +1,11 @@
 import { isFileAsset } from './fileCollection.ts';
-import { apimartChannelModels, apimartSvgModels, apimartSvgEfforts, imageModerations, validateSunburstVariant, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
+import { apimartChannelModels, apimartSvgModels, apimartSvgEfforts, imageModerations, migrateSunburstProvider, validateSunburstVariant, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
 import type { SunburstNode } from './types';
 
 export function restoreSunburstData(value: unknown): SunburstNode['data'] | undefined {
   if (!value || typeof value !== 'object') return;
-  const data = value as Record<string, unknown>;
+  const raw = value as Record<string, unknown>;
+  const data: Record<string, unknown> = { ...raw, ...migrateSunburstProvider(raw.provider) };
   if (typeof data.size !== 'string') return;
   // Size inputs save unfinished edits. Restore their text without requiring a
   // runnable size; keep all other existing settings validation unchanged.

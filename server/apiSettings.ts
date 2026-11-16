@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { apiProviders, validApiKey, validBaseUrl, type ApiProvider } from '../src/components/apiSettings.ts';
-import { trusted } from './zenmuxShared.ts';
+import { trusted } from './providerDiagnostics.ts';
 import { ApiConfigurationError, byokFetch } from './byokFetch.ts';
 
 type ServerKeys = Record<ApiProvider, string>;

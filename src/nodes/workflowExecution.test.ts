@@ -36,10 +36,10 @@ function harness(initial = fixture(), request?: ExecutionIO['request'], local?: 
   });
   return { engine, store, requests, discarded, get graph() { return graph; }, edit(change: (graph: ExecutionGraph) => ExecutionGraph) { graph = change(graph); engine.observe(graph); }, node(id: string) { return graph.nodes.find(node => node.id === id)!; } };
 }
-function recordedSunburstGraph(recording: 'legacy' | 'zenmux' | 'openai'): ExecutionGraph {
+function recordedSunburstGraph(recording: 'legacy' | 'apimart' | 'openai'): ExecutionGraph {
   const upstream = generator('upstream');
   assert.equal(upstream.type, 'sunburst');
-  if (recording !== 'legacy') upstream.data = { ...upstream.data, provider: recording };
+  if (recording !== 'legacy') upstream.data = { ...upstream.data, provider: recording, ...(recording === 'apimart' ? { channelModel: 'gpt-image-2.6' } : {}) };
   const graph: ExecutionGraph = {
     nodes: [file('source'), { id: 'prompt', type: 'text', position: { x: 0, y: 0 }, data: { text: 'A circle' } }, upstream, describer('downstream')],
     edges: [edge('prompt', 'upstream', 'prompt'), edge('source', 'upstream', 'image-0', 'file'), edge('upstream', 'downstream', 'image-0', 'result')],
@@ -60,7 +60,7 @@ function recordedSunburstGraph(recording: 'legacy' | 'zenmux' | 'openai'): Execu
 }
 
 test('current model signatures reuse upstream results, including locked nodes', async () => {
-  for (const recording of ['zenmux', 'openai'] as const) for (const locked of [false, true]) {
+  for (const recording of ['apimart', 'openai'] as const) for (const locked of [false, true]) {
     const graph = recordedSunburstGraph(recording);
     graph.nodes = graph.nodes.map(node => node.id === 'upstream' ? { ...node, data: { ...node.data, locked } } as AppNode : node);
     const h = harness(graph);
@@ -73,14 +73,14 @@ test('current model signatures reuse upstream results, including locked nodes', 
 });
 
 test('upstream image results survive model, provider, input and parameter changes', async () => {
-  for (const change of ['model-upgrade', 'variant', 'provider', 'prompt', 'image', '2K', '4K', 'quality', 'output', 'signature', 'locked-size', 'openai-to-zenmux']) {
-    const graph = recordedSunburstGraph(change === 'model-upgrade' ? 'legacy' : change === 'openai-to-zenmux' ? 'openai' : 'zenmux');
+  for (const change of ['model-upgrade', 'variant', 'provider', 'prompt', 'image', '2K', '4K', 'quality', 'output', 'signature', 'locked-size', 'openai-to-apimart']) {
+    const graph = recordedSunburstGraph(change === 'model-upgrade' ? 'legacy' : change === 'openai-to-apimart' ? 'openai' : 'apimart');
     graph.nodes = graph.nodes.map(node => {
       if (change === 'prompt' && node.id === 'prompt') return { ...node, data: { text: 'A different circle' } } as AppNode;
       if (change === 'image' && node.id === 'source') return { ...file('source'), data: { assets: [{ id: 'replacement', kind: 'image', name: 'new.png', url: 'blob:new' }] } } as AppNode;
       if (node.id !== 'upstream' || !isImageGeneratorNode(node)) return node;
       return { ...node, data: { ...node.data,
-        ...(change === 'provider' ? { provider: 'openai' } : change === 'openai-to-zenmux' ? { provider: 'zenmux' } : {}),
+        ...(change === 'provider' ? { provider: 'openai' } : change === 'openai-to-apimart' ? { provider: 'apimart', channelModel: 'gpt-image-2.6' } : {}),
         ...(['2K', '4K', 'locked-size'].includes(change) ? { size: change === '2K' ? '2048x2048' : '3840x2160', locked: change === 'locked-size' } : {}),
         ...(change === 'quality' ? { quality: 'high' } : {}),
         ...(change === 'variant' ? { variant: 'Flare' } : {}),
@@ -196,8 +196,6 @@ test('workflow preflight and execution accept OpenAI advanced qualities before u
     assert.doesNotThrow(() => preflight(graph, ['g'], 1));
     const h = harness(graph); await h.engine.run(['g'], 1);
     assert.equal(h.requests.find(task => task.nodeId === 'g')?.imageRequest?.quality, quality);
-    const zenmux = { ...graph, nodes: graph.nodes.map(node => node.id === 'g' ? { ...node, data: { ...node.data, provider: 'zenmux' } } as AppNode : node) };
-    assert.throws(() => preflight(zenmux, ['g'], 1), /ZenMux.*画质参数/);
   }
 });
 

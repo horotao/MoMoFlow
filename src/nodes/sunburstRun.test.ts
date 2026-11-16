@@ -20,7 +20,7 @@ test('provider is frozen per task and invalid channels block the batch before en
   const node: SunburstNode = { ...generator, data: { ...generator.data, provider: 'openai' } };
   const run = prepareSunburstRun([node, prompt], [promptEdge], ['g'], 2);
   assert.equal(run.error, undefined);
-  node.data.provider = 'zenmux';
+  node.data.provider = 'apimart';
   assert.ok(run.tasks.every(task => task.imageRequest?.provider === 'openai' && task.model === 'gpt-image-2.6-sunburst'));
   const invalid = { ...node, data: { ...node.data, provider: 'unknown' } } as unknown as SunburstNode;
   const rejected = prepareSunburstRun([invalid, prompt], [promptEdge], ['g'], 1);
@@ -40,6 +40,18 @@ test('OpenAI advanced quality survives local and connected parameter snapshots',
     assert.equal(connected.error, undefined);
     assert.equal(connected.tasks[0].imageRequest?.quality, quality);
   }
+});
+
+test('legacy channel text resolves to standard APIMart without modifying the source', () => {
+  const channel: AppNode = { id: 'channel', type: 'text', position: { x: 0, y: 0 }, data: { text: ' zenmux ' } };
+  const node: SunburstNode = { ...generator, data: { ...generator.data, size: '2048x1152', outputFormat: 'svg', exposed: ['provider'] } };
+  const run = prepareSunburstRun([node, prompt, channel], [promptEdge, { id: 'channel-g', source: 'channel', target: 'g', targetHandle: 'provider' }], ['g'], 1);
+  assert.equal(run.error, undefined);
+  assert.equal(run.tasks[0].imageRequest?.provider, 'apimart');
+  assert.equal(run.tasks[0].imageRequest?.channelModel, 'gpt-image-2.6');
+  assert.equal(run.tasks[0].imageRequest?.outputFormat, 'svg');
+  assert.equal(run.tasks[0].imageRequest?.size, '2048x1152');
+  assert.equal(channel.data.text, ' zenmux ');
 });
 test('exposed channel and version resolve before validation and remain frozen in queued tasks', () => {
   const node: SunburstNode = { ...generator, data: { ...generator.data, quality: 'max', exposed: ['provider', 'variant'] } };

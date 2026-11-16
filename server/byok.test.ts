@@ -15,7 +15,7 @@ import { defaultSunburstSettings } from '../src/nodes/sunburst.ts';
 import { defaultNanoBananaSettings } from '../src/nodes/nanoBanana.ts';
 import type { ApiProvider } from '../src/components/apiSettings.ts';
 
-const keys = { openai: 'default-openai', zenmux: 'default-zenmux', deepseek: 'default-deepseek', apimart: 'default-apimart' };
+const keys = { openai: 'default-openai', deepseek: 'default-deepseek', apimart: 'default-apimart' };
 const png = 'data:image/png;base64,aGVsbG8=';
 const customHeaders = (provider: ApiProvider, key = `custom-${provider}`) => ({
   'x-momoflow-provider': provider, 'x-momoflow-api-key': key, 'x-momoflow-base-url': 'https://gateway.example/prefix/v1/',
@@ -60,19 +60,16 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
 
   test(`${hook}: all generation adapters select per-request BYOK credentials and retain environment defaults`, async () => {
     for (const custom of [false, true]) {
-      for (const provider of ['openai', 'zenmux'] as const) {
-        if (custom && provider === 'zenmux') continue;
-        let calls = 0;
-        const upstream: typeof fetch = async (url, init) => {
-          calls++;
-          assert.equal(String(url), `${custom ? 'https://gateway.example/prefix/v1' : provider === 'openai' ? 'https://api.openai.com/v1' : 'https://zenmux.ai/api/v1'}/images/generations`);
-          assert.equal(new Headers(init?.headers).get('Authorization'), `Bearer ${custom ? `custom-${provider}` : keys[provider]}`);
-          return Response.json({ data: [{ b64_json: 'aGVsbG8=' }] });
-        };
-        const headers = custom && provider === 'openai' ? customHeaders(provider) : {};
-        const result = await invoke(sunburstPlugin(keys, upstream), '/api/sunburst', { ...defaultSunburstSettings, provider, prompt: 'test', images: [] }, headers, hook);
-        assert.equal(result.status, 200); assert.equal(calls, 1);
-      }
+      let calls = 0;
+      const upstream: typeof fetch = async (url, init) => {
+        calls++;
+        assert.equal(String(url), `${custom ? 'https://gateway.example/prefix/v1' : 'https://api.openai.com/v1'}/images/generations`);
+        assert.equal(new Headers(init?.headers).get('Authorization'), `Bearer ${custom ? 'custom-openai' : keys.openai}`);
+        return Response.json({ data: [{ b64_json: 'aGVsbG8=' }] });
+      };
+      const headers = custom ? customHeaders('openai') : {};
+      const result = await invoke(sunburstPlugin(keys.openai, upstream), '/api/sunburst', { ...defaultSunburstSettings, provider: 'openai', prompt: 'test', images: [] }, headers, hook);
+      assert.equal(result.status, 200); assert.equal(calls, 1);
       const nano = await invoke(apimartPlugin(keys.apimart, async (url, init) => {
         assert.equal(String(url), `${custom ? 'https://gateway.example/prefix/v1' : 'https://api.apimart.ai/v1'}/images/generations`);
         assert.equal(new Headers(init?.headers).get('Authorization'), `Bearer ${custom ? 'custom-apimart' : keys.apimart}`);

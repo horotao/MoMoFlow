@@ -2,7 +2,7 @@ import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import type { AppNode, SunburstNode } from '../nodes/types';
 import { isNodeLocked, isSunburstNode } from '../nodes/types';
 import { effectiveSunburstSettings } from '../nodes/sunburstRun';
-import { apimartChannelModels, apimartSvgModels, apimartSvgModelEfforts, sunburstChoices, validateSunburstSize, validateApimartChannelModel, sunburstFormats, sunburstProviderSettings, sunburstVariants, validateSunburstVariant, defaultSunburstSettings, imageBackgrounds, imageQualityLabels, sunburstLocalParameter, sunburstName, sunburstParameterData, sunburstProviderLabels, sunburstProviders, sunburstQualities, validateSunburstProvider, validateSunburstSettings, type SunburstParameter, type SunburstSettings as Settings } from '../nodes/sunburst';
+import { apimartChannelModels, apimartSvgModels, apimartSvgModelEfforts, sunburstChoices, validateSunburstSize, validateApimartChannelModel, sunburstFormats, sunburstProviderSettings, sunburstVariants, validateSunburstVariant, defaultSunburstSettings, imageBackgrounds, imageQualities, imageQualityLabels, sunburstLocalParameter, sunburstName, sunburstParameterData, sunburstProviderLabels, sunburstProviders, validateSunburstProvider, validateSunburstSettings, type SunburstParameter, type SunburstSettings as Settings } from '../nodes/sunburst';
 import { DescriberModelSelect } from './DescriberModelSelect';
 import { ParameterField } from './ParameterField';
 import { SunburstSizeSelect } from './SunburstSizeSelect';
@@ -16,11 +16,10 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
   const { getNode, getNodes, getEdges, setNodes, setEdges, updateNodeData } = useReactFlow<AppNode>();
   const nodes = useNodes<AppNode>(); const edges = useEdges();
   const effective = effectiveSunburstSettings(node, nodes, edges);
-  const provider = effective.provider === 'apimart' ? 'apimart' : effective.provider === 'zenmux' ? 'zenmux' : 'openai';
+  const provider = effective.provider === 'apimart' ? 'apimart' : 'openai';
   const apimart = provider === 'apimart';
   const channelModel = effective.channelModel === 'gpt-image-2.6' ? 'gpt-image-2.6' : 'gpt-image-2.6-ext';
   const standard = apimart && channelModel === 'gpt-image-2.6';
-  const qualities = sunburstQualities(provider);
   const change = (field: keyof Settings, value: string) => {
     if (isNodeLocked(getNode(node.id))) return;
     let resetSize = false;
@@ -42,11 +41,16 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
     const exposed = current.data.exposed ?? [];
     if (exposed.includes(field)) {
       let value = sunburstLocalParameter(current.data, field);
+      let detachedChannelModel: Settings['channelModel'];
       try {
         const resolved = effectiveSunburstSettings(current, getNodes(), getEdges());
         // Detach only this field: unrelated invalid input must not discard it.
-        if (field === 'provider') value = validateSunburstProvider(resolved.provider);
-        else if (field === 'variant') {
+        if (field === 'provider') {
+          value = validateSunburstProvider(resolved.provider);
+          if (value === 'apimart' && !exposed.includes('channelModel')) {
+            detachedChannelModel = validateApimartChannelModel(resolved.channelModel);
+          }
+        } else if (field === 'variant') {
           value = validateSunburstVariant(resolved.variant);
         } else if (field === 'channelModel') value = validateApimartChannelModel(resolved.channelModel);
         else value = String(validateSunburstSettings({ ...defaultSunburstSettings, provider, channelModel,
@@ -56,7 +60,8 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
         })[field] ?? value);
       } catch { /* Invalid input keeps the previous local fallback. */ }
       updateNodeData(node.id, { [field]: field === 'frameCount' ? Number(value) : value, exposed: exposed.filter(item => item !== field),
-        ...(field === 'provider' ? sunburstProviderSettings(current.data, validateSunburstProvider(value)) : {}),
+        ...(field === 'provider' ? sunburstProviderSettings(current.data, validateSunburstProvider(value), detachedChannelModel) : {}),
+        ...(detachedChannelModel ? { channelModel: detachedChannelModel } : {}),
         ...(field === 'channelModel' ? sunburstProviderSettings(current.data, provider, validateApimartChannelModel(value)) : {}),
         ...(field === 'svgModel' && !current.data.exposed?.includes('svgEffort') && !apimartSvgModelEfforts(value).some(effort => effort === effective.svgEffort) ? { svgEffort: 'auto' } : {}),
       });
@@ -83,7 +88,7 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
   return <NodeSettingsSection title={sunburstName} icon={<img src="/gpt-sidebar/brand.svg" width={20} height={20} alt="" />} className="sunburst-settings" fieldsClassName="sunburst-parameter-list">
       <ParameterField label="渠道商" exposeButton={exposeButton('provider')}>
         <DescriberModelSelect appearance="settings" fluidHover compact label="渠道商" value={String(effective.provider ?? 'openai')}
-          choices={sunburstProviders} labels={sunburstProviders.map(item => sunburstProviderLabels[item])}
+          choices={sunburstProviders} labels={sunburstProviders.map(item => sunburstProviderLabels[item])} includeCurrentValue={false}
           disabled={node.data.locked || node.data.exposed?.includes('provider')} onChange={value => {
             if (isNodeLocked(getNode(node.id))) return;
             const next = validateSunburstProvider(value);
@@ -98,7 +103,7 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
             updateNodeData(node.id, { variant: validateSunburstVariant(value) });
           }} />
       </ParameterField>
-      {selectField('quality', qualities, qualities.map(quality => imageQualityLabels[quality]))}
+      {selectField('quality', imageQualities, imageQualities.map(quality => imageQualityLabels[quality]))}
       {(!apimart || standard) && selectField('background', imageBackgrounds, ['自动', '透明', '不透明'])}
       {apimart ? <>
         <ApimartSizeSelect value={String(effective.size)} resolution={String(effective.resolution)} standard={standard} gif={effective.outputFormat === 'gif'} frameCount={Number(effective.frameCount)}

@@ -1,4 +1,4 @@
-import { trusted } from './zenmuxShared.ts';
+import { trusted } from './providerDiagnostics.ts';
 import { providerConnection } from './apiCredentials.ts';
 import { deepSeekFileIdPattern, describerMaxImages, describerMaxInstructions } from '../src/nodes/describer.ts';
 import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';

@@ -29,7 +29,7 @@ test('cut clipboard round trip preserves name, selected result and downstream im
 });
 
 test('clipboard preserves the selected provider and retains missing provider for the OpenAI default', () => {
-  for (const provider of ['openai', 'zenmux'] as const) {
+  for (const provider of ['openai', 'apimart'] as const) {
     const data = clipboardRoundTrip({ ...original, data: { ...original.data, provider } });
     assert.equal(data?.provider, provider);
   }
@@ -42,6 +42,19 @@ test('clipboard restores OpenAI xhigh and max without downgrading', () => {
     assert.equal(data?.provider, 'openai');
     assert.equal(data?.quality, quality);
   }
+});
+
+test('legacy clipboard channels migrate to standard APIMart while retaining SVG and pixel settings', () => {
+  const data = restoreSunburstData({ ...original.data, provider: 'zenmux', size: '2048x1152', outputFormat: 'svg', background: 'transparent', variant: 'Flare' });
+  assert.ok(data);
+  assert.equal(data.provider, 'apimart');
+  assert.equal(data.channelModel, 'gpt-image-2.6');
+  assert.equal(data.variant, 'Flare');
+  assert.equal(data.size, '2048x1152');
+  assert.equal(data.outputFormat, 'svg');
+  assert.equal(data.background, 'transparent');
+  assert.deepEqual(data.results, original.data.results);
+  assert.doesNotThrow(() => validateSunburstSettings(data));
 });
 
 test('unfinished sizes survive clipboard restoration but still fail run validation', () => {

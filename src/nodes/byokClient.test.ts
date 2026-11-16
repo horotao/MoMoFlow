@@ -30,24 +30,22 @@ test('model clients attach only their own saved channel to local APIs and omit c
   };
   for (const configured of [true, false]) {
     saveApiSettings({ provider: 'apimart', credentials: configured ? credentials : {} }, storage);
-    for (const provider of ['openai', 'zenmux'] as const) {
-      let count = 0;
-      const mock = context.mock.method(globalThis, 'fetch', async (url: string, init: RequestInit) => {
-        count++;
-        assert.equal(url, '/api/sunburst');
-        const headers = new Headers(init.headers);
-        assert.equal(headers.get('X-MoMoFlow-Provider'), configured && provider === 'openai' ? provider : null);
-        assert.equal(headers.get('X-MoMoFlow-Api-Key'), configured && provider === 'openai' ? credentials.openai.apiKey : null);
-        assert.equal(headers.get('X-MoMoFlow-Base-Url'), configured && provider === 'openai' ? credentials.openai.baseUrl : null);
-        assert.equal(headers.has('Authorization'), false);
-        assert.equal(JSON.stringify(JSON.parse(String(init.body))).includes('apiKey'), false);
-        return Response.json({ error: 'fixture-stop' }, { status: 502 });
-      });
-      const signal = new AbortController().signal;
-      await assert.rejects(requestSunburst({ ...defaultSunburstSettings, provider, prompt: 'test', images: [] }, signal), /fixture-stop/);
-      assert.equal(count, 1);
-      mock.mock.restore();
-    }
+    let count = 0;
+    const sunburstMock = context.mock.method(globalThis, 'fetch', async (url: string, init: RequestInit) => {
+      count++;
+      assert.equal(url, '/api/sunburst');
+      const headers = new Headers(init.headers);
+      assert.equal(headers.get('X-MoMoFlow-Provider'), configured ? 'openai' : null);
+      assert.equal(headers.get('X-MoMoFlow-Api-Key'), configured ? credentials.openai.apiKey : null);
+      assert.equal(headers.get('X-MoMoFlow-Base-Url'), configured ? credentials.openai.baseUrl : null);
+      assert.equal(headers.has('Authorization'), false);
+      assert.equal(JSON.stringify(JSON.parse(String(init.body))).includes('apiKey'), false);
+      return Response.json({ error: 'fixture-stop' }, { status: 502 });
+    });
+    const signal = new AbortController().signal;
+    await assert.rejects(requestSunburst({ ...defaultSunburstSettings, provider: 'openai', prompt: 'test', images: [] }, signal), /fixture-stop/);
+    assert.equal(count, 1);
+    sunburstMock.mock.restore();
     const mock = context.mock.method(globalThis, 'fetch', async (url: string, init: RequestInit) => {
       assert.equal(url, '/api/nano-banana');
       assert.equal(new Headers(init.headers).get('X-MoMoFlow-Api-Key'), configured ? 'test-apimart' : null);

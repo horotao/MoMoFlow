@@ -1,21 +1,16 @@
 import { providerConnection } from './apiCredentials.ts';
 import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 import { validateVectorSvg } from '../src/nodes/vectorSvg.ts';
-import { diagnosticText, logIdentifier, errorDiagnostic, readErrorDiagnostic, trusted, type ProviderDiagnostic } from './zenmuxShared.ts';
+import { diagnosticText, logIdentifier, errorDiagnostic, readErrorDiagnostic, trusted, type ProviderDiagnostic } from './providerDiagnostics.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import type { Plugin } from 'vite';
-import { validateSunburstImageInputs, validateSunburstVariant, sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings, type SunburstProvider } from '../src/nodes/sunburst.ts';
+import { validateSunburstImageInputs, validateSunburstVariant, sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings } from '../src/nodes/sunburst.ts';
 
 // The image model renders the reference; this vision/text model authors SVG XML.
 const svgAuthorModel = 'gpt-6.1-terra';
 
 const maxBody = 64 * 1024 * 1024;
-const providers = {
-  zenmux: { name: 'ZenMux', baseUrl: 'https://zenmux.ai/api/v1', keyName: 'ZENMUX_API_KEY' },
-  openai: { name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', keyName: 'OPENAI_API_KEY' },
-};
-
 function imageData(value: unknown, mask = false): string {
   if (typeof value !== 'string' || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)) throw new Error('输入图片需为 PNG、JPEG 或 WebP。');
   if (value.length > 44 * 1024 * 1024) throw new Error('单张图片不能超过 32 MiB。');
@@ -41,7 +36,7 @@ export function buildSunburstRequest(value: unknown) {
       model: sunburstModelForProvider(provider, validateSunburstVariant(input.variant)), prompt: input.prompt, n: 1,
       moderation: 'low',
       quality: settings.quality, background: settings.background, size: settings.size, output_format: settings.outputFormat,
-      ...(provider === 'openai' && settings.outputFormat === 'svg' ? { svg: { model: svgAuthorModel } } : {}),
+      ...(settings.outputFormat === 'svg' ? { svg: { model: svgAuthorModel } } : {}),
       ...(images.length ? { images, ...(mask ? { mask } : {}) } : {}),
     },
   };
@@ -71,7 +66,7 @@ export function buildSunburstPayload(request: ReturnType<typeof buildSunburstReq
 }
 
 
-export function createSunburstMiddleware(apiKeys: Record<Exclude<SunburstProvider, 'apimart'>, string>, providerFetch: typeof fetch = fetch) {
+export function createSunburstMiddleware(openaiKey: string, providerFetch: typeof fetch = fetch) {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (req.url?.split('?')[0] !== '/api/sunburst') return next();
     const send = (status: number, value: object) => {
@@ -81,7 +76,6 @@ export function createSunburstMiddleware(apiKeys: Record<Exclude<SunburstProvide
     if (req.method !== 'POST') return send(405, { error: 'Method not allowed' });
     if (!trusted(req)) return send(403, { error: 'Host or Origin not allowed' });
     if (!req.headers['content-type']?.startsWith('application/json')) return send(415, { error: 'Expected application/json' });
-    let provider: Exclude<SunburstProvider, 'apimart'> = 'openai';
     let apiKey = '';
     const controller = new AbortController();
     const startedAt = Date.now();
@@ -92,8 +86,8 @@ export function createSunburstMiddleware(apiKeys: Record<Exclude<SunburstProvide
     const sendFailure = (message: string, error?: unknown) => {
       // Logging must never change request handling, even if a log sink fails.
       try {
-        console.error(`[${provider}-sunburst]`, JSON.stringify({
-          timestamp: new Date().toISOString(), localRequestId, provider, stage, endpoint,
+        console.error('[openai-sunburst]', JSON.stringify({
+          timestamp: new Date().toISOString(), localRequestId, provider: 'openai', stage, endpoint,
           elapsedMs: Date.now() - startedAt, aborted: controller.signal.aborted,
           status: diagnostic?.status,
           requestId: logIdentifier(diagnostic?.requestId, apiKey),
@@ -106,7 +100,7 @@ export function createSunburstMiddleware(apiKeys: Record<Exclude<SunburstProvide
         error: [message, diagnostic?.type && `错误类型：${diagnostic.type}`,
           diagnostic?.code && `错误代码：${diagnostic.code}`,
           diagnostic?.message && `服务商说明：${diagnostic.message}`,
-          diagnostic && `${providers[provider].name} HTTP：${diagnostic.status}`,
+          diagnostic && `OpenAI HTTP：${diagnostic.status}`,
           diagnostic?.requestId && `Request ID：${diagnostic.requestId}`].filter(Boolean).join('\n'),
         ...(diagnostic ? { diagnostic } : {}),
         ...(controller.signal.aborted || isTimeoutStatus(diagnostic?.status) ? { code: modelTimeoutCode } : {}),
@@ -125,23 +119,11 @@ export function createSunburstMiddleware(apiKeys: Record<Exclude<SunburstProvide
       let request: ReturnType<typeof buildSunburstRequest>;
       try { request = buildSunburstRequest(JSON.parse(Buffer.concat(chunks).toString())); }
       catch (error) { return send(400, { error: error instanceof Error ? error.message : '请求格式错误。' }); }
-      provider = request.provider;
       let connection;
-      try {
-        if (provider === 'zenmux') {
-          if (['x-momoflow-provider', 'x-momoflow-api-key', 'x-momoflow-base-url'].some(header => req.headers[header] !== undefined)) {
-            return send(400, { error: 'ZenMux 仅支持本地服务端配置。' });
-          }
-          if (!apiKeys.zenmux) return send(503, { error: 'ZenMux 仅支持本地 ZENMUX_API_KEY，请选择其他渠道。' });
-          connection = { baseUrl: providers.zenmux.baseUrl, apiKey: apiKeys.zenmux, fetch: providerFetch };
-        } else {
-          connection = providerConnection(req, provider, apiKeys[provider], providerFetch);
-        }
-      }
+      try { connection = providerConnection(req, request.provider, openaiKey, providerFetch); }
       catch { return send(400, { error: 'API 配置无效，请重新保存对应渠道的配置' }); }
       apiKey = connection.apiKey;
-      const config = providers[provider];
-      if (!apiKey) return send(503, { error: `请在 .env.local 配置 ${config.keyName}，然后重启开发服务器。` });
+      if (!apiKey) return send(503, { error: '请在 .env.local 配置 OPENAI_API_KEY，然后重启开发服务器。' });
       endpoint = request.endpoint;
       stage = 'build-payload';
       const payload = buildSunburstPayload(request);
@@ -150,19 +132,19 @@ export function createSunburstMiddleware(apiKeys: Record<Exclude<SunburstProvide
         method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, ...payload.headers },
         body: payload.body, signal: controller.signal, redirect: 'error',
       });
-      const requestId = diagnosticText(response.headers.get('x-zenmux-requestid') ?? response.headers.get('x-request-id'), apiKey, 200);
+      const requestId = diagnosticText(response.headers.get('x-request-id'), apiKey, 200);
       diagnostic = { status: response.status, ...(requestId ? { requestId } : {}) };
       if (!response.ok) {
         stage = 'read-provider-error';
         diagnostic = { ...diagnostic, ...await readErrorDiagnostic(response, apiKey), ...(requestId ? { requestId } : {}) };
-        const messages: Record<number, string> = { 401: `${config.name} API Key 无效。`, 402: `${config.name} 余额不足。`, 403: `${config.name} 拒绝访问此模型。`, 429: diagnostic.code === 'insufficient_quota' ? `${config.name} 额度不足，请检查余额与用量限制。` : `${config.name} 请求过于频繁，请稍后手动重试。`, 400: `${config.name} 拒绝了图片或参数，请检查输入图片、蒙版及参数。` };
-        return sendFailure(messages[response.status] ?? `${config.name} 请求失败（${response.status}），不会自动重试。`);
+        const messages: Record<number, string> = { 401: 'OpenAI API Key 无效。', 402: 'OpenAI 余额不足。', 403: 'OpenAI 拒绝访问此模型。', 429: diagnostic.code === 'insufficient_quota' ? 'OpenAI 额度不足，请检查余额与用量限制。' : 'OpenAI 请求过于频繁，请稍后手动重试。', 400: 'OpenAI 拒绝了图片或参数，请检查输入图片、蒙版及参数。' };
+        return sendFailure(messages[response.status] ?? `OpenAI 请求失败（${response.status}），不会自动重试。`);
       }
       stage = 'read-result';
       const result = await response.json();
       stage = 'validate-result';
       const data = result.data?.[0];
-      if (typeof data?.b64_json !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(data.b64_json) || data.b64_json.length > maxBody) return sendFailure(`${config.name} 未返回有效图片，结果未知，请检查用量后再手动重试。`);
+      if (typeof data?.b64_json !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(data.b64_json) || data.b64_json.length > maxBody) return sendFailure('OpenAI 未返回有效图片，结果未知，请检查用量后再手动重试。');
       const format = ['png', 'jpeg', 'webp', 'svg'].includes(result.output_format) ? result.output_format : request.body.output_format;
       if (request.body.output_format === 'svg' || format === 'svg') {
         if (format !== 'svg' || request.body.output_format !== 'svg') return sendFailure('返回格式与请求不符，未取得 SVG 矢量结果。');
@@ -173,7 +155,7 @@ export function createSunburstMiddleware(apiKeys: Record<Exclude<SunburstProvide
       stage = 'send-result';
       send(200, { image: `data:image/${format === 'svg' ? 'svg+xml' : format};base64,${data.b64_json}`, format });
     } catch (error) {
-      sendFailure(controller.signal.aborted ? '请求超时或已取消；已提交请求仍可能计费，不会自动重试。' : `无法取得 ${providers[provider].name} 结果；请检查网络及用量后再手动重试。`, error);
+      sendFailure(controller.signal.aborted ? '请求超时或已取消；已提交请求仍可能计费，不会自动重试。' : '无法取得 OpenAI 结果；请检查网络及用量后再手动重试。', error);
     } finally { clearTimeout(timeout); res.off('close', close); }
   };
   return middleware;

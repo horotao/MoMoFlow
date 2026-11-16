@@ -21,7 +21,7 @@ function waitForApimartPoll(signal: AbortSignal): Promise<void> {
 export async function requestSunburst(input: SunburstRequest, signal: AbortSignal): Promise<FileAsset> {
   const provider = validateSunburstProvider(input.provider);
   const apimart = provider === 'apimart';
-  const credentialHeaders = provider === 'zenmux' ? {} : apiCredentialHeaders(provider);
+  const credentialHeaders = apiCredentialHeaders(provider);
   validateSunburstImageInputs(input.outputFormat, input.images.length > 0, Boolean(input.mask), provider, input.channelModel);
   if (apimart) {
     validateSunburstSettings(input);

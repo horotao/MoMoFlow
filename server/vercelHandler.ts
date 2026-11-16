@@ -3,13 +3,13 @@ import { createApiSettingsMiddleware } from './apiSettings.ts';
 import { createApimartMiddleware } from './apimart.ts';
 import { createDeepseekMiddleware } from './deepseek.ts';
 import { createSunburstMiddleware } from './sunburst.ts';
-import { trustedDeploymentRequest } from './zenmuxShared.ts';
+import { trustedDeploymentRequest } from './providerDiagnostics.ts';
 
 // Never load server/default credentials in the hosted BYOK deployment.
 const handlers = [
   createApiSettingsMiddleware({ openai: '', apimart: '', deepseek: '' }),
   createApimartMiddleware(''), createDeepseekMiddleware(''),
-  createSunburstMiddleware({ openai: '', zenmux: '' }),
+  createSunburstMiddleware(''),
 ];
 const paths = new Set([
   '/api/settings/test', '/api/apimart/images', '/api/apimart/seedream', '/api/apimart/task',
