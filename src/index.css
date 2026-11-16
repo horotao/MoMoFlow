@@ -536,15 +536,10 @@
 .file-node-tile:hover::after { border-color: #b3b3b3; }
 .file-node-tile:active { cursor: grabbing; }
 .file-node-tile > img, .file-node-tile > video { display: block; width: 100%; height: auto; }
-.file-media-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .2s ease-in-out; color: #fff; font: 12px/20px var(--font-ui); }
-.file-media-overlay::before, .file-media-overlay::after { content: ''; position: absolute; left: 0; right: 0; height: 80px; z-index: 0; pointer-events: none; filter: blur(30px); }
-.file-media-overlay::before { top: 0; background: linear-gradient(#383838, transparent); transform: scale(1.8) translateY(-30px); }
-.file-media-overlay::after { bottom: 0; background: linear-gradient(transparent, #383838); transform: scale(1.8) translateY(30px); }
-.file-node-media:hover .file-media-overlay, .file-node-media:focus-within .file-media-overlay { opacity: 1; }
+.file-media-overlay { font: 12px/20px var(--font-ui); }
 .file-media-top { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; gap: 8px; z-index: 1; }
 .file-media-navigation, .file-media-tools { display: flex; align-items: center; }
 .file-media-navigation > span { padding: 0 4px; white-space: nowrap; }
-.file-media-overlay button { pointer-events: auto; }
 .file-icon-button { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 32px; height: 32px; padding: 4px; border: 0; border-radius: 4px; background: transparent; color: inherit; cursor: pointer; }
 .file-icon-button:hover { background: #ffffff1a; }
 .file-icon-button:focus-visible { outline: 1px solid currentColor; outline-offset: -2px; }

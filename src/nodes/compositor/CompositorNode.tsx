@@ -113,7 +113,7 @@ export function CompositorNode({ id, data, isConnectable }: NodeProps<Compositor
       <div className="compositor-node-body" style={{ minHeight: data.document.inputs.length * 62 }}>
         <div className="compositor-node-preview nodrag nopan" role="group" aria-label="Composition preview controls" style={{ aspectRatio: `${layout.width} / ${layout.height}` }} aria-busy={!output && !error}>
           <CompositorCanvas view={visibleView} label="Compositor preview" />
-          <div className="file-media-overlay compositor-node-overlay">
+          <div className="file-media-overlay">
             <span className="compositor-node-size">{layout.width}x{layout.height}</span>
             <button className="file-icon-button compositor-download" aria-label="Download composition" title="Download image" disabled={!output || Boolean(draft)} onClick={() => { if (output) void downloadAsset(output).catch(() => setError('下载失败，请重试。')); }}><FileIcon name="download" /></button>
           </div>

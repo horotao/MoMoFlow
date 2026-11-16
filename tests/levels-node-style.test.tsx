@@ -59,7 +59,9 @@ async function run() {
     within<HTMLButtonElement>('[role="combobox"]').click(); await settle();
     const popup = find('[aria-label="色阶通道"]'), trigger = within('[role="combobox"]');
     check(popup.offsetWidth === 116 && popup.offsetHeight === 128, '116×128 channel menu');
-    check(getComputedStyle(find('.levels-channel-menu .is-active')).color === 'rgb(255, 255, 255)', 'Active option stays readable on dark surface');
+    const active = getComputedStyle(popup.querySelector('[role="option"].is-active')!);
+    check(getComputedStyle(popup).backgroundColor === 'rgb(40, 40, 40)' && active.color === 'rgb(255, 255, 255)'
+      && active.backgroundColor === 'rgba(255, 255, 255, 0.08)', 'Channel menu keeps white text and a subtle highlight on its dark surface');
     for (const image of popup.querySelectorAll('img')) {
       await until(() => image.complete && image.naturalWidth > 0, 'Menu SVG loads');
       check(Math.abs(image.getBoundingClientRect().width - Number(image.getAttribute('width'))) < .1, 'Menu SVG intrinsic width');

@@ -6,8 +6,6 @@
 .preview-node-frame .preview-image { border-radius: var(--node-inset-radius); corner-shape: superellipse(1.25); background: var(--node-inset) url('/preview-node/checkerboard.svg') 0 0 / 424px 424px; }
 .preview-image > img, .preview-image > canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .preview-node-frame .preview-image > img { pointer-events: auto; }
-.preview-image:hover .file-media-overlay, .preview-image:focus-within .file-media-overlay { opacity: 1; }
 .preview-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-node-secondary); font-size: 12px; }
 .preview-node-frame .node-port-label-input { left: auto; }
 .preview-error { font-size: 11px; color: #d06555; }
-@media (prefers-reduced-motion: reduce) { .preview-image .file-media-overlay { transition: none; } }

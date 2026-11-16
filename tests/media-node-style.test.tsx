@@ -131,7 +131,7 @@ async function run() {
       check(surface(id).clientHeight === 318, `${id}: landscape preview retains natural ratio`);
       check(surface(id).querySelector('.node-image-resolution')?.textContent === '1536 × 1152', `${id}: actual dimensions appear`);
       button(id, '图片画廊').focus(); await frame();
-      check(getComputedStyle(surface(id).querySelector('.node-image-overlay')!).opacity === '1', `${id}: keyboard focus reveals image tools`);
+      check(getComputedStyle(surface(id).querySelector('.node-image-top')!).opacity === '1', `${id}: keyboard focus reveals image tools`);
       check(button(id, '全屏展开').offsetWidth === 24 && button(id, '全屏展开').offsetHeight === 24, `${id}: 24px image actions`);
       button(id, '排序方式').click(); await frame(); await frame();
       const sort = document.querySelector<HTMLButtonElement>('[role="menu"] button:last-child')!;

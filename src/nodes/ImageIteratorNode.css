@@ -10,10 +10,6 @@
 .image-iterator-frame .file-node-tile.is-active::after { border: 1.5px solid var(--node-selected-border); }
 .image-iterator-frame .file-node-tile:focus-visible { outline: 1.5px solid var(--node-selected-border); outline-offset: -2px; }
 .image-iterator-frame .file-media-overlay { font: 400 12px/22px var(--font-ui); }
-.image-iterator-frame .file-media-overlay::before,
-.image-iterator-frame .file-media-overlay::after { filter: none; transform: none; }
-.image-iterator-frame .file-media-overlay::before { height: 96px; background: linear-gradient(rgb(0 0 0 / 65%), transparent); }
-.image-iterator-frame .file-media-overlay::after { height: 80px; background: linear-gradient(transparent, rgb(0 0 0 / 65%)); }
 .image-iterator-frame .file-media-top { top: 12px; left: 12px; right: 12px; }
 .image-iterator-frame .is-grid .file-media-top { top: 20px; left: 20px; right: 20px; }
 .image-iterator-frame .file-media-navigation,

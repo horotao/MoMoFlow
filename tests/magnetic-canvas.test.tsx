@@ -107,6 +107,8 @@ results.textContent = 'Ready · StrictMode production canvas, isolated storage';
 run.onclick = async () => {
   run.disabled = true; checks.length = 0; results.textContent = 'Running';
   try {
+    // Let the native Run click and focus update finish before simulating a canvas drag.
+    await settle();
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     check(document.querySelectorAll('.magnetic-cable').length === 3 && !document.querySelector('.port-ripple'), 'Restored edges use the shared renderer without replaying feedback');
     check(document.querySelector('.react-flow__edge-text')?.textContent === 'Existing label' && edgePath('far').getAttribute('marker-end')?.startsWith('url('), 'Existing labels and arrow markers survive the renderer change');
@@ -114,13 +116,20 @@ run.onclick = async () => {
     const box = header.getBoundingClientRect();
     const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
     const initialPosition = api.getNode('consumer')!.position;
+    const dragStart = { x: start.x + 8, y: start.y };
     const endpoint = { x: start.x + 32, y: start.y - 110 };
     mouse(header, 'mousedown', start.x, start.y);
-    mouse(document, 'mousemove', start.x + 8, start.y);
+    mouse(document, 'mousemove', dragStart.x, dragStart.y);
     mouse(document, 'mousemove', endpoint.x, endpoint.y);
     await settle();
     const moved = api.getNode('consumer')!;
-    check(moved.dragging && Math.abs(moved.position.y - initialPosition.y + 110 / api.getZoom()) < 1, 'Node coordinate tracks the pointer during wire stretch');
+    const zoom = api.getZoom();
+    const expected = {
+      x: initialPosition.x + (endpoint.x - dragStart.x) / zoom,
+      y: initialPosition.y + (endpoint.y - dragStart.y) / zoom,
+    };
+    check(moved.dragging && Math.hypot(moved.position.x - expected.x, moved.position.y - expected.y) < 1,
+      'Node coordinates track the pointer on both axes after crossing the drag threshold');
     check(reduced ? getComputedStyle(edgePath('near')).strokeWidth === '2px' : parseFloat(getComputedStyle(edgePath('near')).strokeWidth) < 2,
       'Existing wire tightens lengthwise while its node is dragged');
     mouse(document, 'mouseup', endpoint.x, endpoint.y);
