@@ -43,7 +43,7 @@
 .media-node-frame .sunburst-actions { color: var(--node-secondary); font: 400 12px/22px var(--font-ui); }
 .media-node-frame .sunburst-actions > .text-node-button { margin: 0; padding: 0; }
 .media-node-frame .sunburst-actions > .text-node-button:hover { background: transparent; color: var(--node-primary); }
-.media-node-frame .sunburst-run { justify-content: center; width: 98px; padding: 0; border-radius: 13px; corner-shape: superellipse(1.25); font: 400 12px/18px var(--font-mono); background: #d3d3d3; color: #292929; }
+.media-node-frame .sunburst-run { justify-content: center; width: 98px; padding: 0; border-radius: 13px; corner-shape: superellipse(1.25); background: #d3d3d3; color: #292929; }
 .react-flow .media-node-frame .file-node-port { top: 89px; right: -17px; border-color: var(--node-divider); }
 .media-node-frame .file-node-port::after { background: var(--node-divider); }
 .media-node-frame .file-node-port-label { top: -1px; left: 47px; font: 400 11px/16px var(--font-ui); }

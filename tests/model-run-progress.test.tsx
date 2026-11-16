@@ -98,7 +98,9 @@ async function run() {
   const check = (value: unknown, message: string) => { assert(value, message); checks.push(message); };
   const queueToggle = find<HTMLButtonElement>('.model-queue-toggle');
   check(queueToggle.getAttribute('aria-expanded') === 'false', 'Canvas queue starts collapsed');
-  find('.sunburst-run').click();
+  const imageRun = find<HTMLButtonElement>('.sunburst-run');
+  check(getComputedStyle(imageRun).font === getComputedStyle(find('.describer-run')).font, 'Idle Run Model buttons share the same UI font');
+  imageRun.click();
   await until(() => Boolean(document.querySelector(`${nodeSelector('image')} [aria-busy="true"]`)), 'Starting state missing');
   check(Boolean(find(`${nodeSelector('image')} .model-run-progress`).textContent?.match(/\d+%|等待上游/))
     && !document.querySelector(`${nodeSelector('image')} .sunburst-run`), 'Starting displays fixed-width progress in place of Run Model');
@@ -115,6 +117,8 @@ async function run() {
   check(style.animationTimingFunction === (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'steps(4)' : 'linear'), 'Spinner respects reduced motion');
   const progress = find(`${nodeSelector('image')} .model-run-progress`);
   check(getComputedStyle(progress).height === '32px' && getComputedStyle(progress).minWidth === '98px' && getComputedStyle(progress).borderRadius === '13px', 'GPT progress frame matches 98 × 32 and 13px corners');
+  const progressNumber = find(`${nodeSelector('image')} .image-node-run-number`);
+  check(/^["']?DM Mono["']?,/.test(getComputedStyle(progressNumber).fontFamily), 'Image model progress digits keep DM Mono');
   const descriptionProgress = find(`${nodeSelector('description')} .model-run-progress`);
   check(getComputedStyle(descriptionProgress).minWidth === '98px' && getComputedStyle(descriptionProgress).height === '32px' && getComputedStyle(descriptionProgress).borderRadius === '13px', 'Description node reuses the image model progress frame');
   check(Number(find(`${nodeSelector('image')} [role="progressbar"]`).getAttribute('aria-valuenow')) === nodeTask('image')?.progress, 'Node percentage matches shared task progress');
