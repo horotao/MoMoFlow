@@ -945,7 +945,7 @@ export interface ColorPickerTriggerProps extends Omit<ComponentPropsWithRef<'but
 
 /** The node swatch stays static; the portal owns both directions of the morph. */
 export function ColorPickerTrigger({ className, children, onClick, ...props }: ColorPickerTriggerProps) {
-  const { id, hex, open, morphActive, setOpen, triggerRef, disabled } = usePickerContext('ColorPickerTrigger');
+  const { id, hex, alpha, open, morphActive, setOpen, triggerRef, disabled } = usePickerContext('ColorPickerTrigger');
   return (
     <button
       {...props}
@@ -971,7 +971,7 @@ export function ColorPickerTrigger({ className, children, onClick, ...props }: C
         <span
           data-color-picker-chip=""
           className="absolute inset-0 overflow-hidden"
-          style={{ borderRadius: CHIP_RADIUS, background: CHECKERBOARD, visibility: open || morphActive ? 'hidden' : 'visible' }}
+          style={{ borderRadius: CHIP_RADIUS, background: alpha ? CHECKERBOARD : undefined, visibility: open || morphActive ? 'hidden' : 'visible' }}
         >
           <span
             className="absolute inset-0 shadow-[inset_0_0_0_1px_rgb(0_0_0/0.1)]"

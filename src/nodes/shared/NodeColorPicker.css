@@ -4,6 +4,8 @@
 .palette-canvas .node-color-picker-trigger.palette-edit-color { display: block; background: transparent; }
 .palette-edit-color .beui-picker-trigger-chip { position: absolute; left: 10px; top: 8px; width: 16px; height: 16px; }
 .palette-edit-color .beui-picker-trigger-chip > span { border-radius: 50% !important; }
+.palette-edit-color:not([aria-expanded='true']) .beui-picker-trigger-chip > span:first-child { border-color: transparent; }
+.palette-edit-color [data-color-picker-chip] > span { border-radius: 0 !important; box-shadow: none; }
 .beui-color-picker {
   --background: #282828;
   position: fixed; z-index: 1000; isolation: isolate; display: flex; flex-direction: column; gap: 12px;
