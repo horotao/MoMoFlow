@@ -31,7 +31,7 @@ function harness(initial = fixture(), request?: ExecutionIO['request'], local?: 
     patch: (id, data) => { graph = { ...graph, nodes: graph.nodes.map(node => node.id === id ? { ...node, data: { ...node.data, ...data } } as AppNode : node) }; },
     retain: () => () => {}, discard: assets => discarded.push(...assets), snapshot: async () => ({ assets: new Map(), release: () => {} }), verify: async () => {}, ...io,
     local: local ?? (async () => { throw new Error('local failure'); }),
-    request: async (task, signal) => { requests.push(task); return request ? request(task, signal) : task.imageRequest || task.nanoBananaRequest || task.ideogramRequest ? { id: crypto.randomUUID(), name: 'generated', kind: 'image', url: 'blob:generated' } : `description ${task.nodeId}`; },
+    request: async (task, signal) => { requests.push(task); return request ? request(task, signal) : task.imageRequest || task.nanoBananaRequest ? { id: crypto.randomUUID(), name: 'generated', kind: 'image', url: 'blob:generated' } : `description ${task.nodeId}`; },
   });
   return { engine, store, requests, discarded, get graph() { return graph; }, edit(change: (graph: ExecutionGraph) => ExecutionGraph) { graph = change(graph); engine.observe(graph); }, node(id: string) { return graph.nodes.find(node => node.id === id)!; } };
 }
@@ -103,7 +103,7 @@ test('existing image cuts off invalid or missing generation inputs; explicitly r
     await h.engine.run(['down'], 1);
     assert.deepEqual(h.requests.map(task => task.nodeId), ['down']);
     assert.deepEqual(h.requests[0].images, ['blob:chosen']);
-    assert.throws(() => h.engine.run(['up'], 1), /提示词/);
+    assert.throws(() => h.engine.run(['up'], 1), type === 'ideogram' ? /已下线/ : /提示词/);
     h.engine.dispose();
   }
 });
@@ -283,8 +283,8 @@ test('movement and rename do not cancel; failures block consumers without automa
 });
 
 test('all supported model adapters participate in dependency execution', async () => {
-  for (const type of ['nano-banana', 'ideogram'] as const) {
-    const graph = fixture(); graph.nodes = graph.nodes.map(node => node.id === 'g' ? { ...node, type, data: { ...(type === 'nano-banana' ? defaultNanoBananaSettings : defaultIdeogramSettings), imageInputs: 1 } } as AppNode : node);
+  for (const type of ['nano-banana'] as const) {
+    const graph = fixture(); graph.nodes = graph.nodes.map(node => node.id === 'g' ? { ...node, type, data: { ...defaultNanoBananaSettings, imageInputs: 1 } } as AppNode : node);
     const h = harness(graph); await h.engine.run(['g'], 1); await h.engine.run(['g'], 1);
     assert.deepEqual(h.requests.map(task => task.nodeId), ['da', 'db', 'g', 'g']);
   }
@@ -488,9 +488,9 @@ test('concurrent roots retain their own describer and generated-image outputs', 
 });
 
 test('known empty prompts and invalid static parameters fail before any upstream request', () => {
-  for (const type of ['sunburst', 'nano-banana', 'ideogram'] as const) {
+  for (const type of ['sunburst', 'nano-banana'] as const) {
     for (const invalidPrompt of [true, false]) {
-      const target: AppNode = { id: 'target', type, position: { x: 0, y: 0 }, data: { ...(type === 'sunburst' ? defaultSunburstSettings : type === 'nano-banana' ? defaultNanoBananaSettings : defaultIdeogramSettings), imageInputs: 1, ...(!invalidPrompt ? type === 'nano-banana' ? { imageSize: 'invalid' } : type === 'ideogram' ? { editQuality: 'invalid' } : { quality: 'invalid' } : {}) } } as AppNode;
+      const target: AppNode = { id: 'target', type, position: { x: 0, y: 0 }, data: { ...(type === 'sunburst' ? defaultSunburstSettings : defaultNanoBananaSettings), imageInputs: 1, ...(!invalidPrompt ? type === 'nano-banana' ? { imageSize: 'invalid' } : { quality: 'invalid' } : {}) } } as AppNode;
       const graph: ExecutionGraph = { nodes: [textNode('p', 'valid'), textNode('empty', invalidPrompt ? '' : 'valid'), generator('up'), target], edges: [edge('p', 'up', 'prompt'), edge('up', 'target', 'image-0', 'result'), edge('empty', 'target', 'prompt')] };
       const h = harness(graph);
       assert.throws(() => h.engine.run(['target'], 1), invalidPrompt ? /非空提示词/ : /参数/);
@@ -510,17 +510,17 @@ test('dynamic prompts and settings defer validation; fixed manual inputs are val
   assert.equal(h.requests.length, 2);
 });
 
-test('Painter mask rebuilds missing or unreadable alpha output through Router/Compare for both models', async () => {
-  for (const type of ['sunburst', 'ideogram'] as const) for (const expired of [false, true]) for (const route of ['direct', 'router', 'compare']) {
+test('Painter mask rebuilds missing or unreadable alpha output through Router/Compare for GPT Image', async () => {
+  for (const expired of [false, true]) for (const route of ['direct', 'router', 'compare']) {
     const mask = generatedAsset('visible-mask'), alpha = generatedAsset('alpha-mask');
     const data = { ...defaultPainterData, baseImage: generatedAsset('a'), mask, ...(expired ? { alphaMask: alpha } : {}) };
     const painter: AppNode = { id: 'painter', type: 'painter', position: { x: 0, y: 0 }, data: { ...data, outputRevision: painterRevision(data, 'a') } };
-    const graph: ExecutionGraph = { nodes: [file('a'), textNode('prompt', 'edit'), painter, { id: 'router', type: 'router', position: { x: 0, y: 0 }, data: {} }, { id: 'compare', type: 'compare', position: { x: 0, y: 0 }, data: { mode: 'slider', split: .5 } }, { id: 'g', type, position: { x: 0, y: 0 }, data: { ...(type === 'sunburst' ? defaultSunburstSettings : defaultIdeogramSettings), imageInputs: 1 } } as AppNode], edges: [edge('prompt', 'g', 'prompt'), edge('a', 'g', 'image-0', 'file'), edge('painter', 'router', 'input', 'mask'), edge('router', 'compare', 'input-1', 'output'), edge(route === 'direct' ? 'painter' : route, 'g', 'mask', route === 'direct' ? 'mask' : route === 'router' ? 'output' : 'output-1')] };
+    const graph: ExecutionGraph = { nodes: [file('a'), textNode('prompt', 'edit'), painter, { id: 'router', type: 'router', position: { x: 0, y: 0 }, data: {} }, { id: 'compare', type: 'compare', position: { x: 0, y: 0 }, data: { mode: 'slider', split: .5 } }, generator('g')], edges: [edge('prompt', 'g', 'prompt'), edge('a', 'g', 'image-0', 'file'), edge('painter', 'router', 'input', 'mask'), edge('router', 'compare', 'input-1', 'output'), edge(route === 'direct' ? 'painter' : route, 'g', 'mask', route === 'direct' ? 'mask' : route === 'router' ? 'output' : 'output-1')] };
     let renders = 0;
     const h = harness(graph, undefined, async () => { renders++; return { mask, alphaMask: generatedAsset('fresh-alpha'), outputRevision: painterRevision(data, 'a') }; }, { verify: async assets => { if (assets.some(asset => asset.url === alpha.url)) throw new Error('expired alpha'); } });
     await h.engine.run(['g'], 1);
     assert.equal(renders, route === 'compare' ? 0 : 1); assert.equal(h.requests.length, 1);
-    assert.equal((h.requests[0].imageRequest ?? h.requests[0].ideogramRequest)?.mask, route === 'compare' ? mask.url : 'blob:fresh-alpha');
+    assert.equal(h.requests[0].imageRequest?.mask, route === 'compare' ? mask.url : 'blob:fresh-alpha');
     await h.engine.run(['g'], 1); assert.equal(renders, route === 'compare' ? 0 : 1);
     assert.ok(h.store.getSnapshot().every(task => task.state === 'Done'));
   }
@@ -627,13 +627,12 @@ function iteratorGraph(values = ['水彩猫', '像素猫', '写实猫']): Execut
 }
 
 test('Text Iterator creates separate requests for every item across all image model adapters', async () => {
-  for (const type of ['sunburst', 'nano-banana', 'ideogram'] as const) {
+  for (const type of ['sunburst', 'nano-banana'] as const) {
     const graph = iteratorGraph();
-    graph.nodes[1] = type === 'sunburst' ? generator('g') : type === 'nano-banana'
-      ? { id: 'g', type, position: { x: 0, y: 0 }, data: { ...defaultNanoBananaSettings, imageInputs: 1 } }
-      : { id: 'g', type, position: { x: 0, y: 0 }, data: { ...defaultIdeogramSettings, imageInputs: 1 } };
+    graph.nodes[1] = type === 'sunburst' ? generator('g')
+      : { id: 'g', type, position: { x: 0, y: 0 }, data: { ...defaultNanoBananaSettings, imageInputs: 1 } };
     const h = harness(graph); await h.engine.run(['g'], 1);
-    assert.deepEqual(h.requests.map(task => (task.imageRequest ?? task.nanoBananaRequest ?? task.ideogramRequest)?.prompt), ['水彩猫', '像素猫', '写实猫']);
+    assert.deepEqual(h.requests.map(task => (task.imageRequest ?? task.nanoBananaRequest)?.prompt), ['水彩猫', '像素猫', '写实猫']);
     assert.deepEqual(h.requests.map(task => task.iteration?.index), [0, 1, 2]);
     assert.ok(h.store.getSnapshot().every(task => task.state === 'Done' && task.label?.includes('/3')));
     const result = h.node('g'); assert.ok(isImageGeneratorNode(result)); assert.equal(result.data.results?.length, 3);
@@ -906,10 +905,9 @@ function imageIteratorGraph(count = 3): ExecutionGraph {
 }
 
 test('Image Iterator submits one image per item to each model adapter and respects runs', async () => {
-  for (const type of ['sunburst', 'nano-banana', 'ideogram', 'image-describer'] as const) {
+  for (const type of ['sunburst', 'nano-banana', 'image-describer'] as const) {
     const graph = imageIteratorGraph();
     if (type === 'nano-banana') graph.nodes[2] = { id: 'g', type, position: { x: 0, y: 0 }, data: { ...defaultNanoBananaSettings, imageInputs: 1 } };
-    if (type === 'ideogram') graph.nodes[2] = { id: 'g', type, position: { x: 0, y: 0 }, data: { ...defaultIdeogramSettings, imageInputs: 1 } };
     if (type === 'image-describer') { graph.nodes[2] = describer('g'); graph.edges.pop(); }
     const h = harness(graph);
     try {
@@ -917,7 +915,7 @@ test('Image Iterator submits one image per item to each model adapter and respec
       assert.equal(h.requests.length, 6);
       for (const task of h.requests) {
         assert.equal(task.iteration?.kind, 'image');
-        const images = task.ideogramRequest ? [task.ideogramRequest.image] : task.imageRequest?.images ?? task.nanoBananaRequest?.images ?? task.images;
+        const images = task.imageRequest?.images ?? task.nanoBananaRequest?.images ?? task.images;
         assert.deepEqual(images, [`blob:image-${task.iteration?.index}`]);
       }
       assert.ok(h.store.getSnapshot().every(task => task.state === 'Done'));

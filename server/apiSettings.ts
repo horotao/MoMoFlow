@@ -4,7 +4,7 @@ import { apiProviders, validApiKey, validBaseUrl, type ApiProvider } from '../sr
 import { trusted } from './zenmuxShared.ts';
 import { ApiConfigurationError, byokFetch } from './byokFetch.ts';
 
-type ServerKeys = Record<Exclude<ApiProvider, 'apimart'>, string> & { apimart?: string };
+type ServerKeys = Record<ApiProvider, string>;
 
 async function readConnectionResponse(response: Response): Promise<Record<string, unknown>> {
   const reader = response.body?.getReader();
@@ -31,11 +31,7 @@ async function readConnectionResponse(response: Response): Promise<Record<string
 }
 
 export function connectionTestPath(provider: ApiProvider): string {
-  if (provider === 'wavespeed' || provider === 'apimart') return '/balance';
-  // ZenMux's model catalog is public, including with an invalid key. An
-  // authenticated read of a deliberately absent generation verifies the key
-  // without creating or billing a generation.
-  if (provider === 'zenmux') return '/management/generation?id=gen_momoflow_connection_test';
+  if (provider === 'apimart') return '/balance';
   return '/models';
 }
 
@@ -48,22 +44,12 @@ export async function checkApiConnection(provider: ApiProvider, baseUrl: string,
     if (status === 401 || status === 403) throw new ApiConfigurationError('API Key 无效或权限不足');
     if (status === 429 || status === 422) throw new ApiConfigurationError('请求过于频繁，请稍后重试');
     if ([408, 504, 524].includes(status)) throw new ApiConfigurationError('连接超时，请重试');
-    if (status === 404 && provider !== 'zenmux') throw new ApiConfigurationError('API 地址不正确，请检查 Base URL');
-    if (!response.ok && !(provider === 'zenmux' && status === 404)) throw new ApiConfigurationError(status === 402 ? '账户余额不足' : `连接失败（HTTP ${status}）`);
-    const body = await readConnectionResponse(response);
-    if (provider === 'zenmux' && status === 404 && body.success === false
-      && typeof body.message === 'string' && /generation.*not found/i.test(body.message)) return;
     if (status === 404) throw new ApiConfigurationError('API 地址不正确，请检查 Base URL');
+    if (!response.ok) throw new ApiConfigurationError(status === 402 ? '账户余额不足' : `连接失败（HTTP ${status}）`);
+    const body = await readConnectionResponse(response);
     if (body.error || body.success === false) throw new ApiConfigurationError('渠道商未确认连接成功');
-    if (provider === 'wavespeed') {
-      const data = body.data as { balance?: unknown } | undefined;
-      if (body.code !== 200 || typeof data?.balance !== 'number' || !Number.isFinite(data.balance)) throw new ApiConfigurationError('地址未返回有效余额响应');
-    } else if (provider === 'apimart') {
+    if (provider === 'apimart') {
       if (body.success !== true || (body.unlimited_quota !== true && (typeof body.remain_balance !== 'number' || !Number.isFinite(body.remain_balance)))) throw new ApiConfigurationError('地址未返回有效令牌余额响应');
-    } else if (provider === 'zenmux') {
-      // A normal result is also accepted for compatible gateways implementing
-      // the read endpoint, provided its authenticated result shape is present.
-      if (body.success !== true || !body.data || typeof body.data !== 'object') throw new ApiConfigurationError('地址未返回有效认证响应');
     } else if (!Array.isArray(body.data) || body.object !== 'list') throw new ApiConfigurationError('地址未返回有效模型列表');
   } finally { await response.body?.cancel().catch(() => {}); }
 }

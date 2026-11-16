@@ -1,20 +1,11 @@
-import { uploadApimartImages, readImageApiResponse } from './apimartUpload.ts';
+import { uploadApimartImages } from './apimartUpload.ts';
+import { requestApimartImage } from './apimartClient.ts';
 import { downloadApimartResult } from './apimartResult.ts';
 import { apiCredentialHeaders } from '../components/apiSettings.ts';
-import { ModelRequestCancelled, ModelRequestTimeout, modelRequestError } from './modelRequestError.ts';
 import { assetResources } from './assetResources.ts';
 import { readImage } from './imageGenerationClient.ts';
 import { seedreamInputFormats, seedreamMaxImages, validateSeedreamSettings, type SeedreamRequest } from './seedream.ts';
 import type { FileAsset } from './types';
-
-function waitForPoll(signal: AbortSignal) {
-  signal.throwIfAborted();
-  return new Promise<void>((resolve, reject) => {
-    const abort = () => { clearTimeout(timer); reject(signal.reason); };
-    const timer = setTimeout(() => { signal.removeEventListener('abort', abort); resolve(); }, 4000);
-    signal.addEventListener('abort', abort, { once: true });
-  });
-}
 
 export async function requestSeedream(input: SeedreamRequest, signal: AbortSignal): Promise<FileAsset> {
   const settings = validateSeedreamSettings(input);
@@ -35,37 +26,12 @@ export async function requestSeedream(input: SeedreamRequest, signal: AbortSigna
     blobs.push(blob);
   }
   const images = await uploadApimartImages(blobs, credentialHeaders, signal);
-  const call = async (path: string, body: object) => {
+  return requestApimartImage('/api/apimart/seedream', { ...settings, prompt: input.prompt, images }, credentialHeaders, signal, async result => {
+    const blob = await downloadApimartResult(result, settings.outputFormat, signal);
+    const bitmap = await createImageBitmap(blob);
+    const dimensions = { width: bitmap.width, height: bitmap.height };
+    bitmap.close();
     signal.throwIfAborted();
-    const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', ...credentialHeaders }, signal, body: JSON.stringify(body) });
-    const result = await readImageApiResponse(response);
-    if (!response.ok) throw modelRequestError(result.error || 'Seedream 请求失败。', response.status, result.code);
-    return result;
-  };
-  // Only this first call can create a billable task. Never resubmit on errors.
-  const submitted = await call('/api/apimart/seedream', { ...settings, prompt: input.prompt, images });
-  const taskId: unknown = submitted.taskId;
-  if (typeof taskId !== 'string' || !/^[a-zA-Z0-9_-]{1,200}$/.test(taskId)) throw new Error('APIMart 未返回有效任务编号，请检查请求记录后再手动重试。');
-  try {
-    for (;;) {
-      await waitForPoll(signal);
-      let result;
-      try { result = await call('/api/apimart/task', { taskId, outputFormat: settings.outputFormat }); }
-      catch (error) { if (error instanceof ModelRequestTimeout && !signal.aborted) continue; throw error; }
-      if (result.status === 'cancelled') throw new ModelRequestCancelled('APIMart 任务已取消。');
-      if (result.status !== 'completed') {
-        if (['submitted', 'pending', 'processing'].includes(result.status)) continue;
-        throw new Error('APIMart 返回了无效任务状态。');
-      }
-      const blob = await downloadApimartResult(result, settings.outputFormat, signal);
-      const bitmap = await createImageBitmap(blob);
-      const dimensions = { width: bitmap.width, height: bitmap.height }; bitmap.close();
-      signal.throwIfAborted();
-      return { id: crypto.randomUUID(), name: `Seedream-${Date.now()}.${settings.outputFormat}`, kind: 'image', url: assetResources.create(blob), size: blob.size, ...dimensions };
-    }
-  } catch (error) {
-    if (signal.aborted) throw error;
-    if (error instanceof ModelRequestCancelled) throw new ModelRequestCancelled(`${error.message}\n任务编号：${taskId}`);
-    throw new Error(`${error instanceof Error ? error.message : 'Seedream 查询失败。'}\n任务编号：${taskId}`);
-  }
+    return { id: crypto.randomUUID(), name: `Seedream-${Date.now()}.${settings.outputFormat}`, kind: 'image', url: assetResources.create(blob), size: blob.size, ...dimensions };
+  });
 }

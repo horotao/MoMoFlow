@@ -23,7 +23,7 @@ test('hosted BYOK routes reject untrusted requests and never use server keys', a
     req.on('error', reject);
     req.end(body);
   });
-  for (const path of ['/api/sunburst', '/api/describer', '/api/nano-banana', '/api/ideogram', '/api/ideogram/edit', '/api/apimart/images', '/api/apimart/seedream', '/api/apimart/task']) {
+  for (const path of ['/api/sunburst', '/api/describer', '/api/nano-banana', '/api/apimart/images', '/api/apimart/seedream', '/api/apimart/task']) {
     const response = await request(path);
     assert.equal(response.status, 401, path);
     assert.match((await response.json()).error, /API Key/);
@@ -32,7 +32,7 @@ test('hosted BYOK routes reject untrusted requests and never use server keys', a
   assert.equal((await request('/api/settings/test', '{')).status, 400);
   assert.equal((await request('/api/sunburst', '{}', { origin: 'https://evil.example' })).status, 403);
   assert.equal((await request('/api/sunburst', '{}', { host: 'evil.example', origin: 'https://evil.example' })).status, 403);
-  assert.equal((await request('/api/unknown')).status, 404);
+  for (const path of ['/api/unknown', '/api/ideogram', '/api/ideogram/edit']) assert.equal((await request(path)).status, 404);
   assert.equal((await request('/api/sunburst', '{}', { 'x-momoflow-api-key': 'invalid key' })).status, 400);
   process.env.VERCEL = '';
   assert.equal((await request('/api/settings/test')).status, 403);

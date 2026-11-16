@@ -16,7 +16,7 @@ export type NodeMenuGroup = { label?: string; entries: NodeMenuEntry[] };
 export type NodeMenuCategory = 'editing' | 'helpers';
 
 const assets: Record<string, string> = {
-  text: 'text', sunburst: 'openai', 'nano-banana': 'gemini', ideogram: 'ideogram', seedream: 'jimeng',
+  text: 'text', sunburst: 'openai', 'nano-banana': 'gemini', seedream: 'jimeng',
   'color-palette': 'paint-board', compositor: 'layers01', resize: 'arrow-expand01',
   'rotate-flip': 'rotate01', 'color-correction': 'sliders-vertical', levels: 'chart-histogram',
   invert: 'contrast', blur: 'blur', crop: 'crop', painter: 'paint-brush01',
@@ -45,7 +45,7 @@ export const nodeMenuCategories: Record<NodeMenuCategory, NodeMenuGroup[]> = {
   ],
 };
 export const nodeMenuGroups: NodeMenuGroup[] = [
-  { entries: [...['text', 'sunburst', 'nano-banana', 'ideogram', 'seedream'].map(node), lyria] },
+  { entries: [...['text', 'sunburst', 'nano-banana', 'seedream'].map(node), lyria] },
   { label: '工具', entries: [
     { id: 'editing', label: '图像编辑节点', asset: 'ai-image-edit' },
     { id: 'helpers', label: '辅助工具节点', asset: 'tool-case' },

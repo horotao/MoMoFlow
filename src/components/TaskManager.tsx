@@ -1,7 +1,6 @@
 import { useLayoutEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { clearFinishedTasks, isActiveTask, type PreviewTask, type TaskState } from '../nodes/taskQueue';
-import { ideogramName } from '../nodes/ideogram';
 import { seedreamName } from '../nodes/seedream';
 import { nanoBananaName } from '../nodes/nanoBanana';
 import { sunburstName } from '../nodes/sunburst';
@@ -15,8 +14,7 @@ const queueStates: Record<TaskState, QueueTask['state']> = {
 };
 
 function queueTask(task: PreviewTask): QueueTask {
-  const label = task.label || (task.ideogramRequest ? `${ideogramName}${task.ideogramRequest.image ? ' Edit' : ''}`
-    : task.seedreamRequest ? seedreamName : task.nanoBananaRequest ? nanoBananaName : task.imageRequest ? sunburstName : '图像描述');
+  const label = task.label || (task.seedreamRequest ? seedreamName : task.nanoBananaRequest ? nanoBananaName : task.imageRequest ? sunburstName : '图像描述');
   const iteration = task.iteration;
   const detail = iteration
     ? `${task.model} · 第 ${iteration.index + 1} ${iteration.kind === 'image' ? `张：${iteration.name}` : `条：${iteration.text}`}`

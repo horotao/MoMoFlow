@@ -19,8 +19,6 @@ import { resolveTextValue } from './textVariables.ts';
 import { effectiveSunburstSettings, prepareSunburstRun } from './sunburstRun.ts';
 import { prepareDescriberRun } from './describerRun.ts';
 import { effectiveNanoBananaSettings, prepareNanoBananaRun } from './nanoBananaRun.ts';
-import { effectiveIdeogramSettings, prepareIdeogramRun } from './ideogramRun.ts';
-import { defaultIdeogramSettings, defaultIdeogramEditSettings, validateIdeogramSettings, validateIdeogramEditSettings, validateIdeogramPrompt, ideogramEditFields, ideogramGenerationFields } from './ideogram.ts';
 import { outputKind } from './router.ts';
 import type { PreviewTask } from './taskQueue';
 
@@ -32,7 +30,7 @@ export type ExecutionGraph = {
 };
 export type GenerationRecord = { version: 1; inputSignature: string; outputSignature: string; iteration?: WorkflowIteration };
 export type OutputPolicy = { outputMode?: 'manual' | 'fixed'; sourceSignature?: string };
-export const isModelNode = (node: AppNode) => isDescriberNode(node) || isImageGeneratorNode(node);
+export const isModelNode = (node: AppNode) => isDescriberNode(node) || (isImageGeneratorNode(node) && node.type !== 'ideogram');
 export const stableSignature = (value: unknown): string => JSON.stringify(value, (_key, item: unknown) => {
   if (item && typeof item === 'object' && !Array.isArray(item)) return Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)));
   return item;
@@ -43,7 +41,7 @@ export function selectedResult(node: AppNode) {
 }
 export function fixedOutput(node: AppNode, graph: ExecutionGraph) {
   return isDescriberNode(node) ? node.data.outputMode === 'manual' && Boolean(node.data.text.trim())
-    : isImageGeneratorNode(node) && !graph.refreshImages?.has(node.id) && Boolean(selectedResult(node));
+    : isImageGeneratorNode(node) && (node.type === 'ideogram' || !graph.refreshImages?.has(node.id)) && Boolean(selectedResult(node));
 }
 export function executionInputs(node: AppNode, handle: string | null | undefined, graph: ExecutionGraph): Edge[] {
   const edges = graph.edges.filter(edge => edge.target === node.id);
@@ -51,15 +49,10 @@ export function executionInputs(node: AppNode, handle: string | null | undefined
   if (node.type === 'text-iterator') return edges.filter(edge => edge.targetHandle === 'input');
   if (node.type === 'compare') return edges.filter(edge => edge.targetHandle === (handle === 'output-2' ? 'input-2' : 'input-1'));
   if (isTextNode(node) && node.data.content) return edges.filter(edge => hasVariable(node.data.content!, edge.targetHandle ?? 'variable-1'));
-  if (node.type === 'model-input' || node.type === 'image-iterator' || node.type === 'file' || node.type === 'color-palette') return [];
+  if (node.type === 'model-input' || node.type === 'image-iterator' || node.type === 'file' || node.type === 'color-palette' || node.type === 'ideogram') return [];
   // Legacy edges for removed controls must not schedule upstream model calls.
   if (node.type === 'sunburst') return edges.filter(edge => !Object.keys(apimartFixedSettings).includes(edge.targetHandle ?? ''));
   if (isSeedreamNode(node) && isSeedreamExactSize(node.data.size) && !edges.some(edge => edge.targetHandle === 'size')) return edges.filter(edge => edge.targetHandle !== 'resolution');
-  if (node.type === 'ideogram') {
-    const edit = edges.some(edge => edge.targetHandle === 'image-0');
-    const fields: readonly string[] = edit ? ideogramEditFields : ideogramGenerationFields;
-    return edges.filter(edge => edge.targetHandle === 'prompt' || edge.targetHandle === 'mask' || /^image-\d+$/.test(edge.targetHandle ?? '') || fields.includes(edge.targetHandle ?? ''));
-  }
   if (isCompositorNode(node)) {
     const handles = new Set(node.data.document.layers.filter(layer => layer.visible || (node.data.document.canvas.autoSize && layer.source.kind === 'input' && layer.source.handle === 'background'))
       .flatMap(layer => layer.source.kind === 'input' ? [layer.source.handle] : []));
@@ -121,13 +114,9 @@ function configuration(node: AppNode, graph: ExecutionGraph, handle?: string | n
     const result = selectedResult(node);
     data.activeResult = result ? { resultId: result.id, ...assetIdentity(result) } : undefined;
   }
-  if (node.type === 'ideogram') {
-    const edit = graph.edges.some(edge => edge.target === node.id && edge.targetHandle === 'image-0');
-    for (const field of edit ? ideogramGenerationFields : ideogramEditFields) delete data[field];
-  }
   if (node.type === 'compare') return { locked: data.locked, input: handle === 'output-2' ? data.input2 : data.input1 };
   if (isTextNode(node) && node.data.content) delete data.text;
-  for (const edge of executionInputs(node, handle, graph)) if (edge.targetHandle && ['model', 'instructions', 'quality', 'background', 'size', 'outputFormat', 'aspectRatio', 'imageSize', 'resolution', 'enablePromptExpansion', 'editQuality', 'editPrecision', 'editSize'].includes(edge.targetHandle)) delete data[edge.targetHandle];
+  for (const edge of executionInputs(node, handle, graph)) if (edge.targetHandle && ['model', 'instructions', 'quality', 'background', 'size', 'outputFormat', 'aspectRatio', 'imageSize', 'resolution'].includes(edge.targetHandle)) delete data[edge.targetHandle];
   return JSON.parse(JSON.stringify(data, (key, value: unknown) => key === 'url' && typeof value === 'string' && value.startsWith('blob:') ? '<local-asset>' : value));
 }
 export function assetIdentity(asset: FileAsset) {
@@ -161,7 +150,8 @@ export function sourceSignature(graph: ExecutionGraph, node: AppNode) {
 export function prepareModel(graph: ExecutionGraph, id: string): PreviewTask {
   const node = graph.nodes.find(item => item.id === id);
   if (!node) throw new ExecutionProblem(id, '节点已删除。');
-  const prepare = node.type === 'image-describer' ? prepareDescriberRun : node.type === 'sunburst' ? prepareSunburstRun : node.type === 'nano-banana' ? prepareNanoBananaRun : node.type === 'seedream' ? prepareSeedreamRun : prepareIdeogramRun;
+  if (!isModelNode(node)) nodeProblem(node, '节点已下线或不能运行。');
+  const prepare = node.type === 'image-describer' ? prepareDescriberRun : node.type === 'sunburst' ? prepareSunburstRun : node.type === 'nano-banana' ? prepareNanoBananaRun : prepareSeedreamRun;
   const result = prepare(graph.nodes, graph.edges, [id], 1);
   if (result.error || !result.tasks[0]) nodeProblem(node, result.error ?? '节点已锁定或不能运行。');
   if (node.type === 'image-describer' && result.tasks[0].model !== 'deepseek-flash') nodeProblem(node, '请选择 deepseek-flash；其他模型尚未接入。');
@@ -185,7 +175,7 @@ export function requestSignature(task: PreviewTask, graph: ExecutionGraph) {
   }
   const replace = (value: unknown): unknown => typeof value === 'string' && assets.has(value) ? assets.get(value)
     : Array.isArray(value) ? value.map(replace) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replace(item)])) : value;
-  return stableSignature(['model-input-v1', task.model, replace(task.seedreamRequest ?? task.imageRequest ?? task.nanoBananaRequest ?? task.ideogramRequest ?? { instructions: task.instructions, images: task.images })]);
+  return stableSignature(['model-input-v1', task.model, replace(task.seedreamRequest ?? task.imageRequest ?? task.nanoBananaRequest ?? { instructions: task.instructions, images: task.images })]);
 }
 export function reusable(node: AppNode, signature: string) {
   if (isDescriberNode(node)) return Boolean(node.data.text.trim() && node.data.generation?.version === 1 && node.data.generation.inputSignature === signature && node.data.generation.outputSignature === stableSignature(node.data.text));
@@ -220,8 +210,7 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
     const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
     if (!unknown.has('prompt')) {
       const prompt = promptEdge ? resolveTextValue(promptEdge.source, graph.nodes, graph.edges).trim() : '';
-      if (node.type === 'ideogram') validateIdeogramPrompt(prompt);
-      else if (!prompt || prompt.length > 32000) throw new Error('请连接非空提示词，最多 32000 个字符。');
+      if (!prompt || prompt.length > 32000) throw new Error('请连接非空提示词，最多 32000 个字符。');
     }
     const masked = inputs.some(edge => edge.targetHandle === 'mask');
     const images = inputs.filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''));
@@ -237,16 +226,6 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
       validateSeedreamSettings(knownSettings(effectiveSeedreamSettings(node, graph.nodes, graph.edges), defaultSeedreamSettings));
     } else if (node.type === 'nano-banana') {
       validateNanoBananaSettings(knownSettings(effectiveNanoBananaSettings(node, graph.nodes, graph.edges), defaultNanoBananaSettings));
-    } else if (node.type === 'ideogram') {
-      const effective = knownSettings(effectiveIdeogramSettings(node, graph.nodes, graph.edges), { ...defaultIdeogramSettings, ...defaultIdeogramEditSettings });
-      if (images.some(edge => edge.targetHandle === 'image-0')) {
-        // Size is ignored in masked/high precision mode. If precision is dynamic,
-        // the effective size cannot be decided until that text is available.
-        validateIdeogramEditSettings({ ...effective, ...(masked || effective.editPrecision === 'high' || unknown.has('editPrecision') ? { editSize: 'auto' } : {}) }, masked);
-      } else {
-        if (masked || images.length) throw new Error('使用参考图或 Mask 时，必须将原图连接到 Image 输入。');
-        validateIdeogramSettings(effective);
-      }
     }
   } catch (error) { nodeProblem(node, error instanceof Error ? error.message : '输入参数无效。'); }
 }
@@ -264,6 +243,7 @@ function preflightSingle(graph: ExecutionGraph, targets: string[], runs: number)
       if (all.has(key)) return;
       all.add(key);
       if (!targets.includes(id) && fixedOutput(node, graph)) return;
+      if (node.type === 'ideogram') nodeProblem(node, 'Ideogram 已下线，请使用已保存的结果或更换节点。');
       if (id === target && (!isModelNode(node) || isNodeLocked(node))) nodeProblem(node, '节点已锁定或不能运行。');
       if (isMasksExtractorNode(node)) {
         if (!node.data.selection) nodeProblem(node, '请先完成必要选区。');

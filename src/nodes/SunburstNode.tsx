@@ -99,12 +99,12 @@ export function ImageGenerationNode({ id, type, data, isConnectable, name, icon,
         }} />} />}
     </motion.div>
     </div>
-    <div className="sunburst-actions">{maxImages > 0 && <button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= maxImages} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />{addImageLabel}</button>}<ModelRunButton appearance="image-node" nodeId={id} className="sunburst-run nodrag nopan" disabled={data.locked} onRun={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('describer-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</ModelRunButton></div>
-    <IterationSummary nodeId={id} />
+    {type === 'ideogram' ? <div className="sunburst-actions">模型已下线</div> : <div className="sunburst-actions">{maxImages > 0 && <button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= maxImages} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />{addImageLabel}</button>}<ModelRunButton appearance="image-node" nodeId={id} className="sunburst-run nodrag nopan" disabled={data.locked} onRun={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('describer-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</ModelRunButton></div>}
+    {type !== 'ideogram' && <IterationSummary nodeId={id} />}
     {ports.map(port => <div className={`media-port-${port.kind}`} key={port.id}>
       <NodePort label={port.label} id={port.id} type="target" position={Position.Left} top={port.top}
         title={((port.id === 'mask' && !mask) || hiddenParameters.includes(port.id)) ? `${port.label} · 当前渠道不支持，可断开或切换渠道` : undefined}
-        isConnectable={isConnectable && !data.locked && !(port.id === 'mask' && !mask) && !hiddenParameters.includes(port.id)}>
+        isConnectable={type !== 'ideogram' && isConnectable && !data.locked && !(port.id === 'mask' && !mask) && !hiddenParameters.includes(port.id)}>
         <img width={32} height={32} alt="" src={port.kind === 'image' ? '/image-node/port-image.svg' : port.kind === 'mask' ? '/image-node/port-mask.svg' : `/node-style/port-text${edges.some(edge => edge.target === id && edge.targetHandle === port.id) ? '-connected' : ''}.svg`} />
         {(port.kind === 'image' || port.kind === 'mask') && edges.some(edge => edge.target === id && edge.targetHandle === port.id) && <span className="media-port-dot" />}
       </NodePort>

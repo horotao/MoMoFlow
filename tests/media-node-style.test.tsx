@@ -235,21 +235,23 @@ async function run() {
       check(surface(id).querySelectorAll('.node-image-tile').length === 4, `${id}: four-image gallery`);
       check(surface(id).querySelectorAll('.node-image-column')[0].children.length === 2, `${id}: images distribute across columns`);
     }
+    const runnable = ['gpt', 'nano'];
     const widths: number[] = [];
     for (const value of [9, 10, 100]) {
       progress(value); await frame(); await frame();
-      for (const id of modelIds) {
+      for (const id of runnable) {
         const control = node(id).querySelector<HTMLElement>('.image-node-run-progress')!;
         widths.push(control.getBoundingClientRect().width);
         check(getComputedStyle(control).fontFamily.includes('DM Mono'), `${id} ${value}%: monospace progress font`);
       }
     }
-    check(widths.every(width => Math.abs(width - 98 * zoom) < .1), 'All three models keep a fixed 98px control at 9%, 10%, 100%');
-    for (const id of modelIds) {
+    check(widths.every(width => Math.abs(width - 98 * zoom) < .1), 'Active models keep a fixed 98px control at 9%, 10%, 100%');
+    for (const id of runnable) {
       button(id, '取消运行').click(); await frame(); await frame();
       check(tasks.getSnapshot().find(task => task.nodeId === id)?.state === 'Cancelled', `${id}: progress cancel still cancels the actual task`);
     }
     check(!node('nano').querySelector('[data-handleid="mask"]') && node('ideogram').querySelector('[data-handleid="mask"]'), 'Model-specific mask inputs are preserved');
+    check(node('ideogram').textContent?.includes('模型已下线') && !node('ideogram').querySelector('.sunburst-run'), 'Saved Ideogram nodes retain their gallery without a run action');
     for (const id of ['nano', 'ideogram']) check(Boolean(node(id).querySelector('.node-title-icon svg')), `${id}: original model brand icon is preserved`);
     fill(1);
     for (const id of [...allIds, 'preview']) await verifySingleImageFullscreen(id);

@@ -1,4 +1,3 @@
-import { ideogramFieldLabels, ideogramImageInputCount } from './ideogram.ts';
 import { sunburstFieldLabels, sunburstHiddenParameters } from './sunburst.ts';
 import { seedreamFieldLabels } from './seedream.ts';
 import { nanoBananaFieldLabels } from './nanoBanana.ts';
@@ -28,7 +27,7 @@ export function withoutReplacedInput(connection: Pick<Edge, 'target' | 'targetHa
 // Validate Router edits against their actual consumers before replacing the input.
 export function canConnect(connection: Connection | Edge, nodes: AppNode[], currentEdges: Edge[], pendingImportId?: string): boolean {
   const source = nodes.find(node => node.id === connection.source), target = nodes.find(node => node.id === connection.target);
-  if (!source || !target || isNodeLocked(source) || isNodeLocked(target) || source.id === target.id) return false;
+  if (!source || !target || target.type === 'ideogram' || isNodeLocked(source) || isNodeLocked(target) || source.id === target.id) return false;
   if (currentEdges.some(edge => edge.source === source.id && edge.target === target.id
     && (edge.sourceHandle ?? null) === (connection.sourceHandle ?? null)
     && inputKey(target, edge.targetHandle) === inputKey(target, connection.targetHandle))) return false;
@@ -71,8 +70,9 @@ export function canConnect(connection: Connection | Edge, nodes: AppNode[], curr
     if (checked.has(id)) continue;
     checked.add(id);
     for (const edge of graph.filter(item => item.source === id)) {
-      if (nodes.find(node => node.id === edge.target)?.type === 'router') routed.push(edge.target);
-      else if (!checkConsumer(edge)) return false;
+      const consumerType = nodes.find(node => node.id === edge.target)?.type;
+      if (consumerType === 'router') routed.push(edge.target);
+      else if (consumerType !== 'ideogram' && !checkConsumer(edge)) return false;
     }
   }
   return true;
@@ -105,6 +105,7 @@ function canConnectDirect(connection: Connection | Edge, nodes: AppNode[], curre
     if (!(paletteImage || source.type === 'image-iterator' || source.type === 'compare' || (source.type === 'painter' || source.type === 'masks-extractor') || source.type === 'color-correction' || source.type === 'crop' || source.type === 'matte-grow-shrink' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'blend' || source.type === 'rotate-flip' || source.type === 'resize' || source.type === 'compositor' || isImageGeneratorNode(source) || (source.type === 'file' && (fileOutputKind(source.data) === 'image' || (source.id === pendingImportId && fileAssets(source.data).length === 0))))) return false;
   }
   if (target?.type === 'model-input') return false;
+  if (target?.type === 'ideogram') return false;
   if (target && isImageGeneratorNode(target)) {
     if (target.type === 'sunburst') {
       const parameter = (field: 'provider' | 'channelModel' | 'outputFormat') => {
@@ -116,9 +117,9 @@ function canConnectDirect(connection: Connection | Edge, nodes: AppNode[], curre
       if (sunburstHiddenParameters(provider, channelModel, outputFormat).includes(connection.targetHandle ?? '')) return false;
     }
     if (currentEdges.some(edge => edge.target === target.id && edge.targetHandle === connection.targetHandle)) return false;
-    if (connection.targetHandle === 'prompt' || (target.data.exposed ?? []).some(field => field in (target.type === 'sunburst' ? sunburstFieldLabels : target.type === 'ideogram' ? ideogramFieldLabels : target.type === 'seedream' ? seedreamFieldLabels : nanoBananaFieldLabels) && field === connection.targetHandle)) {
+    if (connection.targetHandle === 'prompt' || (target.data.exposed ?? []).some(field => field in (target.type === 'sunburst' ? sunburstFieldLabels : target.type === 'seedream' ? seedreamFieldLabels : nanoBananaFieldLabels) && field === connection.targetHandle)) {
       if (!source || !(paletteText || ['text-iterator', 'text', 'image-describer', 'model-input'].includes(source.type ?? ''))) return false;
-    } else if (((target.type === 'sunburst' || target.type === 'ideogram') && connection.targetHandle === 'mask') || (/^image-\d+$/.test(connection.targetHandle ?? '') && (target.type === 'sunburst' || Number(connection.targetHandle?.slice(6)) < (target.type === 'ideogram' ? ideogramImageInputCount(target.data.imageInputs) : target.data.imageInputs)))) {
+    } else if ((target.type === 'sunburst' && connection.targetHandle === 'mask') || (/^image-\d+$/.test(connection.targetHandle ?? '') && (target.type === 'sunburst' || Number(connection.targetHandle?.slice(6)) < target.data.imageInputs))) {
       if (!source || !(paletteImage || source.type === 'image-iterator' || source.type === 'compare' || isImageGeneratorNode(source) || (source.type === 'painter' || source.type === 'masks-extractor') || source.type === 'color-correction' || source.type === 'crop' || source.type === 'matte-grow-shrink' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'blend' || source.type === 'rotate-flip' || source.type === 'resize' || source.type === 'compositor' || (source.type === 'file' && (fileOutputKind(source.data) === 'image' || (source.id === pendingImportId && fileAssets(source.data).length === 0))))) return false;
     } else return false;
   }

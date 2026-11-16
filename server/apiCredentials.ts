@@ -22,9 +22,3 @@ export function providerConnection(req: IncomingMessage, provider: ApiProvider, 
     fetch: credential && providerFetch === globalThis.fetch ? byokFetch : providerFetch,
   };
 }
-
-export function zenmuxVertexBase(baseUrl: string) {
-  // The UI stores the OpenAI-compatible base. Nano Banana uses the sibling
-  // Vertex endpoint on the same configured gateway and path prefix.
-  return `${baseUrl.replace(/\/v1\/?$/, '')}/vertex-ai/v1`;
-}

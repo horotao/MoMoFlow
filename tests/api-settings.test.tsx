@@ -87,6 +87,7 @@ async function run() {
     await click('.api-settings-select'); await wait(400);
     const list = find('.api-settings-select-popup .settings-select-list');
     const rows = Array.from(list.querySelectorAll<HTMLElement>('[role="option"]'));
+    check(rows.map(row => row.textContent?.trim()).join(',') === 'OpenAI 官方,APIMart,DeepSeek', 'API settings lists only the active BYOK providers');
     check(rows.every(row => Math.abs(row.getBoundingClientRect().height - 36) < 1) && getComputedStyle(list).rowGap === '4px', 'Provider options use spacious 36px rows with 4px gaps');
     check(list.scrollHeight <= list.clientHeight + 1 && rows[rows.length - 1].getBoundingClientRect().bottom <= list.getBoundingClientRect().bottom, 'Popup sizing includes the larger rows and gaps without clipping the last option');
     check(getComputedStyle(find('.api-settings-select')).borderRadius === '8px'
@@ -94,7 +95,7 @@ async function run() {
       && rows.every(row => getComputedStyle(row).borderRadius === '3px'), 'Closed and open surfaces share 8px corners with concentric inset option corners');
     check(document.querySelectorAll('[role="option"][aria-selected="true"]').length === 1 && !document.querySelector('.settings-select-popup .settings-select-row'), 'Provider popup keeps one checked selected option with no duplicate header');
     const options = document.querySelectorAll<HTMLElement>('[role="option"]'); options[1].click(); await settle();
-    check(urlField().value === 'https://zenmux.ai/api/v1' && keyField().value === '', 'Changing provider selects its URL without carrying another provider key');
+    check(urlField().value === 'https://api.apimart.ai/v1' && keyField().value === '', 'Changing provider selects its URL without carrying another provider key');
     await click('.api-settings-select'); await wait(400); document.querySelectorAll<HTMLElement>('[role="option"]')[0].click(); await settle();
     check(keyField().value === 'sk-test-only', 'Switching back restores the current provider draft');
     setMode('success'); await settle();

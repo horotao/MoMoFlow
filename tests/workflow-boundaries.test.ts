@@ -3,7 +3,6 @@ import { readExecutionAsset } from '../src/nodes/executionAssets';
 import { renderExecutionOutput } from '../src/nodes/executionLocal';
 import { defaultPainterData, painterRevision } from '../src/nodes/painter';
 import { defaultSunburstSettings } from '../src/nodes/sunburst';
-import { defaultIdeogramSettings } from '../src/nodes/ideogram';
 import { assetResources, nodeAssetUrls } from '../src/nodes/assetResources';
 import { prepareModel, requestSignature, type ExecutionGraph } from '../src/nodes/executionGraph';
 import { isImageGeneratorNode, isPainterNode } from '../src/nodes/types';
@@ -29,7 +28,7 @@ function harness(initial: ExecutionGraph, sample: FileAsset, overrides: Partial<
     verify: async (assets, signal) => { for (const asset of assets) await readExecutionAsset(asset.url, signal); },
     local: renderExecutionOutput,
     ...overrides,
-    request: async (task, signal) => { requests.push(task); return overrides.request ? overrides.request(task, signal) : task.imageRequest || task.ideogramRequest ? { ...sample, id: crypto.randomUUID() } : 'Description'; },
+    request: async (task, signal) => { requests.push(task); return overrides.request ? overrides.request(task, signal) : task.imageRequest ? { ...sample, id: crypto.randomUUID() } : 'Description'; },
   });
   return { engine, requests, store, get graph() { return graph; } };
 }
@@ -165,11 +164,11 @@ export async function runBoundaryChecks(sample: FileAsset, check: (value: unknow
   } finally { releaseExports(); iterated.engine.dispose(); assetResources.discard(iteratorOutputs); }
 
   // Native Painter exports, including the actual alpha PNG consumed by adapters.
-  for (const type of ['sunburst', 'ideogram'] as const) for (const expired of [false, true]) {
+  for (const expired of [false, true]) {
     const data = { ...defaultPainterData, baseImage: sample, width: 64, height: 48 };
     const expiredUrl = URL.createObjectURL(new Blob(['expired'])); URL.revokeObjectURL(expiredUrl);
     const painter: AppNode = { id: 'painter', type: 'painter', position, data: { ...data, mask: sample, ...(expired ? { alphaMask: { ...sample, url: expiredUrl } } : {}), outputRevision: painterRevision(data, sample.id) } };
-    const target: AppNode = type === 'sunburst' ? generate('g') : { id: 'g', type, position, data: { ...defaultIdeogramSettings, imageInputs: 1 } };
+    const target = generate('g');
     const nodes: AppNode[] = [file, text('p', 'edit'), painter, { id: 'r', type: 'router', position, data: {} }, target];
     let exports = 0;
     const outputUrls: string[] = [];
@@ -177,9 +176,9 @@ export async function runBoundaryChecks(sample: FileAsset, check: (value: unknow
       local: async (...args) => { exports++; const patch = await renderExecutionOutput(...args); for (const value of Object.values(patch)) if (value && typeof value === 'object' && 'url' in value) outputUrls.push(String(value.url)); return patch; },
     });
     await h.engine.run(['g'], 1);
-    const mask = (h.requests[0]?.imageRequest ?? h.requests[0]?.ideogramRequest)?.mask;
+    const mask = h.requests[0]?.imageRequest?.mask;
     const alpha = h.graph.nodes.find(node => node.id === 'painter')!;
-    check(exports === 1 && isPainterNode(alpha) && mask === alpha.data.alphaMask?.url && mask !== expiredUrl && Boolean(mask) && h.store.getSnapshot().every(task => task.state === 'Done'), `${type}: ${expired ? 'expired' : 'missing'} Painter alpha mask is rebuilt through Router before model preparation`);
+    check(exports === 1 && isPainterNode(alpha) && mask === alpha.data.alphaMask?.url && mask !== expiredUrl && Boolean(mask) && h.store.getSnapshot().every(task => task.state === 'Done'), `GPT Image: ${expired ? 'expired' : 'missing'} Painter alpha mask is rebuilt through Router before model preparation`);
     h.engine.dispose(); assetResources.discard(outputUrls);
   }
 

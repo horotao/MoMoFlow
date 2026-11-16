@@ -1,12 +1,8 @@
 import { useWorkflowExecution } from './useWorkflowExecution';
 import { IterationSummary } from './IterationSummary';
-import { ExecutionProblem } from '../nodes/executionGraph';
-import { IdeogramSettings } from './IdeogramSettings';
-import { ideogramName } from '../nodes/ideogram';
-import { isIdeogramNode } from '../nodes/types';
+import { ExecutionProblem, isModelNode } from '../nodes/executionGraph';
 import { SeedreamSettings } from './SeedreamSettings';
 import { seedreamName } from '../nodes/seedream';
-import { isSeedreamNode } from '../nodes/types';
 import { NanoBananaSettings } from './NanoBananaSettings';
 import { nanoBananaName } from '../nodes/nanoBanana';
 import { ModelOptionsSettings } from './ModelOptionsSettings';
@@ -19,7 +15,7 @@ import { X } from 'lucide-react';
 import { TaskManager } from './TaskManager';
 import { isActiveTask } from '../nodes/taskQueue';
 import { useModelRuns, useModelTasks, useModelTaskStore } from './useModelTasks';
-import { isDescriberNode, isNodeLocked, isImageGeneratorNode, isSunburstNode, isNanoBananaNode } from '../nodes/types';
+import { isDescriberNode, isIdeogramNode, isNodeLocked, isImageGeneratorNode, isSunburstNode, isNanoBananaNode, isSeedreamNode } from '../nodes/types';
 import type { AppNode, ImageDescriberNode, ModelInputNode } from '../nodes/types';
 import { DescriberIcon } from './DescriberIcon';
 import { DescriberModelSelect } from './DescriberModelSelect';
@@ -58,9 +54,9 @@ export function DescriberPanel() {
     if (!node || isNodeLocked(node)) return;
     rawUpdateNodeData(id, data, options);
   };
-  const runnable = nodes.filter((node) => (isDescriberNode(node) || isImageGeneratorNode(node)) && node.selected && !node.data.locked);
-  const selectedImage = nodes.find((node) => isImageGeneratorNode(node) && node.selected);
-  const providerName = selectedImage && isSeedreamNode(selectedImage) ? 'APIMart' : selectedImage && isIdeogramNode(selectedImage) ? 'WaveSpeed' : selectedImage && isSunburstNode(selectedImage) ? sunburstProviderLabels[selectedImage.data.provider ?? 'zenmux'] : 'ZenMux';
+  const runnable = nodes.filter((node) => isModelNode(node) && node.selected && !node.data.locked);
+  const selectedImage = nodes.find((node) => isImageGeneratorNode(node) && !isIdeogramNode(node) && node.selected);
+  const providerName = selectedImage && isSunburstNode(selectedImage) ? sunburstProviderLabels[selectedImage.data.provider ?? 'openai'] : 'APIMart';
   const selected = nodes.find((n): n is ImageDescriberNode => n.type === 'image-describer' && Boolean(n.selected));
   const selectedModel = nodes.find((n): n is ModelInputNode => n.type === 'model-input' && Boolean(n.selected));
   const panelOpen = Boolean(selected || selectedModel || selectedImage);
@@ -111,10 +107,9 @@ export function DescriberPanel() {
   return <>
     {/* Presence retains the last settings and full-height shell until the exit finishes. */}
     <AnimatePresence initial={false}>
-      {panelOpen && <NodeSettingsSidebar key="node-settings" sunburst={sunburstPanel} label={selectedImage ? `${selectedImage.type === 'seedream' ? seedreamName : selectedImage.type === 'ideogram' ? ideogramName : selectedImage.type === 'nano-banana' ? nanoBananaName : sunburstName} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => e.stopPropagation()}>
+      {panelOpen && <NodeSettingsSidebar key="node-settings" sunburst={sunburstPanel} label={selectedImage ? `${selectedImage.type === 'seedream' ? seedreamName : selectedImage.type === 'nano-banana' ? nanoBananaName : sunburstName} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => e.stopPropagation()}>
         {selectedModel && !selectedImage && <ModelOptionsSettings key={selectedModel.id} node={selectedModel} onChange={data => updateNodeData(selectedModel.id, data)} />}
         {selectedImage && isSunburstNode(selectedImage) && <SunburstSettings key={selectedImage.id} node={selectedImage} />}
-        {selectedImage && isIdeogramNode(selectedImage) && <IdeogramSettings key={selectedImage.id} node={selectedImage} />}
         {selectedImage && isSeedreamNode(selectedImage) && <SeedreamSettings key={selectedImage.id} node={selectedImage} />}
         {selectedImage && isNanoBananaNode(selectedImage) && <NanoBananaSettings key={selectedImage.id} node={selectedImage} />}
         {selected && !selectedImage && <>
@@ -139,7 +134,7 @@ export function DescriberPanel() {
             </div></div>
             {(selectedImage || selected) && <IterationSummary nodeId={(selectedImage || selected)!.id} />}
             {selectedImage && <div className="sunburst-cost"><span>总费用</span><span>按实际用量计费</span></div>}
-            <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? `通过 ${providerName} 运行图片模型` : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => (isDescriberNode(node) || isImageGeneratorNode(node)) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />运行选中节点</button>
+            <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? `通过 ${providerName} 运行图片模型` : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => isModelNode(node) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />运行选中节点</button>
           </div>
         </>}
       </NodeSettingsSidebar>}
@@ -147,7 +142,7 @@ export function DescriberPanel() {
     <TaskManager sidebarOpen={panelOpen}
       onRetry={(task) => {
         const node = getNodes().find((item) => item.id === task.nodeId);
-        if (!node || (!isDescriberNode(node) && !isImageGeneratorNode(node)) || node.data.locked) return;
+        if (!node || !isModelNode(node) || node.data.locked) return;
         try {
           void execution.current?.run([task.nodeId], 1, task.iteration);
           setError('');

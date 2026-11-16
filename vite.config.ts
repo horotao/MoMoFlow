@@ -1,5 +1,3 @@
-import { ideogramPlugin } from './server/ideogram';
-import { nanoBananaPlugin } from './server/nanoBanana';
 import { defineConfig, loadEnv } from 'vite';
 import { sunburstPlugin } from './server/sunburst';
 import { deepseekPlugin } from './server/deepseek';
@@ -11,11 +9,9 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig(({ mode }) => ({
   plugins: [apimartPlugin(loadEnv(mode, process.cwd(), 'APIMART_').APIMART_API_KEY ?? ''), apiSettingsPlugin({
     openai: loadEnv(mode, process.cwd(), 'OPENAI_').OPENAI_API_KEY ?? '',
-    zenmux: loadEnv(mode, process.cwd(), 'ZENMUX_').ZENMUX_API_KEY ?? '',
     apimart: loadEnv(mode, process.cwd(), 'APIMART_').APIMART_API_KEY ?? '',
     deepseek: loadEnv(mode, process.cwd(), 'DEEPSEEK_').DEEPSEEK_API_KEY ?? '',
-    wavespeed: loadEnv(mode, process.cwd(), 'WAVESPEED_').WAVESPEED_API_KEY ?? '',
-  }), ideogramPlugin(loadEnv(mode, process.cwd(), 'WAVESPEED_').WAVESPEED_API_KEY ?? ''), nanoBananaPlugin(loadEnv(mode, process.cwd(), 'ZENMUX_').ZENMUX_API_KEY ?? ''), react(), tailwindcss(), deepseekPlugin(loadEnv(mode, process.cwd(), 'DEEPSEEK_').DEEPSEEK_API_KEY ?? ''), sunburstPlugin({
+  }), react(), tailwindcss(), deepseekPlugin(loadEnv(mode, process.cwd(), 'DEEPSEEK_').DEEPSEEK_API_KEY ?? ''), sunburstPlugin({
     zenmux: loadEnv(mode, process.cwd(), 'ZENMUX_').ZENMUX_API_KEY ?? '',
     openai: loadEnv(mode, process.cwd(), 'OPENAI_').OPENAI_API_KEY ?? '',
   })],

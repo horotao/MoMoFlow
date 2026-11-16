@@ -167,13 +167,13 @@ export class WorkflowExecution {
   }
   private placeholder(id: string, batchId: string, iteration?: WorkflowIteration): PreviewTask {
     const node = this.graph.nodes.find(item => item.id === id)!;
-    const label = node.data.label || ({ sunburst: 'GPT Image 2.6', 'nano-banana': 'Nano Banana', seedream: seedreamName, ideogram: 'Ideogram 4.5', 'image-describer': '图像描述' } as Record<string, string>)[node.type!] || node.type;
+    const label = node.data.label || ({ sunburst: 'GPT Image 2.6', 'nano-banana': 'Nano Banana', seedream: seedreamName, 'image-describer': '图像描述' } as Record<string, string>)[node.type!] || node.type;
     return { id: crypto.randomUUID(), nodeId: id, batchId, label: iteration ? `${label} · ${iteration.index + 1}/${iteration.total}` : label, iteration, model: node.type!, createdAt: Date.now(), state: 'Queued', progress: 0, started: 0, notice: '等待上游' };
   }
   private ensureInput(root: Root, consumer: AppNode, edge: Edge) {
     // Match the model adapter's Painter Mask alias, including Router chains.
     // Compare exposes its visible image instead and retains that existing rule.
-    if (['sunburst', 'ideogram'].includes(consumer.type ?? '') && edge.targetHandle === 'mask') {
+    if (consumer.type === 'sunburst' && edge.targetHandle === 'mask') {
       const graph = this.graphFor(root);
       const origin = resolveOutputSource(graph.nodes.find(node => node.id === edge.source), edge.sourceHandle, graph.nodes, graph.edges);
       if (origin?.node.type === 'painter' && origin.handle === 'mask') return this.ensure(root, origin.node.id, 'alpha-mask');
@@ -352,7 +352,7 @@ export class WorkflowExecution {
       aborted(controller.signal);
       // APIMart returns a task ID and keeps polling it; a total deadline would
       // discard a still-running task and tempt a duplicate paid submission.
-      if (prepared.imageRequest?.provider !== 'apimart' && !prepared.seedreamRequest) timeout = setTimeout(() => controller.abort(new ModelRequestTimeout('请求超时；不会自动重试。')), isDescriberNode(this.graph.nodes.find(node => node.id === id)!) ? 130000 : 310000);
+      if (prepared.imageRequest?.provider !== 'apimart' && !prepared.seedreamRequest && !prepared.nanoBananaRequest) timeout = setTimeout(() => controller.abort(new ModelRequestTimeout('请求超时；不会自动重试。')), isDescriberNode(this.graph.nodes.find(node => node.id === id)!) ? 130000 : 310000);
       const queued = this.store.getSnapshot().find(task => task.id === taskId)!;
       const task = { ...prepared, id: taskId, label: queued.label, iteration: queued.iteration, notice: undefined, state: 'Running' as const, started: Date.now() };
       // Retain the caller's batch identity and user-visible label.

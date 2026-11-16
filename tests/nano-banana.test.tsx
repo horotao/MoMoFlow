@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useNodes, useEdges, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
 import { Flow } from '../src/App';
 import type { AppNode, NanoBananaNode } from '../src/nodes/types';
+import { apiSettingsStorageKey, saveApiSettings } from '../src/components/apiSettings';
 import { createLibraryNode } from '../src/components/libraryCatalog';
 import { imageOutput } from '../src/nodes/sunburstRun';
 import { assetResources } from '../src/nodes/assetResources';
@@ -19,7 +20,8 @@ function Probe() {
 }
 const settle = () => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 async function until(check: () => boolean, message: string) {
-  for (let index = 0; index < 300; index++) { if (check()) return; await settle(); }
+  const deadline = performance.now() + 12000;
+  while (performance.now() < deadline) { if (check()) return; await settle(); }
   throw new Error(message);
 }
 const find = <T extends HTMLElement = HTMLButtonElement>(selector: string) => {
@@ -42,16 +44,40 @@ async function run() {
   const requests: Record<string, unknown>[] = [];
   let mode: 'success' | 'cancel' | 'failure' = 'success';
   let cancelled = false;
+  let uploads = 0, polls = 0, downloads = 0;
+  const gateway = 'https://banana-gateway.example/v1';
+  const referenceUrl = 'https://cdn.example/uploaded.png';
+  const resultUrl = 'https://cdn.example/banana-result.png';
+  saveApiSettings({ provider: 'apimart', credentials: { apimart: { baseUrl: gateway, apiKey: 'test-credential' } } });
   // This test page never forwards any model API request or uses real credentials.
   window.fetch = async (url, init) => {
     const path = typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
+    const headers = new Headers(init?.headers);
+    if (path === `${gateway}/uploads/images?retention_days=3`) {
+      if (headers.get('Authorization') !== 'Bearer test-credential' || !(init?.body instanceof FormData)) throw new Error('Invalid upload request');
+      const file = init.body.get('file');
+      if (!(file instanceof File) || file.size !== blob.size || file.type !== 'image/png') throw new Error('Invalid attached file');
+      uploads++;
+      return Response.json({ url: referenceUrl });
+    }
     if (path === '/api/nano-banana') {
+      if (headers.get('X-MoMoFlow-Provider') !== 'apimart' || headers.get('X-MoMoFlow-Api-Key') !== 'test-credential') throw new Error('APIMart credentials not used');
       requests.push(JSON.parse(String(init?.body)));
       if (mode === 'cancel') return await new Promise<Response>((_resolve, reject) => {
         init?.signal?.addEventListener('abort', () => { cancelled = true; reject(new DOMException('Cancelled', 'AbortError')); }, { once: true });
       });
       if (mode === 'failure') return Response.json({ error: 'Mock provider failure · Request ID: banana-qa' }, { status: 502 });
-      return Response.json({ images: [{ image, format: 'png' }, { image, format: 'png' }] });
+      return Response.json({ taskId: `task_banana_${requests.length}` });
+    }
+    if (path === '/api/apimart/task') {
+      if (headers.get('X-MoMoFlow-Api-Key') !== 'test-credential' || JSON.parse(String(init?.body)).taskId !== `task_banana_${requests.length}`) throw new Error('Invalid task lookup');
+      polls++;
+      return polls === 1 ? Response.json({ status: 'processing' }) : Response.json({ status: 'completed', imageUrl: resultUrl });
+    }
+    if (path === resultUrl) {
+      if (headers.has('Authorization') || headers.has('X-MoMoFlow-Api-Key') || init?.credentials !== 'omit') throw new Error('CDN request carried credentials');
+      downloads++;
+      return new Response(blob);
     }
     if (path.startsWith('/api/') || /^https?:/.test(path)) throw new Error('Unexpected network request in isolated QA');
     return originalFetch(url, init);
@@ -73,6 +99,7 @@ async function run() {
   root.render(<ReactFlowProvider><Flow storage={storage} saved={workflow} /><Probe /></ReactFlowProvider>);
   await until(() => Boolean(document.querySelector('[aria-label="Nano Banana 设置"]')), 'Node and settings mount');
   check(find('[data-id="banana"] .node-title-label').textContent?.includes('Nano Banana'), 'Dedicated model title and settings');
+  check(find('.sunburst-provider').textContent?.includes('APIMart'), 'Settings identify APIMart as the provider');
   check(!document.querySelector('[data-id="banana"] [data-handleid="mask"]'), 'Only Gemini input ports, without OpenAI mask');
   find('[aria-label="分辨率"]').click(); await settle();
   const select = (text: string) => {
@@ -89,8 +116,8 @@ async function run() {
   check(!read().data.exposed?.length && read().data.imageSize === '2K', 'Returning to local settings preserves effective value');
   const runButton = () => find('[data-id="banana"] .sunburst-run');
   runButton().click();
-  await until(() => read().data.results?.length === 2, 'Mock generation completes');
-  check(requests.length === 1 && (requests[0].images as string[]).length === 0, 'Text-only generation submits exactly once');
+  await until(() => read().data.results?.length === 1, 'Mock generation completes');
+  check(requests.length === 1 && (requests[0].images as string[]).length === 0 && uploads === 0 && polls === 2 && downloads === 1, 'Text-only generation submits once, polls the same task and downloads the result URL');
   check(requests[0].imageSize === '2K' && requests[0].aspectRatio === '16:9', 'Selected parameters reach the API');
   check(document.querySelector('.model-queue-name')?.textContent?.includes('Nano Banana'), 'Task manager shows the correct model');
   check(read().data.results?.every(asset => asset.width === 640 && asset.height === 360), 'All returned images are decoded at actual dimensions');
@@ -103,10 +130,10 @@ async function run() {
     { id: 'reference', source: 'reference', sourceHandle: 'file', target: 'banana', targetHandle: 'image-0' },
     { id: 'output', source: 'banana', sourceHandle: 'result', target: 'preview', targetHandle: 'file' },
   ]); await settle();
-  runButton().click(); await until(() => read().data.results?.length === 4, 'Reference edit completes');
-  check((requests[1].images as string[])[0] === image, 'Reference blob is converted to inline image bytes');
+  runButton().click(); await until(() => read().data.results?.length === 2, 'Reference edit completes');
+  check(uploads === 1 && JSON.stringify(requests[1].images) === JSON.stringify([referenceUrl]), 'Reference bytes are uploaded before generation and only the returned URL is submitted');
   check(requests[1].outputFormat === 'jpeg', 'JPEG selection is included in the task snapshot');
-  const jpegAsset = read().data.results![2], jpeg = await (await originalFetch(jpegAsset.url)).blob();
+  const jpegAsset = read().data.results![1], jpeg = await (await originalFetch(jpegAsset.url)).blob();
   const jpegBytes = new Uint8Array(await jpeg.arrayBuffer());
   const jpegBitmap = await createImageBitmap(jpeg);
   check(jpeg.type === 'image/jpeg' && jpegBytes[0] === 255 && jpegBytes[1] === 216 && jpegAsset.name.endsWith('.jpeg') && jpegBitmap.width === 640 && jpegBitmap.height === 360, 'Local JPEG output has real JPEG bytes, extension and unchanged dimensions');
@@ -117,7 +144,7 @@ async function run() {
   find('[data-id="banana"] [aria-label="上一张"]').click(); await settle();
   check(imageOutput(read(), 'result')[0]?.id === read().data.activeResultId, 'Selected result is the downstream output');
   find('[data-id="banana"] [aria-label="图片画廊"]').click(); await settle();
-  check(document.querySelectorAll('[data-id="banana"] .node-image-tile').length === 4, 'Gallery retains all generated results');
+  check(document.querySelectorAll('[data-id="banana"] .node-image-tile').length === 2, 'Gallery retains all generated results');
   find('[data-id="banana"] [aria-label="返回单张展示"]').click(); await settle();
   const before = api.getNodes().length;
   find('[data-id="banana"] [aria-label="更多选项"]').click(); await settle();
@@ -129,26 +156,30 @@ async function run() {
   api.setNodes(current => current.map(node => ({ ...node, selected: node.id === 'banana' }))); await settle();
   mode = 'cancel'; runButton().click(); await until(() => requests.length === 3, 'Cancellable request starts');
   find('.model-queue-row [aria-label^="取消 "]').click(); await until(() => cancelled, 'Cancellation reaches fetch signal');
-  check(read().data.results?.length === 4, 'Cancelled task keeps previous results');
+  check(read().data.results?.length === 2, 'Cancelled task keeps previous results');
   mode = 'failure';
   find('.model-queue-toggle[aria-expanded="true"]').click(); await settle(); runButton().click();
   await until(() => Boolean(document.querySelector('.task-error')?.textContent?.includes('banana-qa')), 'Provider error appears');
-  check(requests.length === 4 && read().data.results?.length === 4, 'Failure does not retry or erase previous images');
+  check(requests.length === 4 && read().data.results?.length === 2, 'Failure does not retry or erase previous images');
   find('.model-queue-toggle[aria-expanded="true"]').click(); await settle();
   const saved = new WorkflowStorage(`${db}-roundtrip`); await saved.load();
   await saved.save({ ...workflow, nodes: api.getNodes(), edges: api.getEdges() });
   const reload = new WorkflowStorage(`${db}-roundtrip`), restored = await reload.load();
   const restoredNode = restored?.nodes.find(node => node.id === 'banana') as NanoBananaNode;
-  check(restoredNode.data.imageSize === '2K' && restoredNode.data.outputFormat === 'jpeg' && restoredNode.data.results?.length === 4 && restoredNode.data.activeResultId === read().data.activeResultId, 'IndexedDB restores parameters, all results and active selection');
+  check(restoredNode.data.imageSize === '2K' && restoredNode.data.outputFormat === 'jpeg' && restoredNode.data.results?.length === 2 && restoredNode.data.activeResultId === read().data.activeResultId, 'IndexedDB restores parameters, all results and active selection');
   const bitmap = await createImageBitmap(await (await originalFetch(restoredNode.data.results![0].url)).blob());
   check(bitmap.width === 640 && bitmap.height === 360, 'Restored image bytes remain readable'); bitmap.close();
-  const restoredJpeg = await (await originalFetch(restoredNode.data.results![2].url)).blob();
+  const restoredJpeg = await (await originalFetch(restoredNode.data.results![1].url)).blob();
   check(restoredJpeg.type === 'image/jpeg' && restoredJpeg.size === jpeg.size, 'IndexedDB restores locally converted JPEG bytes');
   reload.dispose(); saved.dispose();
   mode = 'success';
   find('#results').dataset.result = 'passed'; find('#results').textContent = `PASS · ${checks.length} checks · mock only\n${checks.join('\n')}`;
 }
 
+const previousSettings = localStorage.getItem(apiSettingsStorageKey);
 void run().catch(error => {
   const status = find('#results'); status.dataset.result = 'failed'; status.textContent = `${checks.join('\n')}\nFAIL: ${error instanceof Error ? error.message : error}`;
+}).finally(() => {
+  if (previousSettings === null) localStorage.removeItem(apiSettingsStorageKey);
+  else localStorage.setItem(apiSettingsStorageKey, previousSettings);
 });

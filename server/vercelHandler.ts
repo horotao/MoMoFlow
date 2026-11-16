@@ -2,21 +2,18 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createApiSettingsMiddleware } from './apiSettings.ts';
 import { createApimartMiddleware } from './apimart.ts';
 import { createDeepseekMiddleware } from './deepseek.ts';
-import { createIdeogramMiddleware } from './ideogram.ts';
-import { createNanoBananaMiddleware } from './nanoBanana.ts';
 import { createSunburstMiddleware } from './sunburst.ts';
 import { trustedDeploymentRequest } from './zenmuxShared.ts';
 
 // Never load server/default credentials in the hosted BYOK deployment.
 const handlers = [
-  createApiSettingsMiddleware({ openai: '', zenmux: '', apimart: '', deepseek: '', wavespeed: '' }),
+  createApiSettingsMiddleware({ openai: '', apimart: '', deepseek: '' }),
   createApimartMiddleware(''), createDeepseekMiddleware(''),
-  createIdeogramMiddleware(''), createNanoBananaMiddleware(''),
   createSunburstMiddleware({ openai: '', zenmux: '' }),
 ];
 const paths = new Set([
   '/api/settings/test', '/api/apimart/images', '/api/apimart/seedream', '/api/apimart/task',
-  '/api/describer', '/api/ideogram', '/api/ideogram/edit', '/api/nano-banana', '/api/sunburst',
+  '/api/describer', '/api/nano-banana', '/api/sunburst',
 ]);
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {

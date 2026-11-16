@@ -34,7 +34,7 @@ export function NanoBananaSettings({ node }: { node: NanoBananaNode }) {
     }
   };
   return <NodeSettingsSection title={nanoBananaName} icon={<NodeIcon nodeType="nano-banana" size={20} />} className="sunburst-settings">
-    <div className="sunburst-provider"><span>ZenMux</span><span>按用量计费</span></div>
+    <div className="sunburst-provider"><span>APIMart</span><span>按用量计费</span></div>
     {(Object.keys(nanoBananaChoices) as (keyof Settings)[]).map(field => {
       const exposed = Boolean(node.data.exposed?.includes(field)), label = labels[field];
       const choices = [...nanoBananaChoices[field]];

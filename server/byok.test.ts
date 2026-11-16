@@ -6,18 +6,16 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { captureMiddleware } from './testMiddleware.ts';
 import { apiSettingsPlugin, checkApiConnection } from './apiSettings.ts';
-import { providerConnection, zenmuxVertexBase } from './apiCredentials.ts';
+import { providerConnection } from './apiCredentials.ts';
 import { byokFetch, isPublicAddress } from './byokFetch.ts';
 import { sunburstPlugin } from './sunburst.ts';
-import { nanoBananaPlugin } from './nanoBanana.ts';
+import { apimartPlugin } from './apimart.ts';
 import { deepseekPlugin } from './deepseek.ts';
-import { ideogramPlugin } from './ideogram.ts';
 import { defaultSunburstSettings } from '../src/nodes/sunburst.ts';
 import { defaultNanoBananaSettings } from '../src/nodes/nanoBanana.ts';
-import { defaultIdeogramSettings } from '../src/nodes/ideogram.ts';
 import type { ApiProvider } from '../src/components/apiSettings.ts';
 
-const keys = { openai: 'default-openai', zenmux: 'default-zenmux', deepseek: 'default-deepseek', wavespeed: 'default-wavespeed' };
+const keys = { openai: 'default-openai', zenmux: 'default-zenmux', deepseek: 'default-deepseek', apimart: 'default-apimart' };
 const png = 'data:image/png;base64,aGVsbG8=';
 const customHeaders = (provider: ApiProvider, key = `custom-${provider}`) => ({
   'x-momoflow-provider': provider, 'x-momoflow-api-key': key, 'x-momoflow-base-url': 'https://gateway.example/prefix/v1/',
@@ -44,10 +42,9 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
     const upstream: typeof fetch = async (url, init) => {
       calls.push({ url: String(url), key: new Headers(init?.headers).get('Authorization') });
       assert.equal(init?.method, 'GET'); assert.equal(init?.redirect, 'error');
-      if (String(url).includes('/management/generation')) return Response.json({ success: false, message: 'Generation not found', data: null }, { status: 404 });
-      return String(url).endsWith('/balance') ? Response.json({ code: 200, data: { balance: 0 } }) : Response.json({ object: 'list', data: [] });
+      return String(url).endsWith('/balance') ? Response.json({ success: true, remain_balance: 0 }) : Response.json({ object: 'list', data: [] });
     };
-    for (const provider of ['openai', 'zenmux', 'deepseek', 'wavespeed'] as const) {
+    for (const provider of ['openai', 'apimart', 'deepseek'] as const) {
       for (const apiKey of ['', `custom-${provider}`]) {
         const result = await invoke(apiSettingsPlugin(keys, upstream), '/api/settings/test', { provider, apiKey, baseUrl: 'https://gateway.example/prefix/v1/' }, {}, hook);
         assert.equal(result.status, 200); assert.deepEqual(result.body, { ok: true });
@@ -58,12 +55,13 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
         assert.equal(JSON.stringify(result).includes(apiKey || keys[provider]), false);
       }
     }
-    assert.equal(calls.length, 8);
+    assert.equal(calls.length, 6);
   });
 
   test(`${hook}: all generation adapters select per-request BYOK credentials and retain environment defaults`, async () => {
     for (const custom of [false, true]) {
       for (const provider of ['openai', 'zenmux'] as const) {
+        if (custom && provider === 'zenmux') continue;
         let calls = 0;
         const upstream: typeof fetch = async (url, init) => {
           calls++;
@@ -71,14 +69,15 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
           assert.equal(new Headers(init?.headers).get('Authorization'), `Bearer ${custom ? `custom-${provider}` : keys[provider]}`);
           return Response.json({ data: [{ b64_json: 'aGVsbG8=' }] });
         };
-        const result = await invoke(sunburstPlugin(keys, upstream), '/api/sunburst', { ...defaultSunburstSettings, provider, prompt: 'test', images: [] }, custom ? customHeaders(provider) : {}, hook);
+        const headers = custom && provider === 'openai' ? customHeaders(provider) : {};
+        const result = await invoke(sunburstPlugin(keys, upstream), '/api/sunburst', { ...defaultSunburstSettings, provider, prompt: 'test', images: [] }, headers, hook);
         assert.equal(result.status, 200); assert.equal(calls, 1);
       }
-      const nano = await invoke(nanoBananaPlugin(keys.zenmux, async (url, init) => {
-        assert.equal(String(url).startsWith(custom ? 'https://gateway.example/prefix/vertex-ai/v1/' : 'https://zenmux.ai/api/vertex-ai/v1/'), true);
-        assert.equal(new Headers(init?.headers).get('Authorization'), `Bearer ${custom ? 'custom-zenmux' : keys.zenmux}`);
-        return Response.json({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: 'aGVsbG8=' } }] } }] });
-      }), '/api/nano-banana', { ...defaultNanoBananaSettings, prompt: 'test', images: [] }, custom ? customHeaders('zenmux') : {}, hook);
+      const nano = await invoke(apimartPlugin(keys.apimart, async (url, init) => {
+        assert.equal(String(url), `${custom ? 'https://gateway.example/prefix/v1' : 'https://api.apimart.ai/v1'}/images/generations`);
+        assert.equal(new Headers(init?.headers).get('Authorization'), `Bearer ${custom ? 'custom-apimart' : keys.apimart}`);
+        return Response.json({ data: [{ task_id: 'task_banana' }] });
+      }), '/api/nano-banana', { ...defaultNanoBananaSettings, prompt: 'test', images: [] }, custom ? customHeaders('apimart') : {}, hook);
       assert.equal(nano.status, 200);
       const deepseek = await invoke(deepseekPlugin(keys.deepseek, async (url, init) => {
         assert.equal(String(url), `${custom ? 'https://gateway.example/prefix/v1' : 'https://api.deepseek.com'}/chat/completions`);
@@ -86,12 +85,6 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
         return Response.json({ choices: [{ message: { content: 'test description' }, finish_reason: 'stop' }] });
       }), '/api/describer', { model: 'deepseek-flash', instructions: '', images: [png] }, custom ? customHeaders('deepseek') : {}, hook);
       assert.equal(deepseek.status, 200);
-      const ideogram = await invoke(ideogramPlugin(keys.wavespeed, async (url, init) => {
-        assert.equal(String(url).startsWith(custom ? 'https://gateway.example/prefix/v1/' : 'https://api.wavespeed.ai/api/v3/'), true);
-        assert.equal(new Headers(init?.headers).get('Authorization'), `Bearer ${custom ? 'custom-wavespeed' : keys.wavespeed}`);
-        return Response.json({ code: 200, data: { id: 'prediction-test', status: 'completed', outputs: ['https://cdn.example/result.png'] } });
-      }), '/api/ideogram', { ...defaultIdeogramSettings, prompt: 'test' }, custom ? customHeaders('wavespeed') : {}, hook);
-      assert.equal(ideogram.status, 200);
     }
   });
 }
@@ -107,7 +100,6 @@ test('connection errors distinguish authorization, wrong URL, timeouts, rate lim
   for (const text of ['<html>login</html>', '{', 'null', '[]']) {
     await assert.rejects(checkApiConnection('openai', 'https://api.example/v1', 'test-key', new AbortController().signal, async () => new Response(text)), /有效 API/);
   }
-  await assert.rejects(checkApiConnection('zenmux', 'https://api.example/v1', 'test-key', new AbortController().signal, async () => Response.json({ object: 'list', data: [] })), /认证/);
 });
 
 test('connection middleware validates trusted callers and inputs before any provider access', async () => {
@@ -115,17 +107,16 @@ test('connection middleware validates trusted callers and inputs before any prov
   const input = { provider: 'openai', baseUrl: 'https://api.example/v1', apiKey: 'test-key' };
   for (const headers of [{ host: 'evil.example' }, { origin: 'https://evil.example' }, { origin: 'null' }]) assert.equal((await invoke(plugin, '/api/settings/test', input, headers)).status, 403);
   assert.equal((await invoke(plugin, '/api/settings/test', input, {}, 'configureServer', 'GET')).status, 405);
-  for (const body of ['{', { ...input, provider: 'other' }, { ...input, apiKey: 'bad key' }, { ...input, baseUrl: 'file:///private' }]) assert.equal((await invoke(plugin, '/api/settings/test', body)).status, 400);
+  for (const body of ['{', { ...input, provider: 'other' }, { ...input, provider: 'zenmux' }, { ...input, provider: 'wavespeed' }, { ...input, apiKey: 'bad key' }, { ...input, baseUrl: 'file:///private' }]) assert.equal((await invoke(plugin, '/api/settings/test', body)).status, 400);
   assert.equal((await invoke(apiSettingsPlugin({ ...keys, openai: '' }), '/api/settings/test', { ...input, apiKey: '' })).status, 503);
 });
 
 test('invalid or mismatched custom credentials fail without using the default key', () => {
   for (const headers of [
-    { 'x-momoflow-api-key': 'test-key' }, customHeaders('zenmux'),
+    { 'x-momoflow-api-key': 'test-key' }, customHeaders('apimart'),
     { ...customHeaders('openai'), 'x-momoflow-api-key': 'bad key' },
     { ...customHeaders('openai'), 'x-momoflow-base-url': 'http://localhost/private' },
   ]) assert.throws(() => providerConnection({ headers } as unknown as IncomingMessage, 'openai', 'default-secret', fetch), /配置无效/);
-  assert.equal(zenmuxVertexBase('https://proxy.example/custom/v1'), 'https://proxy.example/custom/vertex-ai/v1');
 });
 
 test('BYOK rejects private, loopback, metadata, mapped IPv6 and special-use destinations', async () => {
@@ -150,38 +141,4 @@ test('concurrent BYOK requests retain their own keys and endpoints', async () =>
     'https://first.example/v1/chat/completions Bearer key-first',
     'https://second.example/v1/chat/completions Bearer key-second',
   ]);
-});
-
-test('WaveSpeed BYOK covers upload tickets, secret-free signed PUT and polling on the saved gateway', async () => {
-  let tickets = 0;
-  let puts = 0;
-  let submissions = 0;
-  let polls = 0;
-  const plugin = ideogramPlugin('unused-default', async (url, init) => {
-    const headers = new Headers(init?.headers);
-    if (init?.method === 'PUT') {
-      puts++;
-      assert.equal(String(url), 'https://uploads.example/signed-file');
-      assert.equal(headers.has('Authorization'), false);
-      assert.equal(headers.has('X-MoMoFlow-Api-Key'), false);
-      return new Response(null, { status: 200 });
-    }
-    assert.equal(headers.get('Authorization'), 'Bearer custom-wavespeed');
-    assert.equal(String(url).startsWith('https://gateway.example/prefix/v1/'), true);
-    if (String(url).endsWith('/media/uploads')) {
-      tickets++;
-      return Response.json({ data: { download_url: 'https://cdn.example/input.png', upload: { method: 'PUT', url: 'https://uploads.example/signed-file', headers: {} } } });
-    }
-    if (String(url).includes('/predictions/')) {
-      polls++;
-      assert.equal(String(url), 'https://gateway.example/prefix/v1/predictions/pred_byok/result');
-      return Response.json({ data: { id: 'pred_byok', status: 'completed', outputs: ['https://cdn.example/result.png'] } });
-    }
-    submissions++;
-    return Response.json({ data: { id: 'pred_byok', status: 'created' } });
-  }, async () => {});
-  const result = await invoke(plugin, '/api/ideogram/edit', { prompt: 'edit', image: png, referenceImages: [] }, customHeaders('wavespeed'));
-  assert.equal(result.status, 200);
-  assert.deepEqual([tickets, puts, submissions, polls], [1, 1, 1, 1]);
-  assert.equal(JSON.stringify(result).includes('custom-wavespeed'), false);
 });

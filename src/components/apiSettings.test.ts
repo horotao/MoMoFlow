@@ -12,10 +12,10 @@ test('API fields reject whitespace, non-ASCII characters and incomplete/unsafe U
 test('API settings keep independent channel credentials, ignore corrupted entries and never use workflow storage', () => {
   let raw = '';
   const storage = { getItem(key: string) { assert.equal(key, apiSettingsStorageKey); return raw; }, setItem(key: string, value: string) { assert.equal(key, apiSettingsStorageKey); raw = value; } };
-  const settings = { provider: 'openai' as const, credentials: { openai: { baseUrl: 'https://api.example.com/v1', apiKey: 'test-openai' }, zenmux: { baseUrl: 'https://proxy.example.com/v1', apiKey: 'test-zenmux' } } };
+  const settings = { provider: 'openai' as const, credentials: { openai: { baseUrl: 'https://api.example.com/v1', apiKey: 'test-openai' }, apimart: { baseUrl: 'https://proxy.example.com/v1', apiKey: 'test-apimart' } } };
   saveApiSettings(settings, storage);
   assert.deepEqual(readApiSettings(storage), settings);
-  raw = JSON.stringify({ provider: 'unknown', credentials: { openai: settings.credentials.openai, zenmux: { baseUrl: 'https://proxy.example.com', apiKey: 'bad key' }, unknown: { apiKey: 'other' } } });
+  raw = JSON.stringify({ provider: 'zenmux', credentials: { openai: settings.credentials.openai, zenmux: { baseUrl: 'https://proxy.example.com', apiKey: 'valid-old-key' }, wavespeed: { baseUrl: 'https://old.example.com', apiKey: 'other-old-key' }, unknown: { apiKey: 'other' } } });
   assert.deepEqual(readApiSettings(storage), { provider: 'openai', credentials: { openai: settings.credentials.openai } });
   for (const value of ['null', 'undefined', '[]', '{']) {
     raw = value;

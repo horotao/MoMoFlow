@@ -92,11 +92,11 @@ React Flow CSS 通过 `src/index.css` 中的 `layer(base)` 在 Tailwind 之后�
 
 ## BYOK API 设置
 
-左侧 Dock 的“更多 → API 设置”按渠道保存 Base URL 与 API Key。GPT Image 使用节点所选的 OpenAI / ZenMux / APIMart 配置，Seedream 使用 APIMart，Nano Banana 使用 ZenMux，图像描述使用 DeepSeek，Ideogram 使用 WaveSpeed。未配置的渠道继续使用 `.env.local` 中原有的 Key；清空当前渠道的 Key 后保存，即可恢复服务端默认地址和 Key。保存的配置在后续模型请求开始时生效，密钥独立于画布与工作流数据保存。
+左侧 Dock 的“更多 → API 设置”支持 OpenAI、APIMart 与 DeepSeek，按渠道保存 Base URL 与 API Key。Seedream 和 Nano Banana 复用 APIMart 配置，图像描述使用 DeepSeek。清空当前渠道的 Key 后保存，本地开发服务会使用 `.env.local` 中的对应默认 Key。保存的配置在下一次模型请求开始时生效，密钥独立于画布与工作流数据保存。
 
-“测试连接”检查当前填写的配置，Key 留空时检查该渠道的服务端默认配置。OpenAI / DeepSeek 读取模型列表，WaveSpeed 读取余额，APIMart 读取令牌余额，ZenMux 读取一个固定不存在的生成记录以检查认证，避免公开模型目录对无效 Key 返回成功。连接检查不创建生成任务。错误区分认证、地址、限流、网络与超时，取消弹窗或修改输入会中止本次检查。
+“测试连接”检查当前填写的配置。OpenAI / DeepSeek 读取模型列表，APIMart 读取令牌余额。连接检查不创建生成任务。取消弹窗或修改输入会中止本次检查。
 
-BYOK Base URL 支持公开 HTTPS 网关。服务端校验并固定 DNS 解析结果，阻止本机/内网目标与重定向。ZenMux 的 Base URL 使用 OpenAI 兼容格式（默认 `https://zenmux.ai/api/v1`），Nano Banana 自动切换到同一网关路径前缀下的 `vertex-ai/v1` 协议。
+BYOK Base URL 支持公开 HTTPS 网关。服务端校验并固定 DNS 解析结果，阻止本机或内网目标及重定向。GPT Image 的 ZenMux 渠道仅可通过本地服务的 `ZENMUX_API_KEY` 使用。
 
 ## DeepSeek 图片反推提示词（本地测试）
 
@@ -118,7 +118,7 @@ Tasks 显示实际排队、运行、成功或失败状态。每次 Run 都可能
 
 线上仅使用用户在「更多 → API 设置」中填写的 API Key，不读取服务端默认密钥；连接测试同样需要填写 Key。`.vercelignore` 排除本地环境文件，部署时不要上传 `.env.local` 或配置共享模型密钥。接口仅接受 Vercel 提供的部署域名及对应 HTTPS Origin，用户配置仍保存在各自浏览器中。
 
-函数最长运行 300 秒，平台请求和响应大小限制为 4.5 MB（包括图片的 base64 编码）。APIMart 结果由浏览器从 CDN 直接下载，不经过函数响应；APIMart 大图输入和其他渠道的 Base64 结果仍可能被平台拒绝，需另行处理。当前部署不包含账户系统、共享额度或云端工作流同步。自动检查不调用真实模型；部署后的路由检查也不能替代真实模型验收。
+函数最长运行 300 秒，平台请求和响应大小限制为 4.5 MB（包括图片的 Base64 编码）。APIMart 图片由浏览器直传和直下，函数请求只传输 URL 和参数。仍以内联方式传输的其他渠道图片可能被平台拒绝。当前部署不包含账户系统、共享额度或云端工作流同步。自动检查不调用真实模型；部署后的路由检查也不能替代真实模型验收。
 
 ## GPT Image 2.6（OpenAI / ZenMux / APIMart）
 
@@ -167,16 +167,10 @@ SVG 输出：GPT Image 2.6 的 Sunburst / Flare 可选择 SVG，使用 `/images/
 
 接入 Prompt 后可文生图，可选连接最多 10 张参考图；单张 30 MiB、合计 46 MiB。复用 APIMart API 设置或 `APIMART_API_KEY`，浏览器先通过相同的 APIMart 直传流程取得参考图 URL，再通过 `/api/apimart/seedream` 仅提交 URL 与参数并查询任务；本地只使用环境变量 Key 时保留 Data URI 兼容路径。失败不自动重新提交，取消停止本地等待；结果支持预览、下载、下游及保存恢复。模拟验收页为 `/tests/seedream.html`，不调用真实模型。
 
-## Nano Banana 2.1（ZenMux 本地接入）
+## Nano Banana 2.1（APIMart）
 
-在左侧 **图片** 分类或搜索中添加 **Nano Banana 2.1**，将提示词节点接入 `Prompt`，可选将导入图片或生成结果接入 `Image`。右侧设置宽高比、1K/2K/4K 分辨率与 PNG/JPEG 格式，点击运行模型。输出格式在收到图片后由浏览器转换，不传上游 `outputMimeType`；相同格式保留原始字节，转换保持尺寸，JPEG 使用白底和 0.95 编码质量。参考图应用上限为 14 张，单张 20 MiB，总计 46 MiB。默认自动比例、1K、PNG；结果支持预览、下载及保存恢复。
+在图片分类或搜索中添加 **Nano Banana**，连接 `Prompt` 后运行文生图。编辑图片时连接 `Image`，应用会先通过 APIMart 图片文件接口上传附件，取得公网 URL 后再提交 `image_urls`。参考图支持 PNG、JPEG、WebP，最多 14 张，单张 20 MiB，合计 46 MiB。[APIMart 图片上传](https://docs.apimart.ai/cn/api-reference/uploads/images)
 
-复用 `.env.local` 中的 `ZENMUX_API_KEY`，密钥仅在服务端读取；浏览器请求 `/api/nano-banana`。开发和 `npm run preview` 均注册本地 API，单独发布 `dist/` 不提供后端。固定模型为 `google/gemini-nano-banana-2.1`。依据 [ZenMux Gemini 指南](https://zenmux.ai/docs/zh/guide/advanced/image-generation.html)，Banana 使用 Vertex AI `:generateContent`；参考图通过 `inlineData` 传入，图片从响应的 `candidates[].content.parts[].inlineData` 读取。参数说明见 [Generate Content](https://zenmux.ai/docs/zh/api/vertexai/generate-content.html#imageconfig-imageconfig-可选)。
+复用 API 设置中的 APIMart Key，或在本地开发和预览时使用 `APIMART_API_KEY`。固定模型为 `gemini-nano-banana-2.1`，支持自动比例及 14 种固定比例，分辨率可选 1K、2K、4K。应用按任务编号查询结果，拿到图片 URL 后下载并保存到工作流。PNG/JPEG 选择在浏览器处理，相同格式保留原始字节。[APIMart 模型文档](https://docs.apimart.ai/cn/api-reference/images/gemini-nano-banana-2.1/generation)
 
-运行次数沿用现有任务队列，取消或失败不会自动重新提交。`npm run check` 使用模拟响应；`/tests/nano-banana.html` 是隔离的浏览器验收页，不消耗模型额度。真实生成、模型参数接受情况和输出质量需单独验证。
-
-## Ideogram 4.5（WaveSpeed）
-
-在 `.env.local` 设置 `WAVESPEED_API_KEY` 后启动或重启 `npm run dev`。从图片分类或搜索添加 **Ideogram 4.5**，将提示词连接到 Prompt，选择比例、1K/2K、质量和提示词扩展后运行。连接 Image 原图后自动切换为图片编辑，使用独立的编辑质量、精度和尺寸设置。通过“添加参考图输入”可连接最多 4 张参考图；连接 Mask 时最多 3 张。Image 原图必须是单张图片。导入的黑白 Mask 以黑色标记修改区域、白色标记保留区域；Painter 等节点的蒙版会自动转换，Mask 尺寸必须与原图一致。使用 Mask 或高精度时，输出尺寸跟随原图。
-
-依据 [WaveSpeed 模型文档](https://wavespeed.ai/docs/docs-api/ideogram-ai/ideogram-ai-ideogram-v4.5)，服务端通过 `/api/ideogram`（文生图）和 `/api/ideogram/edit`（[图片编辑](https://wavespeed.ai/docs/docs-api/ideogram-ai/ideogram-ai-ideogram-v4.5-edit)）提交并查询任务，密钥不进入浏览器。开发服务和 `npm run preview` 均支持；仅发布 `dist/` 不提供后端。提交只执行一次，查询临时错误会退避重试；取消或超时不保证供应商停止生成，重新调用前请检查 WaveSpeed History。图片下载到本地 Blob 并随工作流保存。编辑输入会按 [WaveSpeed 上传协议](https://wavespeed.ai/docs/upload-files-api) 在服务端换取上传凭证并上传文件，再向模型提交下载地址；文件会按供应商策略保存 7 天。单张输入最多 32 MiB、合计 46 MiB。`/tests/ideogram.html` 和 `/tests/ideogram-edit.html` 为不消耗模型额度的隔离浏览器验收页。
+旧工作流中的 Ideogram 节点仍可查看和使用已保存的图片。该模型已下线。

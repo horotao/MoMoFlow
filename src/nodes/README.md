@@ -16,7 +16,7 @@
 | 图像描述（Image Describer）：根据图片生成可继续编辑的文本 | `image-describer` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) | 图片输入 `image-0` 起；可暴露 `model`、`instructions` 文本输入；输出 `data.text` |
 | 模型名称 / 参数选项（Model Name）：提供一个可选的文本值 | `model-input` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) 中的 `ModelInputNode` | 输出当前 `data.model`；`options` 输入仅展示，不能连接 |
 | GPT Image 2.6：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`、`image-0` 起、`mask` 及暴露的参数输入；`result` 输出当前选中的结果图片 |
-| Ideogram 4.5：生成或编辑图片 | `ideogram` | [IdeogramNode.tsx](./IdeogramNode.tsx) | 必需的 `prompt`；`image-0` 原图、`image-1` 起参考图、`mask` 及暴露的生成/编辑参数输入；`result` 输出选中图片 |
+| Ideogram 4.5：旧工作流兼容 | `ideogram` | [IdeogramNode.tsx](./IdeogramNode.tsx) | 保留存量输入端口及连线；`result` 输出已保存的选中图片 |
 | Nano Banana：生成或编辑图片 | `nano-banana` | [NanoBananaNode.tsx](./NanoBananaNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起与暴露的 `aspectRatio` / `imageSize` / `outputFormat` 输入；`result` 输出选中图片 |
 | Seedream 5.5：生成或编辑图片 | `seedream` | [SeedreamNode.tsx](./SeedreamNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起与暴露的参数输入；`result` 输出选中图片 |
 | 调色板（Color palette）：制作最多十色色板 | `color-palette` | [ColorPaletteNode.tsx](./ColorPaletteNode.tsx) | 无输入；`image`（Image）输出纯色条 PNG，`text`（Text）输出按顺序以 `*` 连接的 HEX 色值 |
@@ -50,7 +50,7 @@
 
 应用仅支持深色模式；不再提供浅色切换、制作或验收。历史画布中的浅色设置读取时按深色处理，重新保存时写入深色设置，节点、连线和素材内容不变。图片操作按钮为 24×24px、8px 圆角，默认透明，悬停背景按 Figma 使用 10% 白色（`rgba(255,255,255,0.1)`）。
 
-新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：`NodeFrame` 与 `NodeHeader` 共用外框、标题栏、颜色和尺寸变量，各节点通过局部样式设置差异；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、图像描述、绘图、图片模型、文件导入及其他已接入的工具节点使用共享外框；四个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。四个图片模型直接共用 [SunburstNode.tsx](./SunburstNode.tsx) 导出的 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代通过 `FileNode` 复用新版共享外框、端口和图库，保留迭代器专用内容与行为。共享外框内使用 Inter / Noto Sans SC Variable，字体覆盖限定在 `.node-frame` 内。图像描述复用 Text 的外框、标题栏、更多菜单和文本内容区样式，宽 454px、内边距 14px，空状态高 403px；底部提供添加图片输入与运行模型，进度和取消复用图片模型的 `ModelRunButton`。Text 与图像描述的标题、更多、加号、运行、下拉箭头与文本端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。四个图片模型的运行按钮使用本地 DM Mono 字体、固定 98px 宽度，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
+新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：`NodeFrame` 与 `NodeHeader` 共用外框、标题栏、颜色和尺寸变量，各节点通过局部样式设置差异；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、图像描述、绘图、图片模型、文件导入及其他已接入的工具节点使用共享外框；四个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。四个图片模型直接共用 [SunburstNode.tsx](./SunburstNode.tsx) 导出的 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代通过 `FileNode` 复用新版共享外框、端口和图库，保留迭代器专用内容与行为。共享外框内使用 Inter / Noto Sans SC Variable，字体覆盖限定在 `.node-frame` 内。图像描述复用 Text 的外框、标题栏、更多菜单和文本内容区样式，宽 454px、内边距 14px，空状态高 403px；底部提供添加图片输入与运行模型，进度和取消复用图片模型的 `ModelRunButton`。Text 与图像描述的标题、更多、加号、运行、下拉箭头与文本端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。可运行图片模型的运行按钮使用本地 DM Mono 字体、固定 98px 宽度，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
 
 所有单值参数滑块共用 [shared/NodeRangeInput.tsx](./shared/NodeRangeInput.tsx)，基于已验收的 [Arc Elastic Slider](https://uiarc.dev/components/elastic-slider) 接入边界拉伸回弹、拖动数值标签和双向参数的零点吸附。色彩校正、模糊、蒙版扩缩、混合、绘图参数、合成器的颜色面板与效果参数均复用它；绘图 / 调色板的颜色面板使用下述 beUI 专用滑块，色阶的多手柄轨道、图片对比的分隔线和二维选色区域保留专用交互。
 
@@ -108,8 +108,8 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 - APIMart 渠道增加“渠道模型”选项（`channelModel`）：GPT Image 2.6 EXT / GPT Image 2.6；未保存该字段时继续使用 EXT。EXT 使用 `gpt-image-2.6-ext` 和 `version: sunburst / flare`，保留原有 10 种比例、1K / 2K / 4K、PNG / JPEG / WebP / GIF；不支持自定义尺寸、背景、审核强度或 Mask，GIF 仅文生图、比例为 auto，SVG 保持禁用。新款使用 `gpt-image-2.6-sunburst / flare`，不发送 `version`，支持 15 种比例或符合 OpenAI 同等限制的自定义像素尺寸、背景和静态编辑的 PNG `mask_url`；精确尺寸不发送 `resolution`。两款的复杂度固定为 auto、内容审核固定为 low，侧栏不再提供这两项控件或暴露输入；旧节点、旧参数连线和直接请求中的对应值不会覆盖固定值，旧连线保留禁用端口供断开且不再触发上游依赖。复杂度 auto 沿用接口默认值，不发送 `complexity`；新款显式发送 `moderation: low`，EXT 不支持该参数而不发送。两款均使用 `nsfw_check: false`、`n: 1`，参考图先按顺序上传 `/uploads/images?retention_days=3`，再向 `/images/generations` 发送 `image_urls`；新款的蒙版使用 PNG Data URL，沿用首图同尺寸、Alpha 透明区域可编辑的校验和白色亮度蒙版转换。已有不兼容连线保留禁用端口供断开或切回，运行前拒绝无效组合。参考图单张最多 20 MiB；EXT 仅 1K 接受 GIF 参考图，新款各档接受 GIF 参考图。
 - APIMart 新款支持参考图生成 GIF / SVG，两者均禁用 Mask。GIF 侧栏提供 `frameCount`（2–16，默认 9），请求使用 `frame_count`；尺寸为 auto（512×512）或自定义单帧像素，不接受比例名，不发送分辨率。按帧数校验 4×2 / 3×3 / 4×3 / 4×4 拼图的 3840 单边、8,294,400 总像素和 3:1 比例限制。SVG 侧栏提供 `svgModel`（默认 `gpt-6-luna`，可选 `gpt-6.1-sol`）和 `svgEffort`；请求使用必填 `svg.model` 及可选 `svg.reasoning.effort`。Luna 支持 none / low / medium / high / xhigh / max，Sol 不支持 none，两者不提供 minimal；自动时省略 reasoning，切换模型会将不兼容的本地 effort 复位为自动。浏览器直接下载结果并校验 SVG，保留原始矢量文件。渠道模型、帧数和 SVG 参数支持暴露输入、冻结进任务及复用签名，并随保存、复制与撤销恢复；非活动参数不发送上游。OpenAI / ZenMux 的原有参数和 SVG 写作模型不变。
 - APIMart BYOK 参考图由浏览器直传 `POST /v1/uploads/images?retention_days=3`（multipart `file`），读取顶层 `url`；新款的 PNG Mask 经透明度及尺寸校验后同样直传（上传上限 30 MiB）。全部文件在首次上传前校验，保持图片顺序和原始字节；应用 API 仅接收 HTTPS URL 和参数，不承载二进制。上传失败、超时或取消不生成、不自动重试、不回退 Base64。上传域名来自本次 API 配置快照，禁止重定向、Cookie 和 Referer；服务商需允许浏览器跨域认证。仅本地环境变量默认 Key 模式保留旧路径，不暴露服务端密钥。`/api/apimart/images` 返回任务号，`/api/apimart/task` 只查询并返回 `imageUrl`、格式、任务号及可用的过期时间，不下载图片或编码 Base64；浏览器从 CDN 无凭据下载原始字节，校验 MIME、32 MiB 上限及 SVG 内容后创建本地 Blob 素材，继续由 IndexedDB 保存，工作流不依赖临时链接。下载失败保留任务号且不重新生成；CDN 必须允许跨域读取。每 4 秒以 `GET /v1/tasks/{task_id}?language=zh` 查询已有任务，保留中文失败原因；支持 pending / processing / completed / failed / cancelled，远程 cancelled 同步为本地已取消并停止依赖分支。超时继续查询，不重新创建生成，本地取消停止查询。API 设置支持 APIMart BYOK（默认 `https://api.apimart.ai/v1`）及 `APIMART_API_KEY`，连接测试仅查询 `/balance`。自动测试和 `/tests/apimart-provider.html` 均使用受控响应，覆盖 EXT 回归、新款蒙版、自定义尺寸、GIF 帧数、SVG effort、保存恢复和锁定；未调用真实模型。
-- GPT Image 2.6 参数侧栏为 300px 宽并撑满画布高度，标题固定、参数列表独立滚动；复用 `NodeSettingsSection`、`ParameterField`、`ParameterExposeButton` 和 `DescriberModelSelect` 的 `settings` 外观。下拉框使用 BeUI Morph Select，触发框原地展开为等宽菜单，每行的 expose 按钮只在该行悬停或键盘聚焦时显示，始终保留占位。OpenAI / ZenMux 的宽高比、分辨率 expose 操作共享完整 `size` 输入；APIMart 的比例和分辨率独立暴露。渠道商与模型版本分别使用 `provider`、`variant` 输入（版本支持 `Sunburst` / `Flare`，默认 `Sunburst`；未保存渠道时默认 OpenAI），运行前解析外部值并冻结到任务快照，未知渠道/版本会阻止运行。Nano Banana、Ideogram、Image Describer 与模型选项侧栏也复用这套外观，公共样式位于 `components/NodeSettingsSidebar.css`；各模型支持的参数、原图尺寸限制、锁定、外部输入与运行规则不变。Image Describer 与模型选项的任务入口置于标题栏，Nano Banana 和 Ideogram 不显示该入口；模型运行区域保留在底部；画廊、全屏预览和合成器编辑器中的专用面板不属于画布参数侧栏。
-- `/tests/right-sidebars.html` 是五类共享参数侧栏及调色板无侧栏行为的独立浏览器验收入口（React / React Flow，`npm run dev` 后打开），使用隔离 IndexedDB 并拦截真实模型请求。可通过页面按钮切换节点，检查标题、滚动、32px 控件、下拉菜单、expose、模型选项和运行区域，以及选中调色板不打开侧栏；原有 Nano Banana、Ideogram 编辑和调色板浏览器验收入口继续用于功能回归。
+- GPT Image 2.6 参数侧栏为 300px 宽并撑满画布高度，标题固定、参数列表独立滚动；复用 `NodeSettingsSection`、`ParameterField`、`ParameterExposeButton` 和 `DescriberModelSelect` 的 `settings` 外观。下拉框使用 BeUI Morph Select，触发框原地展开为等宽菜单，每行的 expose 按钮只在该行悬停或键盘聚焦时显示，始终保留占位。OpenAI / ZenMux 的宽高比、分辨率 expose 操作共享完整 `size` 输入；APIMart 的比例和分辨率独立暴露。渠道商与模型版本分别使用 `provider`、`variant` 输入（版本支持 `Sunburst` / `Flare`，默认 `Sunburst`；未保存渠道时默认 OpenAI），运行前解析外部值并冻结到任务快照，未知渠道/版本会阻止运行。Nano Banana、Seedream、Image Describer 与模型选项侧栏也复用这套外观，公共样式位于 `components/NodeSettingsSidebar.css`；各模型支持的参数、原图尺寸限制、锁定、外部输入与运行规则不变。Image Describer 与模型选项的任务入口置于标题栏，Nano Banana 和 Seedream 不显示该入口；模型运行区域保留在底部；画廊、全屏预览和合成器编辑器中的专用面板不属于画布参数侧栏。
+- `/tests/right-sidebars.html` 是五类共享参数侧栏及调色板无侧栏行为的独立浏览器验收入口（React / React Flow，`npm run dev` 后打开），使用隔离 IndexedDB 并拦截真实模型请求。可通过页面按钮切换节点，检查标题、滚动、32px 控件、下拉菜单、expose、模型选项和运行区域，以及选中调色板不打开侧栏；原有 Nano Banana 和调色板浏览器验收入口继续用于功能回归。
 - `/tests/sunburst-sidebar.html` 是这次侧栏的独立浏览器验收页（React 与现有浏览器测试入口），运行 `npm run dev` 后打开，可检查满高、等宽、逐行悬停 / 键盘聚焦、外部输入、自定义尺寸和短窗口滚动；隔离 IndexedDB 且拦截真实模型请求。`sunburstRun.test.ts` 和 `connectionRecommendations.test.ts` 随 `npm test` 验证渠道 / 版本的外部解析、校验及反向参数初始化。
 - Sunburst 外部参数切回本地时独立校验当前字段，其他字段的错误不会丢弃有效值；当前字段无效时保留原本地值，运行前仍执行完整参数校验。已记录的旧 ZenMux 生成结果在复用比较时兼容缺少 `provider` 的请求签名；仅兼容这一处差异，渠道、提示词、尺寸、图片及输出身份变化仍使结果失效，锁定节点也遵守此规则。`workflowExecution.test.ts` 随 `npm test` 覆盖旧/新签名复用与失效；`/tests/sunburst-provider.html` 覆盖 xhigh/max 跨渠道后 2K/4K 切回本地、撤销/重做及无效尺寸回退。
 - 从 Sunburst 暴露的参数输入反向选择 Model Name 时，复用 `sunburstParameterData`，按目标参数的当前本地值初始化名称、值和选项（保留自定义尺寸）；普通模型名称节点仍使用原默认值。
@@ -125,7 +125,7 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 
 空列表或未填写的条目会在下游模型和设置面板的批量摘要区域显示提示：顶部分隔线、圆形感叹号和暖红色文字，支持换行及深浅主题。补齐或删除空条目后自动恢复正常摘要；提示中不显示内部节点类型名称，运行前的校验规则保持一致。文本迭代节点自身保留紧凑列表布局，上游文本数组解析失败时使用相同的提示样式。
 
-连接到 GPT Image 2.6、Nano Banana、Ideogram 4.5 的 Prompt 或暴露文本参数，以及图像描述的文本指令时，每个条目创建独立任务。可经过 Router、Prompt 内联变量及后续模型/图像处理链。执行器为每条创建独立图快照和依赖输出，支持已有的四任务并发限制；原始画布条目不会被临时值覆盖。模型节点、设置面板与运行入口共用临时运行次数状态，不写入撤销或持久化；切换选择后任务数仍与执行一致。运行次数作用于每条文本，`3 条 × 2 次` 为 6 个目标任务。运行前校验全部已知文本与参数；重复文本仍是独立目标任务。
+连接到 GPT Image 2.6、Nano Banana 的 Prompt 或暴露文本参数，以及图像描述的文本指令时，每个条目创建独立任务。可经过 Router、Prompt 内联变量及后续模型/图像处理链。执行器为每条创建独立图快照和依赖输出，支持已有的四任务并发限制；原始画布条目不会被临时值覆盖。模型节点、设置面板与运行入口共用临时运行次数状态，不写入撤销或持久化；切换选择后任务数仍与执行一致。运行次数作用于每条文本，`3 条 × 2 次` 为 6 个目标任务。运行前校验全部已知文本与参数；重复文本仍是独立目标任务。
 
 每项失败不会重试或阻止其他条目，任务面板保留条目编号与原始提示词。单项重试只创建该条目的一个新任务，原条目被修改/删除后要求重新检查列表。依赖运行中的上游模型时按迭代器、条目 ID 和文本匹配结果，重复文本、乱序完成或单项失败不会混用其他条目。已完成的上游图片按 `generation.iteration` 从历史结果中恢复对应条目，并继续校验当前请求输入；输入已变或缺少对应记录时重新生成，不回退到其他条目的封面。不同条目即使请求内容相同，也不共享同一个上游模型请求。只有实际依赖迭代器的共享上游任务附带条目信息，无关共享上游仍按普通任务重试。取消单项不影响其他条目；节点取消停止整批。运行中修改文本、顺序、输入连接或锁定节点会中止受影响任务，迟到结果不会写回。成功结果追加到同一模型的现有结果列表，`generation.iteration` 保留来源条目，结果仍使用已有的画廊、下载和选中输出行为。
 
@@ -137,7 +137,7 @@ Compositor 输出解析在每次读取中按节点与输出端口复用校验结
 
 图片迭代位于工具 → 辅助工具节点 → 流程与批量，支持中文及 Image Iterator 搜索。节点沿用新版共享外框、标题、更多菜单及图片端口，宽 456px、圆角 28px，标题显示 `n/50`；空态为 424px 棋盘格、多选上传和图片链接；多图默认双列缩略图，可切换单图、前后浏览、按添加时间或名称排序，底部添加更多图片。右键图片可下载当前图片、下载全部、设为封面和复制图片；节点菜单提供清空、重命名、锁定、副本、剪切和删除。仅接受图片，最多 50 张；没有输入端口，绿色 `file` 输出可在列表为空时预先连接。没有图片时，下游显示共用的迭代警告并阻止运行。
 
-`ImageIteratorNode` 复用 `FileNode` 的导入、预览和图库，共享深灰节点外观；`imageIterator.ts` 负责图片列表与剪贴板校验。当前封面只用于画布预览，不改变批量范围。运行时 `workflowIterations` 按列表的显示顺序生成稳定图片身份，`iterationGraph` 为每个任务投影成只含对应图片的文件节点，原始列表保持不变。支持图像描述、GPT Image 2.6、Nano Banana、Ideogram，以及 Router / 本地图片处理 / 后续模型链；同一张图片的多个依赖共享本轮结果，跨图片和并发批次按身份匹配，不混用其他图片。与文本迭代共用运行次数，`3 张 × 2 次` 创建 6 个目标任务；同一目标只允许一个迭代器，多个图片列表或图片与文本列表同时汇入时先报错，不隐式组合请求。
+`ImageIteratorNode` 复用 `FileNode` 的导入、预览和图库，共享深灰节点外观；`imageIterator.ts` 负责图片列表与剪贴板校验。当前封面只用于画布预览，不改变批量范围。运行时 `workflowIterations` 按列表的显示顺序生成稳定图片身份，`iterationGraph` 为每个任务投影成只含对应图片的文件节点，原始列表保持不变。支持图像描述、GPT Image 2.6、Nano Banana、Seedream，以及 Router / 本地图片处理 / 后续模型链；同一张图片的多个依赖共享本轮结果，跨图片和并发批次按身份匹配，不混用其他图片。与文本迭代共用运行次数，`3 张 × 2 次` 创建 6 个目标任务；同一目标只允许一个迭代器，多个图片列表或图片与文本列表同时汇入时先报错，不隐式组合请求。
 
 单张失败不影响其他图片；单张重试只运行对应图片，图片已删除或内容身份已变则拒绝重试。任务面板和成功结果记录图片序号、名称与来源身份。远程图片按本项建立快照，一张链接失败不阻断其他项。切换封面或网格/单图不会取消任务；增删、清空、有效顺序变化或锁定会中止受影响任务，迟到结果不写回。清空还会废弃尚未完成的导入。列表、排序、封面、结果和图片二进制随 IndexedDB 保存；素材同时由画布、历史和剪贴板保留，清空可单步撤销/重做，副本独立修改。
 
@@ -257,7 +257,7 @@ Sunburst 的单张预览框在生成前即按有效宽高比调整高度，支�
 
 Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排序偏好保存在节点数据中；排序只改变预览顺序，不改变当前输出或原始结果顺序。全部视图中可将缩略图拖到空白画布，复用 `extractFileAsset` 将图片移至新的 File 节点；原节点至少保留一张结果，若移走当前输出则选中剩余的最新结果。创建与移出作为一次撤销记录，取消拖动、落在非画布区域、节点删除或锁定时不执行。
 
-描述器、GPT Image、Nano Banana 与 Ideogram 共用 `useWorkflowExecution` 的执行入口，`DescriberPanel` 负责触发运行和展示设置、任务。执行前检查必要依赖链的已知输入与参数，依赖运行后才能取得的动态值在请求提交前继续校验，客户端和服务端仍各自校验图片格式、体积及蒙版等约束。失败、并发与结果复用边界见下方“按依赖自动执行与结果复用”，不能将准备阶段校验理解为全部请求已通过验证。
+描述器、GPT Image、Nano Banana 与 Seedream 共用 `useWorkflowExecution` 的执行入口，`DescriberPanel` 负责触发运行和展示设置、任务。执行前检查必要依赖链的已知输入与参数，依赖运行后才能取得的动态值在请求提交前继续校验，客户端和服务端仍各自校验图片格式、体积及蒙版等约束。失败、并发与结果复用边界见下方“按依赖自动执行与结果复用”，不能将准备阶段校验理解为全部请求已通过验证。
 
 任务保存运行时的输入快照，同一节点的多次运行按顺序处理，不同节点可并行；已有活动任务时阻止重复运行。
 
@@ -357,15 +357,11 @@ Router 直接从当前图解析来源，不保存文本或素材副本，不运�
 
 ## Nano Banana
 
-模型固定为 `google/gemini-nano-banana-2.1`，从图片分类、搜索、画布右键或拖线推荐创建。必须连接非空提示词（最多 32000 字符）；参考图可选，按端口顺序展开文件集合，应用最多接收 14 张，每张 20 MiB、合计 46 MiB。已连但无结果的图片输入阻止运行，未连接的图片端口可留空。
+模型固定为 APIMart 的 `gemini-nano-banana-2.1`。必须连接非空提示词（最多 32000 字符），参考图按端口顺序展开，最多 14 张。支持 PNG、JPEG、WebP，单张最多 20 MiB、合计 46 MiB。已连但无结果的图片输入阻止运行。右侧支持自动比例与 14 种固定比例、1K / 2K / 4K 和 PNG / JPEG，保留原参数及端口 ID。
 
-参数由 [nanoBanana.ts](./nanoBanana.ts) 校验，默认自动比例、1K、PNG。支持常用 8 种比例、1K/2K/4K、PNG/JPEG，自动比例省略上游 `aspectRatio`。当前模型接口拒绝 `outputMimeType`，所以 `imageConfig` 仅传宽高比和分辨率；输出格式在客户端收到图片后转换，相同格式保留原始字节，转换保持尺寸，JPEG 使用白底和 0.95 编码质量。右侧可将三个参数暴露为文本输入；不提供 OpenAI 的画质、透明背景、自定义像素尺寸或 Mask 控件。
+[nanoBananaRun.ts](./nanoBananaRun.ts) 建立运行快照。[nanoBananaClient.ts](./nanoBananaClient.ts) 使用 APIMart 用户 Key 直传参考图并提交 URL；本地服务使用环境变量 Key 时，在服务端上传 multipart 文件。上传成功后以 `image_urls` 提交 `POST /v1/images/generations`，固定 `n: 1`。浏览器每 4 秒查询任务；完成后从 CDN 下载结果并保存为本地图片素材。选择的输出格式由浏览器处理。上传或生成失败时保留已有结果，取消停止本地等待。[生成接口](https://docs.apimart.ai/cn/api-reference/images/gemini-nano-banana-2.1/generation) · [上传接口](https://docs.apimart.ai/cn/api-reference/uploads/images)
 
-[nanoBananaRun.ts](./nanoBananaRun.ts) 建立运行快照，[nanoBananaClient.ts](./nanoBananaClient.ts) 将本地参考图转换为 base64，请求 `/api/nano-banana`。服务端使用 ZenMux Vertex AI `:generateContent`、`contents[].parts[].inlineData` 与 `generationConfig.imageConfig`；Google Banana 的具体协议见 [Gemini 指南](https://zenmux.ai/docs/zh/guide/advanced/image-generation.html) 和 [Generate Content 参数](https://zenmux.ai/docs/zh/api/vertexai/generate-content.html)。用户提供的 [Generate Images 页面](https://zenmux.ai/docs/zh/api/vertexai/generate-images.html) 中 `:predict` 示例是另一种图片接口。
-
-与 Sunburst 共用结果画廊和任务队列：同一节点多次运行按序，不同节点可以并发；保留响应中的全部最终图片，忽略推理图片；文本回复、内容拦截或损坏图片作为失败处理。结果支持选中输出、下载、全屏、拆分为文件、复制、剪切粘贴、锁定、撤销重做和 IndexedDB 素材恢复。取消或失败不自动重试，不切换模型。
-
-`nanoBanana.test.ts`、`nanoBananaClient.test.ts` 和 `server/nanoBanana.test.ts` 使用既有 Node.js 测试运行器，随 `npm test` / `npm run check` 执行。独立浏览器验收入口 `/tests/nano-banana.html` 使用隔离数据库与模拟响应，验证参数、引用图、结果、多图预览、取消、失败、撤销及保存恢复，不调用真实模型。真实供应商支持情况、输出质量及费用仍需单独生图验证。
+`/tests/nano-banana.html` 使用隔离数据库与模拟响应，覆盖文生图、参考图上传、结果查询、图片格式、取消、失败、撤销和保存恢复。
 
 ## Masks Extractor
 
@@ -379,27 +375,15 @@ Worker 串行执行，最多保留一张图片的特征，模型闲置两分钟�
 
 [masksExtractor.test.ts](./masksExtractor.test.ts) 随 `npm test` 验证合并/减去、压缩校验、缩放坐标、连线、Router、Sunburst 转换、失效及素材映射。`/tests/masks-extractor.html` 使用隔离画布和独立数据库，以受控分割结果验证真实组件、PNG、4K、撤销、恢复、锁定、取消、换图竞态、重新计算和副本，不下载模型；页面的“使用真实模型”按钮另行运行 SlimSAM / WebGPU，“检查模型缓存”可在刷新后读取权重文件数量和大小。实际下载与模型质量不属于自动测试的通过结论。依赖与模型出处见 [第三方说明](../../docs/masks-extractor-third-party.md)。
 
-## Ideogram 4.5 约定
+## 旧工作流中的 Ideogram 4.5
 
-同一个节点根据 `image-0` 是否连线切换模式：无原图使用 WaveSpeed `ideogram-ai/ideogram-v4.5` 文生图；有原图使用 `ideogram-ai/ideogram-v4.5/edit` 编辑。必须连接非空提示词（最多 10000 个 Unicode 字符）。`image-0` 必须恰好一张待编辑原图；`image-1`～`image-4` 为参考图，按端口顺序展开集合，最多 4 张，使用 Mask 时最多 3 张。已连接却无结果、仅接参考图/Mask 未接原图均阻止运行。旧节点的 `imageInputs: 0` 显示为一个原图端口。结果可传给 Preview、Router 及现有图像节点。
-
-[ideogram.ts](./ideogram.ts) 校验文生图的 7 种比例、1K/2K、低/中/高质量和提示词扩展开关；默认 1:1、1K、中质量、扩展开启。请求始终显式发送扩展布尔值。编辑使用独立的 `editQuality`（极低/低/中/高）、`editPrecision`（标准/高）和 `editSize`（跟随原图或自定义），默认中/标准/跟随原图。各模式保留自己的设置，并支持暴露为文本参数；非当前模式的已暴露输入保留且标记停用。编辑自定义宽高须为 256–4992 的 32 倍数，总像素不超过 4194304、比例不超过 6:1。使用 Mask 或高精度时请求强制跟随原图，保留已保存尺寸以供之后切回。
-
-Mask 必须恰好一张且与原图尺寸一致。[ideogramEditClient.ts](./ideogramEditClient.ts) 和 [ideogramMask.ts](./ideogramMask.ts) 将输入转换为不透明黑白 PNG：直接导入的黑白图按黑色修改、白色保留；应用的亮度蒙版（含 Invert、Matte、MasksExtractor）按白色修改转换；有透明通道的蒙版按透明区域修改转换。Painter 直接或经 Router 连接时使用 `alphaMask`。`imageOutput` 为 Painter / MasksExtractor 的黑白 Mask、Invert 和 Matte 输出补充 `maskMode: luminance`，旧输出同样兼容；经 Compare 任一路、多级透传或独立快照保存恢复后仍保留白色编辑语义，不改变素材像素。普通导入的黑白图不会自动添加该标记。以 128 为阈值二值化，不支持软蒙版；必须同时有修改与保留区域。转换仅影响提交数据，不改变画布素材。
-
-[ideogramRun.ts](./ideogramRun.ts) 建立参数和图片快照，任务资源引用保留原图、参考图及蒙版 Blob。[ideogramClient.ts](./ideogramClient.ts) 按模式请求 `/api/ideogram` 或 `/api/ideogram/edit`，将结果 URL 立即读入受管理的 Blob，保留原始格式和尺寸，支持下载、下游、撤销和 IndexedDB 保存。结果图库、选中结果、拆分与剪贴板复用生图节点约定；[ideogramClipboard.ts](./ideogramClipboard.ts) 恢复时清除外部参数连接状态。
-
-服务端 [ideogram.ts](../../server/ideogram.ts) 优先使用请求携带的 WaveSpeed BYOK 配置，未配置时从 `WAVESPEED_API_KEY` 读取默认密钥。编辑支持 PNG/JPEG/WebP 输入，单张最多 32 MiB、合计 46 MiB；所有参数和文件大小先校验，再按 [上传协议](https://wavespeed.ai/docs/upload-files-api) 向固定 `/media/uploads` 获取凭证，使用返回的 URL/headers PUT 原始字节，PUT 不携带 API 密钥。上传地址、签名和上游错误正文不返回客户端。上传失败不提交模型任务；供应商默认保留上传文件 7 天。
-
-按 [文生图](https://wavespeed.ai/docs/docs-api/ideogram-ai/ideogram-ai-ideogram-v4.5) 和 [Edit 文档](https://wavespeed.ai/docs/docs-api/ideogram-ai/ideogram-ai-ideogram-v4.5-edit) 提交一次，通过 Task ID 查询固定结果接口，每次至少间隔 2 秒；仅 GET 的网络错误、429 和 5xx 退避重试并遵守 Retry-After。completed 读取 outputs，failed/cancelled/timeout/deleted 停止查询。上传和生成总等待最多 5 分钟，取消只停止本地等待，不代表撤销供应商任务或退款；提交后失败保留 Task ID（已取得时），提示先查看 WaveSpeed History，绝不自动重新提交。
-
-`ideogram.test.ts`、`ideogramEdit.test.ts`、`ideogramClient.test.ts`、`server/ideogram.test.ts` 使用既有 Node.js 测试运行器，随 `npm test` / `npm run check` 执行。`/tests/ideogram.html` 和 `/tests/ideogram-edit.html` 使用隔离数据库和模拟响应验证生成/编辑切换、参数、Mask 转换、结果、取消、失败、撤销与保存恢复；编辑验收还比较真实 Painter 渲染、Compare 两路以及独立快照恢复后提交的完整 Mask 像素，不调用真实模型。
+保留 `ideogram` 类型及原有输入端口用于恢复旧工作流。模型已下线，节点显示已保存的结果，支持预览、提取、下载及下游复用。节点库、搜索、拖线创建和运行入口已移除。
 
 ## 按依赖自动执行与结果复用
 
-点击模型节点或“运行选中节点”时，目标模型强制运行，上游按实际使用的端口准备。上游图片生成节点已有结果时，直接使用当前选中的图片，并停止追溯该节点之前的依赖；修改提示词、模型、服务商或生成参数只影响下一次主动运行，不会因运行下游而重新生成。没有结果的图片生成节点仍自动补齐首次生成。`executionGraph.ts` 定义依赖、生成条件指纹、输出有效性和执行前检查；`workflowExecution.ts` 管理运行身份、共享任务、取消和写回；`useWorkflowExecution.ts` 提供请求与素材适配。`DescriberPanel` 只触发运行和展示设置、任务。描述器、GPT Image 2.6、Nano Banana、Ideogram 共用此机制。
+点击模型节点或“运行选中节点”时，目标模型强制运行，上游按实际使用的端口准备。上游图片生成节点已有结果时，直接使用当前选中的图片，并停止追溯该节点之前的依赖；修改提示词、模型、服务商或生成参数只影响下一次主动运行，不会因运行下游而重新生成。没有结果的图片生成节点仍自动补齐首次生成。`executionGraph.ts` 定义依赖、生成条件指纹、输出有效性和执行前检查；`workflowExecution.ts` 管理运行身份、共享任务、取消和写回；`useWorkflowExecution.ts` 提供请求与素材适配。`DescriberPanel` 只触发运行和展示设置、任务。描述器、GPT Image 2.6、Nano Banana、Seedream 共用此机制。
 
-互不依赖的分支可并发；汇合节点在必需上游成功后才组装请求。Text 只追踪实际引用的富文本变量（旧文本仍按原规则拼接全部输入）；Router 保留原端口语义，Compare 只追踪所用一路，Ideogram 只追踪当前模式的参数。执行前检查整条必要依赖链，缺图、无连接、无选区、已知不匹配的选区和环路都先定位到问题节点，不提交模型请求。依赖运行后才能确定的错误在下一节点提交前检查。
+互不依赖的分支可并发；汇合节点在必需上游成功后才组装请求。Text 只追踪实际引用的富文本变量（旧文本仍按原规则拼接全部输入）；Router 保留原端口语义，Compare 只追踪所用一路。执行前检查整条必要依赖链，缺图、无连接、无选区、已知不匹配的选区和环路都先定位到问题节点，不提交模型请求。依赖运行后才能确定的错误在下一节点提交前检查。
 
 成功记录与结果同时写入：描述保存 `generation`，生图每张 `FileAsset` 保存自己的 `generation`，包含版本、实际请求输入指纹和输出标识。记录随 IndexedDB 与撤销历史恢复；进度、等待、取消和运行身份仅保留在临时 store。输入指纹排除临时 Blob URL，使用本地不可变素材 ID（有内容哈希时优先使用）；生成图片的派生缓存指纹包含所选结果 ID 与内容身份；远程内容哈希变化时重算下游本地输出，内容相同而临时 Blob URL 改变时仍可复用。远程 URL 仅对本次实际使用的端口、原始素材及确认复用的当前结果读取独立快照并计算 SHA-256，实际请求使用该快照；跳过未选中的历史结果、Compare 未使用的一路及被连接覆盖的备用素材。本地处理的旧结果读取失败时自动重建，已有生成图片或必需原始素材读取失败则停止提交；生成图片无法读取时提示恢复图片或主动运行对应生图节点，不以付费生成自动恢复。重复上传同一文件仍可保守地重新计算。未改变的上游复用，目标 Runs 为 N 时上游准备一次、目标独立执行 N 次；某次目标请求失败不跳过其余排队次数，取消或依赖失效则停止剩余运行；互有依赖的多选暂不允许 Runs > 1。
 
@@ -411,6 +395,6 @@ Mask 必须恰好一张且与原图尺寸一致。[ideogramEditClient.ts](./ideo
 
 `workflowExecution.test.ts` 随 `npm test` 验证分支汇合、复用、端口依赖、取消、共享任务、Runs、保存恢复和失败。浏览器入口 `/tests/workflow-execution.html` 使用真实 React Flow、运行入口、Worker、撤销历史和独立 IndexedDB，拦截所有模型 API 并阻止外部请求。额外验收包含：本地失效缓存自动重算、无关远程图片不读取、已有本地或远程生成图片无法读取时零模型提交、必需原图失效阻止模型请求；旧描述自动更新、旧图片直接复用、修改生图参数后保留图片、显式生成使用最新参数、本地处理参数变化仍重算；手动描述后换图；A → B → 撤销回 A 的迟到响应；目标 Runs = 3；缺少必要选区时零模型提交；预览任务被替换后正式输出不误报成功、不无限等待。`/tests/model-run-progress.html` 继续检查独立分支并发、进度和取消。检查均不消耗真实模型额度。
 
-自动执行的补充边界：各运行保存自己接受的上游模型输出，其他并发运行更新同一节点时不替换本次输入。每轮开始时记录需要生成的图片节点，首次结果写回不会改变本轮后续条目的依赖边界；正在执行的迭代上游继续按条目匹配。后续独立运行把已有图片节点视为当前选中图片的素材来源，不再穿透该节点展开其上游迭代器；同一迭代器若另有路径直达目标，仍按该路径展开目标任务，每项使用选中的图片。开始执行前检查已知提示词、静态参数和必要连接；来自待运行节点的动态文本在准备好后再校验。Painter Mask 直连或经过 Router 接入 GPT Image / Ideogram 时，按实际请求的 alpha PNG 校验缓存，缺失或无法读取则自动重新导出；Compare 保持原来的可见图片输出语义。模型请求超时从取得并发名额后开始计时，排队期间仍可取消。每张资源读取设 30 秒期限，包含响应体和远程内容指纹计算，超时中止读取并结束等待；原图读取失败不会提交模型请求。
+自动执行的补充边界：各运行保存自己接受的上游模型输出，其他并发运行更新同一节点时不替换本次输入。每轮开始时记录需要生成的图片节点，首次结果写回不会改变本轮后续条目的依赖边界；正在执行的迭代上游继续按条目匹配。后续独立运行把已有图片节点视为当前选中图片的素材来源，不再穿透该节点展开其上游迭代器；同一迭代器若另有路径直达目标，仍按该路径展开目标任务，每项使用选中的图片。开始执行前检查已知提示词、静态参数和必要连接；来自待运行节点的动态文本在准备好后再校验。Painter Mask 直连或经过 Router 接入 GPT Image 时，按实际请求的 alpha PNG 校验缓存，缺失或无法读取则自动重新导出；Compare 保持原来的可见图片输出语义。模型请求超时从取得并发名额后开始计时，排队期间仍可取消。每张资源读取设 30 秒期限，包含响应体和远程内容指纹计算，超时中止读取并结束等待；原图读取失败不会提交模型请求。
 
 这些边界由 `workflowExecution.test.ts`、`executionAssets.test.ts` 随 `npm test` 验证（包括虚拟时钟下的排队、取消和迟到返回）。`tests/workflow-boundaries.test.ts` 由 `/tests/workflow-execution.html` 调用，使用隔离的执行器、模拟模型返回、原生 Painter 导出与资源读取检查并发、提前校验、蒙版恢复和超时；另以真实 Resize 像素验证远程生成内容更新、相同内容复用，以及 Runs 中单次失败后的剩余次数执行；不读取或改动用户保存的画布，不调用真实模型。

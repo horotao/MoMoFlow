@@ -127,7 +127,17 @@ export function createSunburstMiddleware(apiKeys: Record<Exclude<SunburstProvide
       catch (error) { return send(400, { error: error instanceof Error ? error.message : '请求格式错误。' }); }
       provider = request.provider;
       let connection;
-      try { connection = providerConnection(req, provider, apiKeys[provider], providerFetch); }
+      try {
+        if (provider === 'zenmux') {
+          if (['x-momoflow-provider', 'x-momoflow-api-key', 'x-momoflow-base-url'].some(header => req.headers[header] !== undefined)) {
+            return send(400, { error: 'ZenMux 仅支持本地服务端配置。' });
+          }
+          if (!apiKeys.zenmux) return send(503, { error: 'ZenMux 仅支持本地 ZENMUX_API_KEY，请选择其他渠道。' });
+          connection = { baseUrl: providers.zenmux.baseUrl, apiKey: apiKeys.zenmux, fetch: providerFetch };
+        } else {
+          connection = providerConnection(req, provider, apiKeys[provider], providerFetch);
+        }
+      }
       catch { return send(400, { error: 'API 配置无效，请重新保存对应渠道的配置' }); }
       apiKey = connection.apiKey;
       const config = providers[provider];

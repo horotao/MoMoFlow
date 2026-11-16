@@ -5,6 +5,7 @@ import { apimartInputUrl, apimartResultUrl } from '../src/nodes/apimartResult.ts
 import { diagnosticText, readErrorDiagnostic, trusted } from './zenmuxShared.ts';
 import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 import { imageFormats, sunburstModelForProvider, validateSunburstImageInputs, validateSunburstSettings, validateSunburstVariant } from '../src/nodes/sunburst.ts';
+import { buildNanoBananaRequest } from './nanoBanana.ts';
 import { buildSeedreamRequest } from './seedream.ts';
 
 const maxBody = 64 * 1024 * 1024;
@@ -78,7 +79,7 @@ async function readLimited(response: Response, limit: number): Promise<Buffer> {
 export function createApimartMiddleware(defaultKey: string, providerFetch: typeof fetch = fetch) {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const path = req.url?.split('?')[0];
-    if (path !== '/api/apimart/images' && path !== '/api/apimart/seedream' && path !== '/api/apimart/task') return next();
+    if (path !== '/api/apimart/images' && path !== '/api/apimart/seedream' && path !== '/api/apimart/task' && path !== '/api/nano-banana') return next();
     const send = (status: number, value: object) => {
       if (res.destroyed || res.writableEnded) return;
       res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(value));
@@ -99,11 +100,12 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
         chunks.push(Buffer.from(chunk));
       }
       let input: Record<string, unknown>;
-      let generation: ReturnType<typeof buildApimartRequest> | undefined;
+      let generation: { images: InputImage[]; body: Record<string, unknown> } | undefined;
       try {
         input = JSON.parse(Buffer.concat(chunks).toString());
         if (path === '/api/apimart/images') generation = buildApimartRequest(input);
         else if (path === '/api/apimart/seedream') generation = buildSeedreamRequest(input);
+        else if (path === '/api/nano-banana') generation = buildNanoBananaRequest(input);
         else {
           if (!input || typeof input.taskId !== 'string' || !taskIdPattern.test(input.taskId)) throw new Error('无效的 APIMart 任务编号。');
           if (!imageFormats.some(format => format === input.outputFormat)) throw new Error('不支持的 APIMart 输出格式。');

@@ -9,7 +9,6 @@ import { requestDescription } from '../nodes/describerClient';
 import { requestSunburst } from '../nodes/sunburstClient';
 import { requestSeedream } from '../nodes/seedreamClient';
 import { requestNanoBanana } from '../nodes/nanoBananaClient';
-import { requestIdeogram } from '../nodes/ideogramClient';
 import { advanceEstimatedProgress } from '../nodes/taskQueue';
 import { useModelTaskStore } from './useModelTasks';
 
@@ -45,7 +44,7 @@ export function useWorkflowExecution() {
           return { assets, release: () => { release(); assetResources.discard(urls); } };
         } catch (error) { assetResources.discard(urls); throw error; }
       },
-      request: (task, signal) => task.seedreamRequest ? requestSeedream(task.seedreamRequest, signal) : task.ideogramRequest ? requestIdeogram(task.ideogramRequest, signal) : task.nanoBananaRequest ? requestNanoBanana(task.nanoBananaRequest, signal) : task.imageRequest ? requestSunburst(task.imageRequest, signal) : requestDescription(task, signal),
+      request: (task, signal) => task.seedreamRequest ? requestSeedream(task.seedreamRequest, signal) : task.nanoBananaRequest ? requestNanoBanana(task.nanoBananaRequest, signal) : task.imageRequest ? requestSunburst(task.imageRequest, signal) : requestDescription(task, signal),
     });
     engine.current = instance;
     return () => { instance.dispose(); engine.current = undefined; };

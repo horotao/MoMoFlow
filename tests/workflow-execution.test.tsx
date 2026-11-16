@@ -52,7 +52,7 @@ window.fetch = (input, init) => {
     return Promise.resolve(new Response(path.endsWith('/valid.png') ? blob : null, { status: path.endsWith('/valid.png') ? 200 : 404 }));
   }
   if (path.startsWith('/api/')) {
-    if (!['/api/describer', '/api/sunburst', '/api/nano-banana', '/api/ideogram', '/api/ideogram/edit'].includes(path)) return Promise.reject(new Error(`Blocked unexpected model API ${path}`));
+    if (!['/api/describer', '/api/sunburst', '/api/nano-banana'].includes(path)) return Promise.reject(new Error(`Blocked unexpected model API ${path}`));
     return new Promise(resolve => {
       const request = { path, body: JSON.parse(String(init?.body)), signal: init?.signal, resolve, settled: false }; requests.push(request);
       if (!deferred) setTimeout(() => respond(request), 20);

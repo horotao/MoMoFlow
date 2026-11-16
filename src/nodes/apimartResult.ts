@@ -12,9 +12,9 @@ export function apimartResultUrl(value: unknown): string {
 
 // Download directly from the CDN, without the user's provider credentials.
 // Keep the original bytes as a Blob so existing asset persistence still works.
-export async function downloadApimartResult(result: { imageUrl?: unknown; format?: unknown }, format: string, signal: AbortSignal): Promise<Blob> {
+export async function downloadApimartResult(result: { imageUrl?: unknown; format?: unknown }, format: string | undefined, signal: AbortSignal): Promise<Blob> {
   signal.throwIfAborted();
-  if (result.format !== format) throw new Error('APIMart 返回的图片格式与请求不符。');
+  if (format && result.format !== format) throw new Error('APIMart 返回的图片格式与请求不符。');
   const url = apimartResultUrl(result.imageUrl);
   const downloadSignal = AbortSignal.any([signal, AbortSignal.timeout(60000)]);
   let response: Response;
@@ -27,8 +27,9 @@ export async function downloadApimartResult(result: { imageUrl?: unknown; format
   const reader = response.body?.getReader();
   try {
     if (!response.ok) throw new Error(`APIMart 图片下载失败（HTTP ${response.status}）；不会重新生成。`);
-    const mime = `image/${format === 'svg' ? 'svg+xml' : format}`;
-    if (response.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== mime) throw new Error('APIMart 返回的图片格式与请求不符。');
+    const mime = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+    const allowed = format ? [`image/${format === 'svg' ? 'svg+xml' : format}`] : ['image/png', 'image/jpeg'];
+    if (!mime || !allowed.includes(mime)) throw new Error('APIMart 返回的图片格式与请求不符。');
     if (!reader) throw new Error('APIMart 返回空图片。');
     const limit = 32 * 1024 * 1024;
     if (Number(response.headers.get('content-length')) > limit) throw new Error('APIMart 返回图片超过 32 MiB。');
