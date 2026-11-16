@@ -205,3 +205,23 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) test(
     else assert.equal(result.body.status, status);
   }
 });
+
+test('uploaded reference and mask URLs pass through in order without server downloads or uploads', async () => {
+  const images = ['https://cdn.example/reference-1.png', 'https://cdn.example/reference-2.jpeg'];
+  const mask = 'https://cdn.example/mask.png';
+  let calls = 0;
+  const result = await invoke({ ...standardInput, images, mask }, async (url, init) => {
+    calls++;
+    assert.equal(url, 'https://api.apimart.ai/v1/images/generations');
+    const body = JSON.parse(String(init?.body));
+    assert.deepEqual(body.image_urls, images); assert.equal(body.mask_url, mask);
+    assert.equal(JSON.stringify(body).includes('data:'), false);
+    return Response.json({ data: [{ task_id: 'task_url_edit' }] });
+  });
+  assert.equal(calls, 1); assert.equal(result.status, 200);
+  for (const url of ['http://cdn.example/ref.png', 'https://127.0.0.1/ref.png', 'https://user:secret@cdn.example/ref.png']) {
+    for (const patch of [{ images: [url] }, { images, mask: url }]) {
+      assert.equal((await invoke({ ...standardInput, ...patch }, async () => assert.fail('Unsafe URL'))).status, 400);
+    }
+  }
+});

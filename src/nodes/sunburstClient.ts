@@ -1,3 +1,4 @@
+import { uploadApimartImages, readImageApiResponse } from './apimartUpload.ts';
 import { downloadApimartResult } from './apimartResult.ts';
 import { apiCredentialHeaders } from '../components/apiSettings.ts';
 import { ModelRequestCancelled, modelTimeoutCode, modelRequestError } from './modelRequestError.ts';
@@ -22,7 +23,11 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
   const apimart = provider === 'apimart';
   const credentialHeaders = apiCredentialHeaders(provider);
   validateSunburstImageInputs(input.outputFormat, input.images.length > 0, Boolean(input.mask), provider, input.channelModel);
-  if (apimart) validateSunburstSettings(input);
+  if (apimart) {
+    validateSunburstSettings(input);
+    if (!input.prompt.trim() || input.prompt.length > 32000) throw new Error('请连接非空 Prompt，最多 32000 个字符。');
+    if (input.images.length > 16) throw new Error('最多支持 16 张参考图片。');
+  }
   const { maskMode, ...request } = input;
   const blobs: Blob[] = []; let total = 0;
   for (const url of input.images) {
@@ -68,11 +73,13 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
     } finally { first.close(); }
   }
   signal.throwIfAborted();
+  const uploaded = apimart ? await uploadApimartImages([...blobs, ...(mask ? [mask] : [])], credentialHeaders, signal) : undefined;
+  signal.throwIfAborted();
   let response = await fetch(apimart ? '/api/apimart/images' : '/api/sunburst', {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...credentialHeaders }, signal,
-    body: JSON.stringify({ ...request, images: await Promise.all(blobs.map(dataUrl)), ...(mask ? { mask: await dataUrl(mask) } : {}) }),
+    body: JSON.stringify({ ...request, images: uploaded ? uploaded.slice(0, blobs.length) : await Promise.all(blobs.map(dataUrl)), ...(mask ? { mask: uploaded ? uploaded[blobs.length] : await dataUrl(mask) } : {}) }),
   });
-  let result = await response.json().catch(() => { throw new Error('本地图片 API 不可用，请通过 npm run dev 启动服务。'); });
+  let result = await readImageApiResponse(response);
   let apimartTaskId: string | undefined;
   if (apimart && response.ok) {
     const taskId: unknown = result.taskId;

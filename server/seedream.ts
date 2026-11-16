@@ -1,3 +1,4 @@
+import { apimartInputUrl } from '../src/nodes/apimartResult.ts';
 import { isSeedreamExactSize, seedreamInputFormats, seedreamMaxImages, seedreamModel, validateSeedreamSettings } from '../src/nodes/seedream.ts';
 
 export function buildSeedreamRequest(value: unknown) {
@@ -9,6 +10,7 @@ export function buildSeedreamRequest(value: unknown) {
   if (['layer_decomposition', 'layerDecomposition', 'layer_decomposition_options', 'layerDecompositionOptions', 'mask', 'aspectRatio', 'n', 'stream', 'tools'].some(field => input[field] !== undefined)) throw new Error('当前 Seedream 节点不支持图层拆分、Mask 或额外的模型参数。');
   let total = 0;
   const imageUrls = input.images.map(url => {
+    if (typeof url === 'string' && !url.startsWith('data:')) return apimartInputUrl(url);
     if (typeof url !== 'string' || !/^data:image\/[a-z]+;base64,[A-Za-z0-9+/]+={0,2}$/.test(url) || !seedreamInputFormats.includes(url.slice(5, url.indexOf(';')))) throw new Error('无效的 Seedream 参考图片。');
     const bytes = Buffer.from(url.slice(url.indexOf(',') + 1), 'base64');
     if (!bytes.length || bytes.length > 30 * 1024 * 1024) throw new Error('Seedream 单张参考图片不能超过 30 MiB。');
@@ -23,6 +25,6 @@ export function buildSeedreamRequest(value: unknown) {
     background: settings.background, nsfw_check: settings.nsfwCheck, output_format: settings.outputFormat, watermark: settings.watermark, n: 1,
     ...(imageUrls.length ? { image_urls: imageUrls } : {}),
   };
-  // Seedream accepts Data URIs directly; no separate reference upload is needed.
+  // BYOK clients send uploaded URLs; local default-key clients retain Data URIs.
   return { images: [], body };
 }

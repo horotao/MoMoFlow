@@ -1,3 +1,4 @@
+import { apiSettingsStorageKey } from '../src/components/apiSettings';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
 import { Flow } from '../src/App';
@@ -59,6 +60,12 @@ async function finishDimensions(enter = false) {
 }
 
 async function run() {
+  // Keep BYOK credentials isolated from the user's saved API settings.
+  const nativeGetItem = Storage.prototype.getItem;
+  Storage.prototype.getItem = function (key: string) {
+    if (key === apiSettingsStorageKey) return JSON.stringify({ provider: 'apimart', credentials: { apimart: { apiKey: 'isolated-upload-test-key', baseUrl: 'https://api.apimart.ai/v1' } } });
+    return nativeGetItem.call(this, key);
+  };
   const canvas = document.createElement('canvas'); canvas.width = 640; canvas.height = 360;
   const context = canvas.getContext('2d')!;
   context.fillStyle = '#8d72c6'; context.fillRect(0, 0, 640, 360);
@@ -74,6 +81,11 @@ async function run() {
   // Every model request stays in this page. Never forward API or external calls.
   window.fetch = async (url, init) => {
     const path = typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
+    if (path === 'https://api.apimart.ai/v1/uploads/images?retention_days=3') {
+      check(init?.body instanceof FormData && (init.body.get('file') as File)?.type === 'image/png', 'Browser uploads original PNG as multipart');
+      check(new Headers(init?.headers).get('Authorization') === 'Bearer isolated-upload-test-key', 'Upload uses isolated BYOK credentials');
+      return Response.json({ url: 'https://cdn.example/uploaded-reference.png' });
+    }
     if (path === '/api/apimart/seedream') {
       const input = JSON.parse(String(init?.body)); requests.push(input);
       if (mode === 'cancel') return new Promise<Response>((_resolve, reject) => {
@@ -204,7 +216,7 @@ async function run() {
     { id: 'output', source: 'seedream', sourceHandle: 'result', target: 'preview', targetHandle: 'file' },
   ]); await settle();
   runButton().click(); await until(() => read().data.results?.length === 2, 'Reference-image mock task completes');
-  check((requests[1].images as string[])[0] === png && requests[1].outputFormat === 'jpeg', 'Reference bytes and JPEG format reach the task snapshot');
+  check((requests[1].images as string[])[0] === 'https://cdn.example/uploaded-reference.png' && requests[1].outputFormat === 'jpeg', 'Uploaded reference URL and JPEG format reach the task snapshot');
   check(requests[1].size === '1537x1001' && read().data.results?.[1].width === 640 && read().data.results?.[1].height === 360, 'Exact pixel requests retain their size and display provider results at actual dimensions');
   await until(() => Boolean(document.querySelector<HTMLImageElement>('.preview-image img')?.naturalWidth), 'Downstream preview resolves');
   check(imageOutput(read(), 'result')[0].id === read().data.results?.[1].id, 'Active result is the downstream output');

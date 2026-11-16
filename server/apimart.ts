@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { providerConnection } from './apiCredentials.ts';
-import { apimartResultUrl } from '../src/nodes/apimartResult.ts';
+import { apimartInputUrl, apimartResultUrl } from '../src/nodes/apimartResult.ts';
 import { diagnosticText, readErrorDiagnostic, trusted } from './zenmuxShared.ts';
 import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 import { imageFormats, sunburstModelForProvider, validateSunburstImageInputs, validateSunburstSettings, validateSunburstVariant } from '../src/nodes/sunburst.ts';
@@ -9,7 +9,7 @@ import { buildSeedreamRequest } from './seedream.ts';
 
 const maxBody = 64 * 1024 * 1024;
 const taskIdPattern = /^[a-zA-Z0-9_-]{1,200}$/;
-type InputImage = { blob: Blob; filename: string };
+type InputImage = string | { blob: Blob; filename: string };
 
 export function buildApimartRequest(value: unknown) {
   if (!value || typeof value !== 'object') throw new Error('图片参数格式错误。');
@@ -22,6 +22,7 @@ export function buildApimartRequest(value: unknown) {
   validateSunburstImageInputs(settings.outputFormat, input.images.length > 0, Boolean(input.mask), 'apimart', settings.channelModel);
   if (['width', 'height', 'markup', 'markup_url'].some(field => input[field] !== undefined)) throw new Error('APIMart 不支持自定义宽高或标注引导编辑。');
   const images: InputImage[] = input.images.map((url, index) => {
+    if (typeof url === 'string' && !url.startsWith('data:')) return apimartInputUrl(url);
     if (typeof url !== 'string' || !/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/.test(url)) throw new Error('APIMart 参考图片需为 PNG、JPEG、WebP 或 GIF。');
     const mime = url.slice(5, url.indexOf(';'));
     if (!standard && mime === 'image/gif' && settings.resolution !== '1K') throw new Error('APIMart 2K / 4K 参考图不支持 GIF，请使用 PNG、JPEG 或 WebP。');
@@ -31,10 +32,15 @@ export function buildApimartRequest(value: unknown) {
   });
   let mask: string | undefined;
   if (input.mask !== undefined) {
-    if (typeof input.mask !== 'string' || !/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(input.mask)) throw new Error('Mask 必须为 PNG 图片。');
-    if (!images.length) throw new Error('使用 Mask 时必须连接 Image。');
-    if (Buffer.from(input.mask.slice(input.mask.indexOf(',') + 1), 'base64').length > 32 * 1024 * 1024) throw new Error('Mask 不能超过 32 MiB。');
-    mask = input.mask;
+    if (typeof input.mask === 'string' && !input.mask.startsWith('data:')) {
+      if (!images.length) throw new Error('使用 Mask 时必须连接 Image。');
+      mask = apimartInputUrl(input.mask);
+    } else {
+      if (typeof input.mask !== 'string' || !/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(input.mask)) throw new Error('Mask 必须为 PNG 图片。');
+      if (!images.length) throw new Error('使用 Mask 时必须连接 Image。');
+      if (Buffer.from(input.mask.slice(input.mask.indexOf(',') + 1), 'base64').length > 32 * 1024 * 1024) throw new Error('Mask 不能超过 32 MiB。');
+      mask = input.mask;
+    }
   }
   const body: Record<string, unknown> = {
     model: sunburstModelForProvider('apimart', validateSunburstVariant(input.variant), settings.channelModel),
@@ -127,11 +133,11 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
         const imageUrls: string[] = [];
         // Uploads return URLs immediately; preserve the user's reference order.
         for (const image of generation.images) {
+          if (typeof image === 'string') { imageUrls.push(image); continue; }
           const form = new FormData(); form.append('file', image.blob, image.filename);
           const uploaded = await call('/uploads/images?retention_days=3', form);
           if (!uploaded) return;
-          if (typeof uploaded.url !== 'string' || !/^https?:\/\//.test(uploaded.url)) throw new Error('APIMart 上传未返回有效公网 URL。');
-          imageUrls.push(uploaded.url);
+          imageUrls.push(apimartInputUrl(uploaded.url));
         }
         const result = await call('/images/generations', { ...generation.body, ...(imageUrls.length ? { image_urls: imageUrls } : {}) });
         if (!result) return;

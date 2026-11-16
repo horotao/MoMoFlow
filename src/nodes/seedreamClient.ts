@@ -1,8 +1,9 @@
+import { uploadApimartImages, readImageApiResponse } from './apimartUpload.ts';
 import { downloadApimartResult } from './apimartResult.ts';
 import { apiCredentialHeaders } from '../components/apiSettings.ts';
 import { ModelRequestCancelled, ModelRequestTimeout, modelRequestError } from './modelRequestError.ts';
 import { assetResources } from './assetResources.ts';
-import { readImage, dataUrl } from './imageGenerationClient.ts';
+import { readImage } from './imageGenerationClient.ts';
 import { seedreamInputFormats, seedreamMaxImages, validateSeedreamSettings, type SeedreamRequest } from './seedream.ts';
 import type { FileAsset } from './types';
 
@@ -20,7 +21,8 @@ export async function requestSeedream(input: SeedreamRequest, signal: AbortSigna
   const credentialHeaders = apiCredentialHeaders('apimart');
   signal.throwIfAborted();
   if (input.images.length > seedreamMaxImages) throw new Error(`最多支持 ${seedreamMaxImages} 张参考图片。`);
-  const images: string[] = []; let total = 0;
+  if (!input.prompt.trim() || input.prompt.length > 32000) throw new Error('请连接非空 Prompt，最多 32000 个字符。');
+  const blobs: Blob[] = []; let total = 0;
   for (const url of input.images) {
     const blob = await readImage(url, signal, false, seedreamInputFormats); total += blob.size;
     if (blob.size > 30 * 1024 * 1024) throw new Error('Seedream 单张参考图片不能超过 30 MiB。');
@@ -30,12 +32,13 @@ export async function requestSeedream(input: SeedreamRequest, signal: AbortSigna
       const { width, height } = bitmap;
       if (width < 1 || height < 1 || width * height > 36000000) throw new Error('Seedream 参考图尺寸无效或总像素超过 3600 万。');
     } finally { bitmap.close(); }
-    images.push(await dataUrl(blob));
+    blobs.push(blob);
   }
+  const images = await uploadApimartImages(blobs, credentialHeaders, signal);
   const call = async (path: string, body: object) => {
     signal.throwIfAborted();
     const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', ...credentialHeaders }, signal, body: JSON.stringify(body) });
-    const result = await response.json().catch(() => { throw new Error('无法读取 APIMart 响应，请检查本地服务。'); });
+    const result = await readImageApiResponse(response);
     if (!response.ok) throw modelRequestError(result.error || 'Seedream 请求失败。', response.status, result.code);
     return result;
   };

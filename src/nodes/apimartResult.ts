@@ -47,3 +47,10 @@ export async function downloadApimartResult(result: { imageUrl?: unknown; format
     return new Blob(chunks, { type: mime });
   } finally { await reader?.cancel().catch(() => {}); reader?.releaseLock(); }
 }
+
+export function apimartInputUrl(value: unknown): string {
+  try {
+    if (typeof value !== 'string' || value.length > 8192) throw new Error();
+    return apimartResultUrl(value);
+  } catch { throw new Error('APIMart 参考图片必须为公开 HTTPS URL。'); }
+}

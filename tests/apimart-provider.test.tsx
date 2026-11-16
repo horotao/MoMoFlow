@@ -1,3 +1,4 @@
+import { apiSettingsStorageKey } from '../src/components/apiSettings';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
 import { MotionConfig } from 'motion/react';
@@ -49,6 +50,12 @@ async function fillNumber(label: string, value: string) {
 }
 
 async function run() {
+  // Keep BYOK credentials isolated from the user's saved API settings.
+  const nativeGetItem = Storage.prototype.getItem;
+  Storage.prototype.getItem = function (key: string) {
+    if (key === apiSettingsStorageKey) return JSON.stringify({ provider: 'apimart', credentials: { apimart: { apiKey: 'isolated-upload-test-key', baseUrl: 'https://api.apimart.ai/v1' } } });
+    return nativeGetItem.call(this, key);
+  };
   const nativeFetch = window.fetch.bind(window);
   const canvas = document.createElement('canvas'); canvas.width = 160; canvas.height = 90;
   canvas.getContext('2d')!.fillStyle = '#a497c6'; canvas.getContext('2d')!.fillRect(0, 0, 160, 90);
@@ -60,6 +67,11 @@ async function run() {
   let remoteCancelled = false;
   window.fetch = async (url, init) => {
     const path = typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
+    if (path === 'https://api.apimart.ai/v1/uploads/images?retention_days=3') {
+      check(init?.body instanceof FormData && (init.body.get('file') as File)?.type === 'image/png', 'Browser uploads original PNG as multipart');
+      check(new Headers(init?.headers).get('Authorization') === 'Bearer isolated-upload-test-key', 'Upload uses isolated BYOK credentials');
+      return Response.json({ url: 'https://cdn.example/uploaded-reference.png' });
+    }
     if (path === '/api/apimart/images') {
       requests.push(JSON.parse(String(init?.body)));
       return Response.json({ taskId: `task_mock_${requests.length}` });
@@ -119,7 +131,7 @@ async function run() {
   api.addEdges({ id: 'ref-image', source: 'reference', target: 'image', sourceHandle: 'file', targetHandle: 'image-0' }); await settle();
   find('.sunburst-run').click();
   await until(() => read().data.results?.length === 2, 'Reference edit did not finish');
-  check(Array.isArray(requests[1].images) && requests[1].images.length === 1 && String(requests[1].images[0]).startsWith('data:image/png;base64,'), 'Local reference bytes reach the APIMart upload boundary');
+  check(Array.isArray(requests[1].images) && requests[1].images.length === 1 && requests[1].images[0] === 'https://cdn.example/uploaded-reference.png', 'Only the uploaded reference URL reaches the application API');
   await closeTasks();
   const roundtrip = new WorkflowStorage(`${db}-roundtrip`); await roundtrip.load();
   await roundtrip.save({ ...workflow, nodes: api.getNodes(), edges: api.getEdges() });
@@ -165,7 +177,7 @@ async function run() {
   api.addNodes({ id: 'mask-file', type: 'file', position: { x: 60, y: 800 }, data: { assets: [{ id: 'mask-asset', name: 'mask.png', kind: 'image', url: mask, width: 160, height: 90 }] } });
   api.addEdges({ id: 'standard-mask', source: 'mask-file', sourceHandle: 'file', target: 'image', targetHandle: 'mask' }); await settle();
   find('.sunburst-run').click(); await until(() => read().data.results?.length === 3, 'Standard masked generation did not finish');
-  check(requests[4].channelModel === 'gpt-image-2.6' && requests[4].size === '1600x1200' && requests[4].background === 'transparent' && requests[4].moderation === 'low' && requests[4].complexity === 'auto' && String(requests[4].mask).startsWith('data:image/png;'), 'Standard run snapshots channel model, custom size, background, moderation and PNG mask');
+  check(requests[4].channelModel === 'gpt-image-2.6' && requests[4].size === '1600x1200' && requests[4].background === 'transparent' && requests[4].moderation === 'low' && requests[4].complexity === 'auto' && requests[4].mask === 'https://cdn.example/uploaded-reference.png', 'Standard run snapshots channel model, custom size, background, moderation and uploaded PNG mask URL');
   await closeTasks();
   api.setEdges(edges => edges.filter(edge => edge.id !== 'standard-mask')); await settle();
   await choose('输出格式', 'GIF');

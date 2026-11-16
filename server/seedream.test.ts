@@ -113,3 +113,15 @@ test('Seedream results use the shared task query and return the CDN URL without 
   }, { path: '/api/apimart/task' });
   assert.equal(result.status, 200); assert.deepEqual(result.body, { status: 'completed', taskId: 'task_seedream', imageUrl: 'https://cdn.example/seedream.jpeg', format: 'jpeg' });
 });
+
+test('Seedream forwards uploaded reference URLs in order without another upload or download', async () => {
+  const images = ['https://cdn.example/input-1.png', 'https://cdn.example/input-2.jpeg'];
+  let calls = 0;
+  const result = await invoke({ ...input, images }, async (url, init) => {
+    calls++;
+    assert.equal(url, 'https://api.apimart.ai/v1/images/generations');
+    assert.deepEqual(JSON.parse(String(init?.body)).image_urls, images);
+    return Response.json({ data: [{ task_id: 'task_urls' }] });
+  });
+  assert.equal(result.status, 200); assert.equal(calls, 1);
+});
