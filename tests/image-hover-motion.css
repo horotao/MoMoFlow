@@ -30,5 +30,6 @@ body { color-scheme: dark; }
 }
 
 .hover-motion-before {
-  --image-overlay-shade-enter: 500ms;
+  --image-overlay-shade-enter: 160ms;
+  --image-overlay-tool-enter-delay: 0ms;
 }

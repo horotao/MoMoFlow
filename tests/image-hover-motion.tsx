@@ -39,11 +39,13 @@ const assets: FileAsset[] = [
   { id: 'square', name: '方图.png', kind: 'image', url: '/tests/fixtures/image-node-2.png', width: 1024, height: 1024 },
 ];
 const collection = { assets, activeAssetId: assets[0].id };
+const lightAsset: FileAsset = { id: 'light', name: '浅色底图.webp', kind: 'image', url: '/tests/fixtures/image-hover-light.webp', width: 800, height: 600 };
 const results = { results: assets, activeResultId: assets[0].id, imageInputs: 1 };
 const baseImage = assets[0];
 const sample = { id: 'sample', position: { x: 0, y: 0 } };
 type Scenario = { label: string; node: AppNode; targetHandle?: string };
 const scenarios: Scenario[] = [
+  { label: '导入 · 浅色底图', node: { ...sample, type: 'file', data: { assets: [lightAsset], activeAssetId: lightAsset.id, viewMode: 'single' } } },
   { label: '导入 · 单图', node: { ...sample, type: 'file', data: { ...collection, viewMode: 'single' } } },
   { label: '导入 · 画廊', node: { ...sample, type: 'file', data: { ...collection, viewMode: 'all' } } },
   { label: 'GPT Image 2.6', node: { ...sample, type: 'sunburst', data: { ...defaultSunburstSettings, ...results } } },
@@ -92,7 +94,7 @@ function StudyPanel({ id, scenario, zoomLimit }: { id: 'before' | 'canvas'; scen
 
   const zoom = width ? Math.min(zoomLimit, (width - 56) / 456) : zoomLimit;
   return <section className={`hover-motion-panel hover-motion-${id}`} aria-labelledby={`${id}-title`}>
-    <h2 id={`${id}-title`}>{id === 'before' ? '同步淡入' : '阴影先淡入'}</h2>
+    <h2 id={`${id}-title`}>{id === 'before' ? '阴影与图标同时开始' : '阴影到位后显示图标'}</h2>
     <div ref={stage} className="hover-motion-stage" style={{ height: 28 + Math.max(550, nodeHeight) * zoom }}>
       {width > 0 && <ModelTasksProvider>
         <ReactFlow<AppNode> defaultNodes={graph.nodes} defaultEdges={graph.edges} nodeTypes={nodeTypes} colorMode="dark"
