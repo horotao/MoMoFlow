@@ -98,11 +98,13 @@ React Flow CSS 通过 `src/index.css` 中的 `layer(base)` 在 Tailwind 之后�
 
 BYOK Base URL 支持公开 HTTPS 网关。服务端校验并固定 DNS 解析结果，阻止本机或内网目标及重定向。GPT Image 的 ZenMux 渠道仅可通过本地服务的 `ZENMUX_API_KEY` 使用。
 
-## DeepSeek 图片反推提示词（本地测试）
+## DeepSeek 图片反推提示词
 
-复制 `.env.example` 为 `.env.local`，填写 `DEEPSEEK_API_KEY`，然后运行（或重启）`npm run dev`。默认密钥仅在 Vite 服务端读取，不能使用 `VITE_` 前缀或写进节点数据。
+在线上或本地的「更多 → API 设置」中保存 DeepSeek Key。默认地址为 `https://api.deepseek.com`。浏览器用 `purpose=user_data` 将原图直传到 [Files API](https://api-docs.deepseek.com/zh-cn/guides/files_api/)，设置上传后 1 小时过期。`/api/describer` 的请求体只包含按顺序排列的文件 ID 与系统指令。自定义 DeepSeek 地址需同时兼容 Files API、浏览器跨域上传和对话补全。
 
-添加 File 节点并上传 JPEG / PNG / GIF / WebP 图片，将输出连接到 Image Describer 的 Image 输入。模型选择 `deepseek-flash`，按需调整 System Instructions，然后点击 Run selected。真实返回的提示词会写入节点，并可通过文本输出传递到下游。多个输入按端口编号排列；本地入口一次最多接受 14 张图片。旧节点需手动切换 DeepSeek 模型。
+添加 File 节点并上传 JPEG / PNG / GIF / WebP 图片，将输出连接到 Image Describer 的 Image 输入。模型选择 `deepseek-flash`，按需调整 System Instructions，然后点击 Run selected。提示词会写入节点并可传递到下游。多个输入按端口编号排列，一次最多 14 张，直传单张不超过 64 MiB、合计不超过 200 MiB。旧节点需手动切换 DeepSeek 模型。
+
+在本机通过 `npm run dev` 或 `npm run preview` 运行且浏览器未配置用户 Key 时，可使用 `.env.local` 中的 `DEEPSEEK_API_KEY` 走原有内联图片路径。该密钥仅在 Vite 服务端读取。单独部署 `dist/` 不包含 API 服务。
 
 Tasks 显示实际排队、运行、成功或失败状态。每次 Run 都可能计费，取消会中断等待但不能保证服务商停止计费；失败不会自动重试。Retry 使用当前节点输入，并沿用面板 Runs 数量。
 
@@ -110,15 +112,13 @@ Tasks 显示实际排队、运行、成功或失败状态。每次 Run 都可能
 
 接口依据：https://api-docs.deepseek.com/zh-cn/guides/vision/
 
-此入口用于 `npm run dev` 和 `npm run preview` 本地测试。单独部署 `dist/` 不包含 API 服务。
-
 ### Vercel 部署（BYOK）
 
 仓库根目录的 `vercel.json` 同时构建 Vite 前端与 `api/[...path].ts` 模型接口。使用 `vercel deploy --environment preview` 发布预览；安装使用 `npm ci`，运行时使用 Node.js 24。接口复用本地请求校验、模型处理及 BYOK 网关校验。
 
 线上仅使用用户在「更多 → API 设置」中填写的 API Key，不读取服务端默认密钥；连接测试同样需要填写 Key。`.vercelignore` 排除本地环境文件，部署时不要上传 `.env.local` 或配置共享模型密钥。接口仅接受 Vercel 提供的部署域名及对应 HTTPS Origin，用户配置仍保存在各自浏览器中。
 
-函数最长运行 300 秒，平台请求和响应大小限制为 4.5 MB（包括图片的 Base64 编码）。APIMart 图片由浏览器直传和直下，函数请求只传输 URL 和参数。仍以内联方式传输的其他渠道图片可能被平台拒绝。当前部署不包含账户系统、共享额度或云端工作流同步。自动检查不调用真实模型；部署后的路由检查也不能替代真实模型验收。
+函数最长运行 300 秒，平台请求和响应大小限制为 4.5 MB（包括图片的 Base64 编码）。APIMart 图片由浏览器直传和直下，DeepSeek 图片由浏览器直传；仅传输 URL 或文件 ID 的函数请求可避开图片大小限制。仍以内联方式传输的其他渠道图片可能被平台拒绝。当前部署不包含账户系统、共享额度或云端工作流同步。自动检查不调用真实模型；部署后的路由检查也不能替代真实模型验收。
 
 ## GPT Image 2.6（OpenAI / ZenMux / APIMart）
 

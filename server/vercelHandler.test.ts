@@ -34,6 +34,12 @@ test('hosted BYOK routes reject untrusted requests and never use server keys', a
   assert.equal((await request('/api/sunburst', '{}', { host: 'evil.example', origin: 'https://evil.example' })).status, 403);
   for (const path of ['/api/unknown', '/api/ideogram', '/api/ideogram/edit']) assert.equal((await request(path)).status, 404);
   assert.equal((await request('/api/sunburst', '{}', { 'x-momoflow-api-key': 'invalid key' })).status, 400);
+  const deepseekHeaders = {
+    'x-momoflow-provider': 'deepseek', 'x-momoflow-api-key': 'test-key', 'x-momoflow-base-url': 'https://api.deepseek.com',
+  };
+  const inlineDescription = (data: string) => JSON.stringify({ model: 'deepseek-flash', instructions: '', images: [`data:image/png;base64,${data}`] });
+  assert.equal((await request('/api/describer', inlineDescription('aGVsbG8='), deepseekHeaders)).status, 400);
+  assert.equal((await request('/api/describer', inlineDescription('a'.repeat(128 * 1024)), deepseekHeaders)).status, 413);
   process.env.VERCEL = '';
   assert.equal((await request('/api/settings/test')).status, 403);
 });

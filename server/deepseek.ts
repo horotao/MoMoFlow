@@ -1,24 +1,42 @@
 import { trusted } from './zenmuxShared.ts';
 import { providerConnection } from './apiCredentials.ts';
+import { deepSeekFileIdPattern, describerMaxImages, describerMaxInstructions } from '../src/nodes/describer.ts';
 import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 
-export function buildDeepSeekRequest(input: { model?: unknown; instructions?: unknown; images?: unknown }) {
+function inlineImages(input: Record<string, unknown>) {
   if (input.model !== 'deepseek-flash') throw new Error('请选择 deepseek-flash；其他模型尚未接入。');
-  if (typeof input.instructions !== 'string' || input.instructions.length > 20000) throw new Error('系统指令过长或格式不正确。');
-  if (!Array.isArray(input.images) || !input.images.length || input.images.length > 14) throw new Error('请提供 1–14 张图片。');
-  for (const url of input.images) {
+  if (!Array.isArray(input.images) || !input.images.length || input.images.length > describerMaxImages) throw new Error(`请提供 1–${describerMaxImages} 张图片。`);
+  return input.images.map((url: unknown) => {
     if (typeof url !== 'string' || !/^data:image\/(jpeg|png|gif|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(url)) throw new Error('图片必须为 JPEG、PNG、GIF 或 WebP。');
     if (url.length > 44 * 1024 * 1024) throw new Error('单张图片不能超过 32 MiB。');
-  }
+    return { type: 'image_url', image_url: { url, detail: 'original' } };
+  });
+}
+
+function uploadedFiles(input: Record<string, unknown>) {
+  const fileIds = input.fileIds;
+  if (!Array.isArray(fileIds) || !fileIds.length || fileIds.length > describerMaxImages
+    || Object.keys(input).some(key => key !== 'fileIds' && key !== 'instructions')) throw new Error(`请只提交 1–${describerMaxImages} 个 DeepSeek 文件 ID 和系统指令。`);
+  return fileIds.map((fileId: unknown) => {
+    if (typeof fileId !== 'string' || !deepSeekFileIdPattern.test(fileId)) throw new Error('无效的 DeepSeek 文件 ID。');
+    return { type: 'file', file_id: fileId };
+  });
+}
+
+export function buildDeepSeekRequest(value: unknown, allowInlineImages = false) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('请求格式不正确。');
+  const input = value as Record<string, unknown>;
+  if (typeof input.instructions !== 'string' || input.instructions.length > describerMaxInstructions) throw new Error('系统指令过长或格式不正确。');
+  const images = allowInlineImages && !('fileIds' in input) ? inlineImages(input) : uploadedFiles(input);
   return {
     model: 'deepseek-flash', stream: false, max_tokens: 2048, thinking: { type: 'disabled' },
     messages: [
       ...(input.instructions.trim() ? [{ role: 'system', content: input.instructions }] : []),
       { role: 'user', content: [
         { type: 'text', text: '请根据所提供的图片反推可用于图像生成的提示词。准确描述主体、构图、环境、光线、色彩、材质、风格和视角，不要编造不可见细节。多图请分别输出。遵循系统指令指定的语言和格式，默认用中文，仅输出提示词。' },
-        ...input.images.map((url: string) => ({ type: 'image_url', image_url: { url, detail: 'original' } })),
+        ...images,
       ] },
     ],
   };
@@ -36,6 +54,8 @@ export function createDeepseekMiddleware(defaultApiKey: string, providerFetch: t
     catch { return send(400, { error: 'API 配置无效，请重新保存 DeepSeek 配置' }); }
     const { apiKey } = connection;
     if (!apiKey) return send(503, { error: '请在 .env.local 设置 DEEPSEEK_API_KEY，然后重启开发服务器。' });
+    const allowInlineImages = Boolean(defaultApiKey) && req.headers['x-momoflow-api-key'] === undefined;
+    const maxBody = allowInlineImages ? 47 * 1024 * 1024 : 128 * 1024;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 120000);
     const close = () => { if (!res.writableEnded) controller.abort(); };
@@ -45,11 +65,11 @@ export function createDeepseekMiddleware(defaultApiKey: string, providerFetch: t
       let size = 0;
       for await (const chunk of req) {
         size += chunk.length;
-        if (size > 47 * 1024 * 1024) { send(413, { error: '图片总大小过大，请压缩图片后重试。' }); return; }
+        if (size > maxBody) { send(413, { error: allowInlineImages ? '图片总大小过大，请压缩图片后重试。' : '请求过大，请只提交 DeepSeek 文件 ID 和系统指令。' }); return; }
         chunks.push(Buffer.from(chunk));
       }
       let body: ReturnType<typeof buildDeepSeekRequest>;
-      try { body = buildDeepSeekRequest(JSON.parse(Buffer.concat(chunks).toString())); }
+      try { body = buildDeepSeekRequest(JSON.parse(Buffer.concat(chunks).toString()), allowInlineImages); }
       catch (error) { send(400, { error: error instanceof Error ? error.message : '请求格式错误。' }); return; }
       const response = await connection.fetch(`${connection.baseUrl}/chat/completions`, {
         method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal, redirect: 'error',

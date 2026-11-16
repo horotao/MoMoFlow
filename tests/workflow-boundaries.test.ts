@@ -3,6 +3,7 @@ import { readExecutionAsset } from '../src/nodes/executionAssets';
 import { renderExecutionOutput } from '../src/nodes/executionLocal';
 import { defaultPainterData, painterRevision } from '../src/nodes/painter';
 import { defaultSunburstSettings } from '../src/nodes/sunburst';
+import { describerRunTimeoutMs } from '../src/nodes/describer';
 import { assetResources, nodeAssetUrls } from '../src/nodes/assetResources';
 import { prepareModel, requestSignature, type ExecutionGraph } from '../src/nodes/executionGraph';
 import { isImageGeneratorNode, isPainterNode } from '../src/nodes/types';
@@ -186,7 +187,7 @@ export async function runBoundaryChecks(sample: FileAsset, check: (value: unknow
   const originalTimeout = window.setTimeout;
   const requestTimers: (() => void)[] = [];
   window.setTimeout = ((handler: TimerHandler, timeout?: number, ...args: unknown[]) => {
-    if (timeout === 130000 && typeof handler === 'function') requestTimers.push(() => handler(...args));
+    if (timeout === describerRunTimeoutMs && typeof handler === 'function') requestTimers.push(() => handler(...args));
     return originalTimeout(handler, timeout, ...args);
   }) as typeof window.setTimeout;
   const slots: { task: PreviewTask; resolve: (result: string | FileAsset) => void }[] = [];

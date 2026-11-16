@@ -1,2 +1,9 @@
 export const describerModels = ['deepseek-flash', 'anthropic/claude-opus-5', 'anthropic/claude-sonnet-5', 'anthropic/claude-opus-4-7', 'anthropic/claude-opus-4-6', 'anthropic/claude-sonnet-4-6', 'anthropic/claude-haiku-4-5', 'google/gemini-3.1-pro', 'google/gemini-3.6-flash', 'google/gemini-3.5-flash-lite', 'google/gemini-3-pro', 'google/gemini-2.5-flash', 'google/gemini-2.5-flash-lite', 'openai/gpt-6-astra', 'openai/gpt-5.6-sol', 'openai/gpt-5.6-terra', 'openai/gpt-5.6-luna', 'openai/gpt-4o', 'openai/gpt-4.1', 'meta-llama/llama-4-maverick', 'meta-llama/llama-4-scout'];
 export const defaultInstructions = '你是一位图像提示词分析师。根据图片反推可用于图像生成的中文提示词，具体描述主体、动作、构图、环境、光线、色彩、材质、风格和镜头视角。忠实于可见内容，不编造细节。只输出自然连贯的提示词，不添加开场白或解释。';
+export const describerImageFormats = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+export const describerMaxImages = 14;
+export const describerMaxInstructions = 20000;
+export const deepSeekFileIdPattern = /^file-api-[A-Za-z0-9_-]{1,128}$/;
+export const describerUploadTimeoutMs = 600000;
+export const describerRequestTimeoutMs = 130000;
+export const describerRunTimeoutMs = describerUploadTimeoutMs + describerRequestTimeoutMs;

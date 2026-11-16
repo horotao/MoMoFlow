@@ -10,6 +10,7 @@ import { defaultSunburstSettings } from './sunburst.ts';
 import { ModelRequestCancelled } from './modelRequestError.ts';
 import { defaultNanoBananaSettings } from './nanoBanana.ts';
 import { defaultIdeogramSettings } from './ideogram.ts';
+import { describerRunTimeoutMs } from './describer.ts';
 import { isDescriberNode, isImageGeneratorNode, type AppNode, type FileAsset } from './types.ts';
 import type { PreviewTask } from './taskQueue';
 import { isActiveTask } from './taskQueue.ts';
@@ -540,7 +541,9 @@ test('model request deadline starts after slot acquisition; queued cancellation 
   h.store.update(tasks => tasks.map(task => task.nodeId === 'cancel' ? { ...task, state: 'Cancelled' } : task)); await cancelled;
   pending[0].resolve(generatedAsset('first')); await flush();
   assert.equal(pending.length, 5); assert.equal(pending[4].task.nodeId, 'd');
-  t.mock.timers.tick(129999); await flush(); assert.equal(pending[4].signal.aborted, false);
+  for (const item of pending.slice(1, 4)) item.resolve(generatedAsset(item.task.nodeId!));
+  await busy;
+  t.mock.timers.tick(describerRunTimeoutMs - 1); await flush(); assert.equal(pending[4].signal.aborted, false);
   t.mock.timers.tick(1); await waiting; assert.equal(pending[4].signal.aborted, true);
   assert.equal(h.store.getSnapshot().find(task => task.nodeId === 'd')?.state, 'TimedOut');
   assert.equal(h.store.getSnapshot().find(task => task.nodeId === 'cancel')?.state, 'Cancelled');
@@ -549,8 +552,6 @@ test('model request deadline starts after slot acquisition; queued cancellation 
   assert.equal(h.store.getSnapshot().find(task => task.nodeId === 'd')?.state, 'TimedOut');
   const timedOutNode = h.node('d');
   assert.ok(isDescriberNode(timedOutNode) && timedOutNode.data.text === '');
-  for (const item of pending.slice(1, 4)) item.resolve(generatedAsset(item.task.nodeId!));
-  await busy;
   assert.equal(h.requests.filter(task => task.nodeId === 'd').length, 1);
   assert.equal(h.requests.filter(task => task.nodeId === 'cancel').length, 0);
   h.engine.dispose();

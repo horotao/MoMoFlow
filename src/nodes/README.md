@@ -249,6 +249,8 @@ Painter 在浏览器本地绘制，不运行模型或消耗额度。外框、标
 
 Image Describer 运行前需要至少一张有效的上游图片和非空模型值；当前实际接入的描述模型为 `deepseek-flash`。图片按输入端口编号排序，生成文本写回 `data.text`。
 
+使用 API 设置中的 DeepSeek Key 时，[describerClient.ts](./describerClient.ts) 先检查所有图片（JPEG、PNG、GIF、WebP，最多 14 张，单张 64 MiB，合计 200 MiB），再按顺序将原图直传到同一配置地址的 `/files`。文件在创建 1 小时后过期。上传完成后 `/api/describer` 只接收文件 ID 和系统指令，[deepseek.ts](../../server/deepseek.ts) 用 `file` 内容块调用对话补全。上传失败或取消时不提交描述请求，也不回退内联图片。仅本机未配置用户 Key、使用 `.env.local` 默认 Key 时保留原内联路径。
+
 Sunburst 运行前必须连接非空 Prompt，栅格输出时参考图片和 Mask 可选。SVG 输出仅支持 Prompt 文生图，连接参考图片或 Mask 会在执行任何上游模型前报错；每个请求 n=1，OpenAI SVG 请求显式使用 `svg.model: gpt-6.1-terra` 编写矢量 XML，顶层模型仍为所选 Flare / Sunburst；其他格式与 ZenMux 不附加此参数。`vectorSvg.ts` 使用 saxes 解析并验证纯矢量 XML，拒绝内嵌位图、脚本、动画及外部资源。服务端和客户端均校验，结果使用 image/svg+xml Blob 和 .svg 名称，预览、原文件下载、ZIP 与 IndexedDB 保留原始矢量字节，不经 Canvas 栅格化。SVG 不能直接作为模型图片参考输入。连接了 Image 时，执行器会先准备所需上游，提交图片模型请求前必须取得有效图片；使用 Mask 时还必须连接参考图片，且 Mask 只能提供一张图片。图片格式、尺寸及参数限制由 `sunburst.ts`、`sunburstClient.ts` 和服务端共同校验，不应只依赖界面限制。成功结果追加到 `results`，并更新 `activeResultId`。多张结果时，页码前的图标可切换单张预览与全部图片；全部视图与文件导入共用 [shared/NodeImagePreview.tsx](./shared/NodeImagePreview.tsx) 的两列瀑布流（8px 内边距、4px 列距），点击缩略图选择输出结果，双击打开全屏。视图切换仅影响当前预览，不改变已选结果。下载按钮同样复用 File Node：单张视图下载当前图片，全部图片视图按当前排序将所有结果打包为 `images.zip`。
 
 GPT Image 2.6 的 Sunburst / Flare 在 OpenAI 和 ZenMux 渠道的生图、编辑请求均由服务端显式附加 `moderation: 'low'`，新旧节点统一生效；画质、背景、尺寸及输出格式沿用原有设置。

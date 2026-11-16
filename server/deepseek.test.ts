@@ -4,20 +4,37 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { buildDeepSeekRequest, deepseekPlugin } from './deepseek.ts';
 import { captureMiddleware } from './testMiddleware.ts';
 const image = 'data:image/png;base64,aGVsbG8=';
-test('vision payload preserves instructions and ordered images in user content only', () => {
-  const body = buildDeepSeekRequest({ model: 'deepseek-flash', instructions: '使用中文', images: [image, image] });
+test('vision payload preserves instructions and ordered file references in user content only', () => {
+  const body = buildDeepSeekRequest({ instructions: '使用中文', fileIds: ['file-api-first', 'file-api-second'] });
   assert.deepEqual(body.messages[0], { role: 'system', content: '使用中文' });
   assert.equal(body.messages[1].role, 'user');
-  assert.equal(body.messages[1].content.length, 3);
+  assert.deepEqual(body.messages[1].content.slice(1), [
+    { type: 'file', file_id: 'file-api-first' },
+    { type: 'file', file_id: 'file-api-second' },
+  ]);
   assert.equal(body.model, 'deepseek-flash');
 });
-test('unsupported models, empty images, remote URLs and unsupported formats fail before submission', () => {
+
+test('BYOK rejects inline images, extra fields, and invalid file references', () => {
+  for (const input of [
+    { model: 'deepseek-flash', instructions: '', images: [image] },
+    { instructions: '', fileIds: [] },
+    { instructions: '', fileIds: ['file-api-valid'], images: [image] },
+    { instructions: '', fileIds: ['https://example.com/image.png'] },
+    { instructions: '', fileIds: ['file-api-'] },
+    { instructions: '', fileIds: Array(15).fill('file-api-many') },
+  ]) assert.throws(() => buildDeepSeekRequest(input));
+});
+
+test('local inline path preserves its format and rejects unsupported image inputs', () => {
+  const body = buildDeepSeekRequest({ model: 'deepseek-flash', instructions: '', images: [image] }, true);
+  assert.deepEqual(body.messages[0].content.slice(1), [{ type: 'image_url', image_url: { url: image, detail: 'original' } }]);
   for (const input of [
     { model: 'other', instructions: '', images: [image] },
     { model: 'deepseek-flash', instructions: '', images: [] },
     { model: 'deepseek-flash', instructions: '', images: ['http://localhost/private'] },
     { model: 'deepseek-flash', instructions: '', images: ['data:image/svg+xml;base64,aGVsbG8='] },
-  ]) assert.throws(() => buildDeepSeekRequest(input));
+  ]) assert.throws(() => buildDeepSeekRequest(input, true));
 });
 test('local endpoint reports missing credentials and rejects cross-origin requests', async () => {
   const handler = captureMiddleware(deepseekPlugin(''), 'configureServer');

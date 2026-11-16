@@ -1,4 +1,5 @@
 import { seedreamName } from './seedream.ts';
+import { describerRunTimeoutMs } from './describer.ts';
 import type { Edge } from '@xyflow/react';
 import { resolveOutputSource } from './router.ts';
 import type { AppNode, FileAsset } from './types';
@@ -350,9 +351,11 @@ export class WorkflowExecution {
       aborted(signal); aborted(controller.signal);
       releaseSlot = await this.acquireModelSlot(controller.signal);
       aborted(controller.signal);
-      // APIMart returns a task ID and keeps polling it; a total deadline would
-      // discard a still-running task and tempt a duplicate paid submission.
-      if (prepared.imageRequest?.provider !== 'apimart' && !prepared.seedreamRequest && !prepared.nanoBananaRequest) timeout = setTimeout(() => controller.abort(new ModelRequestTimeout('请求超时；不会自动重试。')), isDescriberNode(this.graph.nodes.find(node => node.id === id)!) ? 130000 : 310000);
+      // APIMart owns its polling deadline. Allow time for both stages of a DeepSeek run.
+      if (prepared.imageRequest?.provider !== 'apimart' && !prepared.seedreamRequest && !prepared.nanoBananaRequest) {
+        const deadline = isDescriberNode(this.graph.nodes.find(node => node.id === id)!) ? describerRunTimeoutMs : 310000;
+        timeout = setTimeout(() => controller.abort(new ModelRequestTimeout('请求超时；不会自动重试。')), deadline);
+      }
       const queued = this.store.getSnapshot().find(task => task.id === taskId)!;
       const task = { ...prepared, id: taskId, label: queued.label, iteration: queued.iteration, notice: undefined, state: 'Running' as const, started: Date.now() };
       // Retain the caller's batch identity and user-visible label.

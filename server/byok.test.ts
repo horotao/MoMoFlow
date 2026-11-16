@@ -83,7 +83,7 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
         assert.equal(String(url), `${custom ? 'https://gateway.example/prefix/v1' : 'https://api.deepseek.com'}/chat/completions`);
         assert.equal(new Headers(init?.headers).get('Authorization'), `Bearer ${custom ? 'custom-deepseek' : keys.deepseek}`);
         return Response.json({ choices: [{ message: { content: 'test description' }, finish_reason: 'stop' }] });
-      }), '/api/describer', { model: 'deepseek-flash', instructions: '', images: [png] }, custom ? customHeaders('deepseek') : {}, hook);
+      }), '/api/describer', custom ? { instructions: '', fileIds: ['file-api-test'] } : { model: 'deepseek-flash', instructions: '', images: [png] }, custom ? customHeaders('deepseek') : {}, hook);
       assert.equal(deepseek.status, 200);
     }
   });
@@ -132,7 +132,7 @@ test('concurrent BYOK requests retain their own keys and endpoints', async () =>
     received.push(`${url} ${new Headers(init?.headers).get('Authorization')}`);
     return Response.json({ choices: [{ message: { content: 'description' }, finish_reason: 'stop' }] });
   });
-  const body = { model: 'deepseek-flash', instructions: '', images: [png] };
+  const body = { instructions: '', fileIds: ['file-api-test'] };
   const results = await Promise.all(['first', 'second'].map(id => invoke(plugin, '/api/describer', body, {
     ...customHeaders('deepseek', `key-${id}`), 'x-momoflow-base-url': `https://${id}.example/v1`,
   })));
