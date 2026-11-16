@@ -37,6 +37,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  useStoreApi,
   Panel,
   addEdge,
   useNodesState,
@@ -141,6 +142,16 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   const history = useCanvasHistory(nodes, edges, restore);
   useLayoutEffect(() => { storage.releaseRestoredAssets(); }, [storage]);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const canvasStore = useStoreApi();
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.style.setProperty('--canvas-zoom', String(canvasStore.getState().transform[2]));
+    return canvasStore.subscribe((current, previous) => {
+      const zoom = current.transform[2];
+      if (zoom !== previous.transform[2]) canvas.style.setProperty('--canvas-zoom', String(zoom));
+    });
+  }, [canvasStore]);
   const pendingZoom = useRef<ZoomTarget | null>(null);
   useEffect(() => {
     const pasteNode = (event: ClipboardEvent) => {

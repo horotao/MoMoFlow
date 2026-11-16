@@ -58,7 +58,10 @@
   background: transparent;
   box-shadow: none;
 }
-.react-flow .react-flow__node.selected > .node-frame { border-color: var(--node-selected-border); }
+.react-flow .react-flow__node.selected > .node-frame {
+  --node-selection-screen-width: clamp(1.25px, 2px * var(--canvas-zoom, 1), 2px);
+  box-shadow: 0 0 0 calc(var(--node-selection-screen-width) / var(--canvas-zoom, 1)) #626262;
+}
 .react-flow .react-flow__node:has(> .node-frame [role="menu"], > .node-frame [role="listbox"]) { z-index: 1002 !important; }
 .node-header { position: relative; z-index: 4; display: flex; align-items: center; justify-content: space-between; width: 100%; height: 26px; flex-shrink: 0; gap: 12px; }
 .node-title { display: flex; align-items: center; gap: 4px; min-width: 0; color: var(--node-secondary); }
