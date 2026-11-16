@@ -74,6 +74,14 @@ type PendingNodeMenu = PendingConnection | (Pick<PendingConnection, 'screen' | '
 const creationChoices: NodeMenuChoice[] = items.filter(item => item.nodeType).map(item => ({ id: item.id, itemId: item.id }));
 const dockCreationChoices = creationChoices.filter(choice => !['position-logger', 'model-input'].includes(choice.itemId));
 
+function availableConnectionChoices(pending: PendingConnection, nodes: AppNode[], edges: Edge[]) {
+  return connectionChoices(pending, nodes, edges).filter(choice => {
+    if (pending.direction !== 'source' || choice.itemId !== 'sunburst' || choice.handleId !== 'mask') return true;
+    const node = createLibraryNode(choice.itemId, pending.position);
+    return Boolean(node && canConnect(choiceConnection(pending, choice, node.id), [...nodes, node], edges));
+  });
+}
+
 type ProjectSession = {
   project: CanvasProject;
   projects: CanvasProject[];
@@ -405,7 +413,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     const currentNodes = getNodes();
     const currentEdges = getEdges();
     // Recheck after the menu has been open: its node may have been locked or removed.
-    const available = connectionChoices(pendingConnection, currentNodes, currentEdges);
+    const available = availableConnectionChoices(pendingConnection, currentNodes, currentEdges);
     const choice = available.find(item => item.id === selected.id);
     if (!choice) { setPendingNodeMenu(null); return; }
     const created = createLibraryNode(choice.itemId, pendingConnection.position);
@@ -584,7 +592,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         instantEntrance={!('nodeId' in pendingNodeMenu) && pendingNodeMenu.keyboard}
         trigger={'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock' ? addTrigger : undefined}
         mode={'nodeId' in pendingNodeMenu ? 'connect' : 'create'}
-        choices={'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes, edges)
+        choices={'nodeId' in pendingNodeMenu ? availableConnectionChoices(pendingNodeMenu, nodes, edges)
           : pendingNodeMenu.origin === 'dock' ? dockCreationChoices : creationChoices}
         onChoose={choice => { chooseNode(choice); canvasRef.current?.focus({ preventScroll: true }); }}
         onDismiss={dismissNodeMenu}

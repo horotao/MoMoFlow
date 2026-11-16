@@ -8,12 +8,20 @@ import { DescriberModelSelect } from './DescriberModelSelect';
 import { NodeSettingsSection } from './NodeSettingsSection';
 import { ParameterField } from './ParameterField';
 import { ParameterExposeButton } from './ParameterExposeButton';
+import { nanoBananaPreset } from './imageNodePresets';
 
 const labels: Record<keyof Settings, string> = { aspectRatio: '宽高比', imageSize: '分辨率', outputFormat: '输出格式' };
 export function NanoBananaSettings({ node }: { node: NanoBananaNode }) {
   const { getNode, getNodes, getEdges, updateNodeData, setNodes, setEdges } = useReactFlow<AppNode>();
   const nodes = useNodes<AppNode>(), edges = useEdges();
   const effective = effectiveNanoBananaSettings(node, nodes, edges);
+  const change = (field: keyof Settings, value: string) => {
+    const current = getNode(node.id);
+    if (!current || !isNanoBananaNode(current) || isNodeLocked(current)) return;
+    const patch = { [field]: value };
+    updateNodeData(node.id, patch);
+    nanoBananaPreset.remember({ ...current.data, ...patch });
+  };
   const expose = (field: keyof Settings) => {
     const current = getNode(node.id);
     if (!current || !isNanoBananaNode(current) || isNodeLocked(current)) return;
@@ -39,7 +47,7 @@ export function NanoBananaSettings({ node }: { node: NanoBananaNode }) {
       const exposed = Boolean(node.data.exposed?.includes(field)), label = labels[field];
       const choices = [...nanoBananaChoices[field]];
       return <ParameterField key={field} label={label} exposeButton={<ParameterExposeButton label={label} exposed={exposed} disabled={node.data.locked} onClick={() => expose(field)} />}>
-        <DescriberModelSelect appearance="settings" fluidHover compact label={label} value={String(effective[field] ?? '')} choices={choices} labels={choices.map(value => value === 'auto' ? '自动' : value.toUpperCase())} disabled={node.data.locked || exposed} onChange={value => { if (!isNodeLocked(getNode(node.id))) updateNodeData(node.id, { [field]: value }); }} />
+        <DescriberModelSelect appearance="settings" fluidHover compact label={label} value={String(effective[field] ?? '')} choices={choices} labels={choices.map(value => value === 'auto' ? '自动' : value.toUpperCase())} disabled={node.data.locked || exposed} onChange={value => change(field, value)} />
       </ParameterField>;
     })}
   </NodeSettingsSection>;

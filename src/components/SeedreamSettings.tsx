@@ -9,12 +9,20 @@ import { NodeSettingsSection } from './NodeSettingsSection';
 import { ParameterField } from './ParameterField';
 import { ParameterExposeButton } from './ParameterExposeButton';
 import { SeedreamSizeSelect } from './SeedreamSizeSelect';
+import { seedreamPreset } from './imageNodePresets';
 
 const labels: Record<keyof Settings, string> = { size: '宽高比', resolution: '分辨率', outputFormat: '输出格式', background: '背景', nsfwCheck: '内容审核', watermark: '水印' };
 export function SeedreamSettings({ node }: { node: SeedreamNode }) {
   const { getNode, getNodes, getEdges, updateNodeData, setNodes, setEdges } = useReactFlow<AppNode>();
   const nodes = useNodes<AppNode>(), edges = useEdges();
   const effective = effectiveSeedreamSettings(node, nodes, edges);
+  const change = (patch: Partial<Settings>) => {
+    const current = getNode(node.id);
+    if (!current || !isSeedreamNode(current) || isNodeLocked(current)) return;
+    if (patch.size !== undefined && current.data.size !== node.data.size) return;
+    updateNodeData(node.id, patch);
+    seedreamPreset.remember({ ...current.data, ...patch });
+  };
   const expose = (field: keyof Settings) => {
     const current = getNode(node.id);
     if (!current || !isSeedreamNode(current) || isNodeLocked(current)) return;
@@ -41,16 +49,15 @@ export function SeedreamSettings({ node }: { node: SeedreamNode }) {
     <SeedreamSizeSelect value={String(effective.size)} resolution={String(effective.resolution)}
       disabled={node.data.locked || node.data.exposed?.includes('size')} resolutionDisabled={node.data.locked || node.data.exposed?.includes('resolution')}
       exposeButton={exposeButton('size')} resolutionExposeButton={exposeButton('resolution')}
-      onChange={size => {
-        const current = getNode(node.id);
-        if (current && isSeedreamNode(current) && !isNodeLocked(current) && current.data.size === node.data.size) updateNodeData(node.id, { size });
-      }}
-      onResolutionChange={resolution => { if (!isNodeLocked(getNode(node.id))) updateNodeData(node.id, { resolution }); }} />
+      onChange={size => change({ size })} onResolutionChange={resolution => change({ resolution })} />
     {(Object.keys(seedreamChoices) as (keyof Settings)[]).filter(field => field !== 'size' && field !== 'resolution').map(field => {
       const exposed = Boolean(node.data.exposed?.includes(field)), label = labels[field];
       const choices = field === 'outputFormat' && effective.background === 'transparent' ? ['png'] : [...seedreamChoices[field]];
       return <ParameterField key={field} label={label} exposeButton={exposeButton(field)}>
-        <DescriberModelSelect appearance="settings" fluidHover compact label={label} value={String(effective[field] ?? '')} choices={choices} labels={choices.map(value => value === 'true' ? '开启' : value === 'false' ? '关闭' : value === 'auto' ? '自动' : value === 'transparent' ? '透明' : value === 'opaque' ? '不透明' : value.toUpperCase())} disabled={node.data.locked || exposed} onChange={value => { if (!isNodeLocked(getNode(node.id))) updateNodeData(node.id, { [field]: field === 'nsfwCheck' || field === 'watermark' ? value === 'true' : value, ...(field === 'background' && value === 'transparent' && !node.data.exposed?.includes('outputFormat') ? { outputFormat: 'png' } : {}) }); }} />
+        <DescriberModelSelect appearance="settings" fluidHover compact label={label} value={String(effective[field] ?? '')} choices={choices} labels={choices.map(value => value === 'true' ? '开启' : value === 'false' ? '关闭' : value === 'auto' ? '自动' : value === 'transparent' ? '透明' : value === 'opaque' ? '不透明' : value.toUpperCase())} disabled={node.data.locked || exposed} onChange={value => change({
+          [field]: field === 'nsfwCheck' || field === 'watermark' ? value === 'true' : value,
+          ...(field === 'background' && value === 'transparent' && !node.data.exposed?.includes('outputFormat') ? { outputFormat: 'png' } : {}),
+        })} />
       </ParameterField>;
     })}
   </NodeSettingsSection>;

@@ -9,6 +9,7 @@ import { SunburstSizeSelect } from './SunburstSizeSelect';
 import { NodeSettingsSection } from './NodeSettingsSection';
 import { ParameterExposeButton } from './ParameterExposeButton';
 import { ApimartSizeSelect } from './ApimartSizeSelect';
+import { sunburstPreset } from './imageNodePresets';
 
 const fieldLabels: Record<SunburstParameter, string> = { provider: '渠道商', variant: '模型版本', quality: '画质', background: '背景', size: '宽高比', outputFormat: '输出格式', resolution: '分辨率', complexity: '复杂度', channelModel: '渠道模型', moderation: '内容审核', frameCount: '帧数', svgModel: 'SVG 模型', svgEffort: 'Effort' };
 
@@ -20,13 +21,18 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
   const apimart = provider === 'apimart';
   const channelModel = effective.channelModel === 'gpt-image-2.6' ? 'gpt-image-2.6' : 'gpt-image-2.6-ext';
   const standard = apimart && channelModel === 'gpt-image-2.6';
+  const changeSettings = (data: Partial<SunburstNode['data']>) => {
+    const current = getNode(node.id);
+    if (!current || !isSunburstNode(current) || isNodeLocked(current)) return;
+    updateNodeData(node.id, data);
+    sunburstPreset.remember({ ...current.data, ...data });
+  };
   const change = (field: keyof Settings, value: string) => {
-    if (isNodeLocked(getNode(node.id))) return;
     let resetSize = false;
     if (standard && field === 'outputFormat' && effective.outputFormat === 'gif' && value !== 'gif') {
       try { validateSunburstSize(effective.size); } catch { resetSize = true; }
     }
-    updateNodeData(node.id, { [field]: field === 'frameCount' ? Number(value) : value,
+    changeSettings({ [field]: field === 'frameCount' ? Number(value) : value,
       ...(field === 'channelModel' ? sunburstProviderSettings(node.data, provider, validateApimartChannelModel(value)) : {}),
       ...(apimart && field === 'outputFormat' && value === 'gif' ? { size: 'auto' } : {}),
       ...(resetSize ? { size: 'auto' } : {}),
@@ -90,18 +96,14 @@ export function SunburstSettings({ node }: { node: SunburstNode }) {
         <DescriberModelSelect appearance="settings" fluidHover compact label="渠道商" value={String(effective.provider ?? 'openai')}
           choices={sunburstProviders} labels={sunburstProviders.map(item => sunburstProviderLabels[item])} includeCurrentValue={false}
           disabled={node.data.locked || node.data.exposed?.includes('provider')} onChange={value => {
-            if (isNodeLocked(getNode(node.id))) return;
             const next = validateSunburstProvider(value);
-            updateNodeData(node.id, { provider: next, ...sunburstProviderSettings(node.data, next) });
+            changeSettings({ provider: next, ...sunburstProviderSettings(node.data, next) });
           }} />
       </ParameterField>
       {apimart && selectField('channelModel', apimartChannelModels, ['GPT Image 2.6 EXT', 'GPT Image 2.6'])}
       <ParameterField label="模型版本" exposeButton={exposeButton('variant')}>
         <DescriberModelSelect appearance="settings" fluidHover compact label="模型版本" value={String(effective.variant)} choices={sunburstVariants}
-          disabled={node.data.locked || node.data.exposed?.includes('variant')} onChange={value => {
-            if (isNodeLocked(getNode(node.id))) return;
-            updateNodeData(node.id, { variant: validateSunburstVariant(value) });
-          }} />
+          disabled={node.data.locked || node.data.exposed?.includes('variant')} onChange={value => changeSettings({ variant: validateSunburstVariant(value) })} />
       </ParameterField>
       {selectField('quality', imageQualities, imageQualities.map(quality => imageQualityLabels[quality]))}
       {(!apimart || standard) && selectField('background', imageBackgrounds, ['自动', '透明', '不透明'])}
