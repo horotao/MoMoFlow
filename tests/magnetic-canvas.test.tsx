@@ -110,6 +110,28 @@ run.onclick = async () => {
     const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
     check(document.querySelectorAll('.magnetic-cable').length === 3 && !document.querySelector('.port-ripple'), 'Restored edges use the shared renderer without replaying feedback');
     check(document.querySelector('.react-flow__edge-text')?.textContent === 'Existing label' && edgePath('far').getAttribute('marker-end')?.startsWith('url('), 'Existing labels and arrow markers survive the renderer change');
+    const header = document.querySelector<HTMLElement>('[data-id="consumer"] .node-header')!;
+    const box = header.getBoundingClientRect();
+    const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    const initialPosition = api.getNode('consumer')!.position;
+    const endpoint = { x: start.x + 32, y: start.y - 110 };
+    mouse(header, 'mousedown', start.x, start.y);
+    mouse(document, 'mousemove', start.x + 8, start.y);
+    mouse(document, 'mousemove', endpoint.x, endpoint.y);
+    await settle();
+    const moved = api.getNode('consumer')!;
+    check(moved.dragging && Math.abs(moved.position.y - initialPosition.y + 110 / api.getZoom()) < 1, 'Node coordinate tracks the pointer during wire stretch');
+    check(reduced ? getComputedStyle(edgePath('near')).strokeWidth === '2px' : parseFloat(getComputedStyle(edgePath('near')).strokeWidth) < 2,
+      'Existing wire tightens lengthwise while its node is dragged');
+    mouse(document, 'mouseup', endpoint.x, endpoint.y);
+    const dragMetrics = await sample(['near', 'old', 'far']);
+    check(!api.getNode('consumer')!.dragging && ['near', 'old'].every(id => reduced ? dragMetrics.get(id)!.peak < 0.1 : dragMetrics.get(id)!.peak > 2),
+      'Both attached wires settle with a spring after release, respecting reduced motion');
+    check(dragMetrics.get('far')!.peak < 0.1 && [...dragMetrics.values()].every(item => item.pins < 0.1 && item.last < 0.1),
+      'Node drag keeps both wire tips pinned and leaves unconnected wires still');
+    canvasHistoryShortcut('undo'); await settle();
+    check(api.getNode('consumer')!.position.y === initialPosition.y && edgePath('near').getAttribute('d') === edgePath('near', '.react-flow__edge-interaction').getAttribute('d'),
+      'Undo restores the node in one step without replaying the wire spring');
     let point = await drag(port('a', 'source'), port('consumer', 'target', 'variable-2'));
     check(document.querySelector('.magnetic-preview[data-snapped="true"] .magnetic-field'), 'Production ports magnetically attract before direct contact');
     check(document.querySelectorAll('.magnetic-preview circle').length === 2 && document.querySelector('.magnetic-preview .cable-origin'), 'Preview has one fixed origin ball and one moving tip');

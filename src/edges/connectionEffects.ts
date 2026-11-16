@@ -3,11 +3,12 @@ import { useStoreApi, type Edge } from '@xyflow/react';
 import { motionValue } from 'motion/react';
 import { magneticDefaults, type CableImpact, type CableRelease, type ConnectionVisualSnapshot, type NodeEntranceEvent, type PortFeedbackEvent } from './magneticTypes';
 import { useConnectionGesture } from './useConnectionGesture';
+import { useNodeDragWires, type NodeDragWires } from './useNodeDragWires';
 import { spring } from '../lib/springs';
 
 type EdgeFeedback = { release?: CableRelease; impact?: CableImpact; expiresAt: number };
 type FeedbackState = { animations: Map<string, EdgeFeedback>; ports: PortFeedbackEvent[]; entrances: Map<string, NodeEntranceEvent> };
-type EffectsContext = FeedbackState & { visual: MutableRefObject<(() => ConnectionVisualSnapshot) | null>; reveal: (event: NodeEntranceEvent) => void };
+type EffectsContext = FeedbackState & { visual: MutableRefObject<(() => ConnectionVisualSnapshot) | null>; reveal: (event: NodeEntranceEvent) => void; nodeDragWires?: NodeDragWires };
 const emptyFeedback = (): FeedbackState => ({ animations: new Map(), ports: [], entrances: new Map() });
 export const ConnectionEffectsContext = createContext<EffectsContext>({ ...emptyFeedback(), visual: { current: null }, reveal: () => {} });
 
@@ -15,6 +16,7 @@ export const ConnectionEffectsContext = createContext<EffectsContext>({ ...empty
 export function useConnectionEffects() {
   const store = useStoreApi();
   const gesture = useConnectionGesture(magneticDefaults.radius);
+  const nodeDragWires = useNodeDragWires();
   const { cancelled, cancel } = gesture;
   const visual = useRef<(() => ConnectionVisualSnapshot) | null>(null);
   const [state, setState] = useState(emptyFeedback);
@@ -28,7 +30,7 @@ export function useConnectionEffects() {
     }), Math.max(1, Math.ceil(Math.min(...expiries) - performance.now())));
     return () => window.clearTimeout(timeout);
   }, [state]);
-  const clear = useCallback(() => { cancel(); setState(emptyFeedback()); }, [cancel]);
+  const clear = useCallback(() => { cancel(); nodeDragWires.clear(); setState(emptyFeedback()); }, [cancel, nodeDragWires]);
   const connected = useCallback((edge: Edge, retainedEdges: Edge[]) => {
     const { connection: drag, transform: [tx, ty, scale] } = store.getState();
     if (cancelled.current || !drag.inProgress || !drag.isValid || !drag.toHandle) return;
@@ -86,6 +88,6 @@ export function useConnectionEffects() {
       ports: [...current.ports, port],
     });
   }, [store]);
-  const value = useMemo(() => ({ ...state, visual, reveal }), [state, reveal]);
+  const value = useMemo(() => ({ ...state, visual, reveal, nodeDragWires }), [state, reveal, nodeDragWires]);
   return { ...gesture, value, clear, connected, created };
 }

@@ -3,6 +3,7 @@ import type { Position, XYPosition } from '@xyflow/react';
 const mix = (a: XYPosition, b: XYPosition, t: number): XYPosition => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 type Cubic = [XYPosition, XYPosition, XYPosition, XYPosition];
 export type CableDisturbance = { center: number; normal: XYPosition };
+export type CableDeflection = { shape: CableDisturbance; bend: number };
 type CurveSegment = { curve: Cubic; from: number; to: number };
 export type CablePathOptions = { sourcePosition?: Position; targetPosition?: Position; curvature?: number };
 
@@ -77,7 +78,7 @@ export function nearbyCable(source: XYPosition, target: XYPosition, impact: XYPo
   };
 }
 
-function disturbSegments(segments: CurveSegment[], { shape, bend }: { shape: CableDisturbance; bend: number }) {
+function disturbSegments(segments: CurveSegment[], { shape, bend }: CableDeflection) {
   // The entire cable participates, tapering away from the impact to both pinned
   // endpoints. End tangents may flex; the two halves meet with a smooth tangent.
   const offset = (t: number) => {
@@ -103,7 +104,7 @@ function disturbSegments(segments: CurveSegment[], { shape, bend }: { shape: Cab
 }
 
 // Direct release respects its selected range; neighboring impacts affect the full cable.
-export function bouncingCable(source: XYPosition, target: XYPosition, bend: number, reverse = false, range = 100, disturbance?: { shape: CableDisturbance; bend: number }, options?: CablePathOptions) {
+export function bouncingCable(source: XYPosition, target: XYPosition, bend: number, reverse = false, range = 100, disturbances: readonly (CableDeflection | undefined)[] = [], options?: CablePathOptions) {
   const dx = target.x - source.x, dy = target.y - source.y;
   const length = Math.hypot(dx, dy) || 1;
   const normal = { x: -dy / length, y: dx / length };
@@ -127,7 +128,9 @@ export function bouncingCable(source: XYPosition, target: XYPosition, bend: numb
     rest[1] = { x: rest[1].x + normal.x * nearSource, y: rest[1].y + normal.y * nearSource };
     rest[2] = { x: rest[2].x + normal.x * nearTarget, y: rest[2].y + normal.y * nearTarget };
   }
-  if (disturbance && disturbance.bend !== 0) segments = disturbSegments(segments, disturbance);
+  for (const disturbance of disturbances) {
+    if (disturbance && disturbance.bend !== 0) segments = disturbSegments(segments, disturbance);
+  }
   return `M ${source.x},${source.y} ${segments.map(segment => cubicCommand(segment.curve)).join(' ')}`;
 }
 

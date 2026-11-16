@@ -1,21 +1,29 @@
-import { useContext } from 'react';
+import { useContext, useLayoutEffect } from 'react';
 import { useInternalNode, useStoreApi, type EdgeProps } from '@xyflow/react';
+import { useMotionValue } from 'motion/react';
 import { ConnectionEffectsContext } from './connectionEffects';
-import { MagneticCable } from './MagneticCable';
+import { MagneticCable, type NodeCableDrag } from './MagneticCable';
 import { curveOptions } from './curve';
 import { layoutHandle } from './nodeEntranceGeometry';
+import { restingWireLag } from './nodeWireSpring';
 import type { NodeEntranceEvent } from './magneticTypes';
 
 export function MagneticEdge(props: EdgeProps) {
-  const { animations, entrances } = useContext(ConnectionEffectsContext);
+  const { animations, entrances, nodeDragWires } = useContext(ConnectionEffectsContext);
+  const { source, target } = props;
+  const sourceLag = useMotionValue(restingWireLag);
+  const targetLag = useMotionValue(restingWireLag);
+  useLayoutEffect(() => nodeDragWires?.watch(source, sourceLag), [nodeDragWires, source, sourceLag]);
+  useLayoutEffect(() => nodeDragWires?.watch(target, targetLag), [nodeDragWires, target, targetLag]);
+  const nodeDrag = nodeDragWires && { sourceLag, targetLag, getZoom: nodeDragWires.getZoom };
   const feedback = animations.get(props.id);
   const sourceEntrance = entrances.get(props.source), targetEntrance = entrances.get(props.target);
   const entrance = sourceEntrance?.edgeId === props.id ? sourceEntrance : targetEntrance?.edgeId === props.id ? targetEntrance : undefined;
-  if (entrance) return <EntranceCable {...props} event={entrance} />;
-  return <MagneticCable {...props} {...curveOptions} release={feedback?.release} impact={feedback?.impact} />;
+  if (entrance) return <EntranceCable {...props} nodeDrag={nodeDrag} event={entrance} />;
+  return <MagneticCable {...props} {...curveOptions} nodeDrag={nodeDrag} release={feedback?.release} impact={feedback?.impact} />;
 }
 
-function EntranceCable({ event, ...props }: EdgeProps & { event: NodeEntranceEvent }) {
+function EntranceCable({ event, ...props }: EdgeProps & { event: NodeEntranceEvent; nodeDrag?: NodeCableDrag }) {
   const store = useStoreApi();
   const node = useInternalNode(event.nodeId);
   const feedback = useContext(ConnectionEffectsContext).animations.get(props.id);
