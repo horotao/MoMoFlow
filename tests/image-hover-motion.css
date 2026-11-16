@@ -29,7 +29,6 @@ body { color-scheme: dark; }
   .hover-motion-comparison { grid-template-columns: minmax(0, 1fr); }
 }
 
-.hover-motion-fast {
-  --image-overlay-enter: 125ms;
-  --image-overlay-exit: 100ms;
+.hover-motion-before {
+  --image-overlay-shade-enter: 500ms;
 }

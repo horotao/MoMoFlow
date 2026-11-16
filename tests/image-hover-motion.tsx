@@ -69,7 +69,7 @@ const nodeTypes = {
   'matte-grow-shrink': MatteGrowShrinkNode, resize: ResizeNode, 'rotate-flip': RotateFlipNode,
 };
 
-function StudyPanel({ id, scenario, zoomLimit }: { id: 'fast' | 'canvas'; scenario: Scenario; zoomLimit: number }) {
+function StudyPanel({ id, scenario, zoomLimit }: { id: 'before' | 'canvas'; scenario: Scenario; zoomLimit: number }) {
   const stage = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [nodeHeight, setNodeHeight] = useState(0);
@@ -92,7 +92,7 @@ function StudyPanel({ id, scenario, zoomLimit }: { id: 'fast' | 'canvas'; scenar
 
   const zoom = width ? Math.min(zoomLimit, (width - 56) / 456) : zoomLimit;
   return <section className={`hover-motion-panel hover-motion-${id}`} aria-labelledby={`${id}-title`}>
-    <h2 id={`${id}-title`}>{id === 'fast' ? '快速试验版' : '正式画布节奏'}</h2>
+    <h2 id={`${id}-title`}>{id === 'before' ? '同步淡入' : '阴影先淡入'}</h2>
     <div ref={stage} className="hover-motion-stage" style={{ height: 28 + Math.max(550, nodeHeight) * zoom }}>
       {width > 0 && <ModelTasksProvider>
         <ReactFlow<AppNode> defaultNodes={graph.nodes} defaultEdges={graph.edges} nodeTypes={nodeTypes} colorMode="dark"
@@ -119,7 +119,7 @@ export function Study() {
   return <main className="hover-motion-study">
     <header className="hover-motion-header">
       <h1>图片悬停动效</h1>
-      <p>在两张图之间划过，对比快速试验版和正式画布使用的 4 倍时长。</p>
+      <p>在两张图之间划过，留意图标刚出现时，图片边缘是否已经暗下来。</p>
       <div className="hover-motion-controls">
         <label>节点 <select value={index} onChange={event => setIndex(Number(event.target.value))}>
           {scenarios.map((item, value) => <option key={item.label} value={value}>{item.label}</option>)}
@@ -130,7 +130,7 @@ export function Study() {
       </div>
     </header>
     <div className="hover-motion-comparison">
-      <StudyPanel key={`fast-${index}`} id="fast" scenario={scenario} zoomLimit={zoomLimit} />
+      <StudyPanel key={`before-${index}`} id="before" scenario={scenario} zoomLimit={zoomLimit} />
       <StudyPanel key={`canvas-${index}`} id="canvas" scenario={scenario} zoomLimit={zoomLimit} />
     </div>
   </main>;

@@ -40,16 +40,18 @@
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   :is(.file-node-media, .sunburst-preview, .preview-image, .compositor-node-preview):not(:has(:focus-visible)) {
     > :is(.node-image-overlay, .file-media-overlay) {
-      --image-overlay-duration: var(--image-overlay-enter, 500ms);
+      --image-overlay-duration: 500ms;
+      --image-overlay-shade-duration: var(--image-overlay-shade-enter, 160ms);
 
-      &::before, &::after { transition: opacity var(--image-overlay-duration) var(--image-overlay-ease); }
+      &::before, &::after { transition: opacity var(--image-overlay-shade-duration) var(--image-overlay-ease); }
       > :is(.node-image-top, .node-image-resolution, .file-media-top, .file-media-resolution, .compositor-download, .compositor-node-size) {
         transition: opacity var(--image-overlay-duration) var(--image-overlay-ease), transform var(--image-overlay-duration) var(--image-overlay-ease);
       }
     }
 
     &:not(:hover) > :is(.node-image-overlay, .file-media-overlay) {
-      --image-overlay-duration: var(--image-overlay-exit, 400ms);
+      --image-overlay-duration: 400ms;
+      --image-overlay-shade-duration: var(--image-overlay-duration);
       > :is(.node-image-top, .file-media-top, .compositor-download) { transform: translateY(-2px); }
       > :is(.node-image-resolution, .file-media-resolution, .compositor-node-size) { transform: translateY(2px); }
     }
