@@ -1,0 +1,10 @@
+.env*
+.git
+.codex
+.agents
+node_modules
+pnpm-lock.yaml
+dist
+artifacts
+TEMP-*.md
+*.log

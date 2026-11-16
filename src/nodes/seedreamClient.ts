@@ -1,3 +1,4 @@
+import { downloadApimartResult } from './apimartResult.ts';
 import { apiCredentialHeaders } from '../components/apiSettings.ts';
 import { ModelRequestCancelled, ModelRequestTimeout, modelRequestError } from './modelRequestError.ts';
 import { assetResources } from './assetResources.ts';
@@ -49,12 +50,11 @@ export async function requestSeedream(input: SeedreamRequest, signal: AbortSigna
       try { result = await call('/api/apimart/task', { taskId, outputFormat: settings.outputFormat }); }
       catch (error) { if (error instanceof ModelRequestTimeout && !signal.aborted) continue; throw error; }
       if (result.status === 'cancelled') throw new ModelRequestCancelled('APIMart 任务已取消。');
-      if (typeof result.image !== 'string') {
+      if (result.status !== 'completed') {
         if (['submitted', 'pending', 'processing'].includes(result.status)) continue;
         throw new Error('APIMart 返回了无效任务状态。');
       }
-      if (result.format !== settings.outputFormat || !result.image.startsWith(`data:image/${settings.outputFormat};base64,`)) throw new Error('Seedream 返回图片格式与请求不符。');
-      const blob = await (await fetch(result.image, { signal })).blob();
+      const blob = await downloadApimartResult(result, settings.outputFormat, signal);
       const bitmap = await createImageBitmap(blob);
       const dimensions = { width: bitmap.width, height: bitmap.height }; bitmap.close();
       signal.throwIfAborted();

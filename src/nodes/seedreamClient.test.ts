@@ -46,9 +46,11 @@ test('Seedream polls the same task through timeout and processing, preserving pr
       polls++; assert.deepEqual(JSON.parse(String(init?.body)), { taskId: 'task_seedream', outputFormat: 'jpeg' });
       if (polls === 1) return Response.json({ error: 'Query timed out', code: modelTimeoutCode }, { status: 502 });
       if (polls === 2) return Response.json({ status: 'processing' });
-      return Response.json({ image: 'data:image/jpeg;base64,/9j/2Q==', format: 'jpeg' });
+      return Response.json({ status: 'completed', imageUrl: 'https://cdn.example/result.jpeg', format: 'jpeg' });
     }
-    assert.equal(url, 'data:image/jpeg;base64,/9j/2Q==');
+    assert.equal(url, 'https://cdn.example/result.jpeg');
+    assert.equal(init?.credentials, 'omit');
+    assert.equal(init?.headers, undefined);
     return new Response(new Uint8Array([255, 216, 255, 217]), { headers: { 'content-type': 'image/jpeg' } });
   });
   const pending = requestSeedream({ ...request, outputFormat: 'jpeg' }, new AbortController().signal);

@@ -71,7 +71,11 @@ async function run() {
       if (polls === 1) return Response.json({ code: 'MODEL_TIMEOUT', error: 'mock query timeout', taskId: body.taskId }, { status: 502 });
       const request = requests[Number(String(body.taskId).split('_').at(-1)) - 1];
       const format = request.outputFormat;
-      return Response.json({ image: format === 'svg' ? `data:image/svg+xml;base64,${btoa(svg)}` : format === 'gif' ? gif : png, format });
+      return Response.json({ status: 'completed', imageUrl: `https://cdn.example/result.${format}`, format });
+    }
+    if (path.startsWith('https://cdn.example/result.')) {
+      const format = path.split('.').at(-1);
+      return nativeFetch(format === 'svg' ? `data:image/svg+xml;base64,${btoa(svg)}` : format === 'gif' ? gif : png);
     }
     if (path.startsWith('/api/') || /^https?:/.test(path)) throw new Error('Real model/network requests are disabled in isolated APIMart QA');
     return nativeFetch(url, init);

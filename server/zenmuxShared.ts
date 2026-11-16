@@ -72,9 +72,19 @@ export async function readErrorDiagnostic(response: Response, apiKey: string): P
 }
 
 export function trusted(req: IncomingMessage) {
+  if (trustedDeploymentRequest(req)) return true;
   const host = req.headers.host;
   const match = host?.match(/^(localhost|127\.0\.0\.1|\[::1\])(?::([0-9]{1,5}))?$/i);
   if (!match || (match[2] && (Number(match[2]) < 1 || Number(match[2]) > 65535))) return false;
   const protocol = 'encrypted' in req.socket && req.socket.encrypted ? 'https' : 'http';
   return req.headers.origin === undefined || req.headers.origin === `${protocol}://${host}`;
+}
+
+// Only platform-provided deployment aliases may opt in to HTTPS access.
+export function trustedDeploymentRequest(req: IncomingMessage) {
+  if (process.env.VERCEL !== '1') return false;
+  const hosts = [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL].filter(Boolean);
+  const host = req.headers.host;
+  return typeof host === 'string' && hosts.includes(host)
+    && (req.headers.origin === undefined || req.headers.origin === `https://${host}`);
 }

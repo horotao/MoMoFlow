@@ -87,8 +87,9 @@ async function run() {
       const taskId = JSON.parse(String(init?.body)).taskId;
       const task = submitted.get(taskId)!;
       if (task.mode === 'failure') return Response.json({ error: 'Mock provider failure', taskId }, { status: 502 });
-      return Response.json({ image: task.format === 'png' ? png : jpeg, format: task.format });
+      return Response.json({ status: 'completed', imageUrl: `https://cdn.example/result.${task.format}`, format: task.format });
     }
+    if (path.startsWith('https://cdn.example/result.')) return originalFetch(path.endsWith('.png') ? png : jpeg);
     if (path.startsWith('/api/') || /^https?:/.test(path)) throw new Error('Real network requests disabled in isolated Seedream QA');
     return originalFetch(url, init);
   };

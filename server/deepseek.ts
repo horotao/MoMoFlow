@@ -1,3 +1,4 @@
+import { trusted } from './zenmuxShared.ts';
 import { providerConnection } from './apiCredentials.ts';
 import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -23,24 +24,12 @@ export function buildDeepSeekRequest(input: { model?: unknown; instructions?: un
   };
 }
 
-// This local-only API runs before Vite's host check, so it must validate Host itself.
-function isTrustedLocalRequest(req: IncomingMessage): boolean {
-  const host = req.headers.host;
-  const match = host?.match(/^(localhost|127\.0\.0\.1|\[::1\])(?::([0-9]{1,5}))?$/i);
-  if (!match || (match[2] && (Number(match[2]) < 1 || Number(match[2]) > 65535))) return false;
-  const origin = req.headers.origin;
-  // Non-browser local clients can omit Origin, but must still use a trusted Host.
-  if (origin === undefined) return true;
-  const protocol = 'encrypted' in req.socket && req.socket.encrypted ? 'https' : 'http';
-  return origin === `${protocol}://${host}`;
-}
-
-export function deepseekPlugin(defaultApiKey: string, providerFetch: typeof fetch = fetch): Plugin {
+export function createDeepseekMiddleware(defaultApiKey: string, providerFetch: typeof fetch = fetch) {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (req.url?.split('?')[0] !== '/api/describer') return next();
     const send = (status: number, value: object) => { if (!res.destroyed) { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(value)); } };
     if (req.method !== 'POST') return send(405, { error: 'Method not allowed' });
-    if (!isTrustedLocalRequest(req)) return send(403, { error: 'Host or Origin not allowed' });
+    if (!trusted(req)) return send(403, { error: 'Host or Origin not allowed' });
     if (!req.headers['content-type']?.startsWith('application/json')) return send(415, { error: 'Expected application/json' });
     let connection;
     try { connection = providerConnection(req, 'deepseek', defaultApiKey, providerFetch); }
@@ -76,5 +65,10 @@ export function deepseekPlugin(defaultApiKey: string, providerFetch: typeof fetc
     } catch { send(502, { error: controller.signal.aborted ? '请求超时或已取消；不会自动重试。' : '无法连接 DeepSeek，请检查网络。', ...(controller.signal.aborted ? { code: modelTimeoutCode } : {}) }); }
     finally { clearTimeout(timer); res.off('close', close); }
   };
+  return middleware;
+}
+
+export function deepseekPlugin(...args: Parameters<typeof createDeepseekMiddleware>): Plugin {
+  const middleware = createDeepseekMiddleware(...args);
   return { name: 'deepseek-describer', configureServer(server) { server.middlewares.use(middleware); }, configurePreviewServer(server) { server.middlewares.use(middleware); } };
 }

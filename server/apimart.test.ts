@@ -85,24 +85,6 @@ test('APIMart standard rejects incompatible parameters before any upload or paid
   }
 });
 
-test('APIMart SVG polling preserves validated vector bytes and rejects raster or unsafe results', async () => {
-  const xml = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200"><path d="M0 0h10v10z"/></svg>';
-  for (const [mime, output, success] of [
-    ['image/svg+xml; charset=utf-8', xml, true],
-    ['image/svg+xml', '<svg xmlns="http://www.w3.org/2000/svg"><image href="https://evil.example/a.png"/></svg>', false],
-    ['image/png', 'raster', false],
-  ] as const) {
-    const result = await invoke({ taskId: 'task_svg', outputFormat: 'svg' }, async url => String(url).includes('/tasks/')
-      ? Response.json({ data: { status: 'completed', result: { images: [{ url: ['https://cdn.example/result.svg'] }] } } })
-      : new Response(output, { headers: { 'content-type': mime } }), { path: '/api/apimart/task' });
-    assert.equal(result.status, success ? 200 : 502);
-    if (success) {
-      assert.equal(result.body.format, 'svg');
-      assert.equal(result.body.image, `data:image/svg+xml;base64,${Buffer.from(xml).toString('base64')}`);
-    }
-  }
-});
-
 test('unsupported APIMart settings fail before uploads or task creation', async () => {
   const noFetch: typeof fetch = async () => assert.fail('Must not call provider');
   for (const bad of [null, {}, { ...input, size: '1024x1024' }, { ...input, size: '2:1' }, { ...input, resolution: '8K' },
@@ -140,25 +122,30 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) test(
   assert.equal(result.status, 200); assert.deepEqual(result.body, { taskId: 'task_test' }); assert.equal(calls.length, 3);
 });
 
-test('APIMart polling accepts wrapped and unwrapped tasks and downloads original bytes without credentials', async () => {
-  for (const wrapped of [true, false]) for (const outputFormat of ['png', 'jpeg', 'webp', 'gif']) {
+test('APIMart polling returns compact URLs and expiry without downloading any result bytes', async () => {
+  for (const wrapped of [true, false]) for (const outputFormat of ['png', 'jpeg', 'webp', 'gif', 'svg']) {
     let calls = 0;
     const result = await invoke({ taskId: 'task_test', outputFormat }, async (url, init) => {
       calls++;
-      if (calls === 1) {
-        assert.equal(url, 'https://api.apimart.ai/v1/tasks/task_test?language=zh');
-        assert.equal(init?.method, 'GET');
-        assert.equal(new Headers(init?.headers).get('Authorization'), 'Bearer apimart-test-secret');
-        const task = { status: 'completed', result: { images: [{ url: ['https://cdn.example/result'] }] } };
-        return Response.json(wrapped ? { code: 200, data: task } : task);
-      }
-      assert.equal(url, 'https://cdn.example/result');
-      assert.equal(new Headers(init?.headers).has('Authorization'), false);
-      return new Response('original-image-bytes', { headers: { 'content-type': `image/${outputFormat}` } });
+      assert.equal(url, 'https://api.apimart.ai/v1/tasks/task_test?language=zh');
+      assert.equal(new Headers(init?.headers).get('Authorization'), 'Bearer apimart-test-secret');
+      const task = { status: 'completed', result: { images: [{ url: wrapped ? ['https://cdn.example/result'] : 'https://cdn.example/result', expires_at: 1900000000 }] } };
+      return Response.json(wrapped ? { code: 200, data: task } : task);
     }, { path: '/api/apimart/task' });
-    assert.equal(result.status, 200); assert.equal(calls, 2);
-    assert.equal(result.body.format, outputFormat);
-    assert.equal(result.body.image, `data:image/${outputFormat};base64,${Buffer.from('original-image-bytes').toString('base64')}`);
+    assert.equal(result.status, 200); assert.equal(calls, 1);
+    assert.deepEqual(result.body, { status: 'completed', taskId: 'task_test', imageUrl: 'https://cdn.example/result', format: outputFormat, expiresAt: 1900000000 });
+    assert.ok(JSON.stringify(result.body).length < 300);
+  }
+});
+
+test('APIMart rejects missing, credentialed and local result URLs without fetching them', async () => {
+  for (const url of [undefined, 'http://cdn.example/a.png', 'https://user:secret@cdn.example/a.png', 'https://127.0.0.1/a.png', 'https://localhost/a.png']) {
+    let calls = 0;
+    const result = await invoke({ taskId: 'task_test', outputFormat: 'png' }, async () => {
+      calls++;
+      return Response.json({ data: { status: 'completed', result: { images: [{ url }] } } });
+    }, { path: '/api/apimart/task' });
+    assert.equal(result.status, 502); assert.equal(calls, 1); assert.equal(result.body.taskId, 'task_test');
   }
 });
 

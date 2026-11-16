@@ -103,14 +103,13 @@ test('Seedream submission errors and missing credentials never trigger a resubmi
   assert.equal((await invoke(input, async () => assert.fail('Untrusted'), { headers: { origin: 'https://evil.example' } })).status, 403);
 });
 
-test('Seedream results use the shared task query and download original bytes without credentials', async () => {
-  const result = await invoke({ taskId: 'task_seedream', outputFormat: 'jpeg' }, async (url, init) => {
+test('Seedream results use the shared task query and return the CDN URL without downloading', async () => {
+  const result = await invoke({ taskId: 'task_seedream', outputFormat: 'jpeg' }, async url => {
     if (String(url).includes('/tasks/')) {
       assert.equal(String(url), 'https://api.apimart.ai/v1/tasks/task_seedream?language=zh');
       return Response.json({ data: { status: 'completed', result: { images: [{ url: ['https://cdn.example/seedream.jpeg'] }] } } });
     }
-    assert.equal(new Headers(init?.headers).has('Authorization'), false);
-    return new Response(new Uint8Array([255, 216, 255, 217]), { headers: { 'content-type': 'image/jpeg' } });
+    assert.fail('Result bytes must not pass through the API');
   }, { path: '/api/apimart/task' });
-  assert.equal(result.status, 200); assert.deepEqual(result.body, { image: 'data:image/jpeg;base64,/9j/2Q==', format: 'jpeg' });
+  assert.equal(result.status, 200); assert.deepEqual(result.body, { status: 'completed', taskId: 'task_seedream', imageUrl: 'https://cdn.example/seedream.jpeg', format: 'jpeg' });
 });

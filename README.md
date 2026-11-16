@@ -110,7 +110,15 @@ Tasks 显示实际排队、运行、成功或失败状态。每次 Run 都可能
 
 接口依据：https://api-docs.deepseek.com/zh-cn/guides/vision/
 
-此入口用于 `npm run dev` 和 `npm run preview` 本地测试。单独部署 `dist/` 不包含 API 服务；生产部署需要独立后端、身份验证与用量限制。
+此入口用于 `npm run dev` 和 `npm run preview` 本地测试。单独部署 `dist/` 不包含 API 服务。
+
+### Vercel 部署（BYOK）
+
+仓库根目录的 `vercel.json` 同时构建 Vite 前端与 `api/[...path].ts` 模型接口。使用 `vercel deploy --environment preview` 发布预览；安装使用 `npm ci`，运行时使用 Node.js 24。接口复用本地请求校验、模型处理及 BYOK 网关校验。
+
+线上仅使用用户在「更多 → API 设置」中填写的 API Key，不读取服务端默认密钥；连接测试同样需要填写 Key。`.vercelignore` 排除本地环境文件，部署时不要上传 `.env.local` 或配置共享模型密钥。接口仅接受 Vercel 提供的部署域名及对应 HTTPS Origin，用户配置仍保存在各自浏览器中。
+
+函数最长运行 300 秒，平台请求和响应大小限制为 4.5 MB（包括图片的 base64 编码）。APIMart 结果由浏览器从 CDN 直接下载，不经过函数响应；APIMart 大图输入和其他渠道的 Base64 结果仍可能被平台拒绝，需另行处理。当前部署不包含账户系统、共享额度或云端工作流同步。自动检查不调用真实模型；部署后的路由检查也不能替代真实模型验收。
 
 ## GPT Image 2.6（OpenAI / ZenMux / APIMart）
 
@@ -130,7 +138,7 @@ Run Model 和 Run selected 使用共享 Tasks 队列及 Runs 次数。每次运�
 
 APIMart：在 API 设置中保存 APIMart 的 Base URL（默认 `https://api.apimart.ai/v1`）与 Key，或在 `.env.local` 配置 `APIMART_API_KEY`。依据 [Ext 生成文档](https://docs.apimart.ai/cn/api-reference/images/gpt-image-2.6-ext/generation)，模型固定为 `gpt-image-2.6-ext`，`version` 传 `sunburst` / `flare`，`n: 1`，`nsfw_check: false`。画质支持六档；尺寸只接受自动与 1:1、3:2、2:3、4:3、3:4、5:4、4:5、16:9、9:16、21:9，分辨率单独传 `1k` / `2k` / `4k`，不传像素宽高。复杂度可选自动（省略参数）、低、中、高。输出提供 PNG / JPEG / WebP / GIF；文档明确警告暂不支持 SVG，因此该渠道不提供 SVG。GIF 仅支持文生图且比例须为自动。APIMart 不提供背景和 Mask 控件，也不发送 `background`、`moderation`、`mask`、`markup` 或 `markup_url`；已有 Mask 连线保留禁用端口供断开，并在运行前报错，切换渠道不删除原有连线。
 
-APIMart 参考图编辑：单张不超过 20 MiB，支持 PNG / JPEG / WebP；1K 可额外使用 GIF。浏览器先读取本地素材，服务端按顺序通过 [图片上传接口](https://docs.apimart.ai/cn/api-reference/uploads/images) `POST /uploads/images?retention_days=3` 上传带文件名的 multipart `file`，直接取顶层 `url`，再用 `image_urls` 提交 `/images/generations`（不走 `/images/edits`）。上传采用显式 3 天保存档，费用及额度按账户设置执行。生成提交返回任务号，浏览器每 4 秒通过本地 `/api/apimart/task` 查询已有任务，服务端固定请求 `GET /v1/tasks/{task_id}?language=zh`（[任务查询文档](https://docs.apimart.ai/cn/api-reference/tasks/status)），保留中文失败原因；排队和处理中继续轮询，完成后下载结果，服务商返回 `cancelled` 时任务及依赖分支显示已取消。查询超时继续查同一任务，本地取消会停止查询；生成不会自动重提或切换渠道。完成后服务端下载公网结果（不向结果 CDN 发送密钥），转为本地素材供预览、下载与持久化；失败保留上游原因及任务号。`/tests/apimart-provider.html` 使用隔离存储与受控响应验证渠道差异、外部参数、保存恢复和异步任务，不调用真实服务。
+APIMart 参考图编辑：单张不超过 20 MiB，支持 PNG / JPEG / WebP；1K 可额外使用 GIF。浏览器先读取本地素材，服务端按顺序通过 [图片上传接口](https://docs.apimart.ai/cn/api-reference/uploads/images) `POST /uploads/images?retention_days=3` 上传带文件名的 multipart `file`，直接取顶层 `url`，再用 `image_urls` 提交 `/images/generations`（不走 `/images/edits`）。上传采用显式 3 天保存档，费用及额度按账户设置执行。生成提交返回任务号，浏览器每 4 秒通过本地 `/api/apimart/task` 查询已有任务，服务端固定请求 `GET /v1/tasks/{task_id}?language=zh`（[任务查询文档](https://docs.apimart.ai/cn/api-reference/tasks/status)），保留中文失败原因；排队和处理中继续轮询，完成后下载结果，服务商返回 `cancelled` 时任务及依赖分支显示已取消。查询超时继续查同一任务，本地取消会停止查询；生成不会自动重提或切换渠道。完成后服务端只返回结果 URL、格式、任务号及过期时间（如有）；浏览器直接从 CDN 下载，不携带 API Key、Cookie 或来源页面信息，校验格式、32 MiB 大小上限及 SVG 内容后转为本地素材供预览、下载与持久化。CDN 需允许跨域读取；下载失败保留任务号，不自动重提生成。`/tests/apimart-provider.html` 使用隔离存储与受控响应验证渠道差异、外部参数、保存恢复和异步任务，不调用真实服务。
 
 SVG 输出：GPT Image 2.6 的 Sunburst / Flare 可选择 SVG，使用 `/images/generations`，每个任务 `n: 1`。OpenAI 请求同时显式传入 `svg.model: gpt-6.1-terra` 编写矢量内容，顶层 Flare / Sunburst 负责参考图；PNG/JPEG/WebP 和 ZenMux 请求不附加该参数。参考图片或蒙版连接会在运行前报错，避免提交不支持的编辑请求。服务端与客户端使用 `saxes` 解析 XML，拒绝内嵌位图、脚本、动画、外部资源和格式不符的结果；通过校验后以 `image/svg+xml` 保留原始 UTF-8 XML，预览、下载和 IndexedDB 保存不转 PNG。下载得到真正的 `.svg` 文件。SVG 不可直接作为模型的栅格参考图。接口与约束见 [官方 SVG 文档](https://developers.openai.com/api/docs/guides/image-generation#generate-svg-output)。自动验收使用模拟响应；此前以 OpenAI Flare / low / 1024×1024、SVG 编写模型 gpt-6.1-sol 完成一次真实 SVG 验证，返回 HTTP 200 和纯 `<rect>` / `<circle>` 矢量内容（无内嵌位图）；切换到 gpt-6.1-terra 后尚未再次执行真实生图。
 

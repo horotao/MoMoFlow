@@ -1,12 +1,11 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { providerConnection } from './apiCredentials.ts';
-import { byokFetch } from './byokFetch.ts';
+import { apimartResultUrl } from '../src/nodes/apimartResult.ts';
 import { diagnosticText, readErrorDiagnostic, trusted } from './zenmuxShared.ts';
 import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 import { imageFormats, sunburstModelForProvider, validateSunburstImageInputs, validateSunburstSettings, validateSunburstVariant } from '../src/nodes/sunburst.ts';
 import { buildSeedreamRequest } from './seedream.ts';
-import { validateVectorSvg } from '../src/nodes/vectorSvg.ts';
 
 const maxBody = 64 * 1024 * 1024;
 const taskIdPattern = /^[a-zA-Z0-9_-]{1,200}$/;
@@ -70,7 +69,7 @@ async function readLimited(response: Response, limit: number): Promise<Buffer> {
   } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
 }
 
-export function apimartPlugin(defaultKey: string, providerFetch: typeof fetch = fetch): Plugin {
+export function createApimartMiddleware(defaultKey: string, providerFetch: typeof fetch = fetch) {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const path = req.url?.split('?')[0];
     if (path !== '/api/apimart/images' && path !== '/api/apimart/seedream' && path !== '/api/apimart/task') return next();
@@ -143,31 +142,27 @@ export function apimartPlugin(defaultKey: string, providerFetch: typeof fetch = 
       // The status API localizes failed task error.message with this query.
       const result = await call(`/tasks/${taskId}?language=zh`);
       if (!result) return;
-      const task = (result.data ?? result) as { status?: string; error?: { message?: unknown }; result?: { images?: { url?: unknown }[] } };
+      const task = (result.data ?? result) as { status?: string; error?: { message?: unknown }; result?: { images?: { url?: unknown; expires_at?: unknown }[] } };
       if (['submitted', 'pending', 'processing', 'cancelled'].includes(task.status ?? '')) return send(200, { status: task.status, taskId });
       if (task.status === 'failed') return send(502, { error: `APIMart 任务失败：${diagnosticText(task.error?.message, apiKey) ?? '请检查请求记录。'}`, taskId });
       if (task.status !== 'completed') throw new Error('APIMart 返回了未知任务状态。');
       const urls = task.result?.images?.[0]?.url;
       const url = Array.isArray(urls) ? urls[0] : urls;
-      if (typeof url !== 'string' || !/^https:\/\//.test(url)) throw new Error('APIMart 未返回有效结果 URL。');
-      // CDN requests never receive credentials. Pin validated public DNS for
-      // live downloads, including when the API uses the fixed server key.
-      const download = await (providerFetch === fetch ? byokFetch : providerFetch)(url, { signal: controller.signal, redirect: 'error' });
-      if (!download.ok) { await download.body?.cancel(); throw new Error('无法下载 APIMart 结果，请通过任务编号检查结果。'); }
-      const mime = download.headers.get('content-type')?.split(';')[0];
-      const format = mime === 'image/svg+xml' ? 'svg' : mime?.slice('image/'.length);
-      if (mime !== `image/${format === 'svg' ? 'svg+xml' : format}` || !imageFormats.some(item => item === format) || format !== input.outputFormat) {
-        await download.body?.cancel(); throw new Error('APIMart 返回的图片格式与请求不符。');
-      }
-      const outputBytes = await readLimited(download, 32 * 1024 * 1024);
-      if (!outputBytes.length) throw new Error('APIMart 返回空图片。');
-      if (format === 'svg') validateVectorSvg(new TextDecoder('utf-8', { fatal: true }).decode(outputBytes));
-      send(200, { image: `data:${mime};base64,${outputBytes.toString('base64')}`, format });
+      const imageUrl = apimartResultUrl(url);
+      const expiresAt = task.result?.images?.[0]?.expires_at;
+      send(200, { status: 'completed', taskId, imageUrl, format: input.outputFormat,
+        ...(typeof expiresAt === 'number' && Number.isFinite(expiresAt) ? { expiresAt } : {}),
+      });
     } catch (error) {
       send(502, { error: controller.signal.aborted ? 'APIMart 请求超时或已取消，不会自动重新提交。'
         : diagnosticText(error instanceof Error ? error.message : '无法取得 APIMart 结果。', apiKey),
         ...(controller.signal.aborted ? { code: modelTimeoutCode } : {}), ...(taskId ? { taskId } : {}) });
     } finally { clearTimeout(timeout); res.off('close', close); }
   };
+  return middleware;
+}
+
+export function apimartPlugin(...args: Parameters<typeof createApimartMiddleware>): Plugin {
+  const middleware = createApimartMiddleware(...args);
   return { name: 'apimart-images', configureServer(server) { server.middlewares.use(middleware); }, configurePreviewServer(server) { server.middlewares.use(middleware); } };
 }

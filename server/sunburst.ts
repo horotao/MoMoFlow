@@ -71,7 +71,7 @@ export function buildSunburstPayload(request: ReturnType<typeof buildSunburstReq
 }
 
 
-export function sunburstPlugin(apiKeys: Record<Exclude<SunburstProvider, 'apimart'>, string>, providerFetch: typeof fetch = fetch): Plugin {
+export function createSunburstMiddleware(apiKeys: Record<Exclude<SunburstProvider, 'apimart'>, string>, providerFetch: typeof fetch = fetch) {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (req.url?.split('?')[0] !== '/api/sunburst') return next();
     const send = (status: number, value: object) => {
@@ -166,5 +166,10 @@ export function sunburstPlugin(apiKeys: Record<Exclude<SunburstProvider, 'apimar
       sendFailure(controller.signal.aborted ? '请求超时或已取消；已提交请求仍可能计费，不会自动重试。' : `无法取得 ${providers[provider].name} 结果；请检查网络及用量后再手动重试。`, error);
     } finally { clearTimeout(timeout); res.off('close', close); }
   };
+  return middleware;
+}
+
+export function sunburstPlugin(...args: Parameters<typeof createSunburstMiddleware>): Plugin {
+  const middleware = createSunburstMiddleware(...args);
   return { name: 'sunburst', configureServer(server) { server.middlewares.use(middleware); }, configurePreviewServer(server) { server.middlewares.use(middleware); } };
 }

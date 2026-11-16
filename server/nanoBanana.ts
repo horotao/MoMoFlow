@@ -76,7 +76,7 @@ async function readResult(response: Response): Promise<unknown> {
   } finally { await reader.cancel().catch(() => {}); reader.releaseLock(); }
 }
 
-export function nanoBananaPlugin(defaultApiKey: string, providerFetch: typeof fetch = fetch): Plugin {
+export function createNanoBananaMiddleware(defaultApiKey: string, providerFetch: typeof fetch = fetch) {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (req.url?.split('?')[0] !== '/api/nano-banana') return next();
     const send = (status: number, value: object) => {
@@ -145,5 +145,10 @@ export function nanoBananaPlugin(defaultApiKey: string, providerFetch: typeof fe
       failure(controller.signal.aborted ? '请求超时或已取消；已提交请求仍可能计费，不会自动重试。' : '无法取得 ZenMux 结果；请检查网络及用量后再手动重试。', error);
     } finally { clearTimeout(timeout); res.off('close', close); }
   };
+  return middleware;
+}
+
+export function nanoBananaPlugin(...args: Parameters<typeof createNanoBananaMiddleware>): Plugin {
+  const middleware = createNanoBananaMiddleware(...args);
   return { name: 'zenmux-nano-banana', configureServer(server) { server.middlewares.use(middleware); }, configurePreviewServer(server) { server.middlewares.use(middleware); } };
 }

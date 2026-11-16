@@ -158,3 +158,31 @@ test('APIMart remote cancellation stops polling and keeps the task ID without an
   t.mock.timers.tick(40000);
   assert.deepEqual(paths, ['/api/apimart/images', '/api/apimart/task']);
 });
+
+test('APIMart URL SVG results preserve vector bytes and reject unsafe SVG without resubmission', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const nativeFetch = globalThis.fetch;
+  for (const unsafe of [false, true]) {
+    let submissions = 0;
+    const xml = unsafe ? '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
+      : '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480"><path d="M0 0h10v10z"/></svg>';
+    const mock = t.mock.method(globalThis, 'fetch', async (url: string, init?: RequestInit) => {
+      if (url === '/api/apimart/images') { submissions++; return Response.json({ taskId: 'task_vector' }); }
+      if (url === '/api/apimart/task') return Response.json({ status: 'completed', imageUrl: 'https://cdn.example/result.svg', format: 'svg' });
+      assert.equal(url, 'https://cdn.example/result.svg'); assert.equal(init?.headers, undefined);
+      return new Response(xml, { headers: { 'content-type': 'image/svg+xml; charset=utf-8' } });
+    });
+    const pending = requestSunburst({ ...defaultSunburstSettings, provider: 'apimart', channelModel: 'gpt-image-2.6', outputFormat: 'svg', prompt: 'Vector', images: [] }, new AbortController().signal);
+    const checked = unsafe ? assert.rejects(pending, /task_vector/) : pending;
+    await new Promise<void>(resolve => setImmediate(resolve)); t.mock.timers.tick(4000);
+    if (unsafe) await checked;
+    else {
+      const asset = await pending;
+      assert.equal(asset.width, 640); assert.equal(asset.height, 480);
+      assert.ok(asset.url.startsWith('blob:'));
+      assert.equal(await (await nativeFetch(asset.url)).text(), xml);
+      URL.revokeObjectURL(asset.url);
+    }
+    assert.equal(submissions, 1); mock.mock.restore();
+  }
+});

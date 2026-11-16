@@ -68,7 +68,7 @@ export async function checkApiConnection(provider: ApiProvider, baseUrl: string,
   } finally { await response.body?.cancel().catch(() => {}); }
 }
 
-export function apiSettingsPlugin(keys: ServerKeys, providerFetch: typeof fetch = byokFetch): Plugin {
+export function createApiSettingsMiddleware(keys: ServerKeys, providerFetch: typeof fetch = byokFetch) {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (req.url?.split('?')[0] !== '/api/settings/test') return next();
     const send = (status: number, value: object) => {
@@ -114,6 +114,11 @@ export function apiSettingsPlugin(keys: ServerKeys, providerFetch: typeof fetch 
       res.off('close', close);
     }
   };
+  return middleware;
+}
+
+export function apiSettingsPlugin(...args: Parameters<typeof createApiSettingsMiddleware>): Plugin {
+  const middleware = createApiSettingsMiddleware(...args);
   return {
     name: 'byok-api-settings',
     configureServer(server) { server.middlewares.use(middleware); },

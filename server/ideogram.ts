@@ -177,7 +177,7 @@ export async function runIdeogramPrediction(apiKey: string, input: ReturnType<ty
   }
 }
 
-export function ideogramPlugin(defaultApiKey: string, providerFetch: typeof fetch = fetch, wait: Pause = pause): Plugin {
+export function createIdeogramMiddleware(defaultApiKey: string, providerFetch: typeof fetch = fetch, wait: Pause = pause) {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const path = req.url?.split('?')[0];
     if (path !== '/api/ideogram' && path !== '/api/ideogram/edit') return next();
@@ -220,5 +220,10 @@ export function ideogramPlugin(defaultApiKey: string, providerFetch: typeof fetc
       send(502, { error: `${controller.signal.aborted ? '请求超时或已取消。' : message} ${submitted ? '已提交请求仍可能计费，不会自动重试；请先到 WaveSpeed History 查看。' : '尚未提交生成任务。'}${taskId ? ` Task ID：${taskId}` : ''}`, ...(taskId ? { taskId } : {}), ...(timedOut ? { code: modelTimeoutCode } : {}) });
     } finally { clearTimeout(timeout); res.off('close', close); }
   };
+  return middleware;
+}
+
+export function ideogramPlugin(...args: Parameters<typeof createIdeogramMiddleware>): Plugin {
+  const middleware = createIdeogramMiddleware(...args);
   return { name: 'wavespeed-ideogram', configureServer(server) { server.middlewares.use(middleware); }, configurePreviewServer(server) { server.middlewares.use(middleware); } };
 }
