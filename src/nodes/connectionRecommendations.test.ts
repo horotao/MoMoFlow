@@ -17,9 +17,9 @@ test('text and image outputs recommend compatible implemented inputs with stable
     ['text', 'variable-1'], ['text-iterator', 'input'], ['sunburst', 'prompt'], ['nano-banana', 'prompt'], ['seedream', 'prompt'], ['image-describer', 'instructions'], ['router', 'input'],
   ]);
   assert.deepEqual(connectionChoices(pending('image', 'source', 'file'), [image], []).map(c => [c.itemId, c.handleId]), [
-    ['blend', 'back'], ['blend', 'front'], ['compare', 'input-1'], ['compositor', 'background'], ['compositor', 'layer-1'], ['preview', 'file'], ['image-describer', 'image-0'], ['sunburst', 'image-0'], ['nano-banana', 'image-0'], ['seedream', 'image-0'], ['masks-extractor', 'image'], ['painter', 'image'], ['resize', 'image'], ['rotate-flip', 'image'], ['invert', 'image'], ['levels', 'image'], ['matte-grow-shrink', 'image'], ['blur', 'image'], ['crop', 'image'], ['color-correction', 'file'], ['router', 'input'],
+    ['blend', 'back'], ['blend', 'front'], ['compare', 'input-1'], ['compositor', 'background'], ['compositor', 'layer-1'], ['preview', 'file'], ['image-describer', 'image-0'], ['sunburst', 'image-0'], ['nano-banana', 'image-0'], ['seedream', 'image-0'], ['interactive-edit', 'image'], ['masks-extractor', 'image'], ['painter', 'image'], ['resize', 'image'], ['rotate-flip', 'image'], ['invert', 'image'], ['levels', 'image'], ['matte-grow-shrink', 'image'], ['blur', 'image'], ['crop', 'image'], ['color-correction', 'file'], ['router', 'input'],
   ]);
-  assert.deepEqual(connectionChoices(pending('generator', 'source', 'result'), [generator], []).map(c => c.itemId), ['blend', 'blend', 'compare', 'compositor', 'compositor', 'preview', 'image-describer', 'sunburst', 'nano-banana', 'seedream', 'masks-extractor', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'matte-grow-shrink', 'blur', 'crop', 'color-correction', 'router']);
+  assert.deepEqual(connectionChoices(pending('generator', 'source', 'result'), [generator], []).map(c => c.itemId), ['blend', 'blend', 'compare', 'compositor', 'compositor', 'preview', 'image-describer', 'sunburst', 'nano-banana', 'seedream', 'interactive-edit', 'masks-extractor', 'painter', 'resize', 'rotate-flip', 'invert', 'levels', 'matte-grow-shrink', 'blur', 'crop', 'color-correction', 'router']);
 });
 
 test('non-image and empty files never suggest incompatible text or image consumers', () => {

@@ -8,6 +8,7 @@ export type PreviewTask = {
   instructions?: string; images?: string[]; imageRequest?: SunburstRequest; nanoBananaRequest?: NanoBananaRequest; seedreamRequest?: SeedreamRequest;
   progress: number; state: TaskState; started: number; error?: string; notice?: string; label?: string;
   iteration?: WorkflowIteration;
+  seedreamGroup?: { imageId: string; index: number; total: number };
 };
 export const isActiveTask = (task: PreviewTask) => task.state === 'Queued' || task.state === 'Running';
 

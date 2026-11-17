@@ -67,7 +67,7 @@ test('legacy Seedream data keeps automatic sizing and 1.5K through execution and
   assert.equal(validateSeedreamSettings(legacy).size, 'auto');
   assert.equal(restoreSeedreamData(legacy)?.size, 'auto');
   const node = { ...seedream, data: legacy } as SeedreamNode;
-  assert.equal(prepareModel({ nodes: [node, prompt], edges }, node.id).seedreamRequest?.size, 'auto');
+  assert.equal(prepareModel({ nodes: [node, prompt], edges }, node.id)[0].seedreamRequest?.size, 'auto');
 });
 
 test('exact local pixels ignore retired resolution dependencies', () => {
@@ -76,7 +76,7 @@ test('exact local pixels ignore retired resolution dependencies', () => {
   const resolutionEdge = { id: 'resolution', source: resolution.id, target: exact.id, targetHandle: 'resolution' };
   const graph = { nodes: [exact, prompt, resolution], edges: [...edges, resolutionEdge] };
   assert.deepEqual(executionInputs(exact, undefined, graph), edges);
-  assert.deepEqual(prepareModel(graph, exact.id).seedreamRequest, { ...defaultSeedreamSettings, size: '1537x1001', prompt: prompt.data.text, images: [] });
+  assert.deepEqual(prepareModel(graph, exact.id)[0].seedreamRequest, { ...defaultSeedreamSettings, size: '1537x1001', prompt: prompt.data.text, images: [] });
 });
 
 test('runs snapshot exact model, prompt, sorted references and local parameters', () => {

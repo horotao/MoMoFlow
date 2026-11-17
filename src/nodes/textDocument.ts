@@ -23,6 +23,15 @@ export function hasVariable(document: JSONContent, handleId: string): boolean {
     || (document.content ?? []).some((child) => hasVariable(child, handleId));
 }
 
+export function withoutVariables(document: JSONContent, handles: ReadonlySet<string>): JSONContent {
+  if (!document.content) return document;
+  const content = document.content
+    .filter(child => child.type !== 'promptVariable' || !handles.has(String(child.attrs?.handleId ?? '')))
+    .map(child => withoutVariables(child, handles));
+  return content.length === document.content.length && content.every((child, index) => child === document.content?.[index])
+    ? document : { ...document, content };
+}
+
 export function initialTextDocument(text: string, handles: string[], ownerId: string): JSONContent {
   const document = textToDocument(text);
   const paragraph = document.content![0];

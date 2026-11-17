@@ -1,3 +1,4 @@
+import { isInteractiveEditNode } from '../nodes/types.ts';
 import { isMasksExtractorNode } from '../nodes/types.ts';
 import { isImageGeneratorNode } from '../nodes/types.ts';
 import { isBlendNode } from '../nodes/types.ts';
@@ -52,6 +53,9 @@ export function mapAssets(nodes: AppNode[], map: (asset: FileAsset) => FileAsset
       baseImage: node.data.baseImage ? map(node.data.baseImage) : undefined,
       result: node.data.result ? map(node.data.result) : undefined,
     } } as AppNode;
+    if (isInteractiveEditNode(node)) return { ...node, data: { ...node.data,
+      baseImage: node.data.baseImage ? map(node.data.baseImage) : undefined,
+    } };
     if (isMasksExtractorNode(node)) return { ...node, data: { ...node.data,
       baseImage: node.data.baseImage ? map(node.data.baseImage) : undefined,
       result: node.data.result ? map(node.data.result) : undefined,

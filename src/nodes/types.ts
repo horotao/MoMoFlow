@@ -1,3 +1,4 @@
+import type { InteractiveEditData } from './interactiveEdit';
 import type { GenerationRecord, OutputPolicy } from './executionGraph';
 import type { IdeogramEditSettings, IdeogramField, IdeogramSettings } from './ideogram';
 import type { MasksExtractorData } from './masksExtractor';
@@ -50,6 +51,8 @@ export const isSeedreamNode = (node: AppNode): node is SeedreamNode => node.type
 export type ImageGeneratorNode = SunburstNode | NanoBananaNode | IdeogramNode | SeedreamNode;
 export const isNanoBananaNode = (node: AppNode): node is NanoBananaNode => node.type === 'nano-banana';
 export const isImageGeneratorNode = (node: AppNode): node is ImageGeneratorNode => isSeedreamNode(node) || isSunburstNode(node) || isNanoBananaNode(node) || isIdeogramNode(node);
+export type InteractiveEditNode = Node<InteractiveEditData, 'interactive-edit'>;
+export const isInteractiveEditNode = (node: AppNode | undefined): node is InteractiveEditNode => node?.type === 'interactive-edit';
 export type MasksExtractorNode = Node<MasksExtractorData, 'masks-extractor'>;
 export const isMasksExtractorNode = (node: AppNode | undefined): node is MasksExtractorNode => node?.type === 'masks-extractor';
 export type PainterNode = Node<PainterData, 'painter'>;
@@ -78,7 +81,7 @@ export const isCompareNode = (node: AppNode | undefined): node is CompareNode =>
 export type BlendNode = Node<BlendData, 'blend'>;
 export const isBlendNode = (node: AppNode | undefined): node is BlendNode => node?.type === 'blend';
 export type RouterNode = Node<{ label?: string; locked?: boolean }, 'router'>;
-export type AppNode = SeedreamNode | ImageIteratorNode | TextIteratorNode | IdeogramNode | MatteGrowShrinkNode | MasksExtractorNode | NanoBananaNode | RouterNode | BlendNode | CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
+export type AppNode = SeedreamNode | ImageIteratorNode | TextIteratorNode | IdeogramNode | MatteGrowShrinkNode | InteractiveEditNode | MasksExtractorNode | NanoBananaNode | RouterNode | BlendNode | CompareNode | ResizeNode | ColorPaletteNode | CompositorNode | RotateFlipNode | InvertNode | LevelsNode | BlurNode | ColorCorrectionNode | CropNode | PreviewNode | PainterNode | SunburstNode | ImageDescriberNode | ModelInputNode | BuiltInNode | PositionLoggerNode | TextNode | FileNode;
 
 export const isDescriberNode = (node: AppNode): node is ImageDescriberNode => node.type === 'image-describer' && 'imageInputs' in node.data;
 

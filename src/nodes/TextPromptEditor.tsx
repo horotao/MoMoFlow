@@ -1,12 +1,15 @@
-import { useEffect, useRef, type MutableRefObject } from 'react';
+import { useContext, useEffect, useRef, type MutableRefObject } from 'react';
 import { EditorContent, useEditor, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import { isHistoryTransaction } from '@tiptap/pm/history';
 import { Slice } from '@tiptap/pm/model';
-import { useReactFlow } from '@xyflow/react';
+import { useReactFlow, type Edge } from '@xyflow/react';
+import { PromptAnnotationEdits } from './promptAnnotationEdits';
+import { annotationInputs } from './interactiveEdit';
 import { PromptVariable } from './promptVariable';
 import { documentText, hasVariable, initialTextDocument, textToDocument } from './textDocument';
-import { resolveTextValue, variableIndex } from './textVariables';
+import { resolveTextInput, textInputHandle } from './textVariables';
 import { suggestedTextNodeText } from './defaults';
 import type { AppNode, TextNode } from './types';
 
@@ -18,6 +21,8 @@ export function TextPromptEditor({ id, data, handles, editorRef }: {
 }) {
   const { getNodes, getEdges, updateNodeData, updateNode } = useReactFlow<AppNode>();
   const previousHandles = useRef(new Set(handles));
+  const applyAnnotationEdit = useContext(PromptAnnotationEdits);
+  const removedEdges = useRef(new Map<string, Edge>());
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -28,8 +33,8 @@ export function TextPromptEditor({ id, data, handles, editorRef }: {
       Placeholder.configure({ placeholder: suggestedTextNodeText, showOnlyWhenEditable: true }),
       PromptVariable.configure({
         resolve: (handleId) => {
-          const input = getEdges().find((edge) => edge.target === id && variableIndex(edge.targetHandle) === variableIndex(handleId));
-          return input ? resolveTextValue(input.source, getNodes(), getEdges()) : '';
+          const input = getEdges().find((edge) => edge.target === id && textInputHandle(edge.targetHandle) === textInputHandle(handleId));
+          return input ? resolveTextInput(input, getNodes(), getEdges()) : '';
         },
       }),
     ],
@@ -68,8 +73,20 @@ export function TextPromptEditor({ id, data, handles, editorRef }: {
       const content = current.getJSON();
       updateNodeData(id, { content, text: documentText(content) });
     },
-    onUpdate: ({ editor: current }) => {
+    onUpdate: ({ editor: current, transaction }) => {
       const content = current.getJSON();
+      if (applyAnnotationEdit) {
+        const before = transaction.before.toJSON();
+        const removedHandles = new Set(annotationInputs.filter(handle => hasVariable(before, handle) && !hasVariable(content, handle)));
+        const restoreEdges = isHistoryTransaction(transaction) ? [...removedEdges.current].flatMap(([handle, edge]) =>
+          !hasVariable(before, handle) && hasVariable(content, handle) ? [edge] : []) : [];
+        if (removedHandles.size || restoreEdges.length) {
+          const disconnected = applyAnnotationEdit({ nodeId: id, content, removedHandles, restoreEdges });
+          for (const handle of removedHandles) removedEdges.current.delete(handle);
+          for (const edge of disconnected) if (edge.targetHandle) removedEdges.current.set(edge.targetHandle, edge);
+          return;
+        }
+      }
       updateNodeData(id, { content, text: documentText(content) });
     },
   });

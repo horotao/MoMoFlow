@@ -3,16 +3,18 @@ import type { Connection, Edge } from '@xyflow/react';
 import type { AppNode } from './types';
 import { isCompositorNode, isNodeLocked, isImageGeneratorNode } from './types.ts';
 import { fileAssets, fileOutputKind } from './fileCollection.ts';
-import { variableIndex } from './textVariables.ts';
+import { isTextNode, textAnnotationCount, textInputHandle } from './textVariables.ts';
+import { annotationInputIndex, isAnnotationInput } from './interactiveEdit.ts';
+import { annotationOutput } from './annotationGraph.ts';
 import { outputKind, resolveOutputSource } from './router.ts';
 
 const singleInputTypes = new Set([
   'text-iterator', 'text', 'image-describer', 'sunburst', 'nano-banana', 'ideogram', 'seedream', 'router', 'blend', 'compare',
-  'compositor', 'painter', 'masks-extractor', 'crop', 'color-correction', 'blur',
+  'compositor', 'painter', 'interactive-edit', 'masks-extractor', 'crop', 'color-correction', 'blur',
   'matte-grow-shrink', 'levels', 'invert', 'rotate-flip', 'resize', 'preview',
 ]);
 const inputKey = (node: AppNode, handle: string | null | undefined) => node.type === 'text'
-  ? variableIndex(handle) : handle ?? null;
+  ? textInputHandle(handle) : handle ?? null;
 
 // Validate first, then replace only this input in the same update that adds the new edge.
 export function withoutReplacedInput(connection: Pick<Edge, 'target' | 'targetHandle'>, nodes: AppNode[], edges: Edge[]) {
@@ -26,11 +28,13 @@ export function withoutReplacedInput(connection: Pick<Edge, 'target' | 'targetHa
 export function canConnect(connection: Connection | Edge, nodes: AppNode[], currentEdges: Edge[], pendingImportId?: string): boolean {
   const source = nodes.find(node => node.id === connection.source), target = nodes.find(node => node.id === connection.target);
   if (!source || !target || target.type === 'ideogram' || isNodeLocked(source) || isNodeLocked(target) || source.id === target.id) return false;
+  if (isTextNode(target) && isAnnotationInput(connection.targetHandle) && annotationInputIndex(connection.targetHandle) >= textAnnotationCount(target, currentEdges)) return false;
   if (currentEdges.some(edge => edge.source === source.id && edge.target === target.id
     && (edge.sourceHandle ?? null) === (connection.sourceHandle ?? null)
     && inputKey(target, edge.targetHandle) === inputKey(target, connection.targetHandle))) return false;
   const remaining = withoutReplacedInput(connection, nodes, currentEdges);
   if (source.type !== 'router' && target.type !== 'router') return canConnectDirect(connection, nodes, remaining, pendingImportId);
+  if (source.type === 'interactive-edit' || (target.type === 'text' && isAnnotationInput(connection.targetHandle))) return false;
   if ((source.type === 'router' && connection.sourceHandle !== 'output') || (target.type === 'router' && connection.targetHandle !== 'input')) return false;
   if (source.type !== 'router' && !outputKind(source, connection.sourceHandle)) return false;
   const graph = [...remaining, { ...connection, id: 'router-candidate' }];
@@ -83,6 +87,16 @@ function canConnectDirect(connection: Connection | Edge, nodes: AppNode[], curre
   const source = nodes.find(node => node.id === connection.source);
   if (isNodeLocked(source) || isNodeLocked(target)) return false;
   if (!source || !target) return false;
+  if (source.type === 'interactive-edit') {
+    const index = annotationInputIndex(connection.targetHandle);
+    if (!isTextNode(target) || index < 0
+      || !annotationOutput(source, connection.sourceHandle, nodes, currentEdges)) return false;
+  } else if (target.type === 'text' && isAnnotationInput(connection.targetHandle)) return false;
+  if (target.type === 'interactive-edit') {
+    const kind = outputKind(source, connection.sourceHandle, nodes, currentEdges);
+    const pendingFile = source.type === 'file' && source.id === pendingImportId && fileAssets(source.data).length === 0;
+    if (connection.targetHandle !== 'image' || (kind !== 'image' && kind !== 'mask' && !pendingFile)) return false;
+  }
   if (target.type === 'image-iterator') return false;
   if (source.type === 'image-iterator' && connection.sourceHandle !== 'file') return false;
   if (target.type === 'color-palette') return false;
@@ -117,7 +131,7 @@ function canConnectDirect(connection: Connection | Edge, nodes: AppNode[], curre
       if (!source || !(paletteImage || source.type === 'image-iterator' || source.type === 'compare' || isImageGeneratorNode(source) || (source.type === 'painter' || source.type === 'masks-extractor') || source.type === 'color-correction' || source.type === 'crop' || source.type === 'matte-grow-shrink' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'blend' || source.type === 'rotate-flip' || source.type === 'resize' || source.type === 'compositor' || (source.type === 'file' && (fileOutputKind(source.data) === 'image' || (source.id === pendingImportId && fileAssets(source.data).length === 0))))) return false;
     } else return false;
   }
-  if (source && (paletteImage || source.type === 'image-iterator' || source.type === 'compare' || isImageGeneratorNode(source) || (source.type === 'painter' || source.type === 'masks-extractor') || source.type === 'crop' || source.type === 'matte-grow-shrink' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'blend' || source.type === 'rotate-flip' || source.type === 'resize' || source.type === 'compositor' || source.type === 'color-correction') && target?.type !== 'blend' && target?.type !== 'compare' && target?.type !== 'color-correction' && target?.type !== 'crop' && target?.type !== 'matte-grow-shrink' && target?.type !== 'blur' && target?.type !== 'levels' && target?.type !== 'invert' && target?.type !== 'rotate-flip' && target?.type !== 'resize' && target?.type !== 'compositor' && target?.type !== 'preview' && target?.type !== 'painter' && target?.type !== 'masks-extractor' && !isImageGeneratorNode(target) && !(target?.type === 'image-describer' && connection.targetHandle?.startsWith('image-'))) return false;
+  if (source && (paletteImage || source.type === 'image-iterator' || source.type === 'compare' || isImageGeneratorNode(source) || (source.type === 'painter' || source.type === 'masks-extractor') || source.type === 'crop' || source.type === 'matte-grow-shrink' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'blend' || source.type === 'rotate-flip' || source.type === 'resize' || source.type === 'compositor' || source.type === 'color-correction') && target?.type !== 'blend' && target?.type !== 'compare' && target?.type !== 'color-correction' && target?.type !== 'crop' && target?.type !== 'matte-grow-shrink' && target?.type !== 'blur' && target?.type !== 'levels' && target?.type !== 'invert' && target?.type !== 'rotate-flip' && target?.type !== 'resize' && target?.type !== 'compositor' && target?.type !== 'preview' && target?.type !== 'painter' && target?.type !== 'masks-extractor' && target?.type !== 'interactive-edit' && !isImageGeneratorNode(target) && !(target?.type === 'image-describer' && connection.targetHandle?.startsWith('image-'))) return false;
   if (target?.type === 'image-describer') {
     if (currentEdges.some((e) => e.target === target.id && e.targetHandle === connection.targetHandle)) return false;
     const source = nodes.find((n) => n.id === connection.source);
@@ -126,7 +140,7 @@ function canConnectDirect(connection: Connection | Edge, nodes: AppNode[], curre
     } else if (!source || !(paletteText || ['text-iterator', 'text', 'model-input', 'image-describer'].includes(source.type ?? ''))) return false;
   }
   if (target?.type === 'text' && currentEdges.some((edge) => edge.target === connection.target
-    && variableIndex(edge.targetHandle) === variableIndex(connection.targetHandle))) return false;
+    && textInputHandle(edge.targetHandle) === textInputHandle(connection.targetHandle))) return false;
   const pending = [connection.target];
   const visited = new Set<string>();
   while (pending.length) {

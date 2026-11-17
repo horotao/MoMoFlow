@@ -35,7 +35,7 @@ const lyria: NodeMenuEntry = { id: 'lyria', label: 'Lyria 3', asset: 'deepmind' 
 
 export const nodeMenuCategories: Record<NodeMenuCategory, NodeMenuGroup[]> = {
   editing: [
-    group('图像编辑', ['color-palette', 'compositor', 'resize', 'rotate-flip', 'color-correction', 'levels', 'invert', 'blur', 'crop', 'painter']),
+    group('图像编辑', ['color-palette', 'compositor', 'resize', 'rotate-flip', 'color-correction', 'levels', 'invert', 'blur', 'crop', 'painter', 'interactive-edit']),
     group('混合与蒙版', ['blend', 'masks-extractor', 'matte-grow-shrink']),
   ],
   helpers: [

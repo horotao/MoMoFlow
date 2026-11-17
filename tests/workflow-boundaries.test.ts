@@ -80,7 +80,7 @@ export async function runBoundaryChecks(sample: FileAsset, check: (value: unknow
   const remoteResult = { ...sample, id: 'remote-generated', url: 'https://example.invalid/generated.png' };
   const remoteGraph: ExecutionGraph = { nodes: [text('p', 'paint'), generated, { id: 'resize', type: 'resize', position, data: { settings: { width: 32, height: 24, lockAspectRatio: true } } }, describe('d')], edges: [edge('p', 'up', 'prompt'), edge('up', 'resize', 'image', 'result'), edge('resize', 'd', 'image-0', 'result')] };
   if (!isImageGeneratorNode(generated)) throw new Error('Missing generator');
-  generated.data.results = [{ ...remoteResult, generation: { version: 1, inputSignature: requestSignature(prepareModel(remoteGraph, 'up'), remoteGraph), outputSignature: remoteResult.id } }];
+  generated.data.results = [{ ...remoteResult, generation: { version: 1, inputSignature: requestSignature(prepareModel(remoteGraph, 'up')[0], remoteGraph), outputSignature: remoteResult.id } }];
   generated.data.activeResultId = remoteResult.id;
   let snapshots = 0, renders = 0;
   const exportedUrls: string[] = [];

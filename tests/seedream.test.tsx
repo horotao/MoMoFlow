@@ -11,6 +11,8 @@ import { assetResources } from '../src/nodes/assetResources';
 import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
 import { canvasHistoryShortcut } from './canvasShortcuts';
 import { seedreamAspectRatios } from '../src/nodes/seedream';
+import { commitAnnotations, emptyAnnotationHistory } from '../src/nodes/interactiveEdit';
+import { initialTextDocument } from '../src/nodes/textDocument';
 import '../src/index.css';
 import '../src/nodes/SunburstNode.css';
 import '../src/nodes/PreviewNode.css';
@@ -72,13 +74,16 @@ async function run() {
   const submitted = new Map<string, { format: string; mode: string }>();
   let mode: 'success' | 'cancel' | 'failure' = 'success';
   let cancelled = false;
+  let uploads = 0;
+  let distinguishUploads = false;
   // Every model request stays in this page. Never forward API or external calls.
   window.fetch = async (url, init) => {
     const path = typeof url === 'string' ? url : url instanceof URL ? url.href : url.url;
     if (path === 'https://api.apimart.ai/v1/uploads/images?retention_days=3') {
+      uploads++;
       check(init?.body instanceof FormData && (init.body.get('file') as File)?.type === 'image/png', 'Browser uploads original PNG as multipart');
       check(new Headers(init?.headers).get('Authorization') === 'Bearer isolated-upload-test-key', 'Upload uses isolated BYOK credentials');
-      return Response.json({ url: 'https://cdn.example/uploaded-reference.png' });
+      return Response.json({ url: distinguishUploads ? `https://cdn.example/uploaded-${uploads}.png` : 'https://cdn.example/uploaded-reference.png' });
     }
     if (path === '/api/apimart/seedream') {
       const input = JSON.parse(String(init?.body)); requests.push(input);
@@ -240,6 +245,54 @@ async function run() {
   reload.dispose(); roundtrip.dispose();
   await api.setViewport({ x: 0, y: 180, zoom: .6 });
   mode = 'success';
+  const annotation = { id: 'mark', start: { x: .25, y: .5 } };
+  api.setNodes(nodes => [...nodes, {
+    id: 'edit', type: 'interactive-edit', position: { x: 650, y: 620 }, data: {
+      history: commitAnnotations(emptyAnnotationHistory, 'reference-image', [annotation]),
+    },
+  }]);
+  api.updateNodeData('prompt', { content: initialTextDocument('改为橙色', ['annotation-1'], 'prompt'), text: '改为橙色' });
+  api.setEdges(edges => [...edges.filter(edge => edge.id !== 'reference'),
+    { id: 'annotation-image', source: 'reference', sourceHandle: 'file', target: 'edit', targetHandle: 'image' },
+    { id: 'annotation-text', source: 'edit', sourceHandle: annotation.id, target: 'prompt', targetHandle: 'annotation-1' },
+  ]);
+  await until(() => Boolean(document.querySelector('.annotation-chip-thumbnail')), 'Annotation connects to the prompt');
+  const baselineUploads = uploads;
+  runButton().click(); await until(() => read().data.results?.length === 3, 'Annotation-only reference completes');
+  check(requests[4].prompt === '<point>250 500</point> 改为橙色'
+    && JSON.stringify(requests[4].images) === JSON.stringify(['https://cdn.example/uploaded-reference.png'])
+    && uploads === baselineUploads + 1, 'Seedream uploads the annotation original without a manual image connection');
+  api.setEdges(edges => [...edges, { id: 'reference', source: 'reference', sourceHandle: 'file', target: 'seedream', targetHandle: 'image-0' }]);
+  await settle();
+  runButton().click(); await until(() => read().data.results?.length === 4, 'Same annotation and manual reference complete');
+  check(requests[5].prompt === requests[4].prompt && JSON.stringify(requests[5].images) === JSON.stringify(requests[4].images)
+    && uploads === baselineUploads + 2, 'The manually connected annotation original is uploaded only once per run');
+  const box = { id: 'box', start: { x: .1, y: .2 }, end: { x: .4, y: .5 } };
+  context.fillRect(0, 0, 20, 20);
+  const secondImage = await (await originalFetch(canvas.toDataURL('image/png'))).blob();
+  api.setNodes(nodes => [...nodes, {
+    id: 'second-edit', type: 'interactive-edit', position: { x: 1120, y: 620 }, data: {
+      baseImage: { id: 'second-image', kind: 'image', name: 'second.png', url: assetResources.create(secondImage) },
+      history: commitAnnotations(emptyAnnotationHistory, 'second-image', [box]),
+    },
+  }]);
+  const splitPrompt = initialTextDocument('改为篮球。', ['annotation-1', 'annotation-2'], 'prompt');
+  splitPrompt.content![0].content![1].text = ' 改为足球，把 ';
+  api.updateNodeData('prompt', { content: splitPrompt });
+  api.setEdges(edges => [...edges, {
+    id: 'second-annotation', source: 'second-edit', sourceHandle: box.id, target: 'prompt', targetHandle: 'annotation-2',
+  }]);
+  await until(() => document.querySelectorAll('.annotation-chip-thumbnail').length === 2, 'Second source contributes a box annotation');
+  distinguishUploads = true;
+  const nextUpload = uploads + 1;
+  runButton().click();
+  await until(() => read().data.results?.length === 6, 'One click adds both annotated edits to the Seedream gallery');
+  check(requests.length === 8 && uploads === nextUpload + 1
+    && requests[6].prompt === '<point>250 500</point> 改为足球'
+    && requests[7].prompt === '把 <bbox>100 200 400 500</bbox> 改为篮球。'
+    && JSON.stringify(requests[6].images) === JSON.stringify([`https://cdn.example/uploaded-${nextUpload}.png`])
+    && JSON.stringify(requests[7].images) === JSON.stringify([`https://cdn.example/uploaded-${nextUpload + 1}.png`]),
+  'Distinct annotations submit separate instructions and exactly one original per request');
   find('#results').dataset.result = 'passed';
   find('#results').textContent = `PASS · ${checks.length} checks · mock only\n${checks.join('\n')}`;
 }

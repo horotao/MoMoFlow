@@ -1,3 +1,4 @@
+import { isInteractiveEditNode } from '../nodes/types';
 import { masksDocument } from '../nodes/masksExtractor';
 import { isImageIteratorNode, isTextIteratorNode, isMasksExtractorNode, isSeedreamNode } from '../nodes/types';
 import { isSeedreamExactSize } from '../nodes/seedream';
@@ -27,7 +28,7 @@ import { painterDocument } from '../nodes/painter';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { Edge } from '@xyflow/react';
 import { initialTextDocument } from '../nodes/textDocument';
-import { isTextNode, variableHandleId, variableIndex } from '../nodes/textVariables';
+import { isTextNode, textInputHandles } from '../nodes/textVariables';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources';
 import type { AppNode } from '../nodes/types';
 
@@ -39,7 +40,7 @@ type Snapshot = { nodes: AppNode[]; edges: Edge[] };
 function snapshot(nodes: AppNode[], edges: Edge[]): Snapshot {
   return { nodes: nodes.map((node) => isTextNode(node) ? {
     ...node, data: { ...node.data, content: node.data.content ?? initialTextDocument(node.data.text,
-      edges.filter((edge) => edge.target === node.id).map((edge) => variableHandleId(variableIndex(edge.targetHandle))), node.id) },
+      textInputHandles(node.id, edges), node.id) },
   } : node), edges };
 }
 
@@ -68,6 +69,11 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
       && nodes.every((node, i) => node.id === state.present.nodes[i].id
         && JSON.stringify(node.position) === JSON.stringify(state.present.nodes[i].position))
       && JSON.stringify(edges) === JSON.stringify(state.present.edges);
+    const annotationsChanged = nodes.some(node => {
+      if (!isInteractiveEditNode(node)) return false;
+      const previous = state.present.nodes.find(item => item.id === node.id);
+      return isInteractiveEditNode(previous) && node.data.history !== previous.data.history;
+    });
     const maskChanged = nodes.some(node => isMasksExtractorNode(node) && (() => {
       const previous = state.present.nodes.find(item => item.id === node.id);
       return isMasksExtractorNode(previous) && previous.data.selection?.id !== node.data.selection?.id;
@@ -129,7 +135,7 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
       return isImageIteratorNode(previous) && (node.data.orderBy !== previous.data.orderBy || JSON.stringify(node.data.assets?.map(asset => asset.id)) !== JSON.stringify(previous.data.assets?.map(asset => asset.id)));
     })());
     const compareChanged = nodes.some(node => node.type === 'compare' && JSON.stringify(node.data) !== JSON.stringify(state.present.nodes.find(item => item.id === node.id)?.data));
-    if (imageIteratorChanged || iteratorChanged || matteChanged || maskChanged || blendChanged || compareChanged || resizeChanged || seedreamSizeChanged || paletteChanged || compositorChanged || rotateFlipChanged || levelsChanged || blurChanged || colorChanged || cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
+    if (imageIteratorChanged || iteratorChanged || matteChanged || annotationsChanged || maskChanged || blendChanged || compareChanged || resizeChanged || seedreamSizeChanged || paletteChanged || compositorChanged || rotateFlipChanged || levelsChanged || blurChanged || colorChanged || cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;

@@ -1,6 +1,6 @@
 import type { Edge, XYPosition } from '@xyflow/react';
 import type { AppNode, RouterNode } from './types';
-import { isNodeLocked } from './types.ts';
+import { isInteractiveEditNode, isNodeLocked } from './types.ts';
 import { fileOutputKind, filePortColors } from './fileCollection.ts';
 
 export type OutputKind = 'text' | 'image' | 'mask' | 'video' | 'audio' | '3d' | 'file';
@@ -24,6 +24,7 @@ export function outputKind(node: AppNode | undefined, handle?: string | null, no
   if (!source) return undefined;
   node = source.node; handle = source.handle;
   if (node.type === 'image-iterator') return handle === 'file' ? 'image' : undefined;
+  if (isInteractiveEditNode(node)) return node.data.history?.frames[node.data.history.index]?.some(mark => mark.id === handle) ? 'text' : undefined;
   if (node.type === 'text-iterator') return handle === 'text' ? 'text' : undefined;
   if (node.type === 'file') return handle === 'file' ? fileOutputKind(node.data) : undefined;
   if (node.type === 'color-palette') return handle === 'text' || handle === 'image' ? handle : undefined;
@@ -42,7 +43,7 @@ export function outputColor(kind?: OutputKind) {
 
 export function routerFromOutput(sourceId: string, sourceHandle: string | null, position: XYPosition, nodes: AppNode[], edges: Edge[], id: string) {
   const source = nodes.find(node => node.id === sourceId);
-  if (!source || isNodeLocked(source) || (!outputKind(source, sourceHandle, nodes, edges) && !(source.type === 'router' && sourceHandle === 'output'))) return undefined;
+  if (!source || source.type === 'interactive-edit' || isNodeLocked(source) || (!outputKind(source, sourceHandle, nodes, edges) && !(source.type === 'router' && sourceHandle === 'output'))) return undefined;
   const router: RouterNode = { id, type: 'router', position, data: {}, selected: true };
   return {
     nodes: [...nodes.map(node => ({ ...node, selected: false })), router],

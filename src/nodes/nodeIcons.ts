@@ -15,6 +15,7 @@ export const nodeIcons = {
   'image-iterator': RepeatIcon,
   ideogram: ideogramBrandIcon,
   'matte-grow-shrink': ExpandIcon,
+  'interactive-edit': Location01Icon,
   'masks-extractor': CursorMagicSelection03Icon,
   router: Route01Icon,
   'color-palette': PaintBoardIcon,

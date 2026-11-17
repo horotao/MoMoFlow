@@ -1,3 +1,4 @@
+import { InteractiveEditNode } from './InteractiveEditNode';
 import { ImageIteratorNode } from './ImageIteratorNode';
 import { TextIteratorNode } from './TextIteratorNode';
 import { IdeogramNode } from './IdeogramNode';
@@ -34,6 +35,7 @@ export const nodeTypes = {
   'text-iterator': TextIteratorNode,
   'image-iterator': ImageIteratorNode,
   ideogram: IdeogramNode,
+  'interactive-edit': InteractiveEditNode,
   'masks-extractor': MasksExtractorNode,
   router: RouterNode,
   blend: BlendNode,

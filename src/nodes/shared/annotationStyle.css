@@ -1,0 +1,175 @@
+:root { --annotation-blue: #3ea2fc; }
+
+.edit-pin,
+.annotation-chip-pin {
+  display: grid;
+  place-items: center;
+  border: 1px solid white;
+  border-radius: 50% 50% 50% 18%;
+  background: var(--annotation-blue);
+  color: white;
+  font-variant-numeric: tabular-nums;
+}
+
+.annotation-port {
+  display: contents;
+  --node-port-color: var(--annotation-blue);
+}
+
+.annotation-port-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #2f2f2f;
+  pointer-events: none;
+}
+
+.annotation-port-icon::before {
+  content: '';
+  grid-area: 1 / 1;
+  width: 16px;
+  height: 16px;
+  border: 3px solid var(--node-port-color);
+  border-radius: 50%;
+  background: #2c2c2c;
+}
+
+.annotation-port-icon[data-connected='true']::after {
+  content: '';
+  grid-area: 1 / 1;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--node-port-color);
+}
+
+.annotation-edge .react-flow__edge-path { opacity: 0.64; }
+.annotation-edge:is(:hover, .selected) .react-flow__edge-path { opacity: 1; }
+
+.text-node-frame .text-node-editor p:has(.annotation-chip) { line-height: 25px; }
+
+.annotation-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline: 1.5px;
+  padding: 2px 3px;
+  border-radius: 7px;
+  background: #292929;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.text-node-frame .node-promptVariable:has(.annotation-chip).ProseMirror-selectednode { outline: none; }
+.annotation-chip.is-selected { outline: 1px solid var(--annotation-blue); }
+
+.annotation-chip-thumbnail {
+  display: block;
+  width: 19px;
+  height: 19px;
+  border-radius: 4px;
+  background: var(--node-divider);
+}
+
+.annotation-chip-pin {
+  width: 16px;
+  height: 16px;
+  font: 600 9px/1 var(--font-ui);
+}
+
+.annotation-chip-empty { padding: 0 4px; color: var(--node-secondary); font-size: 11px; }
+
+.annotation-hover-preview {
+  --annotation-preview-ease: cubic-bezier(0.23, 1, 0.32, 1);
+  z-index: 70;
+  overflow: hidden;
+  padding: 3px;
+  border: 1px solid #3b3b3b;
+  border-radius: 13px;
+  background: #202020;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 40%);
+  transform-origin: var(--radix-tooltip-content-transform-origin);
+  opacity: 0;
+  transform: scale(.96);
+  transition: opacity 110ms var(--annotation-preview-ease), transform 110ms var(--annotation-preview-ease);
+  pointer-events: none;
+}
+
+.annotation-hover-preview[data-ready='true']:not([data-state='closed']) {
+  opacity: 1;
+  transform: none;
+  transition-duration: 145ms;
+  pointer-events: auto;
+}
+
+.annotation-preview-window {
+  position: relative;
+  overflow: hidden;
+  border-radius: 9px;
+  background: #171717;
+}
+
+.annotation-preview-image,
+.annotation-preview-pin {
+  position: absolute;
+  inset: 0 auto auto 0;
+  transform-origin: top left;
+  transform: var(--annotation-overview);
+  transition: transform 115ms var(--annotation-preview-ease);
+}
+
+.annotation-preview-image img,
+.annotation-preview-box {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.annotation-preview-box {
+  position: absolute;
+  inset: 0;
+  stroke: var(--annotation-blue);
+  stroke-width: 1.5px;
+  stroke-dasharray: 3 2;
+}
+
+.annotation-preview-pin {
+  width: 19px;
+  height: 19px;
+}
+
+.annotation-hover-preview[data-ready='true']:not([data-state='closed'])
+:is(.annotation-preview-image, .annotation-preview-pin) {
+  transform: var(--annotation-focused);
+  transition: transform 380ms cubic-bezier(.35, .1, .24, 1) 65ms;
+}
+
+@starting-style {
+  .annotation-hover-preview[data-ready='true']:not([data-state='closed']) {
+    opacity: 0;
+    transform: scale(.96);
+  }
+
+  .annotation-hover-preview[data-ready='true']:not([data-state='closed'])
+  :is(.annotation-preview-image, .annotation-preview-pin) {
+    transform: var(--annotation-overview);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .annotation-hover-preview,
+  .annotation-hover-preview[data-ready='true']:not([data-state='closed']) {
+    transform: none;
+    transition: opacity 100ms ease-out;
+  }
+
+  .annotation-hover-preview :is(.annotation-preview-image, .annotation-preview-pin),
+  .annotation-hover-preview[data-ready='true']:not([data-state='closed'])
+  :is(.annotation-preview-image, .annotation-preview-pin) {
+    transition: none;
+  }
+}

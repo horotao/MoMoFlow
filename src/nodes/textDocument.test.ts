@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { documentText, hasVariable, initialTextDocument, textToDocument } from './textDocument.ts';
+import { documentText, hasVariable, initialTextDocument, textToDocument, withoutVariables } from './textDocument.ts';
 import { resolveTextValue } from './textVariables.ts';
 import type { AppNode } from './types';
 
@@ -15,6 +15,15 @@ test('legacy text and connections become a single editable document', () => {
   assert.equal(documentText(doc, (handle) => handle === 'variable-1' ? '猫' : '摄影棚'), '猫 摄影棚 正文');
   assert.equal(hasVariable(doc, 'variable-2'), true);
   assert.equal(hasVariable(doc, 'variable-3'), false);
+});
+
+test('disconnecting an annotation removes all references to that port and keeps the other inline values', () => {
+  const doc = initialTextDocument('正文', ['annotation-1', 'variable-1', 'annotation-2', 'annotation-1'], 'target');
+  const remaining = withoutVariables(doc, new Set(['annotation-1']));
+  assert.equal(hasVariable(remaining, 'annotation-1'), false);
+  assert.equal(hasVariable(doc, 'annotation-1'), true);
+  assert.equal(documentText(remaining, handle => `[${handle}]`), ' [variable-1] [annotation-2]  正文');
+  assert.equal(withoutVariables(remaining, new Set(['annotation-1'])), remaining);
 });
 
 test('inline variables resolve in document order and update without storing source values', () => {

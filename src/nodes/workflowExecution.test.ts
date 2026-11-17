@@ -15,6 +15,8 @@ import { isDescriberNode, isImageGeneratorNode, type AppNode, type FileAsset } f
 import type { PreviewTask } from './taskQueue';
 import { isActiveTask } from './taskQueue.ts';
 import { workflowSnapshot, mapAssets } from '../persistence/workflowStorage.ts';
+import { commitAnnotations, emptyAnnotationHistory } from './interactiveEdit.ts';
+import { initialTextDocument } from './textDocument.ts';
 
 const file = (id: string): AppNode => ({ id, type: 'file', position: { x: 0, y: 0 }, data: { assets: [{ id, name: id, kind: 'image', url: `blob:${id}` }] } });
 const describer = (id: string): AppNode => ({ id, type: 'image-describer', position: { x: 0, y: 0 }, data: { text: '', instructions: 'describe', model: 'deepseek-flash', imageInputs: 1 } });
@@ -44,7 +46,7 @@ function recordedSunburstGraph(recording: 'legacy' | 'apimart' | 'openai'): Exec
     nodes: [file('source'), { id: 'prompt', type: 'text', position: { x: 0, y: 0 }, data: { text: 'A circle' } }, upstream, describer('downstream')],
     edges: [edge('prompt', 'upstream', 'prompt'), edge('source', 'upstream', 'image-0', 'file'), edge('upstream', 'downstream', 'image-0', 'result')],
   };
-  const recorded = prepareModel(graph, 'upstream');
+  const recorded = prepareModel(graph, 'upstream')[0];
   assert.ok(recorded.imageRequest);
   // Reproduce the persisted request schema before provider selection existed.
   if (recording === 'legacy') {
@@ -58,6 +60,153 @@ function recordedSunburstGraph(recording: 'legacy' | 'apimart' | 'openai'): Exec
   upstream.data = { ...upstream.data, results: [asset], activeResultId: asset.id };
   return JSON.parse(JSON.stringify(workflowSnapshot({ ...graph, colorMode: 'dark', viewport: { x: 0, y: 0, zoom: 1 } })));
 }
+
+test('workflow sends a connected annotation through Prompt and Seedream without a model call for the editor', async () => {
+  const history = commitAnnotations(emptyAnnotationHistory, 'reference', [{ id: 'mark', start: { x: .3, y: .6 } }]);
+  const graph: ExecutionGraph = {
+    nodes: [
+      file('reference'),
+      { id: 'edit', type: 'interactive-edit', position: { x: 0, y: 0 }, data: { history } },
+      { id: 'prompt', type: 'text', position: { x: 0, y: 0 }, data: {
+        text: '改为橙色', content: initialTextDocument('改为橙色', ['annotation-1'], 'prompt'),
+      } },
+      { id: 'seedream', type: 'seedream', position: { x: 0, y: 0 }, data: { ...defaultSeedreamSettings, imageInputs: 1 } },
+    ],
+    edges: [
+      edge('reference', 'edit', 'image', 'file'), edge('edit', 'prompt', 'annotation-1', 'mark'),
+      edge('prompt', 'seedream', 'prompt'),
+    ],
+  };
+  const h = harness(graph, async () => ({ id: 'edited', name: 'edited', kind: 'image', url: 'blob:edited' }));
+  try {
+    await h.engine.run(['seedream'], 1);
+    assert.deepEqual(h.requests.map(task => task.nodeId), ['seedream']);
+    assert.equal(h.requests[0].seedreamRequest?.prompt, '<point>300 600</point> 改为橙色');
+    assert.deepEqual(h.requests[0].seedreamRequest?.images, ['blob:reference']);
+    assert.equal(h.store.getSnapshot()[0].state, 'Done');
+  } finally {
+    h.engine.dispose();
+  }
+});
+
+test('Seedream can reuse the manually attached copy of a remote annotation image without losing its original mark', async () => {
+  const url = 'https://images.example/shared.png';
+  const reference = { ...file('original'), data: { assets: [{ id: 'original', name: 'original', kind: 'image', url }] } } as AppNode;
+  const explicit = { ...file('manual'), data: { assets: [{ id: 'manual', name: 'manual', kind: 'image', url }] } } as AppNode;
+  const history = commitAnnotations(emptyAnnotationHistory, 'original', [{ id: 'mark', start: { x: .2, y: .5 } }]);
+  const graph: ExecutionGraph = { nodes: [
+    reference, explicit,
+    { id: 'edit', type: 'interactive-edit', position: { x: 0, y: 0 }, data: { history } },
+    { id: 'prompt', type: 'text', position: { x: 0, y: 0 }, data: {
+      text: '替换', content: initialTextDocument('替换', ['annotation-1'], 'prompt'),
+    } },
+    { id: 'seedream', type: 'seedream', position: { x: 0, y: 0 }, data: { ...defaultSeedreamSettings, imageInputs: 1 } },
+  ], edges: [
+    edge('original', 'edit', 'image', 'file'), edge('edit', 'prompt', 'annotation-1', 'mark'),
+    edge('prompt', 'seedream', 'prompt'), edge('manual', 'seedream', 'image-0', 'file'),
+  ] };
+  const snapshots: string[] = [];
+  const h = harness(graph, async () => ({ id: 'edited', name: 'edited', kind: 'image', url: 'blob:edited' }), undefined, {
+    snapshot: async assets => {
+      snapshots.push(...assets.map(asset => asset.id));
+      return { assets: new Map(assets.map(asset => [asset.url, { ...asset, url: 'blob:shared-reference', contentHash: 'shared' }])), release: () => {} };
+    },
+  });
+  try {
+    await h.engine.run(['seedream'], 1);
+    assert.deepEqual(snapshots, ['manual']);
+    assert.equal(h.requests[0].seedreamRequest?.prompt, '<point>200 500</point> 替换');
+    assert.deepEqual(h.requests[0].seedreamRequest?.images, ['blob:shared-reference']);
+    assert.equal(h.store.getSnapshot()[0].state, 'Done');
+  } finally { h.engine.dispose(); }
+});
+
+function splitSeedreamGraph(): ExecutionGraph {
+  const position = { x: 0, y: 0 };
+  const content = initialTextDocument(' 改成篮球。', ['annotation-1', 'annotation-2'], 'prompt');
+  content.content![0].content![1].text = ' 改成足球，把 ';
+  const graph: ExecutionGraph = {
+    nodes: [
+      file('point-image'), file('box-image'), generator('unused'),
+      { id: 'point-edit', type: 'interactive-edit', position, data: {
+        history: commitAnnotations(emptyAnnotationHistory, 'point-image', [{ id: 'point', start: { x: .3, y: .6 } }]),
+      } },
+      { id: 'box-edit', type: 'interactive-edit', position, data: {
+        history: commitAnnotations(emptyAnnotationHistory, 'box-image', [{ id: 'box', start: { x: .1, y: .2 }, end: { x: .4, y: .5 } }]),
+      } },
+      { id: 'prompt', type: 'text', position, data: { text: '', content } },
+      { id: 'seedream', type: 'seedream', position, data: { ...defaultSeedreamSettings, imageInputs: 1 } },
+    ],
+    edges: [
+      edge('point-image', 'point-edit', 'image', 'file'), edge('box-image', 'box-edit', 'image', 'file'),
+      edge('point-edit', 'prompt', 'annotation-1', 'point'), edge('box-edit', 'prompt', 'annotation-2', 'box'),
+      edge('prompt', 'seedream', 'prompt'), edge('unused', 'seedream', 'image-0', 'result'),
+    ],
+  };
+  return graph;
+}
+
+test('Seedream shares an instruction that lists two marks and keeps local follow-up text with its clause', () => {
+  const graph = splitSeedreamGraph();
+  const prompt = graph.nodes.find(node => node.id === 'prompt')!;
+  assert.equal(prompt.type, 'text');
+  assert.ok('content' in prompt.data && prompt.data.content);
+  const line = prompt.data.content.content![0];
+  const [, , second] = line.content!;
+  const [first] = line.content!;
+  line.content = [
+    { type: 'text', text: '把 ' }, first, { type: 'text', text: ' 和 ' }, second,
+    { type: 'text', text: ' 都调亮。把 ' }, first, { type: 'text', text: ' 改为红色。只保留深色条纹。把 ' },
+    second, { type: 'text', text: ' 改为蓝色。' },
+  ];
+  prompt.data.content.content!.push({ type: 'paragraph', content: [{ type: 'text', text: '保持原有构图。' }] });
+  assert.deepEqual(prepareModel(graph, 'seedream').map(task => task.seedreamRequest?.prompt), [
+    '把 <point>300 600</point> 都调亮。\n把 <point>300 600</point> 改为红色。\n只保留深色条纹。\n保持原有构图。',
+    '把 <bbox>100 200 400 500</bbox> 都调亮。\n把 <bbox>100 200 400 500</bbox> 改为蓝色。\n保持原有构图。',
+  ]);
+  line.content[2].text = ' 改为黑色 ';
+  assert.throws(() => preflight(graph, ['seedream'], 1), /分开不同原图的标注指令/);
+});
+
+test('Seedream continues after a split request fails and retries only that original', async () => {
+  const h = harness(splitSeedreamGraph(), async task => {
+    if (task.seedreamGroup?.index === 0 && h.requests.length === 1) throw new Error('point failed');
+    return { id: String(task.seedreamGroup?.index), kind: 'image', name: 'result', url: 'blob:result' };
+  });
+  try {
+    await h.engine.run(['seedream'], 1);
+    assert.deepEqual(h.requests.map(task => [task.seedreamRequest?.images, task.seedreamRequest?.prompt]), [
+      [['blob:point-image'], '<point>300 600</point> 改成足球'],
+      [['blob:box-image'], '把 <bbox>100 200 400 500</bbox>  改成篮球。'],
+    ]);
+    const tasks = h.store.getSnapshot();
+    assert.deepEqual(tasks.map(task => task.state), ['Failed', 'Done']);
+    assert.equal(tasks[0].batchId, tasks[1].batchId);
+    assert.equal(selectedResult(h.node('seedream'))?.id, '1');
+    const group = tasks[0].seedreamGroup;
+    assert.ok(group);
+    await h.engine.run(['seedream'], 1, undefined, group.imageId);
+    assert.deepEqual(h.requests.map(task => task.seedreamGroup?.imageId), ['point-image', 'box-image', 'point-image']);
+    const node = h.node('seedream');
+    assert.ok(isImageGeneratorNode(node));
+    assert.deepEqual(node.data.results?.map(asset => asset.id), ['1', '0']);
+  } finally { h.engine.dispose(); }
+});
+
+test('an upstream Seedream runs every annotation group and exposes its selected result downstream', async () => {
+  const graph = splitSeedreamGraph();
+  graph.nodes.push(describer('downstream'));
+  graph.edges.push(edge('seedream', 'downstream', 'image-0', 'result'));
+  const h = harness(graph, async task => task.seedreamGroup
+    ? { id: task.seedreamGroup.imageId, kind: 'image', name: 'result', url: `blob:result-${task.seedreamGroup.index}` }
+    : 'Description');
+  try {
+    await h.engine.run(['downstream'], 1);
+    assert.deepEqual(h.requests.map(task => task.nodeId), ['seedream', 'seedream', 'downstream']);
+    assert.deepEqual(h.requests[2].images, ['blob:result-1']);
+    assert.equal(selectedResult(h.node('seedream'))?.id, 'box-image');
+  } finally { h.engine.dispose(); }
+});
 
 test('current model signatures reuse upstream results, including locked nodes', async () => {
   for (const recording of ['apimart', 'openai'] as const) for (const locked of [false, true]) {
@@ -259,7 +408,7 @@ test('refresh changes Blob URLs but not effective signatures or reusable results
   const next = harness(restored); await next.engine.run(['g'], 1);
   assert.deepEqual(next.requests.map(task => task.nodeId), ['g']);
   const da = h.node('da'); assert.ok(isDescriberNode(da));
-  assert.equal(requestSignature(prepareModel(restored, 'da'), restored), da.data.generation?.inputSignature);
+  assert.equal(requestSignature(prepareModel(restored, 'da')[0], restored), da.data.generation?.inputSignature);
 });
 
 test('unused variables and Compare second branch do not enter a target plan', () => {
@@ -600,7 +749,7 @@ test('changed remote generated content invalidates local derivatives; equal cont
   const original: FileAsset = { ...generatedAsset('remote-result'), url: 'https://example.invalid/generated.png' };
   const graph: ExecutionGraph = { nodes: [textNode('p', 'paint'), upstream, { id: 'resize', type: 'resize', position: { x: 0, y: 0 }, data: { settings } }, describer('d')], edges: [edge('p', 'up', 'prompt'), edge('up', 'resize', 'image', 'result'), edge('resize', 'd', 'image-0', 'result')] };
   assert.ok(isImageGeneratorNode(upstream));
-  const signature = requestSignature(prepareModel(graph, 'up'), graph);
+  const signature = requestSignature(prepareModel(graph, 'up')[0], graph);
   upstream.data.results = [{ ...original, generation: { version: 1, inputSignature: signature, outputSignature: original.id } }];
   upstream.data.activeResultId = original.id;
   let snapshots = 0, renders = 0;

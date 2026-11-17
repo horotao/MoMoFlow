@@ -24,7 +24,13 @@ export type ExecutionIO = {
 };
 type Root = { refreshImages: ReadonlySet<string>; id: string; batchId: string; iteration?: WorkflowIteration; controller: AbortController; guard: string; tasks: string[]; memo: Map<string, Promise<void>>; remote: Map<string, FileAsset>; outputs: Map<string, Record<string, unknown>>; releases: (() => void)[]; done?: Promise<void> };
 type LocalFlight = { controller: AbortController; consumers: Set<AbortSignal>; promise: Promise<Record<string, unknown>> };
-type Flight = { nodeId: string; taskId: string; controller: AbortController; consumers: Set<AbortSignal>; promise: Promise<Record<string, unknown>> };
+type Flight = { nodeId: string; tasks: string[]; controller: AbortController; consumers: Set<AbortSignal>; promise: Promise<Record<string, unknown>> };
+type ModelAttempt = { prepared: PreviewTask; signature: string };
+
+function describeAttempt(task: PreviewTask, prepared: PreviewTask): PreviewTask {
+  const group = prepared.seedreamGroup;
+  return group ? { ...task, seedreamGroup: group, label: `${task.label} · 原图 ${group.index + 1}/${group.total}` } : task;
+}
 export function aborted(signal: AbortSignal) { if (signal.aborted) throw new Error(typeof signal.reason === 'string' ? signal.reason : '运行已取消。'); }
 export function withAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   if (signal.aborted) return Promise.reject(new Error(String(signal.reason || '运行已取消。')));
@@ -73,7 +79,7 @@ export class WorkflowExecution {
       for (const root of this.roots) {
         if (!root.tasks.some(id => this.active(id))) root.controller.abort('运行已取消。');
       }
-      for (const flight of this.flights.values()) if (!this.active(flight.taskId)) flight.controller.abort('上游任务已取消。');
+      for (const flight of this.flights.values()) if (!flight.tasks.some(id => this.active(id))) flight.controller.abort('上游任务已取消。');
     });
   }
   private active(id: string) { return this.store.getSnapshot().some(task => task.id === id && isActiveTask(task)); }
@@ -95,12 +101,22 @@ export class WorkflowExecution {
     this.io.patch(id, data);
   }
   private graphFor(root: Root): ExecutionGraph {
-    // Select the item before mapping URL snapshots: distinct entries may share
-    // a remote URL, so mapping the full list first would collapse their IDs.
+    // Project the batch item before applying the snapshots for this run.
     const graph = iterationGraph({ ...this.graph, refreshImages: root.refreshImages, nodes: this.graph.nodes.map(node => root.outputs.has(node.id) ? { ...node, data: { ...node.data, ...root.outputs.get(node.id) } } as AppNode : node) }, root.iteration);
-    return { ...graph, nodes: mapAssets(graph.nodes, asset => root.remote.get(asset.url) ? { ...root.remote.get(asset.url)!, maskMode: asset.maskMode } : asset) };
+    if (!root.remote.size) return graph;
+    // Snapshots may identify two different remote URLs as the same image.
+    // Keep reference ports already excluded during dependency preparation out
+    // of that merged request.
+    const ignored = new Set(graph.nodes.filter(node => node.type === 'seedream'
+      && !executionInputs(node, undefined, graph).some(edge => /^image-\d+$/.test(edge.targetHandle ?? ''))).map(node => node.id));
+    const edges = graph.edges.filter(edge => !ignored.has(edge.target) || !/^image-\d+$/.test(edge.targetHandle ?? ''));
+    return { ...graph, edges, nodes: mapAssets(graph.nodes, asset => {
+      const snapshot = root.remote.get(asset.url);
+      // A stored annotation belongs to an asset ID even if another node shares its URL.
+      return snapshot ? { ...asset, url: snapshot.url, contentHash: snapshot.contentHash ?? asset.contentHash } : asset;
+    }) };
   }
-  run(ids: string[], runs: number, retry?: WorkflowIteration) {
+  run(ids: string[], runs: number, retry?: WorkflowIteration, seedreamGroupId?: string) {
     if (this.stopped) throw new Error('执行器已关闭。');
     const targets = [...new Set(ids)];
     if (!targets.length) return Promise.resolve();
@@ -140,20 +156,12 @@ export class WorkflowExecution {
           await Promise.all(executionInputs(node, undefined, this.graphFor(root)).map(edge => this.ensureInput(root, node, edge)));
           aborted(signal);
           const graph = this.graphFor(root);
-          const prepared = prepareModel(graph, root.id);
-          const signature = requestSignature(prepared, graph);
-          for (const taskId of root.tasks) {
-            aborted(signal);
-            if (!this.active(taskId)) continue;
-            try {
-              this.pinOutput(root, root.id, await this.executeModel(root.id, prepared, signature, taskId, signal));
-            } catch {
-              // executeModel records this attempt's failure. The remaining
-              // requested runs are independent attempts, not automatic retries.
-              // Only cancellation or an invalidated graph stops the whole root.
-              aborted(signal);
-            }
-          }
+          const prepared = prepareModel(graph, root.id)
+            .filter(task => !seedreamGroupId || task.seedreamGroup?.imageId === seedreamGroupId);
+          if (!prepared.length) nodeProblem(node, '原图标注已变化，请检查提示词后重新运行。');
+          const attempts = prepared.map(task => ({ prepared: task, signature: requestSignature(task, graph) }));
+          const scheduled = this.expandRootTasks(root, attempts);
+          await this.executeAttempts(root.id, scheduled, signal, output => this.pinOutput(root, root.id, output));
         } catch (error) {
           const message = error instanceof Error ? error.message : '工作流执行失败。';
           const state = signal.aborted || error instanceof ModelRequestCancelled ? 'Cancelled' : error instanceof ModelRequestTimeout ? 'TimedOut' : 'Failed';
@@ -170,6 +178,23 @@ export class WorkflowExecution {
     const node = this.graph.nodes.find(item => item.id === id)!;
     const label = node.data.label || ({ sunburst: 'GPT Image 2.6', 'nano-banana': 'Nano Banana', seedream: seedreamName, 'image-describer': '图像描述' } as Record<string, string>)[node.type!] || node.type;
     return { id: crypto.randomUUID(), nodeId: id, batchId, label: iteration ? `${label} · ${iteration.index + 1}/${iteration.total}` : label, iteration, model: node.type!, createdAt: Date.now(), state: 'Queued', progress: 0, started: 0, notice: '等待上游' };
+  }
+  private expandRootTasks(root: Root, attempts: ModelAttempt[]) {
+    const current = this.store.getSnapshot();
+    const added: PreviewTask[] = [], updated = new Map<string, PreviewTask>();
+    const scheduled = root.tasks.flatMap(id => {
+      const task = current.find(item => item.id === id);
+      if (!task || !isActiveTask(task)) return [];
+      return attempts.map((attempt, index) => {
+        const queued = describeAttempt(index ? this.placeholder(root.id, root.batchId, root.iteration) : task, attempt.prepared);
+        if (index) added.push(queued);
+        else if (queued !== task) updated.set(id, queued);
+        return { ...attempt, taskId: queued.id };
+      });
+    });
+    root.tasks.push(...added.map(task => task.id));
+    if (added.length || updated.size) this.store.update(tasks => [...tasks.map(task => updated.get(task.id) ?? task), ...added]);
+    return scheduled;
   }
   private ensureInput(root: Root, consumer: AppNode, edge: Edge) {
     // Match the model adapter's Painter Mask alias, including Router chains.
@@ -216,9 +241,9 @@ export class WorkflowExecution {
     if (isModelNode(node)) {
       // Locked nodes may supply a proven result, but may never be executed.
       const unlocked = { ...graph, nodes: graph.nodes.map(item => item.id === id ? { ...item, data: { ...item.data, locked: false } } as AppNode : item) };
-      const prepared = prepareModel(unlocked, id), signature = requestSignature(prepared, graph);
+      const attempts = prepareModel(unlocked, id).map(prepared => ({ prepared, signature: requestSignature(prepared, graph) }));
       const iteration = root.iteration && workflowIterations({ ...this.graph, refreshImages: root.refreshImages }, id).find(item => item && sameIteration(item, root.iteration));
-      const cached = reusableModelNode(node, signature, iteration);
+      const cached = attempts.length === 1 ? reusableModelNode(node, attempts[0].signature, iteration) : undefined;
       if (cached) {
         try {
           await this.verifyOutput(root, isImageGeneratorNode(cached) ? [selectedResult(cached)!] : []);
@@ -228,8 +253,8 @@ export class WorkflowExecution {
         } catch { aborted(signal); /* Missing cached media needs regeneration. */ }
       }
       if (isNodeLocked(node)) nodeProblem(node, '已锁定且结果需要更新，请先解锁。');
-      await this.shared(root, id, prepared, signature, iteration);
-    } else if (!['text', 'router', 'compare', 'model-input', 'position-logger'].includes(node.type ?? '') && !(node.type === 'color-palette' && handle === 'text')) {
+      await this.shared(root, id, attempts, iteration);
+    } else if (!['text', 'router', 'compare', 'model-input', 'position-logger', 'interactive-edit'].includes(node.type ?? '') && !(node.type === 'color-palette' && handle === 'text')) {
       const output = imageOutput(node, handle, graph.nodes, graph.edges);
       const localSignature = graphGuard(graph, id, true, handle);
       const snapshotCompatible = !root.remote.size || node.type === 'file' || ('executionSignature' in node.data && node.data.executionSignature === localSignature);
@@ -308,19 +333,21 @@ export class WorkflowExecution {
     try { const patch = await withAbort(flight.promise, signal); aborted(signal); this.pinOutput(root, node.id, patch); }
     finally { signal.removeEventListener('abort', release); release(); }
   }
-  private async shared(root: Root, id: string, prepared: PreviewTask, signature: string, iteration?: WorkflowIteration) {
+  private async shared(root: Root, id: string, attempts: ModelAttempt[], iteration?: WorkflowIteration) {
     // Equal requests from distinct items still represent distinct upstream
     // results. Only consumers of the same item may share an in-flight request.
-    const key = stableSignature([id, signature, iteration && [iteration.kind ?? 'text', iteration.nodeId, iteration.itemId, iteration.kind === 'image' ? iteration.signature : iteration.text]]);
+    const key = stableSignature([id, attempts.map(attempt => attempt.signature), iteration && [iteration.kind ?? 'text', iteration.nodeId, iteration.itemId, iteration.kind === 'image' ? iteration.signature : iteration.text]]);
     let flight = this.flights.get(key);
     if (!flight || flight.controller.signal.aborted) {
-      const task = this.placeholder(id, root.batchId, iteration);
+      const tasks = attempts.map(attempt => describeAttempt(this.placeholder(id, root.batchId, iteration), attempt.prepared));
       const controller = new AbortController();
-      flight = { nodeId: id, taskId: task.id, controller, consumers: new Set(), promise: Promise.resolve({}) };
+      flight = { nodeId: id, tasks: tasks.map(task => task.id), controller, consumers: new Set(), promise: Promise.resolve({}) };
       this.flights.set(key, flight);
-      this.store.update(tasks => [...tasks, task]);
+      this.store.update(current => [...current, ...tasks]);
       const releaseAssets = this.io.retain(this.graphFor(root));
-      flight.promise = Promise.resolve().then(() => this.executeModel(id, prepared, signature, task.id, controller.signal)).finally(() => { releaseAssets(); if (this.flights.get(key) === flight) this.flights.delete(key); });
+      const scheduled = attempts.map((attempt, index) => ({ ...attempt, taskId: tasks[index].id }));
+      flight.promise = Promise.resolve().then(() => this.executeAttempts(id, scheduled, controller.signal))
+        .finally(() => { releaseAssets(); if (this.flights.get(key) === flight) this.flights.delete(key); });
     }
     const signal = root.controller.signal;
     flight.consumers.add(signal);
@@ -337,6 +364,23 @@ export class WorkflowExecution {
     }
     aborted(signal); this.modelSlots++;
     return () => { this.modelSlots--; this.slotWaiters.forEach(wake => wake()); };
+  }
+  private async executeAttempts(id: string, attempts: (ModelAttempt & { taskId: string })[], signal: AbortSignal, accept?: (output: Record<string, unknown>) => void) {
+    let latest: Record<string, unknown> = {}, failure: unknown;
+    for (const { prepared, signature, taskId } of attempts) {
+      aborted(signal);
+      try {
+        if (!this.active(taskId)) throw new ModelRequestCancelled('运行已取消。');
+        latest = await this.executeModel(id, prepared, signature, taskId, signal);
+        accept?.(latest);
+      } catch (error) {
+        // A failed request should not prevent independent requests in the run.
+        if (signal.aborted) throw error;
+        failure ??= error;
+      }
+    }
+    if (failure) throw failure;
+    return latest;
   }
   private async executeModel(id: string, prepared: PreviewTask, signature: string, taskId: string, signal: AbortSignal) {
     const controller = new AbortController();

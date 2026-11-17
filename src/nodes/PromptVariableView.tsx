@@ -1,6 +1,9 @@
+import { annotationOutput } from './annotationGraph';
+import { isAnnotationInput } from './interactiveEdit';
+import { PromptAnnotationChip } from './PromptAnnotationChip';
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
 import { useEdges, useNodes } from '@xyflow/react';
-import { isTextNode, resolveTextValue, variableIndex } from './textVariables';
+import { isTextNode, resolveTextInput, textInputHandle, variableIndex } from './textVariables';
 import type { AppNode } from './types';
 
 export function PromptVariableView({ node, selected }: NodeViewProps) {
@@ -9,8 +12,13 @@ export function PromptVariableView({ node, selected }: NodeViewProps) {
   const owner = nodes.find((item) => item.id === node.attrs.ownerId);
   const mode = owner && isTextNode(owner) ? owner.data.displayMode ?? 'source-value' : 'source-value';
   const index = variableIndex(node.attrs.handleId);
-  const input = edges.find((edge) => edge.target === node.attrs.ownerId && variableIndex(edge.targetHandle) === index);
-  const value = input ? resolveTextValue(input.source, nodes, edges) : '';
+  const handleId = textInputHandle(node.attrs.handleId);
+  const input = edges.find(edge => edge.target === node.attrs.ownerId && textInputHandle(edge.targetHandle) === handleId);
+  if (isAnnotationInput(handleId)) {
+    const annotation = input && annotationOutput(nodes.find(item => item.id === input.source), input.sourceHandle, nodes, edges);
+    return <PromptAnnotationChip annotation={annotation} handleId={handleId} selected={selected} />;
+  }
+  const value = input ? resolveTextInput(input, nodes, edges) : '';
 
   return (
     <NodeViewWrapper as="span" className={`text-node-variable${selected ? ' text-node-variable-selected' : ''}`}

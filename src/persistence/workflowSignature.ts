@@ -1,5 +1,5 @@
 import { documentText, initialTextDocument } from '../nodes/textDocument.ts';
-import { isTextNode, variableHandleId, variableIndex } from '../nodes/textVariables.ts';
+import { isTextNode, textInputHandles } from '../nodes/textVariables.ts';
 import { workflowSnapshot, type Workflow } from './workflowStorage.ts';
 
 // Compare persisted content, not React Flow selection/measurement or storage
@@ -11,9 +11,7 @@ export function workflowSignature(workflow: Workflow): string {
     nodes: nodes.map(node => {
       if (!isTextNode(node)) return node;
       const content = node.data.content ?? initialTextDocument(node.data.text,
-        edges.filter(edge => edge.target === node.id)
-          .sort((a, b) => variableIndex(a.targetHandle) - variableIndex(b.targetHandle))
-          .map(edge => variableHandleId(variableIndex(edge.targetHandle))), node.id);
+        textInputHandles(node.id, edges), node.id);
       return { ...node, data: { ...node.data, content, text: documentText(content) } };
     }),
     edges, viewport, colorMode,

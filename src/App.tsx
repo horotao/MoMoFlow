@@ -1,3 +1,6 @@
+import { PromptAnnotationEdits } from './nodes/promptAnnotationEdits';
+import { isAnnotationInput, restoreInteractiveEditData } from './nodes/interactiveEdit';
+import { annotationOutput } from './nodes/annotationGraph';
 import { isImageIteratorNode } from './nodes/types';
 import { readImageIteratorData } from './nodes/imageIterator';
 import { readTextIteratorData } from './nodes/textIterator';
@@ -32,12 +35,13 @@ import { ConnectionMenu, type NodeMenuChoice } from './components/ConnectionMenu
 import { canConnect, withoutReplacedInput } from './nodes/connectionRules';
 import { connectionChoices, choiceConnection, type PendingConnection } from './nodes/connectionRecommendations';
 import { createLibraryNode, items } from './components/libraryCatalog';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ContextType, type CSSProperties } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
   useStoreApi,
+  useStore,
   Panel,
   addEdge,
   useNodesState,
@@ -45,6 +49,7 @@ import {
   type OnConnect,
   type OnConnectEnd,
   type Edge,
+  type EdgeChange,
 } from '@xyflow/react';
 
 import { DescriberPanel } from './components/DescriberPanel';
@@ -57,7 +62,7 @@ import { isTextNode, textVariableCount, variableIndex } from './nodes/textVariab
 import { imagesFromDrop, isFileNode } from './nodes/fileAsset';
 import { fileOutputKind, filePortColors, isFileAsset } from './nodes/fileCollection';
 import { cloneTextNode } from './nodes/cloneTextNode';
-import { documentText, initialTextDocument } from './nodes/textDocument';
+import { documentText, initialTextDocument, withoutVariables } from './nodes/textDocument';
 import { initialEdges, edgeTypes } from './edges';
 import { ConnectionLine } from './edges/ConnectionLine';
 import { curveOptions } from './edges/curve';
@@ -103,6 +108,13 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
 
   const [nodes, setNodes, onNodesChange] = useNodesState(saved?.nodes ?? initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(saved?.edges ?? initialEdges);
+  const currentPromptEdges = useRef(edges);
+  currentPromptEdges.current = edges;
+  const measuredAnnotationEdges = useStore(state => JSON.stringify(edges.filter(edge => isAnnotationInput(edge.targetHandle)
+    && state.nodeLookup.get(edge.source)?.internals.handleBounds?.source?.some(port => port.id === edge.sourceHandle)
+    && state.nodeLookup.get(edge.target)?.internals.handleBounds?.target?.some(port => port.id === edge.targetHandle))
+    .map(edge => edge.id)));
+  const annotationEdgeIds = useMemo(() => new Set<string>(JSON.parse(measuredAnnotationEdges)), [measuredAnnotationEdges]);
   const workflow = useMemo(() => ({ nodes, edges, viewport, colorMode }), [nodes, edges, viewport, colorMode]);
   const persistence = useWorkflowPersistence(storage, workflow);
   const withSavedWorkflow = async (action: (snapshot: Workflow) => Promise<void>) => {
@@ -115,6 +127,48 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     } finally { canvas?.removeAttribute('inert'); }
   };
   const { screenToFlowPosition, getNodes, getEdges } = useReactFlow<AppNode>();
+  const applyPromptAnnotationEdit = useCallback<NonNullable<ContextType<typeof PromptAnnotationEdits>>>(
+    ({ nodeId, content, removedHandles, restoreEdges }) => {
+      const remove = (edge: Edge) => edge.target === nodeId && removedHandles.has(edge.targetHandle ?? '');
+      const removed = currentPromptEdges.current.filter(remove);
+      const data = { content, text: documentText(content) };
+      const update = (node: AppNode): AppNode => node.id === nodeId && isTextNode(node)
+        ? { ...node, data: { ...node.data, ...data } } : node;
+      const graphNodes = getNodes().map(update);
+      // The prompt edit and its edges share the same canvas undo snapshot.
+      setNodes(nodes => nodes.map(update));
+      setEdges(edges => {
+        const retained = edges.filter(edge => !remove(edge));
+        for (const edge of restoreEdges) {
+          if (!retained.some(item => item.target === nodeId && item.targetHandle === edge.targetHandle)
+            && canConnect(edge, graphNodes, retained)) retained.push(edge);
+        }
+        return retained;
+      });
+      return removed;
+    }, [getNodes, setEdges, setNodes],
+  );
+  const changeCanvasEdges = useCallback((changes: EdgeChange[]) => {
+    const removed = new Set(changes.flatMap(change => change.type === 'remove' ? [change.id] : []));
+    if (removed.size) {
+      const handlesByPrompt = new Map<string, Set<string>>();
+      for (const edge of currentPromptEdges.current) {
+        const handle = edge.targetHandle;
+        if (!removed.has(edge.id) || !handle || !isAnnotationInput(handle)) continue;
+        const handles = handlesByPrompt.get(edge.target) ?? new Set<string>();
+        handles.add(handle);
+        handlesByPrompt.set(edge.target, handles);
+      }
+      // Apply the document and edge updates together so one canvas undo restores both.
+      if (handlesByPrompt.size) setNodes(nodes => nodes.map(node => {
+        const handles = handlesByPrompt.get(node.id);
+        if (!handles || !isTextNode(node) || !node.data.content) return node;
+        const content = withoutVariables(node.data.content, handles);
+        return content === node.data.content ? node : { ...node, data: { ...node.data, content, text: documentText(content) } };
+      }));
+    }
+    onEdgesChange(changes);
+  }, [onEdgesChange, setNodes]);
   const { value: connectionEffects, start: startConnectionEffects, clear: clearConnectionEffects,
     connected: playConnectionEffects, created: playNodeEntrance, cancelled: connectionCancelled, connectionRadius,
     startClick: startClickConnection, end: endConnectionGesture, withinRadius: withinConnectionRadius } = useConnectionEffects();
@@ -253,6 +307,14 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
           setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'rotate-flip', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
           return;
         }
+        if (saved.format === 'momoflow-interactive-edit-node' && saved.node?.type === 'interactive-edit'
+          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
+          const data = restoreInteractiveEditData(saved.node.data);
+          if (!data) return;
+          event.preventDefault();
+          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'interactive-edit', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
+          return;
+        }
         if (saved.format === 'momoflow-masks-extractor-node' && saved.node?.type === 'masks-extractor'
           && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
           const data = restoreMasksData(saved.node.data);
@@ -377,7 +439,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       playConnectionEffects(edge, withoutReplacedInput(connection, getNodes(), getEdges()));
       setEdges((edges) => addEdge(edge, withoutReplacedInput(connection, getNodes(), edges)));
       setNodes((currentNodes) => currentNodes.map((node) =>
-        node.id === connection.target && isTextNode(node)
+        node.id === connection.target && isTextNode(node) && !isAnnotationInput(connection.targetHandle)
           ? { ...node, data: { ...node.data, variableCount: Math.max(node.data.variableCount ?? 0, variableIndex(connection.targetHandle) + 2) } }
           : node,
       ));
@@ -429,7 +491,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     if (!choice) { setPendingNodeMenu(null); return; }
     const node = createLibraryNode(choice.itemId, pendingConnection.position);
     if (!node) return;
-    if (isTextNode(node) && pendingConnection.direction === 'source') node.data.variableCount = 2;
+    if (isTextNode(node) && pendingConnection.direction === 'source' && !isAnnotationInput(choice.handleId)) node.data.variableCount = 2;
     if (choice.exposed && isDescriberNode(node)) node.data.exposed = [choice.exposed];
     const connection = choiceConnection(pendingConnection, choice, node.id);
     if (!canConnect(connection, [...currentNodes, node], currentEdges, node.type === 'file' ? node.id : undefined)) return;
@@ -445,11 +507,11 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       y: pendingConnection.position.y - choice.portY,
     };
     const edge: Edge = { ...connection, id: `edge-${crypto.randomUUID()}` };
-    const color = outputColor(outputKind([...currentNodes, node].find(item => item.id === connection.source), connection.sourceHandle, [...currentNodes, node], currentEdges));
+    const color = isAnnotationInput(connection.targetHandle) ? 'var(--annotation-blue)' : outputColor(outputKind([...currentNodes, node].find(item => item.id === connection.source), connection.sourceHandle, [...currentNodes, node], currentEdges));
     playNodeEntrance(edge, node.id, pendingConnection.direction === 'source' ? 'target' : 'source', color);
     setNodes(current => [...current.map(item => {
       const deselected = { ...item, selected: false };
-      return item.id === connection.target && isTextNode(item)
+      return item.id === connection.target && isTextNode(item) && !isAnnotationInput(connection.targetHandle)
         ? { ...item, selected: false, data: { ...item.data, variableCount: Math.max(item.data.variableCount ?? 0, variableIndex(connection.targetHandle) + 2) } }
         : deselected;
     }), node]);
@@ -458,7 +520,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   }, [pendingNodeMenu, getNodes, getEdges, setNodes, setEdges, playNodeEntrance]);
 
   return (
-    <CanvasHistoryContext.Provider value={history}><ConnectionEffectsContext.Provider value={connectionEffects}><ReactFlow
+    <PromptAnnotationEdits.Provider value={applyPromptAnnotationEdit}><CanvasHistoryContext.Provider value={history}><ConnectionEffectsContext.Provider value={connectionEffects}><ReactFlow
       ref={canvasRef}
       tabIndex={0}
       onPointerDownCapture={event => {
@@ -484,12 +546,21 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         deletable: !node.data.locked,
         connectable: !node.data.locked && tool === 'select',
         style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
-      } : (isImageGeneratorNode(node) || isPainterNode(node) || node.type === 'masks-extractor' || node.type === 'crop' || node.type === 'color-correction' || node.type === 'matte-grow-shrink' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'blend' || node.type === 'compare' || node.type === 'resize' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview' || node.type === 'router' || node.type === 'text-iterator' || node.type === 'position-logger') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
+      } : (isImageGeneratorNode(node) || isPainterNode(node) || node.type === 'interactive-edit' || node.type === 'masks-extractor' || node.type === 'crop' || node.type === 'color-correction' || node.type === 'matte-grow-shrink' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'blend' || node.type === 'compare' || node.type === 'resize' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview' || node.type === 'router' || node.type === 'text-iterator' || node.type === 'position-logger') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
       nodeTypes={nodeTypes}
       onNodesChange={onNodesChange}
-      edges={edges.map((edge) => {
+      onNodesDelete={deleted => {
+        const ids = new Set(deleted.map(node => node.id));
+        setEdges(current => current.filter(edge => !ids.has(edge.source) && !ids.has(edge.target)));
+      }}
+      edges={edges.flatMap((edge) => {
         const source = nodes.find((node) => node.id === edge.source);
         const target = nodes.find((node) => node.id === edge.target);
+        // An undone or stale mark retains its wire for redo, while React Flow only sees measured, live handles.
+        if (isAnnotationInput(edge.targetHandle)) {
+          return annotationEdgeIds.has(edge.id) && annotationOutput(source, edge.sourceHandle, nodes, edges)
+            ? [{ ...edge, className: 'annotation-edge', style: { ...edge.style, stroke: 'var(--annotation-blue)' } }] : [];
+        }
         if (source?.type === 'router' || target?.type === 'router') return {
           ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
           style: { ...edge.style, stroke: outputColor(outputKind(source, edge.sourceHandle, nodes, edges)) },
@@ -511,7 +582,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       defaultEdgeOptions={defaultEdgeOptions}
       connectionLineComponent={ConnectionLine}
       connectionRadius={connectionRadius}
-      onEdgesChange={onEdgesChange}
+      onEdgesChange={changeCanvasEdges}
       isValidConnection={(connection) => withinConnectionRadius(connection) && canConnect(connection, getNodes(), getEdges())}
       onDragOver={(event) => {
         const types = event.dataTransfer.types;
@@ -633,7 +704,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       <NodePortLabelMotion />
       <ApiSettingsDialog open={apiSettingsOpen} onClose={() => setApiSettingsOpen(false)} onTestConnection={testApiConnection} />
       <ConnectionEffectsLayer />
-    </ReactFlow></ConnectionEffectsContext.Provider></CanvasHistoryContext.Provider>
+    </ReactFlow></ConnectionEffectsContext.Provider></CanvasHistoryContext.Provider></PromptAnnotationEdits.Provider>
   );
 }
 

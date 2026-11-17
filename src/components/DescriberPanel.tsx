@@ -151,7 +151,7 @@ export function DescriberPanel() {
         const node = getNodes().find((item) => item.id === task.nodeId);
         if (!node || !isModelNode(node) || node.data.locked) return;
         try {
-          void execution.current?.run([task.nodeId], 1, task.iteration);
+          void execution.current?.run([task.nodeId], 1, task.iteration, task.seedreamGroup?.imageId);
           setError('');
         } catch (error) { setError(error instanceof Error ? error.message : '无法重试任务。'); }
       }}

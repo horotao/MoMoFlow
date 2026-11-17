@@ -8,12 +8,14 @@ import { validateIteratorItems } from './textIterator.ts';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, FileAsset } from './types';
 import { isDescriberNode, isImageGeneratorNode, isNodeLocked, isCompositorNode, isMasksExtractorNode, isCompareNode, isBlendNode } from './types.ts';
+import { annotationOutput } from './annotationGraph.ts';
+import { isAnnotationInput } from './interactiveEdit.ts';
 import { hasVariable } from './textDocument.ts';
 import { fileAssets, orderedAssets } from './fileCollection.ts';
 import { imageOutput } from './sunburstRun.ts';
 import { apimartFixedSettings, isImageGenerationInput, sunburstParameterDefaults, validateSunburstProvider, validateSunburstImageInputs, defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
 import { defaultSeedreamSettings, validateSeedreamSettings } from './seedream.ts';
-import { prepareSeedreamRun } from './seedreamRun.ts';
+import { hasSplitSeedreamPrompt, prepareSeedreamRun } from './seedreamRun.ts';
 import { defaultNanoBananaSettings, validateNanoBananaSettings } from './nanoBanana.ts';
 import { resolveTextValue } from './textVariables.ts';
 import { effectiveSunburstSettings, prepareSunburstRun } from './sunburstRun.ts';
@@ -44,12 +46,18 @@ export function fixedOutput(node: AppNode, graph: ExecutionGraph) {
     : isImageGeneratorNode(node) && (node.type === 'ideogram' || !graph.refreshImages?.has(node.id)) && Boolean(selectedResult(node));
 }
 export function executionInputs(node: AppNode, handle: string | null | undefined, graph: ExecutionGraph): Edge[] {
-  const edges = graph.edges.filter(edge => edge.target === node.id);
+  const edges = graph.edges.filter(edge => edge.target === node.id
+    && (!isTextNode(node) || !isAnnotationInput(edge.targetHandle)
+      || annotationOutput(graph.nodes.find(source => source.id === edge.source), edge.sourceHandle, graph.nodes, graph.edges)));
   if (node.type === 'router') return edges.filter(edge => edge.targetHandle === 'input');
   if (node.type === 'text-iterator') return edges.filter(edge => edge.targetHandle === 'input');
   if (node.type === 'compare') return edges.filter(edge => edge.targetHandle === (handle === 'output-2' ? 'input-2' : 'input-1'));
   if (isTextNode(node) && node.data.content) return edges.filter(edge => hasVariable(node.data.content!, edge.targetHandle ?? 'variable-1'));
   if (node.type === 'model-input' || node.type === 'image-iterator' || node.type === 'file' || node.type === 'color-palette' || node.type === 'ideogram') return [];
+  if (node.type === 'seedream' && edges.some(edge => /^image-\d+$/.test(edge.targetHandle ?? ''))) {
+    const prompt = edges.find(edge => edge.targetHandle === 'prompt');
+    if (prompt && hasSplitSeedreamPrompt(prompt.source, graph.nodes, graph.edges)) return [prompt];
+  }
   if (isImageGeneratorNode(node)) return edges.filter(edge => isImageGenerationInput(edge.targetHandle, node.type === 'sunburst'));
   if (isCompositorNode(node)) {
     const handles = new Set(node.data.document.layers.filter(layer => layer.visible || (node.data.document.canvas.autoSize && layer.source.kind === 'input' && layer.source.handle === 'background'))
@@ -145,7 +153,7 @@ export function sourceSignature(graph: ExecutionGraph, node: AppNode) {
   const replacement: AppNode = isDescriberNode(node) ? { ...node, data: { ...node.data, text: '', outputMode: undefined, sourceSignature: undefined } } : isImageGeneratorNode(node) ? { ...node, data: { ...node.data, results: [], activeResultId: undefined, outputMode: undefined, sourceSignature: undefined } } as AppNode : node;
   return graphGuard({ ...graph, nodes: graph.nodes.map(item => item.id === node.id ? replacement : item) }, node.id, true);
 }
-export function prepareModel(graph: ExecutionGraph, id: string): PreviewTask {
+export function prepareModel(graph: ExecutionGraph, id: string): PreviewTask[] {
   const node = graph.nodes.find(item => item.id === id);
   if (!node) throw new ExecutionProblem(id, '节点已删除。');
   if (!isModelNode(node)) nodeProblem(node, '节点已下线或不能运行。');
@@ -157,7 +165,7 @@ export function prepareModel(graph: ExecutionGraph, id: string): PreviewTask {
   for (const edge of executionInputs(node, undefined, graph).filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''))) {
     if (!imageOutput(graph.nodes.find(item => item.id === edge.source), edge.sourceHandle, graph.nodes, graph.edges).length) nodeProblem(node, '连接的图片尚未准备完成。');
   }
-  return result.tasks[0];
+  return result.tasks;
 }
 export function requestSignature(task: PreviewTask, graph: ExecutionGraph) {
   const assets = new Map<string, ReturnType<typeof assetIdentity>>();
@@ -207,6 +215,11 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
     if (!isImageGeneratorNode(node)) return;
     const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
     if (!unknown.has('prompt')) {
+      if (node.type === 'seedream' && promptEdge && hasSplitSeedreamPrompt(promptEdge.source, graph.nodes, graph.edges)) {
+        const prepared = prepareSeedreamRun(graph.nodes, graph.edges, [node.id], 1);
+        if (prepared.error) throw new Error(prepared.error);
+        return;
+      }
       const prompt = promptEdge ? resolveTextValue(promptEdge.source, graph.nodes, graph.edges).trim() : '';
       if (!prompt || prompt.length > 32000) throw new Error('请连接非空提示词，最多 32000 个字符。');
     }
