@@ -66,14 +66,17 @@
 
 .edit-pin:has(.edit-pin-remove) { pointer-events: auto; }
 
-.edit-pin-movable {
+.edit-mark-movable {
   cursor: move;
+  pointer-events: auto;
   touch-action: none;
 }
 
-.edit-pin-movable[data-dragging] { z-index: 1; }
+.edit-pin.edit-mark-movable { z-index: 1; }
 
-.edit-pin-movable[data-dragging] > .edit-pin-remove { visibility: hidden; }
+.edit-mark-movable[data-dragging] { z-index: 2; }
+
+.edit-mark-movable[data-dragging] .edit-pin-remove { visibility: hidden; }
 
 .edit-pin-remove {
   position: absolute;
@@ -148,11 +151,22 @@
   transform: translate(-50%, -50%);
 }
 
-.edit-box > i:nth-child(1) { left: 0; top: 0; }
-.edit-box > i:nth-child(2) { left: 100%; top: 0; }
-.edit-box > i:nth-child(3) { left: 0; top: 100%; }
-.edit-box > i:nth-child(4) { left: 100%; top: 100%; }
+.edit-box > [data-corner='nw'] { left: 0; top: 0; }
+.edit-box > [data-corner='ne'] { left: 100%; top: 0; }
+.edit-box > [data-corner='sw'] { left: 0; top: 100%; }
+.edit-box > [data-corner='se'] { left: 100%; top: 100%; }
 .edit-box > .edit-pin { left: 100%; top: 100%; }
+
+.edit-box.edit-mark-movable > [data-corner] { z-index: 1; }
+
+.edit-box.edit-mark-movable > [data-corner]::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+}
+
+.edit-box.edit-mark-movable > :is([data-corner='nw'], [data-corner='se']) { cursor: nwse-resize; }
+.edit-box.edit-mark-movable > :is([data-corner='ne'], [data-corner='sw']) { cursor: nesw-resize; }
 
 .edit-controls {
   display: flex;

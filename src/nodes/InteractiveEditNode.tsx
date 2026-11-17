@@ -15,7 +15,7 @@ import './InteractiveEditNode.css';
 
 const annotationLimitMessage = `已达 ${annotationLimit} 个标注上限`;
 
-const clamp = (value: number) => Math.min(1, Math.max(0, value));
+const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 const positionStyle = ({ x, y }: Point) => ({ left: `${x * 100}%`, top: `${y * 100}%` });
 const boxStyle = (start: Point, end: Point) => ({
   ...positionStyle({ x: Math.min(start.x, end.x), y: Math.min(start.y, end.y) }),
@@ -28,8 +28,22 @@ function pointFrom(image: HTMLElement, event: { clientX: number; clientY: number
   return { x: (event.clientX - bounds.left) / bounds.width, y: (event.clientY - bounds.top) / bounds.height };
 }
 
-function boxCorners() {
-  return <><i /><i /><i /><i /></>;
+const corners = ['nw', 'ne', 'sw', 'se'] as const;
+type BoxCorner = (typeof corners)[number];
+
+function resizeAxis(start: number, end: number, farEdge: boolean) {
+  const low = Math.min(start, end);
+  const high = Math.max(start, end);
+  // Keep the corners distinct after conversion to the 0–999 output coordinates.
+  const minimumSize = Math.min(high - low, .002);
+  return farEdge
+    ? { start: high, anchor: low, min: low + minimumSize, max: 1 }
+    : { start: low, anchor: high, min: 0, max: high - minimumSize };
+}
+
+function boxCorners(onResize?: (event: ReactPointerEvent<HTMLElement>, corner: BoxCorner) => void) {
+  return corners.map(corner => <i key={corner} data-corner={corner}
+    onPointerDown={onResize ? event => onResize(event, corner) : undefined} />);
 }
 
 function ImageAnnotations({ url, marks, enabled, surface, onMark, onMove, onRemove, onReady }: {
@@ -38,13 +52,15 @@ function ImageAnnotations({ url, marks, enabled, surface, onMark, onMove, onRemo
   enabled: boolean;
   surface: RefObject<HTMLDivElement>;
   onMark: (start: Point, end?: Point) => void;
-  onMove?: (id: string, point: Point) => void;
+  onMove?: (mark: Mark) => void;
   onRemove?: (id: string) => void;
   onReady: (ready: boolean) => void;
 }) {
   const draft = useRef<HTMLDivElement>(null);
   const commit = useRef({ onMark, onMove });
   commit.current = { onMark, onMove };
+  const currentMarks = useRef(marks);
+  currentMarks.current = marks;
   const gesture = useRef<() => void>();
   const [keyboardPoint, setKeyboardPoint] = useState<Point>();
   const [failed, setFailed] = useState(false);
@@ -63,26 +79,39 @@ function ImageAnnotations({ url, marks, enabled, surface, onMark, onMove, onRemo
 
   useLayoutEffect(() => cancel, [cancel, canMove, enabled, marks]);
 
-  const startGesture = (event: ReactPointerEvent<HTMLElement>, mark?: Mark) => {
+  const startGesture = (event: ReactPointerEvent<HTMLElement>, mark?: Mark, corner?: BoxCorner) => {
     const image = surface.current;
-    if (!image || event.button !== 0 || gesture.current) return;
+    const { pointerId, clientX, clientY, currentTarget: handle } = event;
+    const target = corner ? handle.parentElement : handle;
+    if (!image || !target || event.button !== 0 || gesture.current) return;
     event.preventDefault();
     event.stopPropagation();
     image.focus({ preventScroll: true });
     setKeyboardPoint(undefined);
 
-    const { pointerId, clientX, clientY, currentTarget: target } = event;
     const initial = pointFrom(image, event);
-    const start = mark?.start ?? { x: clamp(initial.x), y: clamp(initial.y) };
+    const resize = corner && mark?.end ? {
+      x: resizeAxis(mark.start.x, mark.end.x, corner.endsWith('e')),
+      y: resizeAxis(mark.start.y, mark.end.y, corner.startsWith('s')),
+    } : undefined;
+    const fixedCorner = resize && { x: resize.x.anchor, y: resize.y.anchor };
+    const start = resize ? { x: resize.x.start, y: resize.y.start } : mark?.start ?? { x: clamp(initial.x), y: clamp(initial.y) };
+    const offsetX = mark?.end && !resize ? mark.end.x - start.x : 0;
+    const offsetY = mark?.end && !resize ? mark.end.y - start.y : 0;
+    const boundsX = resize?.x ?? { min: Math.max(0, -offsetX), max: Math.min(1, 1 - offsetX) };
+    const boundsY = resize?.y ?? { min: Math.max(0, -offsetY), max: Math.min(1, 1 - offsetY) };
     const listeners = new AbortController();
     const listenerOptions = { capture: true, signal: listeners.signal };
     gesture.current = () => {
       listeners.abort();
       if (mark) {
-        target.style.removeProperty('translate');
+        if (resize) {
+          const saved = currentMarks.current.find(item => item.id === mark.id);
+          if (saved?.end) Object.assign(target.style, boxStyle(saved.start, saved.end));
+        } else target.style.removeProperty('translate');
         delete target.dataset.dragging;
       } else if (draft.current) draft.current.hidden = true;
-      if (target.hasPointerCapture(pointerId)) target.releasePointerCapture(pointerId);
+      if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
     };
 
     let dragged = false;
@@ -90,7 +119,10 @@ function ImageAnnotations({ url, marks, enabled, surface, onMark, onMove, onRemo
       // Use a screen-pixel threshold, then retain the grab offset in image coordinates.
       dragged ||= Math.hypot(pointer.clientX - clientX, pointer.clientY - clientY) >= 5;
       const current = pointFrom(image, pointer);
-      return { x: clamp(current.x + start.x - initial.x), y: clamp(current.y + start.y - initial.y) };
+      return {
+        x: clamp(start.x + (current.x - initial.x), boundsX.min, boundsX.max),
+        y: clamp(start.y + (current.y - initial.y), boundsY.min, boundsY.max),
+      };
     };
     const cancelPointer = (pointer: PointerEvent) => { if (pointer.pointerId === pointerId) cancel(); };
 
@@ -100,7 +132,8 @@ function ImageAnnotations({ url, marks, enabled, surface, onMark, onMove, onRemo
       if (!dragged) return;
       if (mark) {
         target.dataset.dragging = 'true';
-        target.style.translate = `${(end.x - start.x) * image.clientWidth}px ${(end.y - start.y) * image.clientHeight}px`;
+        if (fixedCorner) Object.assign(target.style, boxStyle(fixedCorner, end));
+        else target.style.translate = `${(end.x - start.x) * image.clientWidth}px ${(end.y - start.y) * image.clientHeight}px`;
       } else if (draft.current) {
         Object.assign(draft.current.style, boxStyle(start, end));
         draft.current.hidden = false;
@@ -108,14 +141,18 @@ function ImageAnnotations({ url, marks, enabled, surface, onMark, onMove, onRemo
     }, listenerOptions);
     window.addEventListener('pointerup', pointer => {
       if (pointer.pointerId !== pointerId) return;
-      const end = track(pointer);
+      const position = track(pointer);
       cancel();
-      const changedX = annotationCoordinate(start.x) !== annotationCoordinate(end.x);
-      const changedY = annotationCoordinate(start.y) !== annotationCoordinate(end.y);
+      const changedX = annotationCoordinate(start.x) !== annotationCoordinate(position.x);
+      const changedY = annotationCoordinate(start.y) !== annotationCoordinate(position.y);
       if (mark) {
-        if (dragged && (changedX || changedY)) commit.current.onMove?.(mark.id, end);
+        if (dragged && (changedX || changedY)) commit.current.onMove?.({
+          ...mark,
+          start: position,
+          end: fixedCorner ?? (mark.end && { x: clamp(position.x + offsetX), y: clamp(position.y + offsetY) }),
+        });
       } else if (!dragged) commit.current.onMark(start);
-      else if (changedX && changedY) commit.current.onMark(start, end);
+      else if (changedX && changedY) commit.current.onMark(start, position);
     }, listenerOptions);
     if (mark) window.addEventListener('keydown', key => {
       if (key.key !== 'Escape') return;
@@ -124,9 +161,9 @@ function ImageAnnotations({ url, marks, enabled, surface, onMark, onMove, onRemo
       cancel();
     }, listenerOptions);
     window.addEventListener('pointercancel', cancelPointer, listenerOptions);
-    target.addEventListener('lostpointercapture', cancelPointer, listenerOptions);
+    handle.addEventListener('lostpointercapture', cancelPointer, listenerOptions);
     window.addEventListener('blur', cancel, listenerOptions);
-    target.setPointerCapture(pointerId);
+    handle.setPointerCapture(pointerId);
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -160,16 +197,19 @@ function ImageAnnotations({ url, marks, enabled, surface, onMark, onMove, onRemo
     <div className="edit-overlay">
       {marks.map((mark, index) => {
         const { id, start, end } = mark;
-        const movable = canMove && !end;
-        const pin = <span key={id} className={`edit-pin${movable ? ' edit-pin-movable nodrag nopan' : ''}`}
-          style={end ? undefined : positionStyle(start)} onPointerDown={movable ? event => startGesture(event, mark) : undefined}>
+        const moveClass = canMove ? ' edit-mark-movable nodrag nopan' : '';
+        const move = canMove ? (event: ReactPointerEvent<HTMLElement>) => startGesture(event, mark) : undefined;
+        const pin = <span key={id} className={`edit-pin${end ? '' : moveClass}`}
+          style={end ? undefined : positionStyle(start)} onPointerDown={end ? undefined : move}>
           <span aria-hidden="true">{index + 1}</span>
           {onRemove && <button type="button" className="edit-pin-remove nodrag nopan" aria-label={`移除标注 ${index + 1}`}
             onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); onRemove(id); }}>
             <span className="edit-pin-remove-icon" aria-hidden="true"><HugeiconsIcon icon={MinusSignIcon} size={8} /></span>
           </button>}
         </span>;
-        return end ? <div key={id} className="edit-box" style={boxStyle(start, end)}>{boxCorners()}{pin}</div> : pin;
+        return end ? <div key={id} className={`edit-box${moveClass}`} style={boxStyle(start, end)} onPointerDown={move}>
+          {boxCorners(canMove ? (event, corner) => startGesture(event, mark, corner) : undefined)}{pin}
+        </div> : pin;
       })}
       <div className="edit-box edit-draft" ref={draft} hidden>{boxCorners()}</div>
       {enabled && !atLimit && keyboardPoint && <span className="edit-pin edit-keyboard-pin" style={positionStyle(keyboardPoint)} />}
@@ -262,8 +302,8 @@ export function InteractiveEditNode({ id, data, isConnectable }: NodeProps<Inter
         ? <ImageAnnotations key={`${image.id}:${image.url}`} url={image.url} marks={marks} enabled={enabled} surface={surface}
           onMark={(start, end) => commit(currentMarks => currentMarks.length >= annotationLimit
             ? currentMarks : [...currentMarks, { id: crypto.randomUUID(), start, end }])}
-          onMove={ready && isConnectable && !data.locked ? (markId, start) => commit(currentMarks =>
-            currentMarks.map(mark => mark.id === markId ? { ...mark, start } : mark)) : undefined}
+          onMove={ready && isConnectable && !data.locked ? moved => commit(currentMarks =>
+            currentMarks.map(mark => mark.id === moved.id ? moved : mark)) : undefined}
           onRemove={isConnectable && !data.locked ? markId => {
             commit(currentMarks => currentMarks.filter(mark => mark.id !== markId));
             focusAfterHistoryAction();
