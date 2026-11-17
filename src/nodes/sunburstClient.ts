@@ -5,7 +5,8 @@ import { ModelRequestCancelled, modelTimeoutCode, modelRequestError } from './mo
 import { readImage, dataUrl } from './imageGenerationClient.ts';
 import { assetResources } from './assetResources.ts';
 import type { FileAsset } from './types';
-import { validateSunburstSettings, validateSunburstImageInputs, validateSunburstProvider, type SunburstRequest } from './sunburst.ts';
+import { apimartExtMarkupError, validateSunburstSettings, validateSunburstImageInputs, validateSunburstMarkup, validateSunburstProvider, type SunburstRequest } from './sunburst.ts';
+import { renderSunburstMarkup } from './sunburstMarkup.ts';
 import { validateVectorSvg } from './vectorSvg.ts';
 
 
@@ -22,13 +23,17 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
   const provider = validateSunburstProvider(input.provider);
   const apimart = provider === 'apimart';
   const credentialHeaders = apiCredentialHeaders(provider);
+  const { maskMode, markupMarks, ...request } = input;
+  if (markupMarks?.length) {
+    if (apimart && input.channelModel !== 'gpt-image-2.6') throw new Error(apimartExtMarkupError);
+    validateSunburstMarkup(input.outputFormat, input.images.length > 0, Boolean(input.mask));
+  }
   validateSunburstImageInputs(input.outputFormat, input.images.length > 0, Boolean(input.mask), provider, input.channelModel);
   if (apimart) {
     validateSunburstSettings(input);
     if (!input.prompt.trim() || input.prompt.length > 32000) throw new Error('请连接非空 Prompt，最多 32000 个字符。');
     if (input.images.length > 16) throw new Error('最多支持 16 张参考图片。');
   }
-  const { maskMode, ...request } = input;
   const blobs: Blob[] = []; let total = 0;
   for (const url of input.images) {
     const blob = await readImage(url, signal, false, apimart && (input.channelModel === 'gpt-image-2.6' || (input.resolution ?? '1K') === '1K') ? ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] : undefined); total += blob.size;
@@ -36,8 +41,9 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
     if (total > 46 * 1024 * 1024) throw new Error('输入图片总大小不能超过 46 MiB。');
     blobs.push(blob);
   }
+  const markup = markupMarks?.length ? await renderSunburstMarkup(blobs[0], markupMarks, signal) : undefined;
   let mask = input.mask ? await readImage(input.mask, signal, true) : undefined;
-  if (total + (mask?.size ?? 0) > 46 * 1024 * 1024) throw new Error('输入图片总大小不能超过 46 MiB。');
+  if (total + (mask?.size ?? 0) + (markup?.size ?? 0) > 46 * 1024 * 1024) throw new Error('输入图片总大小不能超过 46 MiB。');
   if (mask) {
     if (!blobs.length) throw new Error('使用 Mask 时必须连接 Image。');
     const first = await createImageBitmap(blobs[0]);
@@ -73,11 +79,13 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
     } finally { first.close(); }
   }
   signal.throwIfAborted();
-  const uploaded = apimart ? await uploadApimartImages([...blobs, ...(mask ? [mask] : [])], credentialHeaders, signal) : undefined;
+  const overlay = mask ?? markup;
+  const uploaded = apimart ? await uploadApimartImages([...blobs, ...(overlay ? [overlay] : [])], credentialHeaders, signal) : undefined;
+  const overlayInput = overlay ? uploaded ? uploaded[blobs.length] : await dataUrl(overlay) : undefined;
   signal.throwIfAborted();
   let response = await fetch(apimart ? '/api/apimart/images' : '/api/sunburst', {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...credentialHeaders }, signal,
-    body: JSON.stringify({ ...request, images: uploaded ? uploaded.slice(0, blobs.length) : await Promise.all(blobs.map(dataUrl)), ...(mask ? { mask: uploaded ? uploaded[blobs.length] : await dataUrl(mask) } : {}) }),
+    body: JSON.stringify({ ...request, images: uploaded ? uploaded.slice(0, blobs.length) : await Promise.all(blobs.map(dataUrl)), ...(overlayInput ? { [mask ? 'mask' : 'markup']: overlayInput } : {}) }),
   });
   let result = await readImageApiResponse(response);
   let apimartTaskId: string | undefined;

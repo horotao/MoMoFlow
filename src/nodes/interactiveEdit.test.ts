@@ -4,13 +4,15 @@ import type { Edge } from '@xyflow/react';
 import { annotationOutput } from './annotationGraph.ts';
 import { canConnect, withoutReplacedInput } from './connectionRules.ts';
 import { connectionChoices } from './connectionRecommendations.ts';
-import { executionInputs } from './executionGraph.ts';
+import { executionInputs, planExecution } from './executionGraph.ts';
 import { annotationHistory, annotationMarkup, commitAnnotations, emptyAnnotationHistory, restoreInteractiveEditData, type AnnotationMark } from './interactiveEdit.ts';
 import { defaultSeedreamSettings, seedreamMaxImages } from './seedream.ts';
 import { prepareSeedreamRun } from './seedreamRun.ts';
+import { defaultSunburstSettings } from './sunburst.ts';
+import { prepareSunburstRun } from './sunburstRun.ts';
 import { initialTextDocument } from './textDocument.ts';
 import { resolveTextValue, textAnnotationCount, textVariableCount } from './textVariables.ts';
-import type { AppNode, FileNode, InteractiveEditNode, SeedreamNode, TextNode } from './types.ts';
+import type { AppNode, FileNode, InteractiveEditNode, SeedreamNode, SunburstNode, TextNode } from './types.ts';
 
 const position = { x: 0, y: 0 };
 const point: AnnotationMark = { id: 'point', start: { x: .24, y: .51 } };
@@ -58,6 +60,54 @@ test('prompt serializes point and box markup into the Seedream request alongside
     assert.equal(prepared.tasks[0].seedreamRequest?.prompt, prompt);
     assert.deepEqual(prepared.tasks[0].seedreamRequest?.images, [asset.url]);
   }
+});
+
+test('OpenAI aligns numbered markup with the first image and deduplicates an explicitly connected original', () => {
+  const gpt: SunburstNode = { id: 'gpt', type: 'sunburst', position, data: { ...defaultSunburstSettings, provider: 'openai', variant: 'Flare', imageInputs: 2 } };
+  const prompt = { id: 'prompt', source: text.id, target: gpt.id, targetHandle: 'prompt' };
+  const reference = { id: 'reference', source: file.id, sourceHandle: 'file', target: gpt.id, targetHandle: 'image-0' };
+  const graph = [...nodes, gpt];
+  const requestEdges = [...edges, prompt];
+  const plain = prepareSunburstRun(graph, requestEdges, [gpt.id], 2);
+  assert.equal(plain.error, undefined);
+  assert.equal(plain.tasks.length, 2);
+  const request = plain.tasks[0].imageRequest!;
+  assert.deepEqual(request.images, [asset.url]);
+  assert.deepEqual(request.markupMarks, [{ start: point.start, end: undefined }, { start: box.start, end: box.end }]);
+  assert.match(request.prompt, /^红圈 1 中心 和 红框 2 内 编辑图像\n/);
+  const other = { ...alternative, url: 'blob:reference' };
+  const references = { ...file, data: { ...file.data, assets: [other, asset] } };
+  const withImage = prepareSunburstRun(graph.map(node => node.id === file.id ? references : node), [...requestEdges, reference], [gpt.id], 1);
+  assert.deepEqual(withImage.tasks[0].imageRequest?.images, [asset.url, other.url]);
+  const masked = prepareSunburstRun(graph, [...requestEdges, { ...reference, targetHandle: 'mask' }], [gpt.id], 1);
+  assert.match(masked.error!, /标注与 Mask 不能同时使用/);
+  const secondEditor: InteractiveEditNode = { ...editor, id: 'second-editor', data: { baseImage: other, history: commitAnnotations(emptyAnnotationHistory, other.id, [box]) } };
+  const mixed = prepareSunburstRun([...graph, secondEditor], requestEdges.map(edge => edge.id === boxes.id ? { ...edge, source: secondEditor.id } : edge), [gpt.id], 1);
+  assert.match(mixed.error!, /只能标注一张原图/);
+  const apimartNode: SunburstNode = { ...gpt, data: { ...gpt.data, provider: 'apimart', channelModel: 'gpt-image-2.6' } };
+  const standard = prepareSunburstRun([...nodes, apimartNode], requestEdges, [gpt.id], 1);
+  assert.deepEqual(standard.tasks[0].imageRequest?.markupMarks, request.markupMarks);
+  assert.deepEqual(standard.tasks[0].imageRequest?.images, [asset.url]);
+});
+
+test('APIMart EXT rejects connected annotations before execution and accepts a regular prompt and image', () => {
+  const ext: SunburstNode = { id: 'ext', type: 'sunburst', position, data: { ...defaultSunburstSettings, provider: 'apimart', channelModel: 'gpt-image-2.6-ext', imageInputs: 1 } };
+  const graph = [...nodes, ext];
+  const annotated = [...edges, { id: 'prompt', source: text.id, target: ext.id, targetHandle: 'prompt' }];
+  const error = /EXT 不支持交互编辑标注.*标准版/;
+  const blocked = prepareSunburstRun(graph, annotated, [ext.id], 1);
+  assert.match(blocked.error!, error);
+  assert.deepEqual(blocked.tasks, []);
+  assert.throws(() => planExecution({ nodes: graph, edges: annotated }, [ext.id], 1), error);
+  const regular = [
+    { id: 'ordinary-prompt', source: words.id, target: ext.id, targetHandle: 'prompt' },
+    { id: 'reference', source: file.id, sourceHandle: 'file', target: ext.id, targetHandle: 'image-0' },
+  ];
+  assert.doesNotThrow(() => planExecution({ nodes: graph, edges: regular }, [ext.id], 1));
+  const request = prepareSunburstRun(graph, regular, [ext.id], 1).tasks[0].imageRequest!;
+  assert.equal(request.prompt, words.data.text);
+  assert.deepEqual(request.images, [alternative.url, asset.url]);
+  assert.equal(request.markupMarks, undefined);
 });
 
 test('Seedream groups annotations through nested prompts and routers using only each marked original', () => {

@@ -4,15 +4,16 @@ import { providerConnection } from './apiCredentials.ts';
 import { apimartInputUrl, apimartResultUrl } from '../src/nodes/apimartResult.ts';
 import { diagnosticText, readErrorDiagnostic, trusted } from './providerDiagnostics.ts';
 import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
-import { imageFormats, sunburstModelForProvider, validateSunburstImageInputs, validateSunburstSettings, validateSunburstVariant } from '../src/nodes/sunburst.ts';
+import { apimartExtMarkupError, imageFormats, sunburstModelForProvider, validateSunburstImageInputs, validateSunburstMarkup, validateSunburstSettings, validateSunburstVariant } from '../src/nodes/sunburst.ts';
 import { buildNanoBananaRequest } from './nanoBanana.ts';
 import { buildSeedreamRequest } from './seedream.ts';
 
 const maxBody = 64 * 1024 * 1024;
 const taskIdPattern = /^[a-zA-Z0-9_-]{1,200}$/;
 type InputImage = string | { blob: Blob; filename: string };
+type GenerationRequest = { images: InputImage[]; markup?: InputImage; body: Record<string, unknown> };
 
-export function buildApimartRequest(value: unknown) {
+export function buildApimartRequest(value: unknown): GenerationRequest {
   if (!value || typeof value !== 'object') throw new Error('图片参数格式错误。');
   const input = value as Record<string, unknown>;
   if (input.provider !== 'apimart') throw new Error('请选择 APIMart 渠道。');
@@ -21,7 +22,20 @@ export function buildApimartRequest(value: unknown) {
   if (!Array.isArray(input.images) || input.images.length > 16) throw new Error('最多支持 16 张参考图片。');
   const standard = settings.channelModel === 'gpt-image-2.6';
   validateSunburstImageInputs(settings.outputFormat, input.images.length > 0, Boolean(input.mask), 'apimart', settings.channelModel);
-  if (['width', 'height', 'markup', 'markup_url'].some(field => input[field] !== undefined)) throw new Error('APIMart 不支持自定义宽高或标注引导编辑。');
+  if (['width', 'height', 'markup_url'].some(field => input[field] !== undefined)) throw new Error('APIMart 请求包含未支持的字段。');
+  let markup: InputImage | undefined;
+  if (input.markup !== undefined) {
+    if (!standard) throw new Error(apimartExtMarkupError);
+    validateSunburstMarkup(settings.outputFormat, input.images.length > 0, Boolean(input.mask));
+    if (typeof input.markup === 'string' && !input.markup.startsWith('data:')) {
+      markup = apimartInputUrl(input.markup);
+    } else {
+      if (typeof input.markup !== 'string' || !/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(input.markup)) throw new Error('标注图必须为 PNG 图片。');
+      const bytes = Buffer.from(input.markup.slice(input.markup.indexOf(',') + 1), 'base64');
+      if (!bytes.length || bytes.length > 30 * 1024 * 1024) throw new Error('APIMart 上传标注图须非空且不超过 30 MiB。');
+      markup = { blob: new Blob([new Uint8Array(bytes)], { type: 'image/png' }), filename: 'markup.png' };
+    }
+  }
   const images: InputImage[] = input.images.map((url, index) => {
     if (typeof url === 'string' && !url.startsWith('data:')) return apimartInputUrl(url);
     if (typeof url !== 'string' || !/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/.test(url)) throw new Error('APIMart 参考图片需为 PNG、JPEG、WebP 或 GIF。');
@@ -57,7 +71,7 @@ export function buildApimartRequest(value: unknown) {
       ...(settings.svgEffort !== 'auto' ? { reasoning: { effort: settings.svgEffort } } : {}),
     } } : {}),
   };
-  return { images, body };
+  return { images, markup, body };
 }
 
 async function readLimited(response: Response, limit: number): Promise<Buffer> {
@@ -100,7 +114,7 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
         chunks.push(Buffer.from(chunk));
       }
       let input: Record<string, unknown>;
-      let generation: { images: InputImage[]; body: Record<string, unknown> } | undefined;
+      let generation: GenerationRequest | undefined;
       try {
         input = JSON.parse(Buffer.concat(chunks).toString());
         if (path === '/api/apimart/images') generation = buildApimartRequest(input);
@@ -132,16 +146,24 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
         return JSON.parse((await readLimited(response, 2 * 1024 * 1024)).toString()) as Record<string, unknown>;
       };
       if (generation) {
-        const imageUrls: string[] = [];
-        // Uploads return URLs immediately; preserve the user's reference order.
-        for (const image of generation.images) {
-          if (typeof image === 'string') { imageUrls.push(image); continue; }
+        const upload = async (image: InputImage) => {
+          if (typeof image === 'string') return image;
           const form = new FormData(); form.append('file', image.blob, image.filename);
           const uploaded = await call('/uploads/images?retention_days=3', form);
-          if (!uploaded) return;
-          imageUrls.push(apimartInputUrl(uploaded.url));
+          return uploaded ? apimartInputUrl(uploaded.url) : undefined;
+        };
+        const imageUrls: string[] = [];
+        // Preserve reference order so markup always aligns with the first image.
+        for (const image of generation.images) {
+          const url = await upload(image);
+          if (!url) return;
+          imageUrls.push(url);
         }
-        const result = await call('/images/generations', { ...generation.body, ...(imageUrls.length ? { image_urls: imageUrls } : {}) });
+        const markupUrl = generation.markup ? await upload(generation.markup) : undefined;
+        if (generation.markup && !markupUrl) return;
+        const result = await call('/images/generations', { ...generation.body, ...(imageUrls.length ? { image_urls: imageUrls } : {}),
+          ...(markupUrl ? { markup_url: markupUrl } : {}),
+        });
         if (!result) return;
         const data = result.data as { task_id?: unknown }[] | undefined;
         if (!Array.isArray(data) || typeof data[0]?.task_id !== 'string' || !taskIdPattern.test(data[0].task_id)) throw new Error('APIMart 未返回有效任务编号；结果未知，请检查请求记录后再手动重试。');

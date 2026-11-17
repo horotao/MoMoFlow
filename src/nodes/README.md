@@ -15,7 +15,7 @@
 | 导入 / 文件（Import / File）：导入、预览和管理文件集合 | `file` | [FileNode.tsx](./FileNode.tsx) | 无输入端口；通过 `file` 端口输出文件，端口类型随集合内容变化 |
 | 图像描述（Image Describer）：根据图片生成可继续编辑的文本 | `image-describer` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) | 图片输入 `image-0` 起；可暴露 `model`、`instructions` 文本输入；输出 `data.text` |
 | 模型名称 / 参数选项（Model Name）：提供一个可选的文本值 | `model-input` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) 中的 `ModelInputNode` | 输出当前 `data.model`；`options` 输入仅展示，不能连接 |
-| GPT Image 2.6：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`、`image-0` 起及受渠道和格式限制的 `mask`；`result` 输出当前选中的结果图片 |
+| GPT Image 2.6：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`（OpenAI 官方和 APIMart 标准版支持交互编辑标注）、`image-0` 起及受渠道和格式限制的 `mask`；`result` 输出当前选中的结果图片 |
 | Ideogram 4.5：旧工作流兼容 | `ideogram` | [IdeogramNode.tsx](./IdeogramNode.tsx) | 保留存量输入端口及连线；`result` 输出已保存的选中图片 |
 | Nano Banana：生成或编辑图片 | `nano-banana` | [NanoBananaNode.tsx](./NanoBananaNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起的参考图输入；`result` 输出选中图片 |
 | Seedream 5.5：生成或编辑图片 | `seedream` | [SeedreamNode.tsx](./SeedreamNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起的参考图输入；`result` 输出选中图片 |
@@ -384,7 +384,13 @@ Worker 串行执行，最多保留一张图片的特征，模型闲置两分钟�
 
 从「图像编辑节点」或图片输出端口的推荐菜单创建「交互编辑」。连接待编辑图片，开启「标注」后单击添加点、拖动添加框，点和框合计最多 6 个。坐标相对原图归一化到 0–999，点输出 `<point>x y</point>`，框输出左上与右下坐标 `<bbox>x1 y1 x2 y2</bbox>`。标注与原图绑定，换图或断开时旧标注停止输出。节点内的撤销、重做和重置随画布保存，重做可以恢复标注及其已有连线。
 
-交互编辑的蓝色输出直连提示词节点的「标注」输入。提示词保留普通文本变量，标注连接在光标处插入行内缩略图与编号，悬停时展开原图并放大到对应区域。删除提示词里的标注会断开对应连线，手动删除连线也会移除提示词里的对应标注。复制纯文本或运行下游模型时解析为坐标。Seedream 编辑会随提示词自动提交这些标注的原图，并复用已接入的同一素材。
+交互编辑的蓝色输出直连提示词节点的「标注」输入。提示词保留普通文本变量，标注连接在光标处插入行内缩略图与编号，悬停时展开原图并放大到对应区域。删除提示词里的标注会断开对应连线，手动删除连线也会移除提示词里的对应标注。复制纯文本时标注解析为坐标。Seedream 编辑使用坐标提示，自动提交这些标注的原图，并复用已接入的同一素材。
+
+GPT Image 2.6 会从提示词读取交互编辑标注，自动把标注原图放到首位，合并重复接入的原图，其他图片按端口顺序作为参考。每次运行可标注一张原图，使用静态图片输出，且不能同时连接 Mask。不同原图的标注需分别连接提示词和 GPT Image 节点。
+
+- OpenAI 官方与 APIMart 标准版通过透明标注图定位编辑。浏览器将点和框渲染为原图同尺寸的透明 PNG，提示词引用红圈、红框及编号，原图最多 16,777,216 像素。OpenAI 官方以 multipart 的 `markup` 字段提交。APIMart 标准版先将原图、参考图与标注图上传到 `/v1/uploads/images?retention_days=3`，然后以 `image_urls` 和 `markup_url` 提交编辑。
+- APIMart GPT Image 2.6 EXT 使用普通提示词和参考图。提示词包含有效的交互编辑标注时，运行前会提示切换到 APIMart 标准版或 OpenAI 官方渠道。
+- APIMart 的浏览器 API Key 配置使用直传。本地环境变量 Key 由开发服务器代传文件，两种方式都先取得文件 URL，再创建生成任务。
 
 [交互编辑验收页](../../tests/interactive-edit.html)使用正式节点和独立的浏览器存储。无需模型密钥。
 

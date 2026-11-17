@@ -51,6 +51,27 @@ test('generation and edit normalization use the exact model, endpoint and images
   assert.deepEqual(edit.body.mask, { image_url: png }); assert.equal(edit.body.output_format, 'webp');
   assert.equal(edit.body.size, '1536x1024'); assert.equal(edit.body.quality, 'high');
 });
+test('OpenAI uploads the transparent PNG in the separate multipart markup field', async () => {
+  const markup = 'data:image/png;base64,bWFya3Vw';
+  const result = await invoke({ body: { ...input, images: [png, png], markup, variant: 'Flare' }, provider: async (url, options) => {
+    assert.equal(url, 'https://api.openai.com/v1/images/edits');
+    const form = options?.body;
+    assert.ok(form instanceof FormData);
+    assert.equal(form.get('model'), 'gpt-image-2.6-flare');
+    assert.equal(form.getAll('image[]').length, 2);
+    const overlay = form.get('markup');
+    assert.ok(overlay instanceof File);
+    assert.equal(overlay.type, 'image/png');
+    assert.equal(overlay.name, 'markup.png');
+    assert.equal(await overlay.text(), 'markup');
+    assert.ok(!form.has('mask'));
+    return Response.json({ data: [{ b64_json: 'aGVsbG8=' }] });
+  } });
+  assert.equal(result.status, 200);
+  assert.throws(() => buildSunburstRequest({ ...input, markup }), /标注需要原图/);
+  assert.throws(() => buildSunburstRequest({ ...input, images: [png], markup, mask: png }), /标注与 Mask 不能同时使用/);
+  assert.throws(() => buildSunburstRequest({ ...input, images: [png], markup: 'data:image/jpeg;base64,bWFya3Vw' }), /标注图必须/);
+});
 test('invalid settings and source data never reach the provider', () => {
   for (const bad of [null, {}, { ...input, prompt: '' }, { ...input, prompt: 'a'.repeat(32001) }, { ...input, quality: 'ultra' },
     { ...input, background: 'transparent', outputFormat: 'jpeg' }, { ...input, size: 'unverified' },

@@ -13,12 +13,12 @@ import { isAnnotationInput } from './interactiveEdit.ts';
 import { hasVariable } from './textDocument.ts';
 import { fileAssets, orderedAssets } from './fileCollection.ts';
 import { imageOutput } from './sunburstRun.ts';
-import { apimartFixedSettings, isImageGenerationInput, sunburstParameterDefaults, validateSunburstProvider, validateSunburstImageInputs, defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
+import { apimartFixedSettings, isImageGenerationInput, sunburstParameterDefaults, validateSunburstProvider, validateSunburstImageInputs, validateSunburstMarkup, defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
 import { defaultSeedreamSettings, validateSeedreamSettings } from './seedream.ts';
 import { hasSplitSeedreamPrompt, prepareSeedreamRun } from './seedreamRun.ts';
 import { defaultNanoBananaSettings, validateNanoBananaSettings } from './nanoBanana.ts';
 import { resolveTextValue } from './textVariables.ts';
-import { effectiveSunburstSettings, prepareSunburstRun } from './sunburstRun.ts';
+import { effectiveSunburstSettings, prepareSunburstRun, resolveSunburstEditPrompt } from './sunburstRun.ts';
 import { prepareDescriberRun } from './describerRun.ts';
 import { prepareNanoBananaRun } from './nanoBananaRun.ts';
 import { outputKind } from './router.ts';
@@ -214,24 +214,29 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
     }
     if (!isImageGeneratorNode(node)) return;
     const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
+    const sunburst = node.type === 'sunburst' ? effectiveSunburstSettings(node) : undefined;
+    const edit = sunburst && promptEdge && !unknown.has('prompt')
+      ? resolveSunburstEditPrompt(promptEdge.source, graph.nodes, graph.edges,
+        sunburst.provider === 'apimart' && sunburst.channelModel !== 'gpt-image-2.6') : undefined;
     if (!unknown.has('prompt')) {
       if (node.type === 'seedream' && promptEdge && hasSplitSeedreamPrompt(promptEdge.source, graph.nodes, graph.edges)) {
         const prepared = prepareSeedreamRun(graph.nodes, graph.edges, [node.id], 1);
         if (prepared.error) throw new Error(prepared.error);
         return;
       }
-      const prompt = promptEdge ? resolveTextValue(promptEdge.source, graph.nodes, graph.edges).trim() : '';
+      const prompt = edit?.prompt ?? (promptEdge ? resolveTextValue(promptEdge.source, graph.nodes, graph.edges).trim() : '');
       if (!prompt || prompt.length > 32000) throw new Error('请连接非空提示词，最多 32000 个字符。');
     }
     const masked = inputs.some(edge => edge.targetHandle === 'mask');
     const images = inputs.filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''));
-    if (node.type === 'sunburst') {
-      const settings = knownSettings(effectiveSunburstSettings(node), { ...defaultSunburstSettings, ...sunburstParameterDefaults });
+    if (sunburst) {
+      const settings = knownSettings(sunburst, { ...defaultSunburstSettings, ...sunburstParameterDefaults });
       // A model-produced channel choice is unknown until execution. Use the
       // broader capabilities here, then validate its real value before submit.
       if (unknown.has('channelModel') && settings.provider === 'apimart') settings.channelModel = 'gpt-image-2.6';
       const validated = validateSunburstSettings(settings);
-      validateSunburstImageInputs(String(settings.outputFormat), images.length > 0, masked, validateSunburstProvider(settings.provider), validated.channelModel);
+      if (edit?.markupMarks) validateSunburstMarkup(validated.outputFormat, true, masked);
+      validateSunburstImageInputs(String(settings.outputFormat), Boolean(edit?.original || images.length), masked, validateSunburstProvider(settings.provider), validated.channelModel);
       if (masked && !images.length) throw new Error('使用 Mask 时必须连接 Image。');
     } else if (node.type === 'seedream') {
       validateSeedreamSettings(knownSettings({ ...node.data, size: node.data.size ?? 'auto' }, defaultSeedreamSettings));

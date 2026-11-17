@@ -34,6 +34,38 @@ test('APIMart uses only the documented Ext parameters for both versions and ever
 });
 
 const standardInput = { ...input, channelModel: 'gpt-image-2.6' };
+test('APIMart standard submits the uploaded overlay as markup_url, including local-key uploads', async () => {
+  const imageUrl = 'https://cdn.example/original.png';
+  const overlayUrl = 'https://cdn.example/overlay.png';
+  const pngOverlay = 'data:image/png;base64,bWFya3Vw';
+  for (const direct of [true, false]) {
+    const uploads: string[] = [];
+    const result = await invoke({ ...standardInput, images: [direct ? imageUrl : png], markup: direct ? overlayUrl : pngOverlay }, async (url, init) => {
+      if (String(url).endsWith('/uploads/images?retention_days=3')) {
+        const file = (init?.body as FormData).get('file');
+        assert.ok(file instanceof File);
+        assert.equal(file.type, 'image/png');
+        uploads.push(await file.text());
+        return Response.json({ url: file.name === 'markup.png' ? overlayUrl : imageUrl });
+      }
+      assert.equal(url, 'https://api.apimart.ai/v1/images/generations');
+      const body = JSON.parse(String(init?.body));
+      assert.deepEqual(body.image_urls, [imageUrl]);
+      assert.equal(body.markup_url, overlayUrl);
+      assert.ok(!('markup' in body) && !('mask_url' in body));
+      return Response.json({ data: [{ task_id: 'task_markup' }] });
+    });
+    assert.equal(result.status, 200);
+    assert.deepEqual(uploads, direct ? [] : ['hello', 'markup']);
+  }
+  for (const options of [
+    { images: [], markup: overlayUrl },
+    { images: [imageUrl], markup: overlayUrl, mask: imageUrl },
+    { images: [imageUrl], markup: overlayUrl, outputFormat: 'svg' },
+    { images: [imageUrl], markup: overlayUrl, channelModel: 'gpt-image-2.6-ext' },
+  ]) assert.equal((await invoke({ ...standardInput, ...options }, async () => assert.fail('Invalid markup must fail before upload'))).status, 400);
+});
+
 test('APIMart standard routes both variants and sends exact static editing parameters', async () => {
   for (const variant of ['Sunburst', 'Flare']) {
     const requests: Record<string, unknown>[] = [];

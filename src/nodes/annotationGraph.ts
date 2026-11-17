@@ -3,7 +3,12 @@ import { annotationHistory } from './interactiveEdit.ts';
 import { orderedAssets } from './fileCollection.ts';
 import { resolveOutputSource } from './router.ts';
 import { imageOutput } from './sunburstRun.ts';
-import { isInteractiveEditNode, type AppNode, type InteractiveEditNode } from './types.ts';
+import { isInteractiveEditNode, type AppNode, type FileAsset, type InteractiveEditNode } from './types.ts';
+
+export function sameAnnotationImage(first: FileAsset, second: FileAsset) {
+  return first.id === second.id || first.url === second.url
+    || Boolean(first.contentHash && first.contentHash === second.contentHash);
+}
 
 export function annotationImage(node: InteractiveEditNode, nodes: AppNode[], edges: Edge[]) {
   const input = edges.find(edge => edge.target === node.id && edge.targetHandle === 'image');

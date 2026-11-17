@@ -5,16 +5,16 @@ import { diagnosticText, logIdentifier, errorDiagnostic, readErrorDiagnostic, tr
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import type { Plugin } from 'vite';
-import { validateSunburstImageInputs, validateSunburstVariant, sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings } from '../src/nodes/sunburst.ts';
+import { validateSunburstImageInputs, validateSunburstMarkup, validateSunburstVariant, sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings } from '../src/nodes/sunburst.ts';
 
 // The image model renders the reference; this vision/text model authors SVG XML.
 const svgAuthorModel = 'gpt-6.1-terra';
 
 const maxBody = 64 * 1024 * 1024;
-function imageData(value: unknown, mask = false): string {
+function imageData(value: unknown, pngOnly?: '蒙版' | '标注图'): string {
   if (typeof value !== 'string' || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)) throw new Error('输入图片需为 PNG、JPEG 或 WebP。');
   if (value.length > 44 * 1024 * 1024) throw new Error('单张图片不能超过 32 MiB。');
-  if (mask && !value.startsWith('data:image/png;')) throw new Error('蒙版必须为带透明通道的 PNG。');
+  if (pngOnly && !value.startsWith('data:image/png;')) throw new Error(`${pngOnly}必须为带透明通道的 PNG。`);
   return value;
 }
 
@@ -25,10 +25,13 @@ export function buildSunburstRequest(value: unknown) {
   if (provider === 'apimart') throw new Error('APIMart 请使用独立的异步图片接口。');
   if (typeof input.prompt !== 'string' || !input.prompt.trim() || input.prompt.length > 32000) throw new Error('请连接非空 Prompt，最多 32000 个字符。');
   if (!Array.isArray(input.images) || input.images.length > 16) throw new Error('最多支持 16 张参考图片。');
+  const hasMarkup = input.markup !== undefined;
+  if (hasMarkup) validateSunburstMarkup(settings.outputFormat, input.images.length > 0, Boolean(input.mask));
   validateSunburstImageInputs(settings.outputFormat, input.images.length > 0, Boolean(input.mask));
   const images = input.images.map(url => ({ image_url: imageData(url) }));
   if (input.mask && !images.length) throw new Error('使用 Mask 时必须连接 Image。');
-  const mask = input.mask ? { image_url: imageData(input.mask, true) } : undefined;
+  const mask = input.mask ? imageData(input.mask, '蒙版') : undefined;
+  const markup = hasMarkup ? imageData(input.markup, '标注图') : undefined;
   return {
     provider,
     endpoint: images.length ? 'edits' : 'generations',
@@ -37,7 +40,7 @@ export function buildSunburstRequest(value: unknown) {
       moderation: 'low',
       quality: settings.quality, background: settings.background, size: settings.size, output_format: settings.outputFormat,
       ...(settings.outputFormat === 'svg' ? { svg: { model: svgAuthorModel } } : {}),
-      ...(images.length ? { images, ...(mask ? { mask } : {}) } : {}),
+      ...(images.length ? { images, ...(mask ? { mask: { image_url: mask } } : {}), ...(markup ? { markup: { image_url: markup } } : {}) } : {}),
     },
   };
 }
@@ -54,13 +57,14 @@ function imageUpload(dataUrl: string) {
 export function buildSunburstPayload(request: ReturnType<typeof buildSunburstRequest>): { body: string | FormData; headers: Record<string, string> } {
   if (request.endpoint === 'generations') return { body: JSON.stringify(request.body), headers: { 'Content-Type': 'application/json' } };
   const form = new FormData();
-  const { images, mask, ...settings } = request.body;
+  const { images, mask, markup, ...settings } = request.body;
   for (const [name, value] of Object.entries(settings)) form.append(name, String(value));
   for (const [index, image] of (images ?? []).entries()) {
     const { blob, extension } = imageUpload(image.image_url);
     form.append('image[]', blob, `image-${index + 1}.${extension}`);
   }
   if (mask) form.append('mask', imageUpload(mask.image_url).blob, 'mask.png');
+  if (markup) form.append('markup', imageUpload(markup.image_url).blob, 'markup.png');
   // fetch supplies the multipart boundary; never set Content-Type manually.
   return { body: form, headers: {} };
 }

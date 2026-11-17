@@ -5,19 +5,15 @@ import { seedreamMaxImages, seedreamModel, validateSeedreamSettings } from './se
 import { imageOutput } from './sunburstRun.ts';
 import { resolveTextValue } from './textVariables.ts';
 import { annotationMarkup } from './interactiveEdit.ts';
+import { sameAnnotationImage } from './annotationGraph.ts';
 import type { PreviewTask } from './taskQueue';
-
-function sameImage(first: FileAsset, second: FileAsset) {
-  return first.id === second.id || first.url === second.url
-    || Boolean(first.contentHash && first.contentHash === second.contentHash);
-}
 
 function collectAnnotationPrompt(id: string, nodes: AppNode[], edges: Edge[]) {
   const originals: FileAsset[] = [];
   const marks: { group: number; coordinates: string }[] = [];
   const token = '⟦' + crypto.randomUUID() + ':';
   const prompt = resolveTextValue(id, nodes, edges, undefined, ({ image, mark }) => {
-    let group = originals.findIndex(original => sameImage(original, image));
+    let group = originals.findIndex(original => sameAnnotationImage(original, image));
     if (group < 0) group = originals.push(image) - 1;
     marks.push({ group, coordinates: annotationMarkup(mark) });
     return token + (marks.length - 1) + '⟧';
@@ -92,7 +88,7 @@ function singleSeedreamPrompt(annotation: ReturnType<typeof collectAnnotationPro
       return assets;
     });
   const original = annotation.originals[0];
-  let referenceIndex = original ? references.findIndex(asset => sameImage(asset, original)) : -1;
+  let referenceIndex = original ? references.findIndex(asset => sameAnnotationImage(asset, original)) : -1;
   if (original && referenceIndex < 0) referenceIndex = references.push(original) - 1;
   if (references.length > seedreamMaxImages) throw new Error(`最多支持 ${seedreamMaxImages} 张参考图片。`);
   return {

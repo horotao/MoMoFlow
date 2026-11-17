@@ -1,3 +1,5 @@
+import type { AnnotationMark } from './interactiveEdit.ts';
+
 export const sunburstProviders = ['openai', 'apimart'] as const;
 export type SunburstProvider = typeof sunburstProviders[number];
 export const sunburstProviderLabels: Record<SunburstProvider, string> = { openai: 'OpenAI 官方', apimart: 'APIMart' };
@@ -102,10 +104,13 @@ export const sunburstFieldLabels: Record<SunburstParameter, string> = { provider
 export const apimartFixedSettings = { complexity: 'auto', moderation: 'low' } as const;
 export const sunburstParameterDefaults = { provider: 'openai', variant: 'Sunburst', resolution: '1K', ...apimartFixedSettings, channelModel: 'gpt-image-2.6-ext', frameCount: 9, svgModel: 'gpt-6-luna', svgEffort: 'auto' } as const;
 export const defaultSunburstSettings: SunburstSettings = { quality: 'medium', background: 'auto', size: 'auto', outputFormat: 'png' };
+export type SunburstMarkupMark = Pick<AnnotationMark, 'start' | 'end'>;
 export type SunburstRequest = SunburstSettings & {
   provider?: SunburstProvider;
   variant?: SunburstVariant;
   prompt: string; images: string[]; mask?: string;
+  // The browser renders these marks on a transparent PNG at the first image's size.
+  markupMarks?: SunburstMarkupMark[];
   // Client-only hint: convert opaque Invert masks; preserve existing alpha masks.
   maskMode?: 'luminance';
 };
@@ -177,6 +182,13 @@ export function validateSunburstSize(size: unknown): string {
 }
 
 export const sunburstFrameCounts = Array.from({ length: 15 }, (_, i) => String(i + 2));
+export const apimartExtMarkupError = 'APIMart GPT Image 2.6 EXT 不支持交互编辑标注。请切换到 GPT Image 2.6 标准版或 OpenAI 官方渠道。';
+
+export function validateSunburstMarkup(outputFormat: string, hasImages: boolean, hasMask: boolean) {
+  if (hasMask) throw new Error('交互编辑标注与 Mask 不能同时使用，请断开 Mask 后再运行。');
+  if (!hasImages) throw new Error('交互编辑标注需要原图。');
+  if (outputFormat === 'gif' || outputFormat === 'svg') throw new Error('交互编辑标注需要使用 PNG、JPEG 或 WebP 输出。');
+}
 
 export function validateSunburstImageInputs(outputFormat: string, hasImages: boolean, hasMask: boolean, provider: SunburstProvider = 'openai', channelModel?: ApimartChannelModel) {
   if (provider === 'apimart' && channelModel === 'gpt-image-2.6') {
