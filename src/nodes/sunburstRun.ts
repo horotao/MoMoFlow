@@ -31,7 +31,7 @@ import type { AppNode, FileAsset, SunburstNode } from './types';
 import { isNodeLocked, isSunburstNode, isImageGeneratorNode } from './types.ts';
 import { fileAssets } from './fileCollection.ts';
 import { resolveTextValue } from './textVariables.ts';
-import { apimartFixedSettings, migrateSunburstProvider, sunburstParameterDefaults, sunburstFieldLabels, validateSunburstImageInputs, validateSunburstVariant, sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
+import { apimartFixedSettings, migrateSunburstProvider, sunburstParameterDefaults, validateSunburstImageInputs, validateSunburstVariant, sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
 import type { SunburstRequest } from './sunburst';
 import type { PreviewTask } from './taskQueue';
 
@@ -227,16 +227,8 @@ export function imageOutput(node: AppNode | undefined, handle?: string | null, n
   return imageResolution(nodes, edges, visited).output(node, handle);
 }
 
-export function effectiveSunburstSettings(node: SunburstNode, nodes: AppNode[], edges: Edge[]): Record<string, unknown> {
-  const settings = Object.fromEntries(Object.entries({ ...sunburstParameterDefaults, ...node.data, provider: node.data.provider }).filter(([field]) => field in sunburstFieldLabels).map(([field, value]) => {
-    if (field in apimartFixedSettings) return [field, apimartFixedSettings[field as keyof typeof apimartFixedSettings]];
-    const edge = edges.find(item => item.target === node.id && item.targetHandle === field);
-    return [field, edge ? resolveTextValue(edge.source, nodes, edges).trim() : value];
-  }));
-  const migrated = migrateSunburstProvider(settings.provider);
-  if (!migrated) return settings;
-  const channelModelConnected = edges.some(edge => edge.target === node.id && edge.targetHandle === 'channelModel');
-  return { ...settings, ...migrated, ...(channelModelConnected ? { channelModel: settings.channelModel } : {}) };
+export function effectiveSunburstSettings({ data }: SunburstNode) {
+  return { ...sunburstParameterDefaults, ...data, ...migrateSunburstProvider(data.provider), ...apimartFixedSettings };
 }
 
 export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[], runs: number): { tasks: PreviewTask[]; error?: string } {
@@ -246,7 +238,7 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
     for (const id of new Set(ids)) {
       const node = nodes.find(item => item.id === id);
       if (!node || !isSunburstNode(node) || isNodeLocked(node)) continue;
-      const effective = effectiveSunburstSettings(node, nodes, edges);
+      const effective = effectiveSunburstSettings(node);
       const provider = validateSunburstProvider(effective.provider);
       const variant = validateSunburstVariant(effective.variant);
       const settings = validateSunburstSettings(effective);

@@ -35,6 +35,7 @@ export const sunburstPreset = createImagePreset('sunburst', defaultSunburstPrese
   const { provider, variant } = value as SunburstPreset;
   return {
     ...settings,
+    outputFormat: settings.outputFormat === 'webp' ? 'png' : settings.outputFormat,
     provider: validateSunburstProvider(provider),
     variant: validateSunburstVariant(variant),
   };

@@ -3,7 +3,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { AlertCircleIcon } from '@hugeicons/core-free-icons';
 
 export function ParameterField({ label, children, exposeButton, detail, controlId, labelHint }: {
-  label: string; children: ReactNode; exposeButton: ReactNode; detail?: ReactNode; controlId?: string; labelHint?: string;
+  label: string; children: ReactNode; exposeButton?: ReactNode; detail?: ReactNode; controlId?: string; labelHint?: string;
 }) {
   const hintId = useId();
   return <div className="describer-field parameter-field sunburst-parameter-field">

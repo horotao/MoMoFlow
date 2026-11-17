@@ -1,6 +1,7 @@
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { normalizeSeedreamSize, seedreamAspectRatios, seedreamResolutions, validateSeedreamSize, type SeedreamSettings } from '../nodes/seedream';
-import { DescriberModelSelect } from './DescriberModelSelect';
+import { GptSettingsSelect } from './GptSettingsSelect';
+import { GptSettingsSegments } from './GptSettingsSegments';
 import { ParameterField } from './ParameterField';
 
 function SeedreamPixelInputs({ value, disabled, onChange }: { value: string; disabled?: boolean; onChange: (value: string) => void }) {
@@ -56,31 +57,29 @@ function SeedreamPixelInputs({ value, disabled, onChange }: { value: string; dis
   </div>;
 }
 
-export function SeedreamSizeSelect({ value, resolution, disabled, resolutionDisabled, onChange, onResolutionChange, exposeButton, resolutionExposeButton }: {
-  value: string; resolution: string; disabled?: boolean; resolutionDisabled?: boolean;
+export function SeedreamSizeSelect({ value, resolution, disabled, onChange, onResolutionChange }: {
+  value: string; resolution: string; disabled?: boolean;
   onChange: (value: string) => void; onResolutionChange: (value: SeedreamSettings['resolution']) => void;
-  exposeButton: ReactNode; resolutionExposeButton: ReactNode;
 }) {
   const presets: readonly string[] = ['auto', ...seedreamAspectRatios];
   const custom = !presets.includes(value);
   let error = '';
   try { validateSeedreamSize(value); } catch (cause) { error = (cause as Error).message; }
   return <>
-    <ParameterField label="宽高比" exposeButton={exposeButton} detail={<>
+    <ParameterField label="宽高比" detail={<>
       {custom && <SeedreamPixelInputs value={value} disabled={disabled} onChange={onChange} />}
       {error && <div className="sunburst-size-note" role="alert">{error}</div>}
     </>}>
-      <DescriberModelSelect appearance="settings" fluidHover compact label="宽高比" value={custom ? 'custom' : value}
+      <GptSettingsSelect label="宽高比" value={custom ? 'custom' : value}
         choices={[...presets, 'custom']} labels={['自动', ...seedreamAspectRatios, '精确像素']} disabled={disabled}
         onChange={next => onChange(next === 'custom' ? resolution === '2K' ? '2048x2048' : '1536x1536' : next)} />
     </ParameterField>
-    <ParameterField label="分辨率" exposeButton={resolutionExposeButton}>
-      <DescriberModelSelect appearance="settings" fluidHover compact label="分辨率" value={custom ? 'custom' : resolution}
-        choices={custom ? ['custom'] : seedreamResolutions} labels={custom ? ['精确像素'] : seedreamResolutions}
-        disabled={resolutionDisabled || custom} onChange={value => {
+    {!custom && <ParameterField label="分辨率">
+      <GptSettingsSegments label="分辨率" value={resolution} choices={seedreamResolutions}
+        disabled={disabled} onChange={value => {
           const next = seedreamResolutions.find(resolution => resolution === value);
           if (next) onResolutionChange(next);
         }} />
-    </ParameterField>
+    </ParameterField>}
   </>;
 }

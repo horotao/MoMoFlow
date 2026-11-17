@@ -1,3 +1,4 @@
+import { chooseGptSetting, gptSettingOptions, gptSettingDisabled } from './gptSidebarControls';
 import { apiSettingsStorageKey } from '../src/components/apiSettings';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
@@ -35,15 +36,8 @@ const find = <T extends HTMLElement = HTMLButtonElement>(selector: string) => {
 const checks: string[] = [];
 function check(value: unknown, message: string) { if (!value) throw new Error(message); checks.push(message); }
 const read = () => api.getNode('seedream') as SeedreamNode;
-async function options(label: string) {
-  find(`[aria-label="${label}"]`).click(); await settle();
-  return [...document.querySelectorAll<HTMLElement>('[role="option"]')];
-}
-async function choose(label: string, text: string) {
-  const option = (await options(label)).find(item => item.textContent === text);
-  if (!option) throw new Error(`Missing ${label} option ${text}`);
-  option.click(); await settle();
-}
+const options = (label: string) => gptSettingOptions(label, settle);
+const choose = (label: string, text: string) => chooseGptSetting(label, text, settle);
 async function dimension(label: string, value: string) {
   const input = find<HTMLInputElement>(`[aria-label="图像${label}"]`);
   input.focus();
@@ -124,25 +118,17 @@ async function run() {
   check(searchableNodeMenuEntries.some(entry => entry.nodeId === 'seedream'), 'Search includes the implemented Seedream node');
   check(read().data.resolution === '1.5K' && read().data.outputFormat === 'png' && !read().data.nsfwCheck && !read().data.watermark, 'Defaults are 1.5K, PNG, moderation off and watermark off');
   const sizes = await options('分辨率');
-  check(sizes.map(item => item.textContent).join(',') === '1.5K,2K', 'Resolution provides exactly 1.5K and 2K');
-  sizes.find(item => item.textContent === '2K')!.click(); await settle();
+  check(sizes.join(',') === '1.5K,2K', 'Resolution provides exactly 1.5K and 2K');
+  await choose('分辨率', '2K');
   check(!document.querySelector('[data-id="seedream"] [data-handleid="mask"]'), 'Seedream keeps Mask unavailable');
-  find('[aria-label="将分辨率设为输入"]').click(); await settle();
-  check(read().data.exposed?.includes('resolution') && api.getEdges().some(edge => edge.targetHandle === 'resolution'), 'Expose creates a typed resolution input');
-  find('[aria-label="分辨率使用本地值"]').click(); await settle();
-  check(!read().data.exposed?.length && read().data.resolution === '2K', 'Returning to local settings preserves effective resolution');
+  check(!document.querySelector('.image-model-settings .describer-expose')
+    && !find('.image-model-settings .node-settings-fields').textContent?.includes('APIMart'), 'Parameters are edited locally and the provider row is omitted');
   const ratios = await options('宽高比');
-  check(ratios.map(item => item.textContent).join(',') === ['自动', ...seedreamAspectRatios, '精确像素'].join(','), 'Ratio menu offers exactly the ten requested ratios, auto and exact pixels');
-  ratios.find(item => item.textContent === '16:9')!.click(); await settle();
+  check(ratios.join(',') === ['自动', ...seedreamAspectRatios, '精确像素'].join(','), 'Ratio menu offers exactly the ten requested ratios, auto and exact pixels');
+  await choose('宽高比', '16:9');
   check(read().data.size === '16:9' && getComputedStyle(find('[data-id="seedream"] .sunburst-preview')).aspectRatio === '16 / 9', 'Empty preview follows the selected aspect ratio');
-  find('[aria-label="将宽高比设为输入"]').click(); await settle();
-  const sizeEdge = api.getEdges().find(edge => edge.target === 'seedream' && edge.targetHandle === 'size')!;
-  api.updateNodeData(sizeEdge.source, { model: '2:1' }); await settle();
-  check(getComputedStyle(find('[data-id="seedream"] .sunburst-preview')).aspectRatio === '2 / 1', 'Exposed ratio drives preview through the connected parameter');
-  find('[aria-label="宽高比使用本地值"]').click(); await settle();
-  check(read().data.size === '2:1' && !read().data.exposed?.includes('size'), 'Returning to local ratio retains the connected value');
   await choose('宽高比', '精确像素');
-  check(read().data.size === '2048x2048' && find('[aria-label="分辨率"]').hasAttribute('disabled'), 'Exact mode starts at the retained 2K size and disables resolution');
+  check(read().data.size === '2048x2048' && !document.querySelector('[aria-label="分辨率"]'), 'Exact mode starts at the retained 2K size and hides resolution');
   await dimension('宽度', '1537'); await dimension('高度', '1001');
   check(read().data.size === '2048x2048', 'Moving between width and height keeps the full pair as a local draft');
   await finishDimensions();
@@ -195,7 +181,7 @@ async function run() {
   check(requests.length === 0, 'Automatic correction never starts a model request');
   await dimension('宽度', '512'); await choose('宽高比', '16:9'); await pause(350);
   check(read().data.size === '16:9', 'Switching modes cancels an unfinished correction');
-  check(read().data.resolution === '2K' && !find('[aria-label="分辨率"]').hasAttribute('disabled') && !document.querySelector('[aria-label="图像宽度"]'), 'Switching back to a ratio restores the retained resolution');
+  check(read().data.resolution === '2K' && !gptSettingDisabled('分辨率') && !document.querySelector('[aria-label="图像宽度"]'), 'Switching back to a ratio restores the retained resolution');
   await choose('输出格式', 'JPEG'); await choose('背景', '透明');
   check(read().data.background === 'transparent' && read().data.outputFormat === 'png', 'Transparent background switches local output to PNG');
   check(requests.length === 0, 'Editing settings does not generate images');

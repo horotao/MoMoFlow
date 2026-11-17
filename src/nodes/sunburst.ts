@@ -45,6 +45,10 @@ export function sunburstFormats(provider: SunburstProvider, channelModel?: Apima
   if (provider !== 'apimart') return ['png', 'jpeg', 'webp', 'svg'];
   return channelModel === 'gpt-image-2.6' ? imageFormats : ['png', 'jpeg', 'webp', 'gif'];
 }
+// Keep saved WebP requests valid, but offer only the current formats for new selections.
+export function sunburstOutputChoices(provider: SunburstProvider, channelModel?: ApimartChannelModel) {
+  return sunburstFormats(provider, channelModel).filter(format => format !== 'webp');
+}
 export const apimartAspectRatios = ['auto', '1:1', '3:2', '2:3', '4:3', '3:4', '5:4', '4:5', '16:9', '9:16', '21:9'] as const;
 export const apimartStandardAspectRatios = [...apimartAspectRatios, '9:21', '2:1', '1:2', '3:1', '1:3'] as const;
 export const apimartComplexities = ['auto', 'low', 'medium', 'high'] as const;
@@ -77,7 +81,6 @@ export function sunburstPresetSize(ratio: string, resolution: SunburstResolution
 export const sunburstSizePresets = sunburstResolutions.flatMap(resolution => imageSizes.filter(size => size !== 'auto').map(ratio => ({
   ratio, resolution, size: sunburstPresetSize(ratio, resolution),
 })));
-export const sunburstSizeChoices = ['auto', ...sunburstSizePresets.map(preset => preset.size)];
 export function sunburstSizePreset(size: string) {
   return sunburstSizePresets.find(preset => preset.size === size);
 }
@@ -98,9 +101,6 @@ export type SunburstParameter = keyof SunburstSettings | 'provider' | 'variant';
 export const sunburstFieldLabels: Record<SunburstParameter, string> = { provider: 'Provider', variant: 'Model Version', quality: 'Quality', background: 'Background', size: 'Aspect Ratio', outputFormat: 'Output Format', resolution: 'Resolution', complexity: 'Complexity', channelModel: 'Channel Model', moderation: 'Moderation', frameCount: 'Frame Count', svgModel: 'SVG Model', svgEffort: 'SVG Effort' };
 export const apimartFixedSettings = { complexity: 'auto', moderation: 'low' } as const;
 export const sunburstParameterDefaults = { provider: 'openai', variant: 'Sunburst', resolution: '1K', ...apimartFixedSettings, channelModel: 'gpt-image-2.6-ext', frameCount: 9, svgModel: 'gpt-6-luna', svgEffort: 'auto' } as const;
-export function sunburstLocalParameter(data: SunburstSettings & { provider?: SunburstProvider; variant?: string }, field: SunburstParameter): string {
-  return String(data[field] ?? (field in sunburstParameterDefaults ? sunburstParameterDefaults[field as keyof typeof sunburstParameterDefaults] : 'auto'));
-}
 export const defaultSunburstSettings: SunburstSettings = { quality: 'medium', background: 'auto', size: 'auto', outputFormat: 'png' };
 export type SunburstRequest = SunburstSettings & {
   provider?: SunburstProvider;
@@ -176,23 +176,7 @@ export function validateSunburstSize(size: unknown): string {
   return size;
 }
 
-export const sunburstChoices: Record<keyof SunburstSettings, readonly string[]> = {
-  quality: imageQualities, background: imageBackgrounds, size: sunburstSizeChoices, outputFormat: sunburstFormats('openai'), resolution: sunburstResolutions, complexity: apimartComplexities,
-  channelModel: apimartChannelModels, moderation: imageModerations, frameCount: Array.from({ length: 15 }, (_, i) => String(i + 2)), svgModel: apimartSvgModels, svgEffort: apimartSvgEfforts,
-};
-
-export function sunburstParameterData(field: SunburstParameter, value: string, provider: SunburstProvider = 'openai', settings: Partial<SunburstSettings> = {}) {
-  let choices: readonly string[];
-  if (field === 'provider') choices = sunburstProviders;
-  else if (field === 'variant') choices = sunburstVariants;
-  else if (field === 'outputFormat') choices = sunburstFormats(provider, settings.channelModel);
-  else if (field === 'svgEffort') choices = apimartSvgModelEfforts(settings.svgModel);
-  else if (field === 'size' && provider === 'apimart') {
-    choices = settings.channelModel !== 'gpt-image-2.6' ? apimartAspectRatios
-      : settings.outputFormat === 'gif' ? ['auto', '512x512'] : apimartStandardAspectRatios;
-  } else choices = sunburstChoices[field];
-  return { label: sunburstFieldLabels[field], model: value, options: choices.includes(value) ? [...choices] : [value, ...choices], parameter: field };
-}
+export const sunburstFrameCounts = Array.from({ length: 15 }, (_, i) => String(i + 2));
 
 export function validateSunburstImageInputs(outputFormat: string, hasImages: boolean, hasMask: boolean, provider: SunburstProvider = 'openai', channelModel?: ApimartChannelModel) {
   if (provider === 'apimart' && channelModel === 'gpt-image-2.6') {
@@ -228,8 +212,6 @@ export function sunburstProviderSettings(data: SunburstSettings, provider: Sunbu
   };
 }
 
-export function sunburstHiddenParameters(provider: unknown, channelModel: unknown, outputFormat: unknown): string[] {
-  if (provider !== 'apimart') return ['channelModel', 'resolution', 'complexity', 'moderation', 'frameCount', 'svgModel', 'svgEffort'];
-  if (channelModel !== 'gpt-image-2.6') return ['background', 'complexity', 'moderation', 'frameCount', 'svgModel', 'svgEffort'];
-  return ['complexity', 'moderation', ...(outputFormat === 'gif' ? ['resolution'] : ['frameCount']), ...(outputFormat !== 'svg' ? ['svgModel', 'svgEffort'] : [])];
+export function isImageGenerationInput(handle: string | null | undefined, mask = false) {
+  return handle === 'prompt' || mask && handle === 'mask' || /^image-\d+$/.test(handle ?? '');
 }

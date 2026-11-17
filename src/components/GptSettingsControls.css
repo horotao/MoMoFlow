@@ -1,0 +1,123 @@
+.gpt-select-trigger,
+.gpt-segments { box-shadow: inset 0 0 0 1px var(--panel-border); }
+
+[data-settings-select-host] .gpt-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  height: 32px;
+  padding: 0 1px 0 10px;
+  background: var(--panel-input);
+  color: var(--panel-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+[data-settings-select-host] .gpt-select-trigger:hover:not(:disabled) { background: #333; }
+.gpt-select-trigger:focus-visible { outline: 1px solid var(--panel-muted); outline-offset: -1px; }
+.gpt-select-trigger img { flex-shrink: 0; }
+
+.gpt-select-menu {
+  position: absolute;
+  padding: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #525252 transparent;
+  border: 1px solid var(--panel-border);
+  outline: none;
+  background: var(--panel-input);
+  color: var(--panel-muted);
+  transform-origin: top;
+}
+
+.gpt-select-menu [role='option'] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  height: 28px;
+  padding: 0 7px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.gpt-select-trigger span,
+.gpt-select-menu [role='option'] span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gpt-select-menu [role='option'] svg { width: 14px; height: 14px; flex-shrink: 0; }
+.gpt-select-menu [aria-selected='true'] { color: var(--panel-text); }
+.gpt-select-menu [data-active='true'],
+.gpt-select-menu [role='option']:hover { background: var(--gpt-settings-active); color: var(--panel-text); }
+
+.gpt-segments {
+  --segment-padding: 4px;
+  --segment-gap: 2px;
+  --segment-pitch: calc((100% - 2 * var(--segment-padding) + var(--segment-gap)) / var(--segments));
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(var(--segments), minmax(0, 1fr));
+  gap: var(--segment-gap);
+  padding: var(--segment-padding);
+  border-radius: 12px;
+  background: var(--gpt-settings-surface);
+}
+
+.gpt-segment-indicator {
+  position: absolute;
+  inset: var(--segment-padding) auto var(--segment-padding) var(--segment-padding);
+  z-index: -1;
+  width: calc(var(--segment-pitch) - var(--segment-gap));
+  border-radius: 8px;
+  background: var(--gpt-settings-active);
+  pointer-events: none;
+  transform: translateX(calc(var(--segment-position) * (100% + var(--segment-gap))));
+}
+
+.gpt-segments .gpt-segment { position: relative; margin: 0; color: var(--panel-muted); cursor: pointer; }
+.gpt-segment input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: inherit; }
+.gpt-segment span { display: grid; height: 28px; place-items: center; border-radius: 8px; pointer-events: none; }
+.gpt-segment input:focus-visible + .gpt-segment-label { outline: 1px solid #b3b3b3; outline-offset: -1px; }
+
+.gpt-segment-active-label {
+  --indicator-offset: calc((var(--segment-position) - var(--segment-index)) * (100% + var(--segment-gap)));
+  position: absolute;
+  inset: 0;
+  color: var(--panel-text);
+  clip-path: inset(0 max(0px, calc(-1 * var(--indicator-offset))) 0 max(0px, var(--indicator-offset)));
+}
+
+.gpt-run-count {
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 48px;
+  gap: 16px;
+}
+
+.gpt-run-range.node-range-input {
+  --elastic-thumb: 14px;
+  --elastic-track: 4px;
+  --elastic-background: var(--panel-border);
+  --elastic-fill: var(--panel-muted);
+  --elastic-thumb-background: url('/gpt-sidebar/run-thumb.svg') no-repeat center;
+}
+
+.gpt-run-range .node-range-thumb { box-shadow: none; }
+
+.gpt-run-count-value {
+  display: grid;
+  place-items: center;
+  height: 28px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.gpt-segments[aria-disabled='true'] { opacity: .5; }
+.gpt-segments[aria-disabled='true'] .gpt-segment,
+.gpt-select-trigger:disabled { cursor: default; }
+.gpt-segments:not([aria-disabled]) .gpt-segment:hover { color: var(--panel-text); }
+
+.gpt-run-field { display: grid; gap: 4px; }
+.gpt-run-field > span { color: var(--panel-muted); }

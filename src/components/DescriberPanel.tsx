@@ -7,6 +7,7 @@ import { NanoBananaSettings } from './NanoBananaSettings';
 import { nanoBananaName } from '../nodes/nanoBanana';
 import { ModelOptionsSettings } from './ModelOptionsSettings';
 import { SunburstSettings } from './SunburstSettings';
+import { GptRunCount } from './GptRunCount';
 import { sunburstName, sunburstProviderLabels } from '../nodes/sunburst';
 import { useEffect, useState, type KeyboardEventHandler, type ReactNode } from 'react';
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react';
@@ -26,16 +27,18 @@ import { NodeSettingsSection } from './NodeSettingsSection';
 import { ParameterField } from './ParameterField';
 import { ParameterExposeButton } from './ParameterExposeButton';
 import './NodeSettingsSidebar.css';
+import './ImageModelSettings.css';
 
-function NodeSettingsSidebar({ children, label, onKeyDown, sunburst = false }: {
-  children: ReactNode; label: string; onKeyDown: KeyboardEventHandler<HTMLElement>; sunburst?: boolean;
+function NodeSettingsSidebar({ children, label, onKeyDown, imageModel = false }: {
+  children: ReactNode; label: string; onKeyDown: KeyboardEventHandler<HTMLElement>; imageModel?: boolean;
 }) {
   const isPresent = useIsPresent();
   const reduceMotion = useReducedMotion();
   const closed = reduceMotion ? { opacity: 0 } : { x: '100%' };
   return <motion.aside
-    className={`describer-panel node-settings-panel is-open nodrag nopan nowheel${sunburst ? ' gpt-image-settings' : ''}`}
+    className={`describer-panel node-settings-panel is-open nodrag nopan nowheel${imageModel ? ' image-model-settings' : ''}`}
     aria-label={label}
+    data-settings-select-host=""
     initial={closed}
     animate={reduceMotion ? { opacity: 1 } : { x: '0%' }}
     exit={closed}
@@ -60,7 +63,6 @@ export function DescriberPanel() {
   const selected = nodes.find((n): n is ImageDescriberNode => n.type === 'image-describer' && Boolean(n.selected));
   const selectedModel = nodes.find((n): n is ModelInputNode => n.type === 'model-input' && Boolean(n.selected));
   const panelOpen = Boolean(selected || selectedModel || selectedImage);
-  const sunburstPanel = Boolean(selectedImage && isSunburstNode(selectedImage));
   const tasks = useModelTasks();
   const taskStore = useModelTaskStore();
   const execution = useWorkflowExecution();
@@ -107,7 +109,7 @@ export function DescriberPanel() {
   return <>
     {/* Presence retains the last settings and full-height shell until the exit finishes. */}
     <AnimatePresence initial={false}>
-      {panelOpen && <NodeSettingsSidebar key="node-settings" sunburst={sunburstPanel} label={selectedImage ? `${selectedImage.type === 'seedream' ? seedreamName : selectedImage.type === 'nano-banana' ? nanoBananaName : sunburstName} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => e.stopPropagation()}>
+      {panelOpen && <NodeSettingsSidebar key="node-settings" imageModel={Boolean(selectedImage)} label={selectedImage ? `${selectedImage.type === 'seedream' ? seedreamName : selectedImage.type === 'nano-banana' ? nanoBananaName : sunburstName} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => e.stopPropagation()}>
         {selectedModel && !selectedImage && <ModelOptionsSettings key={selectedModel.id} node={selectedModel} onChange={data => updateNodeData(selectedModel.id, data)} />}
         {selectedImage && isSunburstNode(selectedImage) && <SunburstSettings key={selectedImage.id} node={selectedImage} />}
         {selectedImage && isSeedreamNode(selectedImage) && <SeedreamSettings key={selectedImage.id} node={selectedImage} />}
@@ -126,15 +128,20 @@ export function DescriberPanel() {
         </>}
         {(selected || selectedImage) && <>
           <div className="describer-panel-bottom">
-            <h3>运行选中节点</h3>
-            <div className="describer-runs"><span>运行次数</span><div>
-              <button aria-label="减少运行次数" disabled={!runnable.length || runs === 1} onClick={() => setRuns(runs - 1)}><DescriberIcon name="minus" /></button>
-              <span>{runs}</span>
-              <button aria-label="增加运行次数" disabled={!runnable.length || runs === 10} onClick={() => setRuns(runs + 1)}><DescriberIcon name="plus" /></button>
-            </div></div>
+            {selectedImage ? <GptRunCount value={runs} disabled={!runnable.length} onChange={setRuns} /> : <>
+              <h3>运行选中节点</h3>
+              <div className="describer-runs"><span>运行次数</span><div>
+                <button aria-label="减少运行次数" disabled={!runnable.length || runs === 1} onClick={() => setRuns(runs - 1)}><DescriberIcon name="minus" /></button>
+                <span>{runs}</span>
+                <button aria-label="增加运行次数" disabled={!runnable.length || runs === 10} onClick={() => setRuns(runs + 1)}><DescriberIcon name="plus" /></button>
+              </div></div>
+            </>}
             {(selectedImage || selected) && <IterationSummary nodeId={(selectedImage || selected)!.id} />}
             {selectedImage && <div className="sunburst-cost"><span>总费用</span><span>按实际用量计费</span></div>}
-            <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? `通过 ${providerName} 运行图片模型` : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => isModelNode(node) && node.selected && !node.data.locked).map((node) => node.id) }))}><DescriberIcon name="run" />运行选中节点</button>
+            <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? `通过 ${providerName} 运行图片模型` : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => isModelNode(node) && node.selected && !node.data.locked).map((node) => node.id) }))}>
+              {selectedImage ? <img src="/gpt-sidebar/settings-run.svg" width={22} height={22} alt="" /> : <DescriberIcon name="run" />}
+              运行选中节点
+            </button>
           </div>
         </>}
       </NodeSettingsSidebar>}

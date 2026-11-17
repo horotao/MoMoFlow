@@ -499,13 +499,13 @@ test('known empty prompts and invalid static parameters fail before any upstream
   }
 });
 
-test('dynamic prompts and settings defer validation; fixed manual inputs are validated immediately', async () => {
-  const graph: ExecutionGraph = { nodes: [file('a'), describer('d'), generator('g'), textNode('p', 'paint')], edges: [edge('a', 'd', 'image-0', 'file'), edge('d', 'g', 'size'), edge('p', 'g', 'prompt')] };
+test('dynamic prompts defer validation; fixed manual inputs are validated immediately', async () => {
+  const graph: ExecutionGraph = { nodes: [file('a'), describer('d'), generator('g'), textNode('p', 'paint')], edges: [edge('a', 'd', 'image-0', 'file'), edge('d', 'g', 'prompt')] };
   const h = harness(graph, async task => task.nodeId === 'd' ? '1024x1024' : generatedAsset('g'));
   await h.engine.run(['g'], 1);
-  assert.equal(h.requests[1].imageRequest?.size, '1024x1024');
-  h.edit(current => ({ ...current, nodes: current.nodes.map(node => node.id === 'd' ? { ...node, data: { ...node.data, text: 'invalid', outputMode: 'manual' } } as AppNode : node) }));
-  assert.throws(() => h.engine.run(['g'], 1), /有效的宽高/);
+  assert.equal(h.requests[1].imageRequest?.prompt, '1024x1024');
+  h.edit(current => ({ ...current, nodes: current.nodes.map(node => node.id === 'd' ? { ...node, data: { ...node.data, text: 'x'.repeat(32001), outputMode: 'manual' } } as AppNode : node) }));
+  assert.throws(() => h.engine.run(['g'], 1), /提示词/);
   assert.equal(h.requests.length, 2);
 });
 

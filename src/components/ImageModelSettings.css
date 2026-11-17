@@ -1,0 +1,45 @@
+.describer-panel.node-settings-panel.image-model-settings {
+  --gpt-settings-surface: #282828;
+  --gpt-settings-active: #383838;
+  font: 400 12px/18px var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+.node-settings-panel.image-model-settings .node-settings-fields { padding: 12px 16px 22px; }
+.node-settings-panel.image-model-settings .parameter-field { position: relative; }
+.node-settings-panel.image-model-settings .parameter-field > label,
+.node-settings-panel.image-model-settings .parameter-field-label-row {
+  margin-bottom: 4px;
+  min-height: 18px;
+}
+.node-settings-panel.image-model-settings .parameter-field-label-row { gap: 5px; }
+.node-settings-panel.image-model-settings .parameter-field-hint-trigger { width: 14px; height: 18px; }
+.node-settings-panel.image-model-settings .describer-field-row { grid-template-columns: minmax(0, 1fr); }
+.node-settings-panel.image-model-settings .sunburst-custom-size { width: 100%; }
+.node-settings-panel.image-model-settings .sunburst-dimension { height: 32px; border-radius: 12px; }
+.node-settings-panel.image-model-settings .sunburst-dimension input { font: inherit; }
+.gpt-settings-legacy-format { margin: 4px 0 0; }
+
+.describer-panel.node-settings-panel.image-model-settings .describer-panel-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 12px 16px;
+}
+.image-model-settings .describer-panel-bottom .sunburst-cost,
+.image-model-settings .describer-panel-bottom .text-iteration-summary,
+.image-model-settings .describer-panel-bottom .iterator-warning { margin: 0; }
+.describer-panel.node-settings-panel.image-model-settings .describer-primary {
+  height: 34px;
+  margin: 0;
+  padding: 0 10px;
+  border-radius: 12px;
+  corner-shape: round;
+  font-size: 11px;
+  transition: transform 130ms cubic-bezier(.23, 1, .32, 1);
+}
+.image-model-settings .describer-primary:active:not(:disabled) { transform: scale(.98); }
+@media (prefers-reduced-motion: reduce) {
+  .describer-panel.node-settings-panel.image-model-settings .describer-primary { transition: none; }
+  .image-model-settings .describer-primary:active:not(:disabled) { transform: none; }
+}

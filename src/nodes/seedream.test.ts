@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, FileAsset, SeedreamNode } from './types';
-import { defaultSeedreamSettings, normalizeSeedreamSize, seedreamAspectRatios, seedreamModel, seedreamParameterData, seedreamPreviewAspectRatio, seedreamSizeLimits, validateSeedreamSettings, validateSeedreamSize } from './seedream.ts';
+import { defaultSeedreamSettings, normalizeSeedreamSize, seedreamAspectRatios, seedreamModel, seedreamPreviewAspectRatio, seedreamSizeLimits, validateSeedreamSettings, validateSeedreamSize } from './seedream.ts';
 import { prepareSeedreamRun } from './seedreamRun.ts';
 import { imageOutput } from './sunburstRun.ts';
 import { canConnect } from './connectionRules.ts';
-import { connectionChoices, initializeConnectionParameter, type PendingConnection } from './connectionRecommendations.ts';
+import { connectionChoices, type PendingConnection } from './connectionRecommendations.ts';
 import { extractFileAsset } from './fileCollection.ts';
 import { nodeAssetUrls, taskAssetUrls } from './assetResources.ts';
 import { mapAssets, workflowSnapshot } from '../persistence/workflowStorage.ts';
@@ -70,27 +70,20 @@ test('legacy Seedream data keeps automatic sizing and 1.5K through execution and
   assert.equal(prepareModel({ nodes: [node, prompt], edges }, node.id).seedreamRequest?.size, 'auto');
 });
 
-test('exact local pixels ignore exposed resolution dependencies while size parameters retain their connection contract', () => {
+test('exact local pixels ignore retired resolution dependencies', () => {
   const exact: SeedreamNode = { ...seedream, data: { ...seedream.data, size: '1537x1001', exposed: ['resolution'] } };
   const resolution: AppNode = { id: 'resolution', type: 'model-input', position: { x: 0, y: 0 }, data: { model: '4K' } };
   const resolutionEdge = { id: 'resolution', source: resolution.id, target: exact.id, targetHandle: 'resolution' };
   const graph = { nodes: [exact, prompt, resolution], edges: [...edges, resolutionEdge] };
   assert.deepEqual(executionInputs(exact, undefined, graph), edges);
   assert.deepEqual(prepareModel(graph, exact.id).seedreamRequest, { ...defaultSeedreamSettings, size: '1537x1001', prompt: prompt.data.text, images: [] });
-  const sized: SeedreamNode = { ...seedream, data: { ...seedream.data, exposed: ['size'] } };
-  const parameter: AppNode = { ...resolution, id: 'size', data: seedreamParameterData('size', '21:9') };
-  const connection = { id: 'size', source: parameter.id, target: sized.id, targetHandle: 'size' };
-  assert.equal(canConnect(connection, [sized, parameter], []), true);
-  assert.equal(prepareModel({ nodes: [sized, prompt, parameter], edges: [...edges, connection] }, sized.id).seedreamRequest?.size, '21:9');
-  assert.deepEqual(seedreamParameterData('size', '1537x1001').options?.[0], '1537x1001');
 });
 
-test('runs snapshot exact model, prompt, sorted references and exposed parameters', () => {
+test('runs snapshot exact model, prompt, sorted references and local parameters', () => {
   const second: AppNode = { ...file, id: 'second', data: { assets: [{ ...asset, id: 'b', url: 'blob:b' }] } };
-  const parameter: AppNode = { id: 'ratio', type: 'model-input', position: { x: 0, y: 0 }, data: seedreamParameterData('resolution', '2K') };
-  const result = prepareSeedreamRun([...nodes, second, parameter], [...edges,
+  const configured: SeedreamNode = { ...seedream, data: { ...seedream.data, resolution: '2K' } };
+  const result = prepareSeedreamRun([configured, prompt, file, second], [...edges,
     { ...imageEdge, id: 'second', source: second.id, targetHandle: 'image-1' }, imageEdge,
-    { id: 'r', source: parameter.id, target: seedream.id, targetHandle: 'resolution' },
   ], [seedream.id, seedream.id], 2);
   assert.equal(result.error, undefined); assert.equal(result.tasks.length, 2);
   assert.equal(result.tasks[0].model, seedreamModel);
@@ -124,9 +117,10 @@ test('connection rules support prompt/image/results/Router and reject masks, non
   assert.equal(canConnect({ ...imageEdge, source: router.id, sourceHandle: 'output' }, [...nodes, router], [toRouter]), false);
   const pending: PendingConnection = { nodeId: prompt.id, handleId: null, direction: 'source', screen: { x: 0, y: 0 }, position: { x: 0, y: 0 } };
   assert.ok(connectionChoices(pending, nodes, []).some(choice => choice.itemId === 'seedream' && choice.handleId === 'prompt'));
-  const exposed = { ...seedream, data: { ...seedream.data, exposed: ['resolution' as const], resolution: '2K' as const } };
-  const parameter: AppNode = { id: 'param', type: 'model-input', position: { x: 0, y: 0 }, data: { model: '' } };
-  assert.deepEqual(initializeConnectionParameter(parameter, { ...pending, nodeId: seedream.id, direction: 'target', handleId: 'resolution' }, [exposed]).data, seedreamParameterData('resolution', '2K'));
+  const legacy = { ...seedream, data: { ...seedream.data, exposed: ['resolution' as const] } };
+  const retired = { ...edges[0], targetHandle: 'resolution' };
+  assert.equal(canConnect(retired, [legacy, prompt], []), false);
+  assert.deepEqual(connectionChoices({ ...pending, nodeId: legacy.id, direction: 'target', handleId: 'resolution' }, [legacy, prompt], []), []);
 });
 
 test('selected result, extraction, clipboard, asset ownership and persisted data remain consistent', () => {
@@ -142,5 +136,8 @@ test('selected result, extraction, clipboard, asset ownership and persisted data
   assert.equal((extracted[0] as SeedreamNode).data.activeResultId, second.id);
   assert.deepEqual(imageOutput(extracted[1], 'file'), [asset]);
   const snapshot = workflowSnapshot({ nodes: [{ ...generated, selected: true }], edges: [], viewport: { x: 1, y: 2, zoom: .5 }, colorMode: 'dark' });
-  assert.equal(snapshot.nodes[0].selected, undefined); assert.deepEqual(snapshot.nodes[0].data, generated.data);
+  const localData = { ...generated.data };
+  delete localData.exposed;
+  assert.equal(snapshot.nodes[0].selected, undefined);
+  assert.deepEqual(snapshot.nodes[0].data, localData);
 });

@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, FileAsset, NanoBananaNode } from './types';
-import { defaultNanoBananaSettings, nanoBananaModel, nanoBananaParameterData } from './nanoBanana.ts';
+import { defaultNanoBananaSettings, nanoBananaModel } from './nanoBanana.ts';
 import { prepareNanoBananaRun } from './nanoBananaRun.ts';
 import { imageOutput } from './sunburstRun.ts';
 import { canConnect } from './connectionRules.ts';
-import { connectionChoices, initializeConnectionParameter, type PendingConnection } from './connectionRecommendations.ts';
+import { connectionChoices, type PendingConnection } from './connectionRecommendations.ts';
 import { extractFileAsset } from './fileCollection.ts';
 import { nodeAssetUrls, taskAssetUrls } from './assetResources.ts';
 import { mapAssets, workflowSnapshot } from '../persistence/workflowStorage.ts';
@@ -20,12 +20,11 @@ const nodes = [banana, prompt, file];
 const edges: Edge[] = [{ id: 'p', source: prompt.id, target: banana.id, targetHandle: 'prompt' }];
 const imageEdge: Edge = { id: 'i', source: file.id, sourceHandle: 'file', target: banana.id, targetHandle: 'image-0' };
 
-test('runs snapshot exact model, prompt, sorted references and exposed parameters', () => {
+test('runs snapshot exact model, prompt, sorted references and local parameters', () => {
   const second: AppNode = { ...file, id: 'second', data: { assets: [{ ...asset, id: 'b', url: 'blob:b' }] } };
-  const parameter: AppNode = { id: 'ratio', type: 'model-input', position: { x: 0, y: 0 }, data: nanoBananaParameterData('aspectRatio', '16:9') };
-  const result = prepareNanoBananaRun([...nodes, second, parameter], [...edges,
+  const configured: NanoBananaNode = { ...banana, data: { ...banana.data, aspectRatio: '16:9' } };
+  const result = prepareNanoBananaRun([configured, prompt, file, second], [...edges,
     { ...imageEdge, id: 'second', source: second.id, targetHandle: 'image-1' }, imageEdge,
-    { id: 'r', source: parameter.id, target: banana.id, targetHandle: 'aspectRatio' },
   ], [banana.id, banana.id], 2);
   assert.equal(result.error, undefined); assert.equal(result.tasks.length, 2);
   assert.equal(result.tasks[0].model, nanoBananaModel);
@@ -59,9 +58,10 @@ test('connection rules support prompt/image/results/Router and reject masks, non
   assert.equal(canConnect({ ...imageEdge, source: router.id, sourceHandle: 'output' }, [...nodes, router], [toRouter]), false);
   const pending: PendingConnection = { nodeId: prompt.id, handleId: null, direction: 'source', screen: { x: 0, y: 0 }, position: { x: 0, y: 0 } };
   assert.ok(connectionChoices(pending, nodes, []).some(choice => choice.itemId === 'nano-banana' && choice.handleId === 'prompt'));
-  const exposed = { ...banana, data: { ...banana.data, exposed: ['imageSize' as const], imageSize: '2K' as const } };
-  const parameter: AppNode = { id: 'param', type: 'model-input', position: { x: 0, y: 0 }, data: { model: '' } };
-  assert.deepEqual(initializeConnectionParameter(parameter, { ...pending, nodeId: banana.id, direction: 'target', handleId: 'imageSize' }, [exposed]).data, nanoBananaParameterData('imageSize', '2K'));
+  const legacy = { ...banana, data: { ...banana.data, exposed: ['imageSize' as const] } };
+  const retired = { ...edges[0], targetHandle: 'imageSize' };
+  assert.equal(canConnect(retired, [legacy, prompt], []), false);
+  assert.deepEqual(connectionChoices({ ...pending, nodeId: legacy.id, direction: 'target', handleId: 'imageSize' }, [legacy, prompt], []), []);
 });
 
 test('selected result, extraction, clipboard, asset ownership and persisted data remain consistent', () => {
@@ -77,5 +77,8 @@ test('selected result, extraction, clipboard, asset ownership and persisted data
   assert.equal((extracted[0] as NanoBananaNode).data.activeResultId, second.id);
   assert.deepEqual(imageOutput(extracted[1], 'file'), [asset]);
   const snapshot = workflowSnapshot({ nodes: [{ ...generated, selected: true }], edges: [], viewport: { x: 1, y: 2, zoom: .5 }, colorMode: 'dark' });
-  assert.equal(snapshot.nodes[0].selected, undefined); assert.deepEqual(snapshot.nodes[0].data, generated.data);
+  const localData = { ...generated.data };
+  delete localData.exposed;
+  assert.equal(snapshot.nodes[0].selected, undefined);
+  assert.deepEqual(snapshot.nodes[0].data, localData);
 });

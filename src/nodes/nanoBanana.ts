@@ -26,8 +26,3 @@ export function validateNanoBananaSettings(value: unknown): NanoBananaSettings {
     || !nanoBananaFormats.some(option => option === input.outputFormat)) throw new Error('不支持的 Nano Banana 图片参数。');
   return { aspectRatio: input.aspectRatio, imageSize: input.imageSize, outputFormat: input.outputFormat } as NanoBananaSettings;
 }
-
-export function nanoBananaParameterData(field: keyof NanoBananaSettings, value: string) {
-  const choices: readonly string[] = nanoBananaChoices[field];
-  return { label: nanoBananaFieldLabels[field], model: value, options: choices.includes(value) ? [...choices] : [value, ...choices], parameter: field };
-}

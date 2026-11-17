@@ -1,21 +1,10 @@
 import type { Edge } from '@xyflow/react';
-import type { AppNode, SeedreamNode } from './types';
+import type { AppNode } from './types';
 import { isSeedreamNode, isNodeLocked } from './types.ts';
-import { isSeedreamExactSize, seedreamChoices, seedreamMaxImages, seedreamModel, validateSeedreamSettings } from './seedream.ts';
+import { seedreamMaxImages, seedreamModel, validateSeedreamSettings } from './seedream.ts';
 import { imageOutput } from './sunburstRun.ts';
 import { resolveTextValue } from './textVariables.ts';
 import type { PreviewTask } from './taskQueue';
-
-export function effectiveSeedreamSettings(node: SeedreamNode, nodes: AppNode[], edges: Edge[]) {
-  const sizeEdge = edges.find(item => item.target === node.id && item.targetHandle === 'size');
-  const size = sizeEdge ? resolveTextValue(sizeEdge.source, nodes, edges).trim() : node.data.size ?? 'auto';
-  return Object.fromEntries(Object.keys(seedreamChoices).map(field => {
-    if (field === 'size') return [field, size];
-    if (field === 'resolution' && isSeedreamExactSize(size)) return [field, node.data.resolution];
-    const edge = edges.find(item => item.target === node.id && item.targetHandle === field);
-    return [field, edge ? resolveTextValue(edge.source, nodes, edges).trim() : node.data[field as keyof typeof seedreamChoices]];
-  }));
-}
 
 export function prepareSeedreamRun(nodes: AppNode[], edges: Edge[], ids: string[], runs: number): { tasks: PreviewTask[]; error?: string } {
   if (!Number.isInteger(runs) || runs < 1 || runs > 10) return { tasks: [], error: '运行次数必须为 1–10。' };
@@ -24,7 +13,7 @@ export function prepareSeedreamRun(nodes: AppNode[], edges: Edge[], ids: string[
     for (const id of new Set(ids)) {
       const node = nodes.find(item => item.id === id);
       if (!node || !isSeedreamNode(node) || isNodeLocked(node)) continue;
-      const settings = validateSeedreamSettings(effectiveSeedreamSettings(node, nodes, edges));
+      const settings = validateSeedreamSettings({ ...node.data, size: node.data.size ?? 'auto' });
       const inputs = edges.filter(edge => edge.target === id);
       const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
       const prompt = promptEdge ? resolveTextValue(promptEdge.source, nodes, edges).trim() : '';

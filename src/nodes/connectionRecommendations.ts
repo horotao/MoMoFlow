@@ -1,12 +1,9 @@
-import { seedreamParameterData } from './seedream.ts';
-import { nanoBananaParameterData } from './nanoBanana.ts';
 import { canConnect } from './connectionRules.ts';
 import { outputKind, resolveOutputSource } from './router.ts';
 import type { Connection, Edge, XYPosition } from '@xyflow/react';
 import type { AppNode } from './types';
 import { isCompositorNode, isNodeLocked, isImageGeneratorNode, isDescriberNode } from './types.ts';
 import { fileOutputKind } from './fileCollection.ts';
-import { sunburstLocalParameter, sunburstParameterData } from './sunburst.ts';
 
 export type PendingConnection = {
   nodeId: string;
@@ -28,22 +25,6 @@ export function choiceConnection(pending: PendingConnection, choice: ConnectionC
   return pending.direction === 'source'
     ? { source: pending.nodeId, sourceHandle: pending.handleId, target: newId, targetHandle: choice.handleId }
     : { source: newId, sourceHandle: choice.handleId, target: pending.nodeId, targetHandle: pending.handleId };
-}
-
-export function initializeConnectionParameter(node: AppNode, pending: PendingConnection, nodes: AppNode[]): AppNode {
-  if (node.type !== 'model-input' || pending.direction !== 'target') return node;
-  const target = nodes.find(item => item.id === pending.nodeId);
-  if (!target || !isImageGeneratorNode(target) || target.type === 'ideogram') return node;
-  if (target.type === 'seedream') {
-    const field = target.data.exposed?.find(item => item === pending.handleId);
-    return field ? { ...node, data: seedreamParameterData(field, String(target.data[field])) } : node;
-  }
-  if (target.type === 'nano-banana') {
-    const field = target.data.exposed?.find(item => item === pending.handleId);
-    return field ? { ...node, data: nanoBananaParameterData(field, target.data[field]) } : node;
-  }
-  const field = target.data.exposed?.find(item => item === pending.handleId);
-  return field ? { ...node, data: sunburstParameterData(field, sunburstLocalParameter(target.data, field), target.data.provider, target.data) } : node;
 }
 
 function directConnectionChoices(pending: PendingConnection, nodes: AppNode[]): ConnectionChoice[] {
@@ -68,7 +49,7 @@ function directConnectionChoices(pending: PendingConnection, nodes: AppNode[]): 
     && (pending.handleId?.startsWith('image-') || pending.handleId === 'mask');
   if (imageInput) return [choice('file', 'file'), choice('image-iterator', 'file', 90, 'File'), choice('masks-extractor', 'result', 89, 'Image With Alpha'), choice('masks-extractor', 'mask', 149, 'Mask'), choice('blend', 'result', 89, 'Result'), choice('compare', 'output-1', 89, 'Output 1'), choice('color-palette', 'image', 89, 'Image'), choice('compositor', 'result', 89, 'Output'), choice('sunburst', 'result'), choice('nano-banana', 'result', 89, 'Result'), choice('seedream', 'result', 89, 'Result'), choice('painter', pending.handleId === 'mask' ? 'mask' : 'result', pending.handleId === 'mask' ? 149 : 89), choice('resize', 'result', 89, 'Output'), choice('rotate-flip', 'result', 89, 'Result'), choice('invert', 'result', 89, 'Output'), choice('levels', 'result', 89, 'Output'), choice('matte-grow-shrink', 'result', 89, 'Output'), choice('blur', 'result', 89, 'Output'), choice('crop', 'result', 89, 'Output'), choice('color-correction', 'result', 89, 'Result'), ...(['preview', 'invert', 'matte-grow-shrink'].includes(node.type ?? '') ? [choice('painter', 'mask', 149, 'Mask')] : [])];
   const textInput = (node.type === 'text-iterator' && pending.handleId === 'input') || node.type === 'text' || node.type === 'position-logger'
-    || (isImageGeneratorNode(node) && (pending.handleId === 'prompt' || (node.data.exposed ?? []).some(field => field === pending.handleId)))
+    || (isImageGeneratorNode(node) && pending.handleId === 'prompt')
     || (isDescriberNode(node) && (node.data.exposed ?? []).some(field => field === pending.handleId));
   return textInput ? [...(node.type === 'text-iterator' ? [] : [choice('text-iterator', 'text', 30, '文本')]), choice('text', null), choice('model-input', null, 32), choice('image-describer', null), choice('color-palette', 'text', 149, 'Text')] : [];
 }

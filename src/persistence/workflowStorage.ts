@@ -4,7 +4,7 @@ import { isBlendNode } from '../nodes/types.ts';
 import { isCompareNode } from '../nodes/types.ts';
 import { isColorPaletteNode, isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isMatteGrowShrinkNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from '../nodes/types.ts';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources.ts';
-import { migrateSunburstNodes } from '../nodes/sunburstMigration.ts';
+import { migrateImageModelGraph } from '../nodes/sunburstMigration.ts';
 import type { Edge, Viewport } from '@xyflow/react';
 import type { AppNode, FileAsset, FileNode, ImageGeneratorNode } from '../nodes/types';
 
@@ -20,12 +20,13 @@ const documentKey = 'current';
 
 // Drop React Flow's temporary interaction/measurement state, retain node content.
 export function workflowSnapshot(workflow: Workflow): StoredWorkflow {
+  const graph = migrateImageModelGraph(workflow.nodes, workflow.edges);
   return {
     ...workflow, version: 1, colorMode: 'dark',
-    nodes: migrateSunburstNodes(workflow.nodes, workflow.edges).map(node => ({
+    nodes: graph.nodes.map(node => ({
       ...node, selected: undefined, dragging: undefined, measured: undefined, resizing: undefined,
     })),
-    edges: workflow.edges.map(edge => ({ ...edge, selected: undefined })),
+    edges: graph.edges.map(edge => ({ ...edge, selected: undefined })),
   };
 }
 
@@ -122,7 +123,8 @@ export class WorkflowStorage {
     this.storedKeys = new Set(keys.result as string[]);
     const blobs = new Map(keys.result.map((key, index) => [key, assets.result[index] as Blob]));
     const urls = new Map<string, string>();
-    const nodes = mapAssets(migrateSunburstNodes(saved.nodes, saved.edges), asset => {
+    const graph = migrateImageModelGraph(saved.nodes, saved.edges);
+    const nodes = mapAssets(graph.nodes, asset => {
       if (!asset.url.startsWith('blob:')) return asset;
       const key = asset.url;
       let url = urls.get(key);
@@ -137,7 +139,7 @@ export class WorkflowStorage {
       }
       return { ...asset, url };
     });
-    return { ...saved, nodes, colorMode: 'dark' };
+    return { ...saved, nodes, edges: graph.edges, colorMode: 'dark' };
   }
 
   // The caller serializes saves. Assets and graph commit in the same transaction.

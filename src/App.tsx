@@ -30,7 +30,7 @@ import { testApiConnection } from './components/apiSettings';
 import { NodePortLabelMotion } from './components/NodePortLabelMotion';
 import { ConnectionMenu, type NodeMenuChoice } from './components/ConnectionMenu';
 import { canConnect, withoutReplacedInput } from './nodes/connectionRules';
-import { connectionChoices, choiceConnection, initializeConnectionParameter, type PendingConnection } from './nodes/connectionRecommendations';
+import { connectionChoices, choiceConnection, type PendingConnection } from './nodes/connectionRecommendations';
 import { createLibraryNode, items } from './components/libraryCatalog';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
@@ -427,9 +427,8 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     const available = availableConnectionChoices(pendingConnection, currentNodes, currentEdges);
     const choice = available.find(item => item.id === selected.id);
     if (!choice) { setPendingNodeMenu(null); return; }
-    const created = createLibraryNode(choice.itemId, pendingConnection.position);
-    if (!created) return;
-    const node = initializeConnectionParameter(created, pendingConnection, currentNodes);
+    const node = createLibraryNode(choice.itemId, pendingConnection.position);
+    if (!node) return;
     if (isTextNode(node) && pendingConnection.direction === 'source') node.data.variableCount = 2;
     if (choice.exposed && isDescriberNode(node)) node.data.exposed = [choice.exposed];
     const connection = choiceConnection(pendingConnection, choice, node.id);

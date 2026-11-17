@@ -89,8 +89,3 @@ export function validateSeedreamSettings(value: unknown): SeedreamSettings {
   };
   return { size, resolution, outputFormat: input.outputFormat, background: input.background, nsfwCheck: boolean('nsfwCheck'), watermark: boolean('watermark') } as SeedreamSettings;
 }
-
-export function seedreamParameterData(field: keyof SeedreamSettings, value: string) {
-  const choices: readonly string[] = seedreamChoices[field];
-  return { label: seedreamFieldLabels[field], model: value, options: choices.includes(value) ? [...choices] : [value, ...choices], parameter: field };
-}

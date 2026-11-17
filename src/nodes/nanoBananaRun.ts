@@ -1,17 +1,10 @@
 import type { Edge } from '@xyflow/react';
-import type { AppNode, NanoBananaNode } from './types';
+import type { AppNode } from './types';
 import { isNanoBananaNode, isNodeLocked } from './types.ts';
-import { nanoBananaChoices, nanoBananaMaxImages, nanoBananaModel, validateNanoBananaSettings } from './nanoBanana.ts';
+import { nanoBananaMaxImages, nanoBananaModel, validateNanoBananaSettings } from './nanoBanana.ts';
 import { imageOutput } from './sunburstRun.ts';
 import { resolveTextValue } from './textVariables.ts';
 import type { PreviewTask } from './taskQueue';
-
-export function effectiveNanoBananaSettings(node: NanoBananaNode, nodes: AppNode[], edges: Edge[]) {
-  return Object.fromEntries(Object.keys(nanoBananaChoices).map(field => {
-    const edge = edges.find(item => item.target === node.id && item.targetHandle === field);
-    return [field, edge ? resolveTextValue(edge.source, nodes, edges).trim() : node.data[field as keyof typeof nanoBananaChoices]];
-  }));
-}
 
 export function prepareNanoBananaRun(nodes: AppNode[], edges: Edge[], ids: string[], runs: number): { tasks: PreviewTask[]; error?: string } {
   if (!Number.isInteger(runs) || runs < 1 || runs > 10) return { tasks: [], error: '运行次数必须为 1–10。' };
@@ -20,7 +13,7 @@ export function prepareNanoBananaRun(nodes: AppNode[], edges: Edge[], ids: strin
     for (const id of new Set(ids)) {
       const node = nodes.find(item => item.id === id);
       if (!node || !isNanoBananaNode(node) || isNodeLocked(node)) continue;
-      const settings = validateNanoBananaSettings(effectiveNanoBananaSettings(node, nodes, edges));
+      const settings = validateNanoBananaSettings(node.data);
       const inputs = edges.filter(edge => edge.target === id);
       const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
       const prompt = promptEdge ? resolveTextValue(promptEdge.source, nodes, edges).trim() : '';

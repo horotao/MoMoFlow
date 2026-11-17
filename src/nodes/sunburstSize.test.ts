@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { imageSizes, sunburstPresetSize, sunburstResolutions, sunburstSizePreset, sunburstSizePresets, sunburstParameterData, validateSunburstSize } from './sunburst.ts';
+import { imageSizes, sunburstPresetSize, sunburstResolutions, sunburstSizePreset, validateSunburstSize } from './sunburst.ts';
 
 test('resolution presets match official square, 2K landscape and 4K dimensions', () => {
   assert.equal(sunburstPresetSize('auto', '2K'), '2048x2048');
@@ -32,12 +32,7 @@ test('every resolution/ratio combination preserves exact ratio and stays within 
   assert.equal(unique.size, 42);
 });
 
-test('custom and unfinished sizes stay distinct from presets; exposed inputs include high resolutions', () => {
+test('custom and unfinished sizes stay distinct from presets', () => {
   for (const size of ['auto', '1200x1008', '1024x', '1000x1024', '4096x4096']) assert.equal(sunburstSizePreset(size), undefined);
   assert.throws(() => sunburstPresetSize('1200x1008', '2K'), /预设宽高比/);
-  const input = sunburstParameterData('size', '3840x2160', 'openai');
-  assert.equal(input.model, '3840x2160');
-  assert.ok(sunburstSizePresets.every(preset => input.options.includes(preset.size)));
-  assert.equal(input.options.length, 43);
-  assert.equal(input.options.filter(size => size === '3840x2160').length, 1);
 });

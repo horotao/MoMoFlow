@@ -1,11 +1,9 @@
-import { sunburstFieldLabels, sunburstHiddenParameters } from './sunburst.ts';
-import { seedreamFieldLabels } from './seedream.ts';
-import { nanoBananaFieldLabels } from './nanoBanana.ts';
+import { isImageGenerationInput } from './sunburst.ts';
 import type { Connection, Edge } from '@xyflow/react';
 import type { AppNode } from './types';
 import { isCompositorNode, isNodeLocked, isImageGeneratorNode } from './types.ts';
 import { fileAssets, fileOutputKind } from './fileCollection.ts';
-import { resolveTextValue, variableIndex } from './textVariables.ts';
+import { variableIndex } from './textVariables.ts';
 import { outputKind, resolveOutputSource } from './router.ts';
 
 const singleInputTypes = new Set([
@@ -107,17 +105,13 @@ function canConnectDirect(connection: Connection | Edge, nodes: AppNode[], curre
   if (target?.type === 'model-input') return false;
   if (target?.type === 'ideogram') return false;
   if (target && isImageGeneratorNode(target)) {
+    if (!isImageGenerationInput(connection.targetHandle, target.type === 'sunburst')) return false;
     if (target.type === 'sunburst') {
-      const parameter = (field: 'provider' | 'channelModel' | 'outputFormat') => {
-        const edge = currentEdges.find(edge => edge.target === target.id && edge.targetHandle === field);
-        return edge ? resolveTextValue(edge.source, nodes, currentEdges).trim() : target.data[field];
-      };
-      const provider = parameter('provider'), channelModel = parameter('channelModel'), outputFormat = parameter('outputFormat');
+      const { provider, channelModel, outputFormat } = target.data;
       if (connection.targetHandle === 'mask' && provider === 'apimart' && (channelModel !== 'gpt-image-2.6' || ['gif', 'svg'].includes(outputFormat ?? ''))) return false;
-      if (sunburstHiddenParameters(provider, channelModel, outputFormat).includes(connection.targetHandle ?? '')) return false;
     }
     if (currentEdges.some(edge => edge.target === target.id && edge.targetHandle === connection.targetHandle)) return false;
-    if (connection.targetHandle === 'prompt' || (target.data.exposed ?? []).some(field => field in (target.type === 'sunburst' ? sunburstFieldLabels : target.type === 'seedream' ? seedreamFieldLabels : nanoBananaFieldLabels) && field === connection.targetHandle)) {
+    if (connection.targetHandle === 'prompt') {
       if (!source || !(paletteText || ['text-iterator', 'text', 'image-describer', 'model-input'].includes(source.type ?? ''))) return false;
     } else if ((target.type === 'sunburst' && connection.targetHandle === 'mask') || (/^image-\d+$/.test(connection.targetHandle ?? '') && (target.type === 'sunburst' || Number(connection.targetHandle?.slice(6)) < target.data.imageInputs))) {
       if (!source || !(paletteImage || source.type === 'image-iterator' || source.type === 'compare' || isImageGeneratorNode(source) || (source.type === 'painter' || source.type === 'masks-extractor') || source.type === 'color-correction' || source.type === 'crop' || source.type === 'matte-grow-shrink' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'blend' || source.type === 'rotate-flip' || source.type === 'resize' || source.type === 'compositor' || (source.type === 'file' && (fileOutputKind(source.data) === 'image' || (source.id === pendingImportId && fileAssets(source.data).length === 0))))) return false;

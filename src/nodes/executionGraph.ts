@@ -7,18 +7,18 @@ import { isImageIteratorNode, isTextIteratorNode } from './types.ts';
 import { validateIteratorItems } from './textIterator.ts';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, FileAsset } from './types';
-import { isDescriberNode, isImageGeneratorNode, isNodeLocked, isCompositorNode, isMasksExtractorNode, isCompareNode, isBlendNode, isSeedreamNode } from './types.ts';
+import { isDescriberNode, isImageGeneratorNode, isNodeLocked, isCompositorNode, isMasksExtractorNode, isCompareNode, isBlendNode } from './types.ts';
 import { hasVariable } from './textDocument.ts';
 import { fileAssets, orderedAssets } from './fileCollection.ts';
 import { imageOutput } from './sunburstRun.ts';
-import { apimartFixedSettings, sunburstParameterDefaults, validateSunburstProvider, validateSunburstImageInputs, defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
-import { defaultSeedreamSettings, isSeedreamExactSize, validateSeedreamSettings } from './seedream.ts';
-import { effectiveSeedreamSettings, prepareSeedreamRun } from './seedreamRun.ts';
+import { apimartFixedSettings, isImageGenerationInput, sunburstParameterDefaults, validateSunburstProvider, validateSunburstImageInputs, defaultSunburstSettings, validateSunburstSettings } from './sunburst.ts';
+import { defaultSeedreamSettings, validateSeedreamSettings } from './seedream.ts';
+import { prepareSeedreamRun } from './seedreamRun.ts';
 import { defaultNanoBananaSettings, validateNanoBananaSettings } from './nanoBanana.ts';
 import { resolveTextValue } from './textVariables.ts';
 import { effectiveSunburstSettings, prepareSunburstRun } from './sunburstRun.ts';
 import { prepareDescriberRun } from './describerRun.ts';
-import { effectiveNanoBananaSettings, prepareNanoBananaRun } from './nanoBananaRun.ts';
+import { prepareNanoBananaRun } from './nanoBananaRun.ts';
 import { outputKind } from './router.ts';
 import type { PreviewTask } from './taskQueue';
 
@@ -50,9 +50,7 @@ export function executionInputs(node: AppNode, handle: string | null | undefined
   if (node.type === 'compare') return edges.filter(edge => edge.targetHandle === (handle === 'output-2' ? 'input-2' : 'input-1'));
   if (isTextNode(node) && node.data.content) return edges.filter(edge => hasVariable(node.data.content!, edge.targetHandle ?? 'variable-1'));
   if (node.type === 'model-input' || node.type === 'image-iterator' || node.type === 'file' || node.type === 'color-palette' || node.type === 'ideogram') return [];
-  // Legacy edges for removed controls must not schedule upstream model calls.
-  if (node.type === 'sunburst') return edges.filter(edge => !Object.keys(apimartFixedSettings).includes(edge.targetHandle ?? ''));
-  if (isSeedreamNode(node) && isSeedreamExactSize(node.data.size) && !edges.some(edge => edge.targetHandle === 'size')) return edges.filter(edge => edge.targetHandle !== 'resolution');
+  if (isImageGeneratorNode(node)) return edges.filter(edge => isImageGenerationInput(edge.targetHandle, node.type === 'sunburst'));
   if (isCompositorNode(node)) {
     const handles = new Set(node.data.document.layers.filter(layer => layer.visible || (node.data.document.canvas.autoSize && layer.source.kind === 'input' && layer.source.handle === 'background'))
       .flatMap(layer => layer.source.kind === 'input' ? [layer.source.handle] : []));
@@ -215,7 +213,7 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
     const masked = inputs.some(edge => edge.targetHandle === 'mask');
     const images = inputs.filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''));
     if (node.type === 'sunburst') {
-      const settings = knownSettings(effectiveSunburstSettings(node, graph.nodes, graph.edges), { ...defaultSunburstSettings, ...sunburstParameterDefaults });
+      const settings = knownSettings(effectiveSunburstSettings(node), { ...defaultSunburstSettings, ...sunburstParameterDefaults });
       // A model-produced channel choice is unknown until execution. Use the
       // broader capabilities here, then validate its real value before submit.
       if (unknown.has('channelModel') && settings.provider === 'apimart') settings.channelModel = 'gpt-image-2.6';
@@ -223,9 +221,9 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
       validateSunburstImageInputs(String(settings.outputFormat), images.length > 0, masked, validateSunburstProvider(settings.provider), validated.channelModel);
       if (masked && !images.length) throw new Error('使用 Mask 时必须连接 Image。');
     } else if (node.type === 'seedream') {
-      validateSeedreamSettings(knownSettings(effectiveSeedreamSettings(node, graph.nodes, graph.edges), defaultSeedreamSettings));
+      validateSeedreamSettings(knownSettings({ ...node.data, size: node.data.size ?? 'auto' }, defaultSeedreamSettings));
     } else if (node.type === 'nano-banana') {
-      validateNanoBananaSettings(knownSettings(effectiveNanoBananaSettings(node, graph.nodes, graph.edges), defaultNanoBananaSettings));
+      validateNanoBananaSettings(knownSettings(node.data, defaultNanoBananaSettings));
     }
   } catch (error) { nodeProblem(node, error instanceof Error ? error.message : '输入参数无效。'); }
 }

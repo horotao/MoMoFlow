@@ -1,10 +1,11 @@
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { imageSizes, imageSizeLabels, validateSunburstSize, sunburstPresetSize, sunburstResolutions, sunburstSizePreset, type SunburstResolution } from '../nodes/sunburst';
-import { DescriberModelSelect } from './DescriberModelSelect';
+import { GptSettingsSelect } from './GptSettingsSelect';
+import { GptSettingsSegments } from './GptSettingsSegments';
 import { ParameterField } from './ParameterField';
 
-export function SunburstSizeSelect({ value, disabled, onChange, exposeButton, resolutionExposeButton, appearance = 'settings' }: {
-  value: string; disabled?: boolean; onChange: (value: string) => void; exposeButton?: ReactNode; resolutionExposeButton?: ReactNode; appearance?: 'default' | 'settings';
+export function SunburstSizeSelect({ value, disabled, onChange }: {
+  value: string; disabled?: boolean; onChange: (value: string) => void;
 }) {
   const [custom, setCustom] = useState(false);
   const preset = sunburstSizePreset(value);
@@ -14,7 +15,7 @@ export function SunburstSizeSelect({ value, disabled, onChange, exposeButton, re
   let error = '';
   try { validateSunburstSize(value); } catch (cause) { error = (cause as Error).message; }
   return <>
-    <ParameterField label="宽高比" exposeButton={exposeButton} detail={<>
+    <ParameterField label="宽高比" detail={<>
       {isCustom && <div className="sunburst-custom-size">{(['宽度', '高度'] as const).map((label, index) => <label key={label}>{label}<span className="sunburst-dimension">
         <input type="number" aria-label={`图像${label}`} min={16} max={3840} step={16} value={index === 0 ? width : height} disabled={disabled} aria-invalid={Boolean(error)} onChange={event => {
           setCustom(true); onChange(index === 0 ? `${event.target.value}x${height}` : `${width}x${event.target.value}`);
@@ -22,18 +23,17 @@ export function SunburstSizeSelect({ value, disabled, onChange, exposeButton, re
       </span></label>)}</div>}
       {error && <div className="sunburst-size-note" role="alert">{error}</div>}
     </>}>
-      <DescriberModelSelect appearance={appearance} fluidHover compact label="宽高比" value={isCustom ? 'custom' : preset?.ratio ?? 'auto'} choices={[...imageSizes, 'custom']} labels={[...imageSizeLabels, '自定义']} disabled={disabled} onChange={next => {
+      <GptSettingsSelect label="宽高比" value={isCustom ? 'custom' : preset?.ratio ?? 'auto'} choices={[...imageSizes, 'custom']} labels={[...imageSizeLabels, '自定义']} disabled={disabled} onChange={next => {
         setCustom(next === 'custom');
         onChange(next === 'custom' ? (value === 'auto' ? '1024x1024' : value) : next === 'auto' ? 'auto' : sunburstPresetSize(next, resolution));
       }} />
     </ParameterField>
-    <ParameterField label="分辨率" exposeButton={resolutionExposeButton}>
-      <DescriberModelSelect appearance={appearance} fluidHover compact label="分辨率" value={isCustom ? 'custom' : value === 'auto' ? 'auto' : resolution}
-        choices={['auto', ...sunburstResolutions, 'custom']} labels={['自动', '1K', '2K', '4K', '自定义']} disabled={disabled} onChange={next => {
-          if (next === 'custom') { setCustom(true); if (value === 'auto') onChange('1024x1024'); return; }
+    {!isCustom && <ParameterField label="分辨率">
+      <GptSettingsSegments label="分辨率" value={preset?.resolution ?? ''}
+        choices={sunburstResolutions} disabled={disabled} onChange={next => {
           setCustom(false);
-          onChange(next === 'auto' ? 'auto' : sunburstPresetSize(preset?.ratio ?? '1024x1024', next as SunburstResolution));
+          onChange(sunburstPresetSize(preset?.ratio ?? '1024x1024', next as SunburstResolution));
         }} />
-    </ParameterField>
+    </ParameterField>}
   </>;
 }

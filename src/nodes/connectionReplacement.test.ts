@@ -38,8 +38,7 @@ for (const [type, handle, data] of imageInputs) test(`${type} ${handle} replaces
 test('text, model and variable inputs replace per port, including legacy first-variable handles', () => {
   const cases: [string, string, Record<string, unknown>?][] = [
     ['text', 'variable-1'], ['text', 'variable-2'], ['router', 'input'], ['sunburst', 'prompt'],
-    ['sunburst', 'quality', { exposed: ['quality'] }], ['nano-banana', 'prompt'],
-    ['nano-banana', 'aspectRatio', { exposed: ['aspectRatio'] }],
+    ['nano-banana', 'prompt'],
     ['image-describer', 'model'], ['image-describer', 'instructions'],
   ];
   for (const [type, handle, data] of cases) {

@@ -1,11 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import type { Edge } from '@xyflow/react';
 import type { AppNode, SunburstNode } from './types';
-import { connectionChoices, choiceConnection, initializeConnectionParameter, type PendingConnection, type ConnectionChoice } from './connectionRecommendations.ts';
+import { connectionChoices, choiceConnection, type PendingConnection, type ConnectionChoice } from './connectionRecommendations.ts';
 import { canConnect } from './connectionRules.ts';
 import { defaultSunburstSettings } from './sunburst.ts';
-import { prepareSunburstRun } from './sunburstRun.ts';
 
 const text: AppNode = { id: 'text', type: 'text', position: { x: 0, y: 0 }, data: { text: '' } };
 const image: AppNode = { id: 'image', type: 'file', position: { x: 0, y: 0 }, data: { assets: [{ id: 'a', name: 'a.png', url: 'blob:a', kind: 'image' }] } };
@@ -64,54 +62,14 @@ test('shared validator rejects duplicate connections, cycles, locked nodes and i
   assert.equal(canConnect({ source: 'second', target: 'text', sourceHandle: null, targetHandle: 'variable-1' }, [text, second], [{ id: 'cycle', source: 'text', target: 'second' }]), false);
 });
 
-test('reverse parameter creation preserves all Sunburst values and produces a valid request', () => {
-  const fields = { quality: 'high', background: 'opaque', size: '2048x2048', outputFormat: 'webp' } as const;
-  const target: SunburstNode = { ...generator, data: { ...generator.data, ...fields, exposed: ['quality', 'background', 'size', 'outputFormat'] } };
-  const prompt = { ...text, data: { text: 'An apple' } };
-  const nodes: AppNode[] = [target, prompt];
-  const edges: Edge[] = [{ id: 'prompt', source: prompt.id, target: target.id, sourceHandle: null, targetHandle: 'prompt' }];
-  for (const field of Object.keys(fields) as (keyof typeof fields)[]) {
-    const start = pending(target.id, 'target', field);
-    const choice = connectionChoices(start, nodes, edges).find(item => item.itemId === 'model-input')!;
-    assert.ok(choice);
-    const created: AppNode = { id: field, type: 'model-input', position: start.position, data: { model: 'deepseek-flash' } };
-    const node = initializeConnectionParameter(created, start, nodes);
-    assert.equal(node.type, 'model-input');
-    if (node.type !== 'model-input' || !('model' in node.data)) throw new Error('Expected parameter node');
-    assert.equal(node.data.model, fields[field]);
-    assert.equal(node.data.parameter, field);
-    assert.ok(node.data.options?.includes(fields[field]));
-    assert.equal(node.data.options?.includes('deepseek-flash'), false);
-    const connection = choiceConnection(start, choice, node.id);
-    assert.equal(canConnect(connection, [...nodes, node], edges), true);
-    nodes.push(node);
-    edges.push({ id: field, ...connection });
-  }
-  const run = prepareSunburstRun(nodes, edges, [target.id], 1);
-  assert.equal(run.error, undefined);
-  assert.equal(run.tasks.length, 1);
-  for (const field of Object.keys(fields) as (keyof typeof fields)[]) assert.equal(run.tasks[0].imageRequest?.[field], fields[field]);
-});
-
-test('parameter initialization leaves ordinary model nodes and other recommendations unchanged', () => {
-  const model: AppNode = { id: 'model', type: 'model-input', position: { x: 0, y: 0 }, data: { model: 'deepseek-flash' } };
-  for (const start of [pending(generator.id, 'target', 'prompt'), pending(generator.id, 'target', 'quality'), pending(text.id, 'target', 'variable-1'), pending(generator.id, 'source', 'result')]) {
-    assert.equal(initializeConnectionParameter(model, start, [generator, text]), model);
-  }
-  const target: SunburstNode = { ...generator, data: { ...generator.data, exposed: ['quality'] } };
-  assert.equal(initializeConnectionParameter(text, pending(target.id, 'target', 'quality'), [target]), text);
-});
-test('reverse quality parameter creation includes the selected provider quality levels', () => {
-  const model: AppNode = { id: 'model', type: 'model-input', position: { x: 0, y: 0 }, data: { model: 'deepseek-flash' } };
-  for (const provider of ['openai', 'apimart'] as const) {
-    const target: SunburstNode = { ...generator, data: { ...generator.data, provider, exposed: ['quality'] } };
-    const created = initializeConnectionParameter(model, pending(target.id, 'target', 'quality'), [target]);
-    assert.equal(created.type, 'model-input');
-    assert.ok('options' in created.data);
-    assert.deepEqual(created.data.options, ['auto', 'low', 'medium', 'high', 'xhigh', 'max']);
+test('legacy GPT Image parameter ports cannot accept connections or recommend producers', () => {
+  const exposed = ['provider', 'variant', 'channelModel', 'quality', 'size', 'resolution', 'background', 'outputFormat', 'frameCount', 'svgModel', 'svgEffort'] as const;
+  const target: SunburstNode = { ...generator, data: { ...generator.data, exposed: [...exposed] } };
+  for (const field of exposed) {
+    assert.deepEqual(connectionChoices(pending(target.id, 'target', field), [target, text], []), []);
+    assert.equal(canConnect({ source: text.id, sourceHandle: null, target: target.id, targetHandle: field }, [target, text], []), false);
   }
 });
-
 
 test('Compare quick creation appears once in either direction and preserves the dragged port', () => {
   const compare: AppNode = { id: 'compare', type: 'compare', position: { x: 0, y: 0 }, data: { mode: 'slider', split: .5 } };
@@ -124,19 +82,5 @@ test('Compare quick creation appears once in either direction and preserves the 
     const connection = choiceConnection(start, choices[0], created.id);
     assert.equal(direction === 'source' ? connection.sourceHandle : connection.targetHandle, start.handleId);
     assert.ok(canConnect(connection, [compare, created], []));
-  }
-});
-
-test('reverse channel and model-version inputs inherit defaults and connect to their exposed ports', () => {
-  const target: SunburstNode = { ...generator, data: { ...generator.data, provider: 'openai', variant: 'Flare', exposed: ['provider', 'variant'] } };
-  for (const [field, value, choices] of [['provider', 'openai', ['openai', 'apimart']], ['variant', 'Flare', ['Sunburst', 'Flare']]] as const) {
-    const start = pending(target.id, 'target', field);
-    const choice = connectionChoices(start, [target], []).find(item => item.itemId === 'model-input');
-    assert.ok(choice);
-    const model: AppNode = { id: field, type: 'model-input', position: start.position, data: { model: 'deepseek-flash' } };
-    const created = initializeConnectionParameter(model, start, [target]);
-    assert.equal(created.type, 'model-input');
-    assert.deepEqual(created.data, { label: field === 'provider' ? 'Provider' : 'Model Version', model: value, options: [...choices], parameter: field });
-    assert.equal(canConnect(choiceConnection(start, choice, created.id), [target, created], []), true);
   }
 });

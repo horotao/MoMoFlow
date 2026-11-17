@@ -1,3 +1,4 @@
+import { moveGptRunCount } from './gptSidebarControls';
 import { canvasHistoryShortcut } from './canvasShortcuts';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useNodes, useEdges, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
@@ -202,7 +203,7 @@ async function run() {
   const model = api.getNode('model'); check(model && isImageGeneratorNode(model) && model.data.results?.length === 3, 'Three results accumulated');
   pass('三条独立请求、两成功一失败、单项重试、三张结果汇总（模拟）');
 
-  find('[aria-label="增加运行次数"]').click(); await settle();
+  moveGptRunCount('ArrowRight'); await settle();
   for (const summary of document.querySelectorAll('.text-iteration-summary')) check(summary.textContent?.includes('6 个任务（每条 2 次）'), 'Node and settings show the same count');
   check(document.querySelectorAll('.text-iteration-summary').length === 2, 'Node and settings summaries both present');
   api.setNodes(nodes => nodes.map(node => ({ ...node, selected: node.id === 'iterator' }))); await settle();
@@ -212,7 +213,7 @@ async function run() {
   await until(() => requests.length === beforeRepeats + 6 && !store.getSnapshot().some(isActiveTask), 'Six independent repeated requests finish');
   check(requests.slice(beforeRepeats).sort().join('|') === initialItems.flatMap(item => [item.text, item.text]).sort().join('|'), 'Displayed six tasks match two requests per item');
   api.setNodes(nodes => nodes.map(node => ({ ...node, selected: node.id === 'model' }))); await settle();
-  find('[aria-label="减少运行次数"]').click(); await settle();
+  moveGptRunCount('ArrowLeft'); await settle();
   for (const summary of document.querySelectorAll('.text-iteration-summary')) check(summary.textContent?.includes('3 个任务') && !summary.textContent.includes('每条 2 次'), 'Reducing repeats updates both summaries');
   pass('运行次数共享：3 条 × 2 次显示 6 个任务，切换选择后节点入口仍提交 6 次（模拟）');
 

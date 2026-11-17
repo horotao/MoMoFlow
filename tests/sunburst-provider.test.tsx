@@ -1,10 +1,10 @@
+import { chooseGptSetting, gptSegmentValue, gptSettingDisabled, gptSettingOptions } from './gptSidebarControls';
 import { canvasHistoryShortcut } from './canvasShortcuts';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useNodes, useEdges, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
 import { Flow } from '../src/App';
 import type { AppNode, SunburstNode } from '../src/nodes/types';
 import { isSunburstNode } from '../src/nodes/types';
-import { prepareSunburstRun } from '../src/nodes/sunburstRun';
 import { createLibraryNode } from '../src/components/libraryCatalog';
 import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
 import '../src/index.css';
@@ -28,19 +28,9 @@ const find = <T extends HTMLElement = HTMLButtonElement>(selector: string) => {
 const checks: string[] = [];
 function check(value: unknown, message: string): void { if (!value) throw new Error(message); checks.push(message); }
 const read = () => api.getNode('image') as SunburstNode;
-async function chooseSetting(field: string, label: string) {
-  find(`[aria-label="${field}"]`).click(); await settle();
-  const option = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(item => item.textContent === label);
-  if (!option) throw new Error(`Missing ${field} option ${label}`);
-  option.click(); await settle();
-}
+const chooseSetting = (field: string, label: string) => chooseGptSetting(field, label, settle);
 const chooseProvider = (label: string) => chooseSetting('渠道商', label);
-async function qualityOptions() {
-  find('[aria-label="画质"]').click(); await settle();
-  const values = [...document.querySelectorAll<HTMLElement>('[role="option"]')].map(item => item.textContent);
-  document.querySelector('[role="listbox"]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
-  return values;
-}
+const qualityOptions = () => gptSettingOptions('画质', settle);
 const closeTasks = async () => { document.querySelector<HTMLButtonElement>('.model-queue-toggle[aria-expanded="true"]')?.click(); await settle(); };
 
 async function run() {
@@ -100,8 +90,10 @@ async function run() {
       transaction.oncomplete = () => { open.result.close(); resolve(); };
       transaction.onabort = () => { open.result.close(); reject(transaction.error); };
       const nodes = workflow.nodes.map(item => item.id === 'image'
-        ? { ...item, data: { ...item.data, provider: 'zenmux', size: '2048x1152' } } : item);
-      transaction.objectStore('workflows').put({ ...workflow, version: 1, nodes }, 'current');
+        ? { ...item, data: { ...item.data, provider: 'zenmux', size: '2048x1152', exposed: ['quality'] } } : item);
+      nodes.push({ id: 'legacy-quality', type: 'model-input', position: { x: 300, y: 450 }, data: { model: 'high' } });
+      const edges = [...workflow.edges, { id: 'legacy-quality-edge', source: 'legacy-quality', target: 'image', targetHandle: 'quality' }];
+      transaction.objectStore('workflows').put({ ...workflow, version: 1, nodes, edges }, 'current');
     };
   });
   const migrated = await storage.load();
@@ -109,15 +101,12 @@ async function run() {
   await until(() => Boolean(document.querySelector('[aria-label="渠道商"]')), 'Settings did not mount');
   check(find('[aria-label="渠道商"]').textContent?.includes('APIMart')
     && find('[aria-label="渠道模型"]').textContent === 'GPT Image 2.6'
-    && find('[aria-label="模型版本"]').textContent === 'Sunburst'
-    && find('[aria-label="画质"]').textContent === '中'
+    && gptSegmentValue('模型版本') === 'Sunburst'
+    && find('[aria-label="画质"]').textContent === '高'
     && read().data.provider === 'apimart' && read().data.size === '2048x1152', 'Opening the saved legacy node migrates it to APIMart and keeps its pixel size and quality');
-  find('[aria-label="将渠道商设为输入"]').click(); await settle();
-  const providerSource = api.getEdges().find(edge => edge.target === 'image' && edge.targetHandle === 'provider')!.source;
-  const providerInput = api.getNode(providerSource);
-  check(providerInput?.type === 'model-input' && 'options' in providerInput.data
-    && providerInput.data.options?.join(',') === 'openai,apimart', 'New provider inputs offer only OpenAI and APIMart');
-  find('[aria-label="渠道商使用本地值"]').click(); await settle();
+  check(!read().data.exposed && !api.getEdges().some(edge => edge.id === 'legacy-quality-edge')
+    && Boolean(api.getNode('legacy-quality')) && !document.querySelector('.image-model-settings .describer-expose')
+    && !document.querySelector('[data-id="image"] [data-handleid="quality"]'), 'Old parameter input is removed and its value remains local');
   const providerSelect = find('[aria-label="渠道商"]');
   providerSelect.click(); await settle();
   const providerMenu = find('[role="listbox"][aria-label="渠道商"]');
@@ -139,28 +128,19 @@ async function run() {
   check((read().data.variant ?? 'Sunburst') === 'Sunburst', 'Undo restores Sunburst');
   canvasHistoryShortcut('redo'); await settle();
   check(read().data.variant === 'Flare', 'Redo restores Flare');
-  find('[aria-label="将模型版本设为输入"]').click(); await settle();
-  const versionSource = api.getEdges().find(edge => edge.target === 'image' && edge.targetHandle === 'variant')!.source;
-  api.updateNodeData(versionSource, { model: 'Sunburst' }); await settle();
-  find('[aria-label="模型版本使用本地值"]').click(); await settle();
-  check(read().data.variant === 'Sunburst', 'Detaching version preserves the connected value');
-  await chooseSetting('模型版本', 'Flare');
-
   await chooseSetting('画质', '最高');
-  find('[aria-label="将画质设为输入"]').click(); await settle();
-  const parameter = api.getNodes().find(node => node.type === 'model-input' && 'parameter' in node.data && node.data.parameter === 'quality');
-  check(parameter && 'options' in parameter.data && JSON.stringify(parameter.data.options) === JSON.stringify(['auto', 'low', 'medium', 'high', 'xhigh', 'max']), 'Exposed OpenAI quality parameter includes xhigh and max');
-  find('[aria-label="画质使用本地值"]').click(); await settle();
-  check(read().data.quality === 'max', 'Returning quality to local preserves max');
-  await chooseSetting('分辨率', '自动');
+  check(read().data.quality === 'max', 'Local quality saves max');
+  await chooseSetting('宽高比', '自动');
+  check(read().data.size === 'auto' && gptSegmentValue('分辨率') === undefined, 'Automatic size is controlled by the aspect ratio, with no selected tier');
+  check((await gptSettingOptions('分辨率', settle)).join(',') === '1K,2K,4K', 'OpenAI resolution only offers explicit tiers');
   await chooseSetting('分辨率', '2K');
   check(read().data.size === '2048x2048' && find('[aria-label="宽高比"]').textContent?.includes('1:1'), '2K from auto selects an explicit 2048 square');
   await chooseSetting('宽高比', '16:9');
-  check(read().data.size === '2048x1152' && find('[aria-label="分辨率"]').textContent === '2K', 'Changing aspect ratio retains the selected resolution');
+  check(read().data.size === '2048x1152' && gptSegmentValue('分辨率') === '2K', 'Changing aspect ratio retains the selected resolution');
   await chooseSetting('宽高比', '1:1');
   api.updateNodeData('image', { locked: true }); await settle();
   check(find<HTMLButtonElement>('[aria-label="渠道商"]').disabled, 'Locked node cannot switch provider');
-  check(find<HTMLButtonElement>('[aria-label="分辨率"]').disabled, 'Locked node cannot switch resolution');
+  check(gptSettingDisabled('分辨率'), 'Locked node cannot switch resolution');
   api.updateNodeData('image', { locked: false }); await settle();
   const runButton = () => find('[data-id="image"] .sunburst-run');
   runButton().click(); await until(() => read().data.results?.length === 1, 'Official mock generation did not finish');
@@ -181,16 +161,11 @@ async function run() {
   await chooseSetting('宽高比', '9:16');
   check(read().data.size === '2160x3840', '4K portrait resolves to 2160 by 3840');
   canvasHistoryShortcut('undo'); await settle();
-  check(read().data.size === '2880x2880' && find('[aria-label="分辨率"]').textContent === '4K', 'Undo restores dimensions and derived resolution together');
+  check(read().data.size === '2880x2880' && gptSegmentValue('分辨率') === '4K', 'Undo restores dimensions and derived resolution together');
   canvasHistoryShortcut('redo'); await settle();
   check(read().data.size === '2160x3840', 'Redo restores 4K portrait');
   await chooseSetting('宽高比', '16:9');
-  find('[aria-label="将宽高比设为输入"]').click(); await settle();
-  check(find<HTMLButtonElement>('[aria-label="分辨率"]').disabled, 'Connected size controls the entire resolution');
-  const sizeParameter = api.getNodes().find(node => node.type === 'model-input' && 'parameter' in node.data && node.data.parameter === 'size');
-  check(sizeParameter && 'options' in sizeParameter.data && (sizeParameter.data.options as string[]).includes('3840x2160'), 'Exposed size options include 4K');
-  find('[aria-label="宽高比使用本地值"]').click(); await settle();
-  check(read().data.size === '3840x2160', 'Returning size to local retains 4K');
+  check(read().data.size === '3840x2160', 'Local ratio keeps the 4K tier');
   api.setEdges(current => [...current,
     { id: 'reference', source: 'reference', sourceHandle: 'file', target: 'image', targetHandle: 'image-0' },
     { id: 'mask', source: 'reference', sourceHandle: 'file', target: 'image', targetHandle: 'mask' },
@@ -211,35 +186,7 @@ async function run() {
   check(api.getNodes().filter(isSunburstNode).every(node => node.data.provider === 'openai'), 'Duplicate retains selected channel');
   canvasHistoryShortcut('undo'); await settle();
   api.setNodes(current => current.map(node => ({ ...node, selected: node.id === 'image' }))); await settle();
-  // A different invalid field must not discard a valid connected size on detach.
-  for (const quality of ['超高', '最高']) for (const [size, tier] of [['2048x1152', '2K'], ['3840x2160', '4K']]) {
-    await chooseProvider('OpenAI 官方'); await chooseSetting('画质', quality); await chooseSetting('分辨率', '1K');
-    const localSize = read().data.size;
-    find('[aria-label="将画质设为输入"]').click(); await settle();
-    find('[aria-label="将宽高比设为输入"]').click(); await settle();
-    const sizeSource = api.getEdges().find(edge => edge.target === 'image' && edge.targetHandle === 'size')!.source;
-    const qualitySource = api.getEdges().find(edge => edge.target === 'image' && edge.targetHandle === 'quality')!.source;
-    api.updateNodeData(sizeSource, { model: size }); await settle();
-    api.updateNodeData(qualitySource, { model: 'ultra' }); await settle();
-    check(Boolean(prepareSunburstRun(api.getNodes(), api.getEdges(), ['image'], 1).error), `An invalid connected quality blocks the run before detaching ${tier}`);
-    find('[aria-label="宽高比使用本地值"]').click(); await settle();
-    check(read().data.size === size && find('[aria-label="分辨率"]').textContent === tier, `Returning ${tier} to local preserves size despite unsupported ${quality}`);
-    const preservedSource = api.getNode(sizeSource);
-    check(preservedSource?.type === 'model-input' && 'model' in preservedSource.data && preservedSource.data.model === size && api.getEdges().some(edge => edge.source === qualitySource && edge.target === 'image'), 'Detaching size leaves upstream values and quality connection unchanged');
-    canvasHistoryShortcut('undo'); await settle();
-    check(read().data.size === localSize && api.getEdges().some(edge => edge.source === sizeSource && edge.target === 'image'), `Undo restores the connected ${tier} and prior local size`);
-    canvasHistoryShortcut('redo'); await settle();
-    check(read().data.size === size && !api.getEdges().some(edge => edge.target === 'image' && edge.targetHandle === 'size'), `Redo retains ${tier} locally`);
-    find('[aria-label="画质使用本地值"]').click(); await settle();
-    const prepared = prepareSunburstRun(api.getNodes(), api.getEdges(), ['image'], 1);
-    check(!prepared.error && prepared.tasks[0].imageRequest?.size === size, `${tier} reaches the next task after correcting unsupported quality`);
-  }
   await chooseProvider('OpenAI 官方'); await chooseSetting('画质', '超高');
-  find('[aria-label="将宽高比设为输入"]').click(); await settle();
-  const invalidSizeSource = api.getEdges().find(edge => edge.target === 'image' && edge.targetHandle === 'size')!.source;
-  api.updateNodeData(invalidSizeSource, { model: '4096x4096' }); await settle();
-  find('[aria-label="宽高比使用本地值"]').click(); await settle();
-  check(read().data.size === '3840x2160', 'Invalid external size retains the previous valid local size');
   const saved = new WorkflowStorage(`${db}-roundtrip`); await saved.load();
   await saved.save({ ...workflow, nodes: api.getNodes(), edges: api.getEdges() });
   const reload = new WorkflowStorage(`${db}-roundtrip`), restored = await reload.load();

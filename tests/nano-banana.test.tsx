@@ -1,3 +1,4 @@
+import { chooseGptSetting, gptSettingOptions } from './gptSidebarControls';
 import { canvasHistoryShortcut } from './canvasShortcuts';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useNodes, useEdges, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
@@ -99,21 +100,14 @@ async function run() {
   root.render(<ReactFlowProvider><Flow storage={storage} saved={workflow} /><Probe /></ReactFlowProvider>);
   await until(() => Boolean(document.querySelector('[aria-label="Nano Banana 设置"]')), 'Node and settings mount');
   check(find('[data-id="banana"] .node-title-label').textContent?.includes('Nano Banana'), 'Dedicated model title and settings');
-  check(find('.sunburst-provider').textContent?.includes('APIMart'), 'Settings identify APIMart as the provider');
+  check(!find('.image-model-settings .node-settings-fields').textContent?.includes('APIMart'), 'Fixed provider is not shown as a settings row');
   check(!document.querySelector('[data-id="banana"] [data-handleid="mask"]'), 'Only Gemini input ports, without OpenAI mask');
-  find('[aria-label="分辨率"]').click(); await settle();
-  const select = (text: string) => {
-    const option = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(item => item.textContent === text);
-    if (!option) throw new Error(`Missing option ${text}`); option.click();
-  };
-  select('2K'); await settle();
-  find('[aria-label="宽高比"]').click(); await settle(); select('16:9'); await settle();
+  check((await gptSettingOptions('分辨率', settle)).join(',') === '1K,2K,4K', 'Resolution has three explicit tiers');
+  await chooseGptSetting('分辨率', '2K', settle);
+  await chooseGptSetting('宽高比', '16:9', settle);
   check(read().data.imageSize === '2K' && read().data.aspectRatio === '16:9', 'Resolution and aspect ratio controls update the node');
   check(getComputedStyle(find('[data-id="banana"] .sunburst-preview')).aspectRatio === '16 / 9', 'Requested ratio updates preview layout');
-  find('[aria-label="将分辨率设为输入"]').click(); await settle();
-  check(read().data.exposed?.includes('imageSize') && api.getEdges().some(edge => edge.targetHandle === 'imageSize'), 'Expose creates a typed parameter node and connection');
-  find('[aria-label="分辨率使用本地值"]').click(); await settle();
-  check(!read().data.exposed?.length && read().data.imageSize === '2K', 'Returning to local settings preserves effective value');
+  check(!document.querySelector('.image-model-settings .describer-expose'), 'Parameters are edited locally');
   const runButton = () => find('[data-id="banana"] .sunburst-run');
   runButton().click();
   await until(() => read().data.results?.length === 1, 'Mock generation completes');
@@ -125,7 +119,7 @@ async function run() {
   const originalBytes = new Uint8Array(await blob.arrayBuffer()), pngBytes = new Uint8Array(await originalPng.arrayBuffer());
   check(originalPng.type === 'image/png' && pngBytes.length === originalBytes.length && pngBytes.every((value, index) => value === originalBytes[index]), 'PNG output preserves provider bytes exactly');
   find('.model-queue-toggle[aria-expanded="true"]').click(); await settle();
-  find('[aria-label="输出格式"]').click(); await settle(); select('JPEG'); await settle();
+  await chooseGptSetting('输出格式', 'JPEG', settle);
   api.setEdges(current => [...current,
     { id: 'reference', source: 'reference', sourceHandle: 'file', target: 'banana', targetHandle: 'image-0' },
     { id: 'output', source: 'banana', sourceHandle: 'result', target: 'preview', targetHandle: 'file' },

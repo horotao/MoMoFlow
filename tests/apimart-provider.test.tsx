@@ -1,3 +1,4 @@
+import { chooseGptSetting, gptSettingDisabled, gptSettingOptions } from './gptSidebarControls';
 import { apiSettingsStorageKey } from '../src/components/apiSettings';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
@@ -28,20 +29,8 @@ function find<T extends HTMLElement = HTMLButtonElement>(selector: string) {
 const read = () => api.getNode('image') as SunburstNode;
 const checks: string[] = [];
 function check(value: unknown, message: string) { if (!value) throw new Error(message); checks.push(message); }
-async function choose(field: string, label: string) {
-  find(`[aria-label="${field}"]`).click(); await settle();
-  await until(() => [...document.querySelectorAll<HTMLElement>('[role="option"]')].some(item => item.textContent === label), `Missing ${field} option ${label}`);
-  const option = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(item => item.textContent === label);
-  if (!option) throw new Error(`Missing ${field} option ${label}`);
-  option.click(); await settle();
-}
-async function options(field: string) {
-  find(`[aria-label="${field}"]`).click(); await settle();
-  await until(() => Boolean(document.querySelector('[role="option"]')), `Missing ${field} options`);
-  const values = [...document.querySelectorAll<HTMLElement>('[role="option"]')].map(item => item.textContent);
-  document.querySelector('[role="listbox"]')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
-  return values;
-}
+const choose = (field: string, label: string) => chooseGptSetting(field, label, settle);
+const options = (field: string) => gptSettingOptions(field, settle);
 async function closeTasks() { document.querySelector<HTMLButtonElement>('.model-queue-toggle[aria-expanded="true"]')?.click(); await settle(); }
 async function fillNumber(label: string, value: string) {
   const input = find<HTMLInputElement>(`[aria-label="${label}"]`);
@@ -110,15 +99,16 @@ async function run() {
   check(ratios.length === 11 && !ratios.includes('自定义') && !ratios.includes('2:1'), 'Only auto and the 10 supported ratios are offered');
   check((await options('分辨率')).join(',') === '1K,2K,4K', 'Resolution has exactly 1K, 2K, 4K');
   check((await options('画质')).length === 6, 'APIMart retains all six qualities');
-  check((await options('输出格式')).join(',') === 'PNG,JPEG,WebP,GIF', 'APIMart offers raster formats and GIF, with SVG excluded');
+  check((await options('输出格式')).join(',') === 'PNG,JPEG,GIF', 'APIMart EXT offers PNG, JPEG and GIF');
   check(!document.querySelector('[aria-label="复杂度"]') && !document.querySelector('[aria-label="内容审核"]'), 'EXT hides fixed complexity and moderation controls');
-  await choose('模型版本', 'Flare'); await choose('分辨率', '2K');
-  find('[aria-label="将分辨率设为输入"]').click(); await settle();
-  check(find<HTMLButtonElement>('[aria-label="分辨率"]').disabled, 'Exposed resolution disables the local selector');
-  const resolutionSource = api.getEdges().find(edge => edge.target === 'image' && edge.targetHandle === 'resolution')!.source;
-  api.updateNodeData(resolutionSource, { model: '4K' }); await settle();
-  find('[aria-label="分辨率使用本地值"]').click(); await settle();
-  check(read().data.resolution === '4K', 'Returning to local resolution retains the resolved 4K value');
+  api.updateNodeData('image', { outputFormat: 'webp' }); await settle();
+  check(read().data.outputFormat === 'webp' && find('.gpt-settings-legacy-format').textContent?.includes('WebP'), 'Saved WebP remains effective and is shown as a legacy value');
+  check(!document.querySelector('[role="radiogroup"][aria-label="输出格式"] input:checked'), 'WebP is not offered as a new selection');
+  check(prepareSunburstRun(api.getNodes(), api.getEdges(), ['image'], 1).tasks[0]?.imageRequest?.outputFormat === 'webp', 'A saved WebP setting still reaches the run snapshot');
+  await choose('输出格式', 'PNG');
+  check(read().data.outputFormat === 'png' && !document.querySelector('.gpt-settings-legacy-format'), 'A saved WebP node can switch to an offered format');
+  await choose('模型版本', 'Flare'); await choose('分辨率', '4K');
+  check(read().data.resolution === '4K' && !document.querySelector('.image-model-settings .describer-expose'), 'APIMart uses local resolution with no expose controls');
   await choose('输出格式', 'GIF');
   check(read().data.size === 'auto' && find<HTMLButtonElement>('[aria-label="宽高比"]').disabled, 'GIF switches to auto ratio and disables ratio changes');
   await choose('输出格式', 'PNG'); await choose('宽高比', '16:9');
@@ -150,7 +140,7 @@ async function run() {
   check(read().data.provider === 'openai' && read().data.size === '3840x2160', 'Redo restores OpenAI provider and dimensions together');
   await choose('渠道商', 'APIMart');
   api.setEdges(edges => edges.filter(edge => edge.id !== 'invalid-mask')); api.updateNodeData('image', { locked: true }); await settle();
-  check(find<HTMLButtonElement>('[aria-label="渠道商"]').disabled && find<HTMLButtonElement>('[aria-label="分辨率"]').disabled, 'Locked APIMart settings cannot be edited');
+  check(find<HTMLButtonElement>('[aria-label="渠道商"]').disabled && gptSettingDisabled('分辨率'), 'Locked APIMart settings cannot be edited');
   api.updateNodeData('image', { locked: false }); await settle();
   const controller = new AbortController();
   const cancelled = requestSunburst({ ...read().data, provider: 'apimart', prompt: 'cancel', images: [] }, controller.signal);
@@ -189,11 +179,8 @@ async function run() {
   await choose('帧数', '12');
   check(!document.querySelector('.sunburst-size-note[role="alert"]'), 'Reducing frames permits 768x768 at 12 frames');
   await fillNumber('图像宽度', '512'); await fillNumber('图像高度', '512'); await choose('帧数', '16');
-  find('[aria-label="将宽高比设为输入"]').click(); await settle();
-  const gifSizeSource = api.getEdges().find(edge => edge.target === 'image' && edge.targetHandle === 'size')!.source;
-  api.updateNodeData(gifSizeSource, { model: '512x384' }); await settle();
-  find('[aria-label="宽高比使用本地值"]').click(); await settle();
-  check(read().data.size === '512x384', 'Returning to local GIF size preserves a valid frame size below static image limits');
+  await fillNumber('图像高度', '384');
+  check(read().data.size === '512x384', 'Local GIF frame size can be smaller than a static image');
   await fillNumber('图像高度', '512');
   find('.sunburst-run').click(); await until(() => read().data.results?.length === 4, 'Standard reference GIF did not finish');
   check(requests[5].frameCount === 16 && (requests[5].images as string[]).length === 1 && requests[5].size === '512x512', 'GIF run sends 16 frames with a reference and single-frame pixel size');
@@ -205,13 +192,7 @@ async function run() {
   await choose('Effort', 'none'); await choose('SVG 模型', 'gpt-6.1-sol');
   const efforts = await options('Effort');
   check(read().data.svgEffort === 'auto' && !efforts.includes('none') && !efforts.includes('minimal') && efforts.includes('max'), 'Sol removes unsupported efforts and resets the previous none selection');
-  await choose('Effort', 'max');
-  find('[aria-label="将Effort设为输入"]').click(); await settle();
-  check(find<HTMLButtonElement>('[aria-label="Effort"]').disabled, 'Exposed SVG effort disables its local selector');
-  const effortSource = api.getEdges().find(edge => edge.target === 'image' && edge.targetHandle === 'svgEffort')!.source;
-  api.updateNodeData(effortSource, { model: 'high' }); await settle();
-  find('[aria-label="Effort使用本地值"]').click(); await settle();
-  check(read().data.svgEffort === 'high', 'Returning to local SVG effort keeps the connected valid value');
+  await choose('Effort', 'high');
   find('.sunburst-run').click(); await until(() => read().data.results?.length === 5, 'Standard reference SVG did not finish');
   check(requests[6].svgModel === 'gpt-6.1-sol' && requests[6].svgEffort === 'high' && (requests[6].images as string[]).length === 1, 'SVG request includes author model, effort and reference image');
   check(await (await nativeFetch(read().data.results!.at(-1)!.url)).text() === svg, 'SVG result preserves original vector paths');

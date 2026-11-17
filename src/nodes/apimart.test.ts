@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { apimartAspectRatios, apimartSvgModelEfforts, defaultSunburstSettings, sunburstFormats, sunburstParameterData, sunburstProviderSettings, validateApimartGifSize } from './sunburst.ts';
+import { apimartSvgModelEfforts, defaultSunburstSettings, sunburstFormats, sunburstProviderSettings, validateApimartGifSize } from './sunburst.ts';
 import { prepareSunburstRun } from './sunburstRun.ts';
 import { restoreSunburstData } from './sunburstClipboard.ts';
 import { canConnect } from './connectionRules.ts';
 import { graphGuard, preflight, requestSignature, type ExecutionGraph } from './executionGraph.ts';
-import type { AppNode, SunburstNode, ModelInputNode } from './types';
+import type { AppNode, SunburstNode } from './types';
 
 const generator: SunburstNode = { id: 'g', type: 'sunburst', position: { x: 400, y: 0 }, data: { ...defaultSunburstSettings, provider: 'apimart', variant: 'Flare', size: '16:9', resolution: '4K', complexity: 'high', imageInputs: 1 } };
 const prompt: AppNode = { id: 'p', type: 'text', position: { x: 0, y: 0 }, data: { text: 'a red circle' } };
@@ -19,17 +19,10 @@ test('APIMart freezes resolution, fixed settings, provider and version in queued
   assert.deepEqual(result.tasks[0].imageRequest, { ...defaultSunburstSettings, channelModel: 'gpt-image-2.6-ext', provider: 'apimart', variant: 'Flare', size: '16:9', resolution: '4K', complexity: 'auto', moderation: 'low', prompt: 'a red circle', images: [], mask: undefined });
 });
 
-test('APIMart external parameters, clipboard and provider transitions preserve valid values', () => {
-  const resolution: ModelInputNode = { id: 'r', type: 'model-input', position: { x: 0, y: 0 }, data: sunburstParameterData('resolution', '2K', 'apimart') };
-  const nodes: AppNode[] = [generator, prompt, resolution];
-  const result = prepareSunburstRun(nodes, [edge, { id: 'r-g', source: 'r', target: 'g', targetHandle: 'resolution' }], ['g'], 1);
-  assert.equal(result.tasks[0].imageRequest?.resolution, '2K');
-  resolution.data.model = '4K';
-  assert.equal(result.tasks[0].imageRequest?.resolution, '2K');
+test('APIMart clipboard and provider transitions preserve valid values', () => {
   const restored = restoreSunburstData(JSON.parse(JSON.stringify(generator.data)));
   assert.equal(restored?.provider, 'apimart'); assert.equal(restored?.variant, 'Flare');
   assert.equal(restored?.size, '16:9'); assert.equal(restored?.resolution, '4K'); assert.equal(restored?.complexity, 'auto');
-  assert.deepEqual(sunburstParameterData('size', '16:9', 'apimart').options, apimartAspectRatios);
   assert.deepEqual(sunburstFormats('apimart'), ['png', 'jpeg', 'webp', 'gif']);
   assert.deepEqual(sunburstFormats('openai'), ['png', 'jpeg', 'webp', 'svg']);
   assert.equal(sunburstProviderSettings({ ...defaultSunburstSettings, size: '3840x2160' }, 'apimart').size, '16:9');
@@ -38,7 +31,7 @@ test('APIMart external parameters, clipboard and provider transitions preserve v
   assert.equal(sunburstProviderSettings({ ...defaultSunburstSettings, size: '1200x1008' }, 'apimart').size, 'auto');
 });
 
-test('APIMart run and workflow preflight reject masks and incompatible connected settings', () => {
+test('APIMart run and workflow preflight reject masks and incompatible local settings', () => {
   const masked = { ...graph, edges: [...graph.edges, { id: 'mask', source: 'p', target: 'g', targetHandle: 'mask' }] };
   assert.match(prepareSunburstRun(masked.nodes, masked.edges, ['g'], 1).error!, /不支持 Mask/);
   assert.throws(() => preflight(masked, ['g'], 1), /不支持 Mask/);
@@ -83,12 +76,10 @@ test('removed APIMart controls ignore legacy values and do not schedule connecte
   }
 });
 
-test('APIMart channel model, SVG effort and GIF frames resolve and freeze through external inputs', () => {
-  const node: SunburstNode = { ...generator, data: { ...generator.data, outputFormat: 'svg', exposed: ['channelModel', 'svgModel', 'svgEffort'] } };
-  const fields = { channelModel: 'gpt-image-2.6', svgModel: 'gpt-6.1-sol', svgEffort: 'max' };
-  const sources: ModelInputNode[] = Object.entries(fields).map(([field, value]) => ({ id: field, type: 'model-input', position: { x: 0, y: 0 }, data: { model: value } }));
-  const edges = [edge, ...sources.map(source => ({ id: source.id, source: source.id, target: 'g', targetHandle: source.id }))];
-  const nodes = [node, prompt, ...sources];
+test('APIMart local channel model, SVG effort and GIF frames freeze in requests', () => {
+  const node: SunburstNode = { ...generator, data: { ...generator.data, channelModel: 'gpt-image-2.6', outputFormat: 'svg', svgModel: 'gpt-6.1-sol', svgEffort: 'max' } };
+  const nodes = [node, prompt];
+  const edges = [edge];
   assert.doesNotThrow(() => preflight({ nodes, edges }, ['g'], 1));
   const prepared = prepareSunburstRun(nodes, edges, ['g'], 1);
   assert.equal(prepared.error, undefined);
@@ -96,22 +87,18 @@ test('APIMart channel model, SVG effort and GIF frames resolve and freeze throug
   assert.equal(prepared.tasks[0].imageRequest?.svgModel, 'gpt-6.1-sol');
   assert.equal(prepared.tasks[0].imageRequest?.svgEffort, 'max');
   const signature = requestSignature(prepared.tasks[0], { nodes, edges });
-  sources[2].data.model = 'high';
-  const next = prepareSunburstRun(nodes, edges, ['g'], 1).tasks[0];
-  assert.notEqual(requestSignature(next, { nodes, edges }), signature);
+  node.data.svgEffort = 'high';
+  assert.notEqual(requestSignature(prepareSunburstRun(nodes, edges, ['g'], 1).tasks[0], { nodes, edges }), signature);
   assert.equal(prepared.tasks[0].imageRequest?.svgEffort, 'max');
-  sources[2].data.model = 'none';
+  node.data.svgEffort = 'none';
   assert.match(prepareSunburstRun(nodes, edges, ['g'], 1).error!, /effort/);
   assert.throws(() => preflight({ nodes, edges }, ['g'], 1), /effort/);
   assert.equal(apimartSvgModelEfforts('gpt-6-luna').includes('none'), true);
   assert.equal(apimartSvgModelEfforts('gpt-6.1-sol').includes('none'), false);
-  const gif: SunburstNode = { ...generator, data: { ...generator.data, channelModel: 'gpt-image-2.6', outputFormat: 'gif', size: 'auto', exposed: ['frameCount'] } };
-  const frame: ModelInputNode = { id: 'frame', type: 'model-input', position: { x: 0, y: 0 }, data: { model: '16' } };
-  const gifEdges = [edge, { id: 'frame-g', source: 'frame', target: 'g', targetHandle: 'frameCount' }];
-  const gifTask = prepareSunburstRun([gif, prompt, frame], gifEdges, ['g'], 1).tasks[0];
-  assert.equal(gifTask.imageRequest?.frameCount, 16);
-  frame.data.model = '1';
-  assert.match(prepareSunburstRun([gif, prompt, frame], gifEdges, ['g'], 1).error!, /2–16/);
+  const gif: SunburstNode = { ...generator, data: { ...generator.data, channelModel: 'gpt-image-2.6', outputFormat: 'gif', size: 'auto', frameCount: 16 } };
+  assert.equal(prepareSunburstRun([gif, prompt], edges, ['g'], 1).tasks[0].imageRequest?.frameCount, 16);
+  gif.data.frameCount = 1;
+  assert.match(prepareSunburstRun([gif, prompt], edges, ['g'], 1).error!, /2–16/);
 });
 
 test('APIMart standard accepts image references for all formats and masks only for static output', () => {
@@ -144,15 +131,4 @@ test('APIMart standard settings survive clipboard and GIF sheet limits follow fr
   assert.throws(() => validateApimartGifSize('1024x1024', 2));
   assert.equal(sunburstProviderSettings({ ...data, outputFormat: 'gif', size: '512x512' }, 'openai').size, 'auto');
   assert.equal(sunburstProviderSettings({ ...data, size: '9:21', resolution: '4K' }, 'openai').size, '1648x3840');
-});
-
-test('a model-produced APIMart channel defers capability checks until its real value is available', () => {
-  const node: SunburstNode = { ...generator, data: { ...generator.data, size: '1600x1200' } };
-  const source: AppNode = { id: 'channel', type: 'image-describer', position: { x: 0, y: 0 }, data: { model: 'deepseek-flash', instructions: 'choose the channel', text: '', imageInputs: 1 } };
-  const file: AppNode = { id: 'ref', type: 'file', position: { x: 0, y: 0 }, data: { assets: [{ id: 'a', name: 'a.png', kind: 'image', url: 'blob:a' }] } };
-  const nodes: AppNode[] = [node, source, file, prompt];
-  const edges = [edge, { id: 'file-channel', source: 'ref', sourceHandle: 'file', target: 'channel', targetHandle: 'image-0' },
-    { id: 'channel-g', source: 'channel', target: 'g', targetHandle: 'channelModel' }];
-  assert.doesNotThrow(() => preflight({ nodes, edges }, ['g'], 1));
-  assert.match(prepareSunburstRun(nodes, edges, ['g'], 1).error!, /渠道模型/);
 });
