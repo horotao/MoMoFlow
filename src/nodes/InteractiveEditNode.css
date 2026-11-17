@@ -64,6 +64,74 @@
 
 .edit-keyboard-pin { background: color-mix(in srgb, var(--annotation-blue) 45%, transparent); }
 
+.edit-pin:has(.edit-pin-remove) { pointer-events: auto; }
+
+.edit-pin-movable {
+  cursor: move;
+  touch-action: none;
+}
+
+.edit-pin-movable[data-dragging] { z-index: 1; }
+
+.edit-pin-movable[data-dragging] > .edit-pin-remove { visibility: hidden; }
+
+.edit-pin-remove {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  display: grid;
+  place-items: center;
+  width: 23px;
+  height: 23px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.edit-pin-remove-icon {
+  display: grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  border: 1px solid white;
+  border-radius: 50%;
+  background: #484848;
+  color: white;
+  opacity: 0;
+}
+
+.edit-pin:hover > .edit-pin-remove,
+.edit-pin-remove:focus-visible { pointer-events: auto; }
+
+.edit-pin:hover > .edit-pin-remove > .edit-pin-remove-icon,
+.edit-pin-remove:focus-visible > .edit-pin-remove-icon { opacity: 1; }
+
+@media (hover: none) {
+  .edit-pin-remove { pointer-events: auto; }
+  .edit-pin-remove-icon { opacity: 1; }
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .edit-pin-remove-icon {
+    transform: scale(.95);
+    transform-origin: bottom left;
+    transition: opacity 80ms cubic-bezier(.23, 1, .32, 1), transform 80ms cubic-bezier(.23, 1, .32, 1);
+  }
+
+  .edit-pin:hover > .edit-pin-remove > .edit-pin-remove-icon {
+    transform: scale(1);
+    transition-duration: 125ms;
+  }
+
+  .edit-pin-remove:focus-visible > .edit-pin-remove-icon {
+    transform: scale(1);
+    transition: none;
+  }
+}
+
 .edit-box {
   position: absolute;
   border: 1.5px dashed var(--annotation-blue);
