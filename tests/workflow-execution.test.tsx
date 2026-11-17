@@ -122,7 +122,8 @@ async function run() {
   setNodes(() => [...savedGraph.nodes, { id: 'mask', type: 'masks-extractor', position: { x: 1000, y: 650 }, data: {} }]);
   setEdges(() => [...savedGraph.edges, { id: 'b-mask', source: 'b', sourceHandle: 'file', target: 'mask', targetHandle: 'image' }, { id: 'mask-g', source: 'mask', sourceHandle: 'mask', target: 'g', targetHandle: 'mask' }]); await settle();
   start(); await settle();
-  check(requests.length === 9 && document.querySelector('.describer-error[role="alert"]')?.textContent?.includes('必要选区') && graph.nodes.find(node => node.id === 'mask')?.selected, 'Missing selection blocks every model request and focuses the problem node');
+  const failureToast = document.querySelector('[data-toast-status="error"]');
+  check(requests.length === 9 && failureToast?.textContent?.includes('无法运行模型') && failureToast.textContent.includes('必要选区') && graph.nodes.find(node => node.id === 'mask')?.selected, 'Missing selection blocks every model request, explains the failure in a toast, and focuses the problem node');
   setNodes(() => savedGraph.nodes); setEdges(() => savedGraph.edges); await settle();
   // Exercise the real preview replaceable queue and formal-output contract.
   const renderer = new BlurRenderer(await createImageBitmap(canvas));

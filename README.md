@@ -72,6 +72,7 @@ Learn:
 - `src/lib/utils.ts`：组件共用的 `cn()` 样式合并工具。
 - `src/components/base-node.tsx`：React Flow UI 官方 Base Node 及其标题、内容、页脚组件。
 - `src/components/ui/button.tsx`：shadcn Button，保留 React 18 的 `forwardRef` 接口，阴影类适配 Tailwind 4。
+- 用 [AnimatedToastStack](src/components/ui/AnimatedToastStack.tsx) 显示通知，用 [useAnimatedToastStack](src/components/ui/useAnimatedToastStack.ts) 管理通知。将 `toasts` 和 `dismissToast` 分别传给组件的 `toasts` 和 `onDismiss`，需要反馈时调用 `showToast({ status, title, description })`。画布的模型运行通知使用 `position="top-center"` 和 `placement="fixed"`，标题简述结果，描述说明原因或下一步。[beUI 组件示例](https://beui.dev/components/motion/animated-toast-stack)
 
 组件源码已添加，可在新节点和界面中按需使用；现有节点外观和连接交互保持不变。
 画布的深浅色按钮同时切换根元素的 `dark` 类，使后续 shadcn 组件使用同一主题。

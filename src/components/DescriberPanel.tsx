@@ -8,11 +8,10 @@ import { nanoBananaName } from '../nodes/nanoBanana';
 import { ModelOptionsSettings } from './ModelOptionsSettings';
 import { SunburstSettings } from './SunburstSettings';
 import { GptRunCount } from './GptRunCount';
-import { sunburstName, sunburstProviderLabels } from '../nodes/sunburst';
-import { useEffect, useState, type KeyboardEventHandler, type ReactNode } from 'react';
+import { apimartExtMarkupError, sunburstName, sunburstProviderLabels } from '../nodes/sunburst';
+import { useEffect, type KeyboardEventHandler, type ReactNode } from 'react';
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
-import { X } from 'lucide-react';
 import { TaskManager } from './TaskManager';
 import { isActiveTask } from '../nodes/taskQueue';
 import { useModelRuns, useModelTasks, useModelTaskStore } from './useModelTasks';
@@ -26,8 +25,26 @@ import { NodeIcon } from '../nodes/NodeIcon';
 import { NodeSettingsSection } from './NodeSettingsSection';
 import { ParameterField } from './ParameterField';
 import { ParameterExposeButton } from './ParameterExposeButton';
+import { AnimatedToastStack, type ToastInput } from './ui/AnimatedToastStack';
+import { useAnimatedToastStack } from './ui/useAnimatedToastStack';
 import './NodeSettingsSidebar.css';
 import './ImageModelSettings.css';
+
+const executionToastLabels = { dismiss: '关闭通知' };
+const executionToastClassNames = { description: 'line-clamp-none wrap-anywhere' };
+
+function executionErrorToast(error: unknown, title: string): ToastInput {
+  const reason = error instanceof ExecutionProblem ? error.reason : error instanceof Error ? error.message : undefined;
+  const unsupportedMarkup = reason === apimartExtMarkupError;
+  return {
+    id: `${title}:${reason ?? ''}`,
+    title: unsupportedMarkup ? '当前模型不支持标注' : title,
+    description: unsupportedMarkup
+      ? 'APIMart 的 GPT Image 2.6 EXT 无法读取标注。请改用标准版或 OpenAI 官方渠道。'
+      : reason || '未能获取具体原因，请重试。',
+    status: 'error',
+  };
+}
 
 function NodeSettingsSidebar({ children, label, onKeyDown, imageModel = false }: {
   children: ReactNode; label: string; onKeyDown: KeyboardEventHandler<HTMLElement>; imageModel?: boolean;
@@ -67,7 +84,7 @@ export function DescriberPanel() {
   const taskStore = useModelTaskStore();
   const execution = useWorkflowExecution();
   const [runs, setRuns] = useModelRuns();
-  const [error, setError] = useState('');
+  const { toasts, showToast, dismissToast, clearToasts } = useAnimatedToastStack({ limit: 4 });
   const effective = (node: ImageDescriberNode, field: 'model' | 'instructions') => {
     const edge = edges.find((e) => e.target === node.id && e.targetHandle === field);
     return edge ? resolveTextValue(edge.source, nodes, edges) : node.data[field];
@@ -78,9 +95,9 @@ export function DescriberPanel() {
       const ids = Array.isArray(detail) ? detail : [detail];
       try {
         void execution.current?.run(ids, taskStore.getRuns());
-        setError('');
+        clearToasts();
       } catch (error) {
-        setError(error instanceof Error ? error.message : '无法开始运行。');
+        showToast(executionErrorToast(error, '无法运行模型'));
         if (error instanceof ExecutionProblem) {
           const node = getNodes().find(item => item.id === error.nodeId);
           if (node) { setNodes(all => all.map(item => ({ ...item, selected: item.id === node.id }))); void setCenter(node.position.x + 230, node.position.y + 200, { zoom: .8, duration: 300 }); }
@@ -90,7 +107,7 @@ export function DescriberPanel() {
     window.addEventListener('describer-run', run);
     window.addEventListener('sunburst-run', run);
     return () => { window.removeEventListener('describer-run', run); window.removeEventListener('sunburst-run', run); };
-  }, [getNodes, taskStore, execution, setNodes, setCenter]);
+  }, [getNodes, taskStore, execution, setNodes, setCenter, showToast, clearToasts]);
   const expose = (field: 'model' | 'instructions') => {
     if (!selected || isNodeLocked(getNodes().find((node) => node.id === selected.id))) return;
     const exposed = selected.data.exposed ?? [];
@@ -152,8 +169,8 @@ export function DescriberPanel() {
         if (!node || !isModelNode(node) || node.data.locked) return;
         try {
           void execution.current?.run([task.nodeId], 1, task.iteration, task.seedreamGroup?.imageId);
-          setError('');
-        } catch (error) { setError(error instanceof Error ? error.message : '无法重试任务。'); }
+          clearToasts();
+        } catch (error) { showToast(executionErrorToast(error, '无法重试任务')); }
       }}
       onFocus={(id) => {
         const node = getNodes().find((n) => n.id === id);
@@ -161,6 +178,7 @@ export function DescriberPanel() {
         setNodes((all) => all.map((n) => ({ ...n, selected: n.id === id })));
         void setCenter(node.position.x + 230, node.position.y + 200, { zoom: 0.8, duration: 300 });
       }} />
-    {error && <div className="describer-error" role="alert">{error}<button aria-label="关闭提示" onClick={() => setError('')}><X size={14} /></button></div>}
+    <AnimatedToastStack toasts={toasts} onDismiss={dismissToast} position="top-center" placement="fixed"
+      labels={executionToastLabels} classNames={executionToastClassNames} />
   </>;
 }

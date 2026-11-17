@@ -101,10 +101,15 @@ export function executionSourceAssets(graph: ExecutionGraph, target: string, tar
 }
 export class ExecutionProblem extends Error {
   nodeId: string;
-  constructor(nodeId: string, message: string) { super(message); this.nodeId = nodeId; }
+  readonly reason: string;
+  constructor(nodeId: string, reason: string, nodeLabel?: string) {
+    super(nodeLabel ? `${nodeLabel}：${reason}` : reason);
+    this.nodeId = nodeId;
+    this.reason = reason;
+  }
 }
 export function nodeProblem(node: AppNode, message: string): never {
-  throw new ExecutionProblem(node.id, `${node.data.label || node.type}：${message}`);
+  throw new ExecutionProblem(node.id, message, node.data.label || node.type);
 }
 
 // Output content is part of the edit guard, but derived local renders are not.

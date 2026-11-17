@@ -631,8 +631,6 @@
 .describer-panel .describer-primary:hover { opacity: .85; background: var(--panel-text); }
 .describer-hint { font-size: 10px; line-height: 16px; color: var(--panel-muted); margin: 12px 0 0; }
 .describer-empty { padding: 30px 16px; display: flex; gap: 10px; align-items: center; flex-direction: column; color: var(--panel-muted); }
-.describer-error { position: absolute; z-index: 20; top: 16px; left: 50%; transform: translateX(-50%); background: #443232; color: #ffd6d6; border-radius: 8px; padding: 12px; display: flex; gap: 16px; font-size: 12px; }
-.describer-error button { background: none; border: 0; color: inherit; }
 .describer-settings { padding-right: 48px; }
 .describer-settings textarea { scrollbar-width: thin; scrollbar-color: #666 transparent; }
 .describer-menu { position: relative; }
