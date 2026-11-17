@@ -200,7 +200,7 @@
 .describer-panel.node-settings-panel .describer-runs > div > button { width: 28px; height: 28px; border-radius: 6px; corner-shape: superellipse(1.25); }
 .describer-panel.node-settings-panel .describer-runs > div > button svg { width: 20px; height: 20px; }
 .describer-panel.node-settings-panel .describer-runs > div > button:hover:not(:disabled) { background: #383838; }
-.describer-panel.node-settings-panel .describer-primary { height: 28px; gap: 6px; padding: 0 11px; border-radius: 6px; corner-shape: superellipse(1.25); background: #d3d3d3; color: #292929; font: inherit; }
+.describer-panel.node-settings-panel .describer-primary { height: 34px; gap: 6px; padding: 0 10px; border-radius: 12px; corner-shape: superellipse(1.25); background: #d3d3d3; color: #292929; font: inherit; }
 .describer-panel.node-settings-panel .describer-primary > svg { width: 22px; height: 22px; }
 .describer-panel.node-settings-panel .describer-primary:hover:not(:disabled) { background: #dedede; opacity: 1; }
 .describer-panel.node-settings-panel .describer-panel-bottom button:focus-visible { outline: 1px solid var(--panel-muted); outline-offset: 2px; }
