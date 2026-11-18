@@ -126,8 +126,21 @@ async function run() {
   assert(document.activeElement?.classList.contains('canvas-project-trigger'), 'Esc 关闭并恢复触发按钮焦点');
   button('.canvas-project-trigger').click();
   await until(() => document.querySelector('.canvas-project-row[aria-checked="false"]'));
+  const switchingMenu = document.querySelector('.canvas-project-menu')!;
+  const idleDeleteOpacities: string[] = [];
+  const observeSwitchIcons = new MutationObserver(() => {
+    if (switchingMenu.getAttribute('aria-busy') !== 'true') return;
+    switchingMenu.querySelectorAll('.canvas-project-item:not(:hover) .canvas-project-delete:not(:focus-visible)')
+      .forEach(item => idleDeleteOpacities.push(getComputedStyle(item).opacity));
+  });
+  observeSwitchIcons.observe(switchingMenu, { attributes: true, attributeFilter: ['aria-busy'] });
   button('.canvas-project-row[aria-checked="false"]').click();
   await until(() => document.querySelector('.canvas-project-count')?.textContent === '节点 0');
+  observeSwitchIcons.disconnect();
+  if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    assert(idleDeleteOpacities.length > 0 && idleDeleteOpacities.every(opacity => opacity === '0'),
+      '切换项目时，未悬停且未聚焦的删除按钮保持隐藏');
+  }
   assert(document.querySelector('.canvas-project-name')?.textContent === second.name, '项目切换同时替换名称与画布');
   button('.canvas-project-trigger').click();
   await until(() => document.querySelector('.canvas-project-create'));
