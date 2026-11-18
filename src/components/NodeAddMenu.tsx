@@ -3,7 +3,7 @@ import { spring } from '../lib/springs';
 import { ArrowLeft, X } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
-  isNodeMenuCategory, nodeMenuCategories, nodeMenuGroups, searchableNodeMenuEntries, resolveMenuGroups,
+  isNodeMenuCategory, nodeMenuCategories, nodeMenuGroups, searchableNodeMenuEntries, resolveMenuGroups, withImageModelCreationMenu,
   type NodeMenuEntry, type NodeMenuGroup, type NodeMenuChoice,
 } from './nodeMenuCatalog';
 import { useCascadeMenu } from './useCascadeMenu';
@@ -33,9 +33,9 @@ function MenuIcon({ entry }: { entry: NodeMenuEntry }) {
       : entry.icon && <HugeiconsIcon icon={entry.icon} size={18} strokeWidth={1.5} absoluteStrokeWidth />}
   </span>;
 }
-function MenuRow({ row, highlighted, child, category, menuId, onSelect }: {
+function MenuRow({ row, highlighted, child, expandedRow, menuId, onSelect }: {
   row: MenuRowData; highlighted: boolean; child: boolean;
-  category: string | null; menuId: string; onSelect: (row: MenuRowData, keyboard: boolean) => void;
+  expandedRow: string | null; menuId: string; onSelect: (row: MenuRowData, keyboard: boolean) => void;
 }) {
   const { entry, rowId, hasSubmenu, available } = row;
   return <button type="button" role="menuitem" tabIndex={-1}
@@ -43,28 +43,31 @@ function MenuRow({ row, highlighted, child, category, menuId, onSelect }: {
     data-highlighted={highlighted || undefined}
     data-node-id={entry.nodeId} data-choice-id={entry.choice?.id}
     aria-disabled={!available || undefined} aria-haspopup={hasSubmenu ? 'menu' : undefined}
-    aria-expanded={hasSubmenu ? category === entry.id : undefined}
-    aria-controls={hasSubmenu && category === entry.id ? `${menuId}-submenu` : undefined}
+    aria-expanded={hasSubmenu ? expandedRow === rowId : undefined}
+    aria-controls={hasSubmenu && expandedRow === rowId ? `${menuId}-submenu` : undefined}
     title={!available ? `${entry.label}（尚未接入）` : entry.choice?.detail ? `${entry.label} · ${entry.choice.detail}` : undefined}
     onClick={event => { if (available) onSelect(row, event.detail === 0); }}>
     <MenuIcon entry={entry} /><span className="node-add-menu-label">{entry.label}</span>
     {hasSubmenu && <img className="node-add-menu-chevron" src="/canvas-menu/arrow-right01.svg" alt="" draggable={false} />}
   </button>;
 }
-function MenuList({ groups, child, category, highlightedRow, keyboardInteraction, menuId, categoryAvailable, onSelect }: {
-  groups: NodeMenuGroup[]; child: boolean; category: string | null; highlightedRow: string | null;
+const mainRowId = (entry: NodeMenuEntry, groupIndex: number) => isNodeMenuCategory(entry.id) ? entry.id : `${groupIndex}-${entry.id}`;
+
+function MenuList({ groups, child, expandedRow, highlightedRow, keyboardInteraction, menuId, submenuFor, onSelect }: {
+  groups: NodeMenuGroup[]; child: boolean; expandedRow: string | null; highlightedRow: string | null;
   keyboardInteraction: boolean;
-  menuId: string; categoryAvailable: (id: string) => boolean; onSelect: (row: MenuRowData, keyboard: boolean) => void;
+  menuId: string; submenuFor?: (entry: NodeMenuEntry) => NodeMenuGroup[] | undefined;
+  onSelect: (row: MenuRowData, keyboard: boolean) => void;
 }) {
   return <div className="node-add-menu-list" data-keyboard={keyboardInteraction || undefined}>
     {groups.map((group, groupIndex) => <div key={group.label ?? groupIndex} role="group" aria-label={group.label}>
       {group.label && <div className="node-add-menu-heading" aria-hidden="true">{group.label}</div>}
       {group.entries.map(entry => {
-        const rowId = isNodeMenuCategory(entry.id) ? entry.id : `${groupIndex}-${entry.id}`;
-        const hasSubmenu = isNodeMenuCategory(entry.id) && categoryAvailable(entry.id);
+        const rowId = mainRowId(entry, groupIndex);
+        const hasSubmenu = Boolean(submenuFor?.(entry)?.length);
         const row = { entry, rowId, hasSubmenu, available: Boolean(entry.choice) || hasSubmenu };
         return <MenuRow key={entry.id} row={row} highlighted={!child && rowId === highlightedRow} child={child}
-          category={category} menuId={menuId} onSelect={onSelect} />;
+          expandedRow={expandedRow} menuId={menuId} onSelect={onSelect} />;
       })}
     </div>)}
   </div>;
@@ -89,11 +92,15 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
     editing: resolveMenuGroups(nodeMenuCategories.editing, choices),
     helpers: resolveMenuGroups(nodeMenuCategories.helpers, choices),
   };
-  const categoryAvailable = (key: string) => isNodeMenuCategory(key) && categories[key].length > 0;
-  const category = isNodeMenuCategory(activeRow) && categoryAvailable(activeRow) && !term ? activeRow : null;
-  const matches = resolveMenuGroups([{ entries: searchableNodeMenuEntries }], choices).flatMap(group => group.entries)
+  const submenuFor = (entry: NodeMenuEntry) => entry.submenu ?? (isNodeMenuCategory(entry.id) ? categories[entry.id] : undefined);
+  const resolve = (groups: NodeMenuGroup[]) => resolveMenuGroups(groups, choices).map(group => mode === 'create'
+    ? { ...group, entries: group.entries.map(withImageModelCreationMenu) } : group);
+  const matches = resolve([{ entries: searchableNodeMenuEntries }]).flatMap(group => group.entries)
     .filter(entry => `${entry.label} ${entry.keywords}`.toLocaleLowerCase().includes(term));
-  const groups = term ? [{ label: '搜索结果', entries: matches }] : resolveMenuGroups(nodeMenuGroups, choices);
+  const groups = term ? [{ label: '搜索结果', entries: matches }] : resolve(nodeMenuGroups);
+  const parentEntry = groups.flatMap((group, index) => group.entries.filter(entry => mainRowId(entry, index) === activeRow))[0];
+  const subGroups = parentEntry && submenuFor(parentEntry);
+  const expandedRow = subGroups?.length ? activeRow : null;
 
   useLayoutEffect(() => {
     if (actions) menuButtons(main.current)[0]?.focus({ preventScroll: true });
@@ -118,10 +125,10 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
     return () => window.removeEventListener('resize', place);
   }, [screen, trigger]);
   useLayoutEffect(() => {
-    if (!category) return;
+    if (!expandedRow) return;
     const place = () => {
       const bounds = main.current?.getBoundingClientRect();
-      const row = main.current?.querySelector(`[data-main-row="${category}"]`)?.getBoundingClientRect();
+      const row = main.current?.querySelector(`[data-main-row="${expandedRow}"]`)?.getBoundingClientRect();
       const child = submenu.current;
       if (!bounds || !row || !child) return;
       // Placement uses the final layout, even if a category is clicked during entry.
@@ -147,9 +154,9 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
     if (submenu.current) observer.observe(submenu.current);
     window.addEventListener('resize', place);
     return () => { observer.disconnect(); window.removeEventListener('resize', place); };
-  }, [category, position]);
+  }, [expandedRow, position]);
   const back = () => {
-    const parent = main.current?.querySelector<HTMLButtonElement>(`[data-main-row="${category}"]`);
+    const parent = main.current?.querySelector<HTMLButtonElement>(`[data-main-row="${expandedRow}"]`);
     activate(null); focusButton(parent ?? undefined);
   };
   const select = (row: MenuRowData, keyboard: boolean) => {
@@ -158,8 +165,8 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
     if (row.hasSubmenu) {
       setKeyboardInteraction(keyboard);
       focusSubmenu.current = keyboard;
-      activate(row.entry.id);
-      if (category === row.entry.id && keyboard) { focusButton(menuButtons(submenu.current)[0]); focusSubmenu.current = false; }
+      activate(row.rowId);
+      if (expandedRow === row.rowId && keyboard) { focusButton(menuButtons(submenu.current)[0]); focusSubmenu.current = false; }
     } else if (row.entry.choice) onChoose(row.entry.choice);
   };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>, child: boolean) => {
@@ -176,21 +183,20 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
     } else if (event.key === 'ArrowLeft' && child) {
       event.preventDefault(); back();
     } else if (event.key === 'ArrowRight' && !fromSearch && !child) {
-      const key = (event.target as HTMLElement).dataset.mainRow;
-      if (key && categoryAvailable(key)) {
-        event.preventDefault(); focusSubmenu.current = true; activate(key);
-        if (category === key) { focusButton(menuButtons(submenu.current)[0]); focusSubmenu.current = false; }
+      const button = buttons[index];
+      if (button?.getAttribute('aria-haspopup') === 'menu') {
+        event.preventDefault(); button.click();
       }
     } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || (!fromSearch && (event.key === 'Home' || event.key === 'End'))) {
       event.preventDefault();
       const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1
         : event.key === 'ArrowDown' ? (index + 1) % buttons.length : (index <= 0 ? buttons.length : index) - 1;
       focusButton(buttons[next]);
-    } else if (event.key === 'Enter' && fromSearch && term && matches[0]?.choice) {
-      event.preventDefault(); onChoose(matches[0].choice);
+    } else if (event.key === 'Enter' && fromSearch && term && buttons[0]) {
+      event.preventDefault(); buttons[0].click();
     } else if (event.key === 'Tab') {
       event.preventDefault();
-      const controls = (category && subPosition.overlaid
+      const controls = (expandedRow && subPosition.overlaid
         ? [submenu.current?.querySelector<HTMLButtonElement>('.node-add-menu-back'), ...menuButtons(submenu.current)]
         : [search.current, ...menuButtons(main.current), ...menuButtons(submenu.current)])
         .filter((element): element is HTMLInputElement | HTMLButtonElement => Boolean(element));
@@ -215,30 +221,30 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
       </div>}
       {actions ? <div className="node-add-menu-list" data-keyboard={keyboardInteraction || undefined}>
         {actions.map(entry => <MenuRow key={entry.id} row={{ entry, rowId: entry.id, hasSubmenu: false, available: true }}
-          highlighted={highlightedRow === entry.id} child={false} category={null} menuId={id} onSelect={select} />)}
+          highlighted={highlightedRow === entry.id} child={false} expandedRow={null} menuId={id} onSelect={select} />)}
       </div> : <>
       <ScrollArea className="node-add-menu-scroll-area" viewportClassName="node-add-menu-scroll fluid-scroll-fade" onScrollCapture={() => activate(null)}>
         <div role="menu" aria-label={mode === 'connect' ? '可连接节点' : '节点'}>
-          <MenuList groups={groups} child={false} category={category} highlightedRow={highlightedRow} keyboardInteraction={keyboardInteraction}
-            menuId={id} categoryAvailable={categoryAvailable} onSelect={select} />
+          <MenuList groups={groups} child={false} expandedRow={expandedRow} highlightedRow={highlightedRow} keyboardInteraction={keyboardInteraction}
+            menuId={id} submenuFor={submenuFor} onSelect={select} />
           {term && matches.length === 0 && <div className="node-add-menu-empty" role="status">没有匹配的节点</div>}
           {!term && mode === 'connect' && choices?.length === 0 && <div className="node-add-menu-empty" role="status">暂无可连接的节点</div>}
         </div>
       </ScrollArea>
       </>}
     </div>
-    {category && <div ref={submenu} id={`${id}-submenu`} className="node-add-menu node-add-menu-submenu nodrag nopan nowheel"
+    {expandedRow && subGroups && <div ref={submenu} id={`${id}-submenu`} className="node-add-menu node-add-menu-submenu nodrag nopan nowheel"
       data-animate-entrance={animateEntrance && !keyboardInteraction || undefined}
       style={{ left: subPosition.left, top: subPosition.top, transformOrigin: subPosition.transformOrigin, ...menuMotionStyle }}
-      role="menu" aria-label={category === 'editing' ? '图像编辑节点' : '辅助工具节点'}
+      role="menu" aria-label={parentEntry.label}
       onPointerMoveCapture={() => setKeyboardInteraction(false)}
       onPointerDownCapture={() => setKeyboardInteraction(false)}
       onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }}
       onKeyDown={event => onKeyDown(event, true)} onPointerDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}>
       {subPosition.overlaid && <button type="button" className="node-add-menu-back" onClick={back}><ArrowLeft size={14} strokeWidth={1.5} absoluteStrokeWidth />返回</button>}
       <ScrollArea className="node-add-menu-scroll-area" viewportClassName="node-add-menu-scroll fluid-scroll-fade">
-        <MenuList groups={categories[category]} child category={category} highlightedRow={null} keyboardInteraction={keyboardInteraction}
-          menuId={id} categoryAvailable={categoryAvailable} onSelect={select} />
+        <MenuList groups={subGroups} child expandedRow={expandedRow} highlightedRow={null} keyboardInteraction={keyboardInteraction}
+          menuId={id} onSelect={select} />
       </ScrollArea>
     </div>}
   </>;

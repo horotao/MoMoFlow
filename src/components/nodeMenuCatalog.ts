@@ -1,8 +1,9 @@
+import { Image03Icon } from '@hugeicons/core-free-icons';
 import type { IconSvgElement } from '@hugeicons/react';
 import { nodeIcons } from '../nodes/nodeIcons';
 import { items, libraryItemLabel } from './libraryCatalog';
 
-export type NodeMenuChoice = { id: string; itemId: string; detail?: string };
+export type NodeMenuChoice = { id: string; itemId: string; detail?: string; imageToImage?: boolean };
 export type NodeMenuEntry = {
   id: string;
   label: string;
@@ -11,6 +12,7 @@ export type NodeMenuEntry = {
   nodeId?: string;
   keywords?: string;
   choice?: NodeMenuChoice;
+  submenu?: NodeMenuGroup[];
 };
 export type NodeMenuGroup = { label?: string; entries: NodeMenuEntry[] };
 export type NodeMenuCategory = 'editing' | 'helpers';
@@ -64,6 +66,19 @@ export const nodeMenuGroups: NodeMenuGroup[] = [
 ];
 export const searchableNodeMenuEntries = items.filter(item => item.nodeType && !['model-input', 'position-logger'].includes(item.id)).map(item => node(item.id));
 export const isNodeMenuCategory = (id: string | null): id is NodeMenuCategory => id === 'editing' || id === 'helpers';
+export const hasImageModelCreationMenu = (id: string) => id === 'sunburst' || id === 'nano-banana' || id === 'seedream';
+
+export function withImageModelCreationMenu(entry: NodeMenuEntry): NodeMenuEntry {
+  const { choice } = entry;
+  if (!choice || !hasImageModelCreationMenu(choice.itemId)) return entry;
+  return {
+    ...entry, keywords: `${entry.keywords} 文生图 图生图`,
+    submenu: [{ label: '快捷操作', entries: [
+      { id: 'text-to-image', label: '文生图', asset: 'text', choice },
+      { id: 'image-to-image', label: '图生图', icon: Image03Icon, choice: { ...choice, id: `${choice.id}:image-to-image`, imageToImage: true } },
+    ] }],
+  };
+}
 
 const portLabels: Record<string, string> = {
   Back: '底图', Front: '前景', 'Input 1': '输入 1', Background: '背景', 'Layer 1': '图层 1',

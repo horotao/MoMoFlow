@@ -99,7 +99,7 @@ async function run() {
   check(document.querySelectorAll('.canvas-sidebar-button').length === 6, 'Dock retains all six design slots');
   const dockImages = Array.from(document.querySelectorAll<HTMLImageElement>('.canvas-sidebar img'));
   await Promise.all(dockImages.map(img => img.decode()));
-  check(dockImages.every((img, index) => img.naturalWidth === (index === 0 ? 24 : 18) && img.getBoundingClientRect().width === img.naturalWidth), 'Dock assets retain their original 24px and 18px geometry');
+  check(dockImages.every((img, index) => img.naturalWidth === (index === 0 ? 24 : 18) && img.offsetWidth === img.naturalWidth), 'Dock assets retain their original 24px and 18px layout widths');
   await input('model-input');
   check(menuNodeIds().length === 0, 'Dock keeps model-input hidden');
   await input('position-logger');
@@ -232,24 +232,55 @@ async function run() {
   check(api.getNodes().length === 0, 'IME confirmation does not accidentally create a node');
   key(find('.node-add-menu input'), 'Escape'); await settle();
 
+  const imageModels = ['sunburst', 'nano-banana', 'seedream'];
+  let lastCreationIds: string[] = [];
   for (const entry of searchableNodeMenuEntries.filter(entry => !['model-input', 'position-logger'].includes(entry.nodeId!))) {
+    const isImageModel = imageModels.includes(entry.nodeId!);
     await open(); await input(entry.nodeId!);
     find<HTMLButtonElement>(`.node-add-menu [data-node-id="${entry.nodeId}"]`).click(); await settle();
+    if (isImageModel) {
+      check(sub()?.getAttribute('aria-label') === entry.label && api.getNodes().length === 0, `Search opens the ${entry.label} submenu before creating a node`);
+      find<HTMLButtonElement>(`.node-add-menu-submenu [data-choice-id="${entry.nodeId}"]`).click(); await settle();
+    }
     const created = api.getNodes().at(-1);
-    check(api.getNodes().length === 1 && created?.type === entry.nodeId && created?.selected, `Creates ${entry.nodeId} through the dock`);
+    check(api.getNodes().length === (isImageModel ? 2 : 1) && created?.type === entry.nodeId && created?.selected, `Creates ${entry.nodeId} through the dock`);
+    lastCreationIds = api.getNodes().map(node => node.id);
+    if (isImageModel) check(api.getEdges().length === 1 && api.getEdges()[0].targetHandle === 'prompt', `Text-to-image adds one prompt wire for ${entry.label}`);
     check(!document.querySelector('.node-add-menu'), `Choosing ${entry.nodeId} dismisses the menu`);
-    if (['text', 'router', 'file', 'sunburst'].includes(entry.nodeId!)) await checkEntrance(created!.id, `Dock ${entry.nodeId}`);
+    if (['text', 'router', 'file'].includes(entry.nodeId!)) await checkEntrance(created!.id, `Dock ${entry.nodeId}`);
     canvasHistoryShortcut('undo'); await settle();
     check(api.getNodes().length === 0, `Undo removes ${entry.nodeId} in one step`);
   }
   canvasHistoryShortcut('redo'); await settle();
-  check(api.getNodes().length === 1, 'Redo restores menu-created nodes');
+  check(api.getNodes().map(node => node.id).join() === lastCreationIds.join(), 'Redo restores menu-created nodes');
   check(!document.querySelector('[data-node-entrance], .port-ripple'), 'Redo does not replay menu node entrance');
-  await storage.save({ nodes: api.getNodes(), edges: [], colorMode: 'dark', viewport: api.getViewport() });
+  await storage.save({ nodes: api.getNodes(), edges: api.getEdges(), colorMode: 'dark', viewport: api.getViewport() });
   const reader = new WorkflowStorage(database);
   const restored = await reader.load();
-  check(restored?.nodes[0]?.id === api.getNodes()[0]?.id, 'Menu-created nodes survive IndexedDB save/restore');
+  check(restored?.nodes.map(node => node.id).join() === lastCreationIds.join() && restored.edges.length === api.getEdges().length, 'Menu-created nodes and edges survive IndexedDB save/restore');
   reader.dispose();
+
+  canvasHistoryShortcut('undo'); await settle();
+  for (const id of imageModels) {
+    await open();
+    const parent = find<HTMLButtonElement>(`.node-add-menu [data-node-id="${id}"]`);
+    parent.focus(); key(parent, 'ArrowRight'); await settle();
+    check(document.activeElement?.textContent?.trim() === '文生图', `Keyboard opens the ${id} submenu on text-to-image`);
+    key(document.activeElement as HTMLElement, 'ArrowDown'); await settle();
+    const imageToImage = document.activeElement as HTMLButtonElement;
+    check(imageToImage.textContent === '图生图', `ArrowDown reaches image-to-image for ${id}`);
+    imageToImage.click(); await settle();
+    const nodes = api.getNodes();
+    const model = nodes.find(node => node.type === id);
+    const prompt = nodes.find(node => node.type === 'text');
+    const file = nodes.find(node => node.type === 'file');
+    const edges = api.getEdges();
+    check(nodes.length === 3 && model?.selected && prompt && !prompt.selected && file && !file.selected, `Image-to-image creates three nodes and selects ${id}`);
+    check(edges.length === 2 && edges.some(edge => edge.source === prompt?.id && edge.target === model?.id && edge.targetHandle === 'prompt')
+      && edges.some(edge => edge.source === file?.id && edge.sourceHandle === 'file' && edge.target === model?.id && edge.targetHandle === 'image-0'), `Image-to-image wires both inputs for ${id}`);
+    canvasHistoryShortcut('undo'); await settle();
+    check(api.getNodes().length === 0 && api.getEdges().length === 0, `One undo removes all of image-to-image for ${id}`);
+  }
 
   const right = { left: 200, right: 432, top: 100, bottom: 500 };
   check(isInMenuTriangle({ x: 150, y: 250 }, { x: 100, y: 200 }, right), 'Triangle geometry includes diagonal movement to the right');
@@ -333,6 +364,7 @@ async function run() {
   key(find('.node-add-menu input'), 'Escape'); await wait(80);
   check(!document.querySelector('.node-add-menu'), 'Escape dismisses context menus with no leftover timer');
 
+  await api.setViewport({ x: 0, y: 0, zoom: .75 });
   api.setNodes([
     { id: 'qa-text', type: 'text', position: { x: 100, y: 80 }, data: { text: '菜单验收 · 提示词' } },
     { id: 'qa-router', type: 'router', position: { x: 820, y: 180 }, data: {} },
