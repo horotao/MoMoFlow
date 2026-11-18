@@ -28,6 +28,7 @@ import { validateSunburstImageInputs } from './nodes/sunburst';
 import { migrateSunburstProviderInput } from './nodes/sunburstMigration';
 import { CanvasNavigation, canvasMinZoom, canvasMaxZoom, type ZoomTarget } from './components/CanvasNavigation';
 import { CanvasSidebar, type CanvasTool } from './components/CanvasSidebar';
+import { arrangeSelectedNodes, isArrangeShortcut } from './components/canvasLayout';
 import { CanvasBackground } from './components/CanvasBackground';
 import { canvasGridOrigin, readGridSnap, saveGridSnap, snapDragChanges, type GridDragAnchor } from './components/canvasGrid';
 import { ApiSettingsDialog } from './components/ApiSettingsDialog';
@@ -760,6 +761,16 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       onConnectEnd={onConnectEnd}
       onKeyDown={(event) => {
         if ((event.target as HTMLElement).closest('input, textarea, [contenteditable="true"], [data-compositor-editor]') || event.nativeEvent.isComposing) return;
+        if (isArrangeShortcut({ ...event, isComposing: event.nativeEvent.isComposing })) {
+          const state = canvasStore.getState();
+          const blockedTarget = (event.target as HTMLElement).closest('button, select, [role="menu"], [role="dialog"], [role="listbox"], [contenteditable], .react-flow__panel');
+          if (blockedTarget || apiSettingsOpen || pendingNodeMenu || state.connection.inProgress
+            || state.userSelectionActive || nodes.some(node => node.dragging)
+            || document.querySelector('[role="dialog"], [role="menu"], [data-compositor-editor]')) return;
+          event.preventDefault();
+          setNodes(current => arrangeSelectedNodes(current, getEdges(), gridSnap ? gridOrigin.current : undefined));
+          return;
+        }
         if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
           event.preventDefault();
           if (event.shiftKey) history.redo(); else history.undo();

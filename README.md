@@ -175,3 +175,9 @@ SVG 输出：GPT Image 2.6 的 Sunburst / Flare 可选择 SVG，使用 `/images/
 复用 API 设置中的 APIMart Key，或在本地开发和预览时使用 `APIMART_API_KEY`。固定模型为 `gemini-nano-banana-2.1`，支持自动比例及 14 种固定比例，分辨率可选 1K、2K、4K。应用按任务编号查询结果，拿到图片 URL 后下载并保存到工作流。PNG/JPEG 选择在浏览器处理，相同格式保留原始字节。[APIMart 模型文档](https://docs.apimart.ai/cn/api-reference/images/gemini-nano-banana-2.1/generation)
 
 旧工作流中的 Ideogram 节点仍可查看和使用已保存的图片。该模型已下线。
+
+### 画布自动整理
+
+在主画布选中至少两个未锁定节点后按 `Shift + L`（Mac / Windows 相同）。按连通关系划分工作流，每组在原来的区域附近独立从左到右排列；单独的孤立节点保持原位，组间重叠时仅作最小必要避让；只调整选中节点的位置，不移动未选中或锁定的节点，也不改变连线、内容和视口。没有选中节点时不整理整张画布。开启网格对齐时，整理位置沿用当前网格。
+
+一次撤销可恢复整组位置，重复整理不会新增无意义的历史记录。输入文字、输入法组合、菜单/弹窗、合成器和拖动过程中不会触发。该功能只有快捷键，没有按钮或菜单入口。自动检查包含 `canvasLayout.test.ts`；浏览器验收页为 `/tests/canvas-layout.html`，使用独立存储且不调用模型。
