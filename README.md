@@ -115,7 +115,7 @@ Tasks 显示实际排队、运行、成功或失败状态。每次 Run 都可能
 
 ### Vercel 部署（BYOK）
 
-仓库根目录的 `vercel.json` 同时构建 Vite 前端与 `api/[...path].ts` 模型接口。使用 `vercel deploy --environment preview` 发布预览；安装使用 `npm ci`，运行时使用 Node.js 24。接口复用本地请求校验、模型处理及 BYOK 网关校验。
+仓库根目录的 `vercel.json` 同时构建 Vite 前端与 `api/[...path].ts` 模型接口。使用 `vercel deploy --environment preview` 发布预览；安装使用 `ONNXRUNTIME_NODE_INSTALL_CUDA=skip npm ci`，跳过未使用的 Node.js CUDA 二进制下载，不影响浏览器 WebGPU 蒙版推理；运行时使用 Node.js 24。接口复用本地请求校验、模型处理及 BYOK 网关校验。
 
 线上仅使用用户在「更多 → API 设置」中填写的 API Key，不读取服务端默认密钥；连接测试同样需要填写 Key。`.vercelignore` 排除本地环境文件，部署时不要上传 `.env.local` 或配置共享模型密钥。接口仅接受 Vercel 提供的部署域名及对应 HTTPS Origin，用户配置仍保存在各自浏览器中。
 

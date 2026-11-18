@@ -47,7 +47,7 @@ Hook 属于开发辅助检查，可以被用户禁用，脚本启动错误也不
 
 ## GitHub Actions
 
-[quality.yml](../.github/workflows/quality.yml) 在 PR、推送到 `main` 及手动触发时执行 `npm ci` 和 `npm run check`。Node.js 版本与本地一致，只使用 npm 锁文件；Actions 固定到已核对的提交版本。未使用需要密钥的 API，也没有定时任务。
+[quality.yml](../.github/workflows/quality.yml) 在 PR、推送到 `main` 及手动触发时执行 `npm ci` 和 `npm run check`。安装步骤设置 `ONNXRUNTIME_NODE_INSTALL_CUDA=skip`，与 Vercel 一致，跳过 `@huggingface/transformers` 间接依赖的 Node.js CUDA 二进制下载；浏览器蒙版推理继续使用 WebGPU，其余安装脚本照常执行。Node.js 版本与本地一致，只使用 npm 锁文件；Actions 固定到已核对的提交版本。未使用需要密钥的 API，也没有定时任务。
 
 CI 使用完整 Git 历史，PR 以目标分支基点、推送以事件的前一个提交为 `MOMOFLOW_DIFF_BASE`。因此干净检出中的已提交空白错误也能被检查。新分支的全零基点比较完整树；基点不存在则失败，不能当成检查通过。手动触发未提供基点时只做工作区检查，其余检查仍完整执行。
 
