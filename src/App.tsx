@@ -543,11 +543,15 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     }
   }, [nodes, flowToScreenPosition, getNodesBounds, fitView, getZoom]);
 
-  const addNode = useCallback((itemId: string, position: AppNode['position'], { animate = true, imageToImage = false } = {}) => {
+  const addNode = useCallback((itemId: string, position: AppNode['position'], { animate = true, imageModelCreationMode = 'text-to-image' }: {
+    animate?: boolean; imageModelCreationMode?: NodeMenuChoice['imageModelCreationMode'];
+  } = {}) => {
     const node = createLibraryNode(itemId, position);
     if (!node) return;
-    const inputs = createModelInputs(node, { imageToImage });
+    const imageToImage = imageModelCreationMode === 'image-to-image';
+    const inputs = imageModelCreationMode === 'model-only' ? undefined : createModelInputs(node, { imageToImage });
     if (imageToImage && !inputs) return;
+    if (imageModelCreationMode === 'model-only') pendingCreationFit.current = [node.id];
     const created = [...(inputs?.nodes ?? []), node];
     if (animate) created.forEach(item => playNodeEntrance(null, item.id));
     setNodes(current => [...current.map(item => ({ ...item, selected: false })), ...created]);
@@ -557,7 +561,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   const chooseNode = useCallback((selected: NodeMenuChoice) => {
     if (!pendingNodeMenu) return;
     if (!('nodeId' in pendingNodeMenu)) {
-      addNode(selected.itemId, pendingNodeMenu.position, { imageToImage: selected.imageToImage });
+      addNode(selected.itemId, pendingNodeMenu.position, { imageModelCreationMode: selected.imageModelCreationMode });
       setPendingNodeMenu(null);
       return;
     }

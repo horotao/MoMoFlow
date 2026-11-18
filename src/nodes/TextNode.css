@@ -2,7 +2,7 @@
 .react-flow .text-node-frame .text-node-content:focus-within { box-shadow: inset 0 0 0 1px var(--node-selected-border); }
 .react-flow .text-node-frame .text-node-editor-host,
 .react-flow .text-node-frame .text-node-editor-content { height: auto; }
-.react-flow .text-node-frame .text-node-editor { height: auto; min-height: 287px; max-height: 518px; padding: 16px; color: var(--node-primary); font: 400 12px/22px var(--font-ui); }
+.react-flow .text-node-frame .text-node-editor { height: auto; min-height: 287px; max-height: 518px; padding: 16px; color: var(--node-primary); font: 400 12px/22px var(--font-ui); cursor: text; }
 .react-flow .text-node-frame .text-node-suggestion { line-height: 22px; white-space: normal; }
 .react-flow .text-node-frame .text-node-suggestion kbd { background: var(--node-selected-border); }
 .react-flow .text-node-frame .text-node-footer { position: relative; z-index: 3; height: 24px; color: var(--node-secondary); font: 400 12px/22px var(--font-ui); }

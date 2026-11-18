@@ -3,7 +3,8 @@ import type { IconSvgElement } from '@hugeicons/react';
 import { nodeIcons } from '../nodes/nodeIcons';
 import { items, libraryItemLabel } from './libraryCatalog';
 
-export type NodeMenuChoice = { id: string; itemId: string; detail?: string; imageToImage?: boolean };
+export type ImageModelCreationMode = 'text-to-image' | 'image-to-image' | 'model-only';
+export type NodeMenuChoice = { id: string; itemId: string; detail?: string; imageModelCreationMode?: ImageModelCreationMode };
 export type NodeMenuEntry = {
   id: string;
   label: string;
@@ -72,10 +73,12 @@ export function withImageModelCreationMenu(entry: NodeMenuEntry): NodeMenuEntry 
   const { choice } = entry;
   if (!choice || !hasImageModelCreationMenu(choice.itemId)) return entry;
   return {
-    ...entry, keywords: `${entry.keywords} 文生图 图生图`,
+    ...entry, keywords: `${entry.keywords} 模型节点 文生图 图生图`,
     submenu: [{ label: '快捷操作', entries: [
+      { id: 'model-only', label: '模型节点', asset: entry.asset, icon: entry.icon,
+        choice: { ...choice, id: `${choice.id}:model-only`, imageModelCreationMode: 'model-only' } },
       { id: 'text-to-image', label: '文生图', asset: 'text', choice },
-      { id: 'image-to-image', label: '图生图', icon: Image03Icon, choice: { ...choice, id: `${choice.id}:image-to-image`, imageToImage: true } },
+      { id: 'image-to-image', label: '图生图', icon: Image03Icon, choice: { ...choice, id: `${choice.id}:image-to-image`, imageModelCreationMode: 'image-to-image' } },
     ] }],
   };
 }

@@ -265,7 +265,9 @@ async function run() {
     await open();
     const parent = find<HTMLButtonElement>(`.node-add-menu [data-node-id="${id}"]`);
     parent.focus(); key(parent, 'ArrowRight'); await settle();
-    check(document.activeElement?.textContent?.trim() === '文生图', `Keyboard opens the ${id} submenu on text-to-image`);
+    check(document.activeElement?.textContent?.trim() === '模型节点', `Keyboard opens the ${id} submenu on model-only creation`);
+    key(document.activeElement as HTMLElement, 'ArrowDown'); await settle();
+    check(document.activeElement?.textContent?.trim() === '文生图', `ArrowDown reaches text-to-image for ${id}`);
     key(document.activeElement as HTMLElement, 'ArrowDown'); await settle();
     const imageToImage = document.activeElement as HTMLButtonElement;
     check(imageToImage.textContent === '图生图', `ArrowDown reaches image-to-image for ${id}`);
@@ -280,6 +282,22 @@ async function run() {
       && edges.some(edge => edge.source === file?.id && edge.sourceHandle === 'file' && edge.target === model?.id && edge.targetHandle === 'image-0'), `Image-to-image wires both inputs for ${id}`);
     canvasHistoryShortcut('undo'); await settle();
     check(api.getNodes().length === 0 && api.getEdges().length === 0, `One undo removes all of image-to-image for ${id}`);
+
+    await open();
+    const modelRow = find<HTMLButtonElement>(`.node-add-menu [data-node-id="${id}"]`);
+    modelRow.focus(); key(modelRow, 'ArrowRight'); await settle();
+    const modelOnly = document.activeElement as HTMLButtonElement;
+    check(modelOnly.textContent === '模型节点', `Model-only creation is the first action for ${id}`);
+    modelOnly.click(); await settle();
+    const [standalone] = api.getNodes();
+    check(api.getNodes().length === 1 && standalone?.type === id && standalone.selected && api.getEdges().length === 0,
+      `Model-only creation selects ${id} without adding nodes or edges`);
+    canvasHistoryShortcut('undo'); await settle();
+    check(api.getNodes().length === 0, `One undo removes the standalone ${id}`);
+    canvasHistoryShortcut('redo'); await settle();
+    check(api.getNodes().length === 1 && api.getNodes()[0].id === standalone.id && api.getEdges().length === 0,
+      `One redo restores the standalone ${id}`);
+    canvasHistoryShortcut('undo'); await settle();
   }
 
   const right = { left: 200, right: 432, top: 100, bottom: 500 };
