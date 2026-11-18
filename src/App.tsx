@@ -41,6 +41,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import {
   ReactFlow,
   ReactFlowProvider,
+  SelectionMode,
   useReactFlow,
   useStoreApi,
   useStore,
@@ -615,10 +616,13 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       maxZoom={canvasMaxZoom}
       proOptions={{ hideAttribution: true }}
       colorMode={colorMode}
-      className={`canvas-tool-${tool} canvas-magnetic-connections`}
+      className={`canvas-tool-${tool} canvas-selection canvas-magnetic-connections`}
+      data-multiple={nodes.filter(node => node.selected).length > 1}
       style={{ '--magnetic-line-width': `${magneticDefaults.lineWidth}px` } as CSSProperties}
       panOnDrag={tool === 'hand' ? [0, 1, 2] : [1, 2]}
       selectionOnDrag={tool === 'select'}
+      selectionMode={SelectionMode.Partial}
+      paneClickDistance={tool === 'select' ? 4 : undefined}
       nodesDraggable={tool === 'select'}
       nodesConnectable={tool === 'select'}
       elementsSelectable={tool === 'select'}
@@ -733,10 +737,14 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
           if (event.key.toLowerCase() === 'v') setTool('select');
           if (event.key.toLowerCase() === 'h') setTool('hand');
         }
-        if (event.key === 'Escape' && !event.nativeEvent.isComposing) {
+        if (event.key === 'Escape' && !event.defaultPrevented) {
           setNodes((currentNodes) => currentNodes.map((node) =>
             node.selected ? { ...node, selected: false } : node,
           ));
+          setEdges(currentEdges => currentEdges.map(edge => edge.selected ? { ...edge, selected: false } : edge));
+          if ((event.target as HTMLElement).closest('.react-flow__nodesselection-rect')) {
+            canvasRef.current?.focus({ preventScroll: true });
+          }
         }
       }}
       defaultViewport={saved?.viewport}

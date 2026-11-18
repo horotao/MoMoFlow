@@ -419,6 +419,48 @@
 .canvas-tool-hand .react-flow__pane:active { cursor: grabbing; }
 .canvas-tool-hand .react-flow__node > * { pointer-events: none; }
 
+.canvas-selection {
+  --canvas-selection-color: #bdbdbd;
+  --canvas-selection-stroke: color-mix(in srgb, var(--canvas-selection-color) 67%, transparent);
+}
+
+.canvas-selection .react-flow__selection {
+  border: 1px solid var(--canvas-selection-color);
+  background: color-mix(in srgb, var(--canvas-selection-color) 12%, transparent);
+}
+
+.canvas-selection:is(:has(.react-flow__selection), [data-multiple="true"]) .react-flow__node.selected > .node-frame {
+  box-shadow: 0 0 0 calc(1.5px / var(--canvas-zoom, 1)) var(--canvas-selection-stroke);
+}
+
+/* Keep the selection under the ports so their full circles cover its outline. */
+.canvas-selection .react-flow__nodesselection {
+  z-index: 1;
+}
+
+/* Let the group receive drags on selected node bodies, including nodes with inline pointer events. */
+.canvas-selection.canvas-tool-select[data-multiple="true"]:has(.react-flow__nodesselection-rect)
+  :is(.react-flow__node.selected, .react-flow__node.selected :not(.react-flow__handle, .react-flow__handle *)) {
+  pointer-events: none !important;
+}
+
+.canvas-selection .react-flow__nodesselection-rect {
+  border: 0;
+  background: transparent;
+}
+
+.canvas-selection[data-multiple="true"] .react-flow__nodesselection-rect::before {
+  position: absolute;
+  inset: calc(-3px / var(--canvas-zoom, 1));
+  background: color-mix(in srgb, var(--canvas-selection-color) 4%, transparent);
+  box-shadow: inset 0 0 0 calc(1px / var(--canvas-zoom, 1)) var(--canvas-selection-stroke);
+  content: '';
+}
+
+.canvas-selection:is(.canvas-tool-hand, [data-multiple="false"]) .react-flow__nodesselection-rect {
+  pointer-events: none;
+}
+
 /* Weavy-style node actions: compact rows, shortcut column and one divider. */
 .text-node-menu-root { position: relative; }
 .text-node-menu-trigger { cursor: pointer; border-radius: 4px; }
