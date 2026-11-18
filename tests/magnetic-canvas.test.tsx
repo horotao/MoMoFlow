@@ -113,8 +113,17 @@ run.onclick = async () => {
     check(document.querySelectorAll('.magnetic-cable').length === 3 && !document.querySelector('.port-ripple'), 'Restored edges use the shared renderer without replaying feedback');
     check(document.querySelector('.react-flow__edge-text')?.textContent === 'Existing label' && edgePath('far').getAttribute('marker-end')?.startsWith('url('), 'Existing labels and arrow markers survive the renderer change');
     const header = document.querySelector<HTMLElement>('[data-id="consumer"] .node-header')!;
+    const initialViewport = api.getViewport();
+    const canvas = header.closest('.react-flow')!.getBoundingClientRect();
     const box = header.getBoundingClientRect();
-    const start = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    // Keep the coordinate check clear of the edge where React Flow auto-pans.
+    await api.setViewport({ ...initialViewport,
+      x: initialViewport.x + canvas.x + canvas.width / 2 - (box.x + box.width / 2),
+      y: initialViewport.y + canvas.y + canvas.height / 2 - (box.y + box.height / 2),
+    });
+    await settle();
+    const centeredBox = header.getBoundingClientRect();
+    const start = { x: centeredBox.x + centeredBox.width / 2, y: centeredBox.y + centeredBox.height / 2 };
     const initialPosition = api.getNode('consumer')!.position;
     const dragStart = { x: start.x + 8, y: start.y };
     const endpoint = { x: start.x + 32, y: start.y - 110 };
@@ -141,6 +150,7 @@ run.onclick = async () => {
     canvasHistoryShortcut('undo'); await settle();
     check(api.getNode('consumer')!.position.y === initialPosition.y && edgePath('near').getAttribute('d') === edgePath('near', '.react-flow__edge-interaction').getAttribute('d'),
       'Undo restores the node in one step without replaying the wire spring');
+    await api.setViewport(initialViewport); await settle();
     let point = await drag(port('a', 'source'), port('consumer', 'target', 'variable-2'));
     check(document.querySelector('.magnetic-preview[data-snapped="true"] .magnetic-field'), 'Production ports magnetically attract before direct contact');
     check(document.querySelectorAll('.magnetic-preview circle').length === 2 && document.querySelector('.magnetic-preview .cable-origin'), 'Preview has one fixed origin ball and one moving tip');
@@ -189,7 +199,11 @@ run.onclick = async () => {
     for (const zoom of [0.25, 0.5, 1, 1.5]) {
       render(saved);
       await until(() => !!edgePath('near'), 'Zoom fixture mount'); await wait(200);
-      await api.setViewport({ x: 80, y: 100, zoom }); await settle();
+      const source = port('a', 'source');
+      const input = port('consumer', 'target', 'variable-3');
+      // Keep the whole drag away from the auto-pan edges at each test zoom.
+      const center = api.screenToFlowPosition({ x: (source.x + input.x) / 2, y: (source.y + input.y) / 2 });
+      await api.setCenter(center.x, center.y, { zoom }); await settle();
       const screenScale = Math.min(zoom, 1), reach = 86 * screenScale;
       const target = port('consumer', 'target', 'variable-3');
       point = await drag(port('a', 'source'), target, -reach - 12);
@@ -206,6 +220,8 @@ run.onclick = async () => {
       check(Math.abs(tip.width - 5 * zoom) < 0.2 && field.width > 64 * screenScale && field.width < 95 * screenScale,
         `${zoom * 100}% zoom matches the text port's 5px connected dot while keeping the field proportional to the capture area`);
       await release(point);
+      check(api.getEdges().some(edge => edge.source === 'a' && edge.target === 'consumer' && edge.targetHandle === 'variable-3'),
+        `${zoom * 100}% zoom connects to the intended input on release`);
       const absorption = document.querySelector<SVGCircleElement>('.absorbing-tip')?.getBoundingClientRect();
       const ripple = document.querySelector<SVGSVGElement>('.port-ripple')!.getBoundingClientRect();
       check(Math.abs(ripple.width - 128 * screenScale) < 0.5 && (reduced ? !absorption : absorption && absorption.width <= tip.width && absorption.width > tip.width * 0.4),
@@ -278,10 +294,13 @@ run.onclick = async () => {
       const ports = document.querySelectorAll<HTMLElement>('.react-flow__handle.connectable.connectablestart');
       for (const element of ports) {
         const image = element.querySelector('img');
-        const ring = element.querySelector('.router-port-ring');
+        const isAnnotation = element.dataset.handleid === 'annotation-1';
+        const ring = element.querySelector(isAnnotation ? '.annotation-port-icon' : '.router-port-ring');
+        const ringColor = ring && getComputedStyle(ring, '::before').borderTopColor;
+        if (isAnnotation) check(ringColor === 'rgb(62, 162, 252)', `annotation-1 ring is #3EA2FC (${ringColor})`);
         const svg = image && new DOMParser().parseFromString(await (await fetch(image.src)).text(), 'image/svg+xml');
-        const expected = svg?.querySelector('[id="Ellipse"]')?.getAttribute('fill')
-          ?? (ring ? getComputedStyle(ring, '::before').borderTopColor : getComputedStyle(element).backgroundColor);
+        const expected = (isAnnotation ? ringColor : svg?.querySelector('[id="Ellipse"]')?.getAttribute('fill') ?? ringColor)
+          ?? getComputedStyle(element).backgroundColor;
         const probe = document.createElement('span');
         probe.style.color = expected!; document.body.append(probe);
         const expectedColor = getComputedStyle(probe).color; probe.remove();
@@ -292,7 +311,7 @@ run.onclick = async () => {
         const origin = document.querySelector('.magnetic-preview .cable-origin');
         check(wire && tip && origin && getComputedStyle(wire).stroke === expectedColor && getComputedStyle(tip).fill === expectedColor && getComputedStyle(origin).fill === expectedColor,
           `${item.id} ${element.classList.contains('source') ? 'output' : 'input'} ${element.dataset.handleid ?? ''}: wire and tip match the actual port (${expectedColor}; wire ${wire && getComputedStyle(wire).stroke}; tip ${tip && getComputedStyle(tip).fill})`);
-        const dotSize = image?.src.includes('/node-style/port-text') ? 5 : 6;
+        const dotSize = isAnnotation || image?.src.includes('/node-style/port-text') ? 5 : 6;
         check(Math.abs(origin.getBoundingClientRect().width - dotSize) < 0.2 && Math.abs(tip.getBoundingClientRect().width - dotSize) < 0.2,
           `${item.id} ${element.dataset.handleid ?? ''}: both drag balls match the ${dotSize}px connected dot`);
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
