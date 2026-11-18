@@ -46,6 +46,7 @@ import {
   addEdge,
   useNodesState,
   useEdgesState,
+  type Connection,
   type OnConnect,
   type OnConnectEnd,
   type Edge,
@@ -126,7 +127,8 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       await action(workflow);
     } finally { canvas?.removeAttribute('inert'); }
   };
-  const { screenToFlowPosition, getNodes, getEdges } = useReactFlow<AppNode>();
+  const { screenToFlowPosition, flowToScreenPosition, getNodes, getEdges, getIntersectingNodes, getNodesBounds, fitView, getZoom } = useReactFlow<AppNode>();
+  const pendingPromptFit = useRef<{ promptId: string; modelId: string } | null>(null);
   const applyPromptAnnotationEdit = useCallback<NonNullable<ContextType<typeof PromptAnnotationEdits>>>(
     ({ nodeId, content, removedHandles, restoreEdges }) => {
       const remove = (edge: Edge) => edge.target === nodeId && removedHandles.has(edge.targetHandle ?? '');
@@ -471,14 +473,72 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     [screenToFlowPosition, openNodeMenu, connectionCancelled, endConnectionGesture],
   );
 
+  const createModelPrompt = useCallback((model: AppNode, connection?: Connection) => {
+    if (model.type !== 'sunburst' && model.type !== 'nano-banana' && model.type !== 'seedream') return;
+    if (connection?.target === model.id && connection.targetHandle === 'prompt') return;
+
+    const width = 454;
+    const height = 405;
+    const position = { x: model.position.x - width - 100, y: model.position.y };
+    // Keep the prompt clear of existing nodes, including a connected reference image.
+    const measuredNodes = getNodes().filter(node => node.measured?.width && node.measured.height);
+    let overlaps = getIntersectingNodes({ ...position, width, height }, true, measuredNodes);
+    while (overlaps.length > 0) {
+      position.y = Math.min(...overlaps.map(node => node.position.y)) - height - 48;
+      overlaps = getIntersectingNodes({ ...position, width, height }, true, measuredNodes);
+    }
+
+    const prompt = createLibraryNode('text', position);
+    if (!prompt || !isTextNode(prompt)) return;
+    prompt.selected = false;
+    prompt.data.content = initialTextDocument(prompt.data.text, [], prompt.id);
+    pendingPromptFit.current = { promptId: prompt.id, modelId: model.id };
+    const edge: Edge = {
+      id: `edge-${crypto.randomUUID()}`, source: prompt.id, sourceHandle: null,
+      target: model.id, targetHandle: 'prompt',
+    };
+    return { prompt, edge };
+  }, [getIntersectingNodes, getNodes]);
+
+  useEffect(() => {
+    const pending = pendingPromptFit.current;
+    if (!pending) return;
+    const prompt = nodes.find(node => node.id === pending.promptId);
+    const model = nodes.find(node => node.id === pending.modelId);
+    if (!prompt || !model) { pendingPromptFit.current = null; return; }
+    if (!prompt.measured?.width || !prompt.measured.height || !model.measured?.width || !model.measured.height) return;
+    pendingPromptFit.current = null;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const bounds = canvas.getBoundingClientRect();
+    const sidebarWidth = canvas.querySelector<HTMLElement>('.node-settings-panel.is-open')?.offsetWidth ?? 0;
+    const rightInset = sidebarWidth + 28;
+    const pair = [prompt, model];
+    const { x, y, width, height } = getNodesBounds(pair);
+    const topLeft = flowToScreenPosition({ x, y });
+    const bottomRight = flowToScreenPosition({ x: x + width, y: y + height });
+    if (topLeft.x < bounds.left + 72 || topLeft.y < bounds.top + 48
+      || bottomRight.x > bounds.right - rightInset || bottomRight.y > bounds.bottom - 56) {
+      void fitView({ nodes: pair, maxZoom: getZoom(), padding: { left: '72px', right: `${rightInset}px`, top: '48px', bottom: '56px' } });
+    }
+  }, [nodes, flowToScreenPosition, getNodesBounds, fitView, getZoom]);
+
+  const addNode = useCallback((itemId: string, position: AppNode['position'], animate = true) => {
+    const node = createLibraryNode(itemId, position);
+    if (!node) return;
+    const companion = createModelPrompt(node);
+    if (animate) {
+      playNodeEntrance(null, node.id);
+      if (companion) playNodeEntrance(null, companion.prompt.id);
+    }
+    setNodes(current => [...current.map(item => ({ ...item, selected: false })), ...(companion ? [companion.prompt] : []), node]);
+    if (companion) setEdges(current => [...current, companion.edge]);
+  }, [createModelPrompt, playNodeEntrance, setNodes, setEdges]);
+
   const chooseNode = useCallback((selected: NodeMenuChoice) => {
     if (!pendingNodeMenu) return;
     if (!('nodeId' in pendingNodeMenu)) {
-      const node = createLibraryNode(selected.itemId, pendingNodeMenu.position);
-      if (node) {
-        playNodeEntrance(null, node.id);
-        setNodes(current => [...current.map(item => ({ ...item, selected: false })), node]);
-      }
+      addNode(selected.itemId, pendingNodeMenu.position);
       setPendingNodeMenu(null);
       return;
     }
@@ -507,17 +567,19 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       y: pendingConnection.position.y - choice.portY,
     };
     const edge: Edge = { ...connection, id: `edge-${crypto.randomUUID()}` };
+    const companion = createModelPrompt(node, connection);
     const color = isAnnotationInput(connection.targetHandle) ? 'var(--annotation-blue)' : outputColor(outputKind([...currentNodes, node].find(item => item.id === connection.source), connection.sourceHandle, [...currentNodes, node], currentEdges));
     playNodeEntrance(edge, node.id, pendingConnection.direction === 'source' ? 'target' : 'source', color);
+    if (companion) playNodeEntrance(null, companion.prompt.id);
     setNodes(current => [...current.map(item => {
       const deselected = { ...item, selected: false };
       return item.id === connection.target && isTextNode(item) && !isAnnotationInput(connection.targetHandle)
         ? { ...item, selected: false, data: { ...item.data, variableCount: Math.max(item.data.variableCount ?? 0, variableIndex(connection.targetHandle) + 2) } }
         : deselected;
-    }), node]);
-    setEdges(current => addEdge(edge, withoutReplacedInput(connection, currentNodes, current)));
+    }), ...(companion ? [companion.prompt] : []), node]);
+    setEdges(current => addEdge(edge, [...withoutReplacedInput(connection, currentNodes, current), ...(companion ? [companion.edge] : [])]));
     setPendingNodeMenu(null);
-  }, [pendingNodeMenu, getNodes, getEdges, setNodes, setEdges, playNodeEntrance]);
+  }, [pendingNodeMenu, addNode, getNodes, getEdges, createModelPrompt, setNodes, setEdges, playNodeEntrance]);
 
   return (
     <PromptAnnotationEdits.Provider value={applyPromptAnnotationEdit}><CanvasHistoryContext.Provider value={history}><ConnectionEffectsContext.Provider value={connectionEffects}><ReactFlow
@@ -598,8 +660,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         if (transfer.types.includes('application/x-momoflow-library')) {
           event.preventDefault();
           if (!(event.target as HTMLElement).classList.contains('react-flow__pane')) return;
-          const node = createLibraryNode(transfer.getData('application/x-momoflow-library'), screenToFlowPosition({ x: event.clientX, y: event.clientY }));
-          if (node) setNodes(current => [...current.map(n => ({ ...n, selected: false })), node]);
+          addNode(transfer.getData('application/x-momoflow-library'), screenToFlowPosition({ x: event.clientX, y: event.clientY }), false);
           return;
         }
         if (transfer.types.includes('application/x-momoflow-asset')) { event.preventDefault(); return; }
