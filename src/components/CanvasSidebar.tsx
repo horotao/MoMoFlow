@@ -2,7 +2,7 @@ import { Fragment, useCallback, useLayoutEffect, useRef, useState } from 'react'
 import type { RefObject } from 'react';
 import { spring } from '../lib/springs';
 import { Tooltip, TooltipProvider } from './ui/tooltip';
-import { Settings02Icon } from '@hugeicons/core-free-icons';
+import { GridViewIcon, Settings02Icon } from '@hugeicons/core-free-icons';
 import { NodeAddMenu } from './NodeAddMenu';
 import './CanvasSidebar.css';
 
@@ -24,16 +24,23 @@ type Props = {
   menuOpen: boolean;
   onAddMenu: (keyboard: boolean) => void;
   onApiSettings?: () => void;
+  gridSnap?: { enabled: boolean; toggle: () => void };
 };
-const moreActions = [{ id: 'api-settings', label: 'API 设置', icon: Settings02Icon }];
-export function CanvasSidebar({ tool, onToolChange, addTrigger, menuOpen, onAddMenu, onApiSettings }: Props) {
+const apiSettingsAction = { id: 'api-settings', label: 'API 设置', icon: Settings02Icon };
+export function CanvasSidebar({ tool, onToolChange, addTrigger, menuOpen, onAddMenu, onApiSettings, gridSnap }: Props) {
+  const moreActions = [apiSettingsAction, ...(gridSnap ? [
+    { id: 'grid-snap', label: '网格对齐', icon: GridViewIcon, checked: gridSnap.enabled },
+  ] : [])];
   const selectTrigger = useRef<HTMLButtonElement>(null);
   const handTrigger = useRef<HTMLButtonElement>(null);
   const toolIndicator = useRef<HTMLSpanElement>(null);
   const pointerToolChange = useRef<CanvasTool | null>(null);
   const moreTrigger = useRef<HTMLButtonElement>(null);
   const [moreMenu, setMoreMenu] = useState<{ x: number; y: number; keyboard: boolean } | null>(null);
-  const dismissMore = useCallback(() => setMoreMenu(null), []);
+  const dismissMore = useCallback(() => {
+    setMoreMenu(null);
+    moreTrigger.current?.focus({ preventScroll: true });
+  }, []);
   useLayoutEffect(() => {
     const indicator = toolIndicator.current;
     const button = (tool === 'select' ? selectTrigger : handTrigger).current;
@@ -83,7 +90,11 @@ export function CanvasSidebar({ tool, onToolChange, addTrigger, menuOpen, onAddM
     </nav>
     {moreMenu && <NodeAddMenu id="canvas-more-menu" actions={moreActions} trigger={moreTrigger}
       screen={moreMenu} animateEntrance instantEntrance={moreMenu.keyboard} onChoose={() => {}}
-      onDismiss={() => { dismissMore(); moreTrigger.current?.focus({ preventScroll: true }); }}
-      onAction={() => { dismissMore(); moreTrigger.current?.focus({ preventScroll: true }); onApiSettings?.(); }} />}
+      onDismiss={dismissMore}
+      onAction={id => {
+        dismissMore();
+        if (id === 'grid-snap') gridSnap?.toggle();
+        else if (id === 'api-settings') onApiSettings?.();
+      }} />}
   </div>;
 }

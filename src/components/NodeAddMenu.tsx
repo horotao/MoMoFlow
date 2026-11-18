@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEve
 import { spring } from '../lib/springs';
 import { ArrowLeft, X } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
+import { Tick02Icon } from '@hugeicons/core-free-icons';
 import {
   isNodeMenuCategory, nodeMenuCategories, nodeMenuGroups, searchableNodeMenuEntries, resolveMenuGroups, withImageModelCreationMenu,
   type NodeMenuEntry, type NodeMenuGroup, type NodeMenuChoice,
@@ -10,13 +11,15 @@ import { useCascadeMenu } from './useCascadeMenu';
 import { ScrollArea } from './ui/scroll-area';
 import './NodeAddMenu.css';
 
+type MenuAction = NodeMenuEntry & { checked?: boolean };
+
 type Props = {
   id?: string;
   animateEntrance?: boolean;
   instantEntrance?: boolean;
   mode?: 'create' | 'connect';
   choices?: NodeMenuChoice[];
-  actions?: NodeMenuEntry[];
+  actions?: MenuAction[];
   onAction?: (id: string) => void;
   trigger?: RefObject<HTMLButtonElement>;
   screen: { x: number; y: number };
@@ -34,11 +37,11 @@ function MenuIcon({ entry }: { entry: NodeMenuEntry }) {
   </span>;
 }
 function MenuRow({ row, highlighted, child, expandedRow, menuId, onSelect }: {
-  row: MenuRowData; highlighted: boolean; child: boolean;
+  row: MenuRowData & { checked?: boolean }; highlighted: boolean; child: boolean;
   expandedRow: string | null; menuId: string; onSelect: (row: MenuRowData, keyboard: boolean) => void;
 }) {
-  const { entry, rowId, hasSubmenu, available } = row;
-  return <button type="button" role="menuitem" tabIndex={-1}
+  const { entry, rowId, hasSubmenu, available, checked } = row;
+  return <button type="button" role={checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked={checked} tabIndex={-1}
     className="node-add-menu-row" data-main-row={child ? undefined : rowId}
     data-highlighted={highlighted || undefined}
     data-node-id={entry.nodeId} data-choice-id={entry.choice?.id}
@@ -48,6 +51,7 @@ function MenuRow({ row, highlighted, child, expandedRow, menuId, onSelect }: {
     title={!available ? `${entry.label}（尚未接入）` : entry.choice?.detail ? `${entry.label} · ${entry.choice.detail}` : undefined}
     onClick={event => { if (available) onSelect(row, event.detail === 0); }}>
     <MenuIcon entry={entry} /><span className="node-add-menu-label">{entry.label}</span>
+    {checked && <span className="node-add-menu-icon" aria-hidden="true"><HugeiconsIcon icon={Tick02Icon} size={16} /></span>}
     {hasSubmenu && <img className="node-add-menu-chevron" src="/canvas-menu/arrow-right01.svg" alt="" draggable={false} />}
   </button>;
 }
@@ -72,7 +76,7 @@ function MenuList({ groups, child, expandedRow, highlightedRow, keyboardInteract
     </div>)}
   </div>;
 }
-const menuButtons = (root: HTMLDivElement | null) => Array.from(root?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not([aria-disabled="true"])') ?? []);
+const menuButtons = (root: HTMLDivElement | null) => Array.from(root?.querySelectorAll<HTMLButtonElement>(':is([role="menuitem"], [role="menuitemcheckbox"]):not([aria-disabled="true"])') ?? []);
 function focusButton(button?: HTMLButtonElement) {
   button?.focus({ preventScroll: true });
   button?.scrollIntoView({ block: 'nearest' });
@@ -102,10 +106,11 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
   const subGroups = parentEntry && submenuFor(parentEntry);
   const expandedRow = subGroups?.length ? activeRow : null;
 
+  const isActionMenu = Boolean(actions);
   useLayoutEffect(() => {
-    if (actions) menuButtons(main.current)[0]?.focus({ preventScroll: true });
+    if (isActionMenu) menuButtons(main.current)[0]?.focus({ preventScroll: true });
     else search.current?.focus({ preventScroll: true });
-  }, [actions]);
+  }, [isActionMenu]);
   useLayoutEffect(() => {
     const place = () => {
       const menu = main.current;
@@ -220,7 +225,7 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
         {query && <button type="button" aria-label="清空搜索" onClick={() => { setQuery(''); activate(null); search.current?.focus(); }}><X size={14} strokeWidth={1.5} absoluteStrokeWidth /></button>}
       </div>}
       {actions ? <div className="node-add-menu-list" data-keyboard={keyboardInteraction || undefined}>
-        {actions.map(entry => <MenuRow key={entry.id} row={{ entry, rowId: entry.id, hasSubmenu: false, available: true }}
+        {actions.map(entry => <MenuRow key={entry.id} row={{ entry, rowId: entry.id, hasSubmenu: false, available: true, checked: entry.checked }}
           highlighted={highlightedRow === entry.id} child={false} expandedRow={null} menuId={id} onSelect={select} />)}
       </div> : <>
       <ScrollArea className="node-add-menu-scroll-area" viewportClassName="node-add-menu-scroll fluid-scroll-fade" onScrollCapture={() => activate(null)}>

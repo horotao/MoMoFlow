@@ -29,6 +29,7 @@ import { migrateSunburstProviderInput } from './nodes/sunburstMigration';
 import { CanvasNavigation, canvasMinZoom, canvasMaxZoom, type ZoomTarget } from './components/CanvasNavigation';
 import { CanvasSidebar, type CanvasTool } from './components/CanvasSidebar';
 import { CanvasBackground } from './components/CanvasBackground';
+import { canvasGridOrigin, readGridSnap, saveGridSnap, snapDragChanges, type GridDragAnchor } from './components/canvasGrid';
 import { ApiSettingsDialog } from './components/ApiSettingsDialog';
 import { testApiConnection } from './components/apiSettings';
 import { NodePortLabelMotion } from './components/NodePortLabelMotion';
@@ -54,6 +55,8 @@ import {
   type OnConnectEnd,
   type Edge,
   type EdgeChange,
+  type NodeChange,
+  type OnNodeDrag,
 } from '@xyflow/react';
 
 import { DescriberPanel } from './components/DescriberPanel';
@@ -104,6 +107,7 @@ type ProjectSession = {
 
 export function Flow({ storage, saved, projectSession }: { storage: WorkflowStorage; saved: Workflow | null; projectSession?: ProjectSession }) {
   const [apiSettingsOpen, setApiSettingsOpen] = useState(false);
+  const [gridSnap, setGridSnap] = useState(() => readGridSnap());
   const colorMode = 'dark' as const;
   const [viewport, setViewport] = useState(saved?.viewport ?? { x: 0, y: 0, zoom: 1 });
   useEffect(() => {
@@ -202,6 +206,30 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   useLayoutEffect(() => { storage.releaseRestoredAssets(); }, [storage]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const canvasStore = useStoreApi();
+  const gridOrigin = useRef(canvasGridOrigin);
+  const gridDragAnchor = useRef<GridDragAnchor | null>(null);
+  const updateGridOrigin = useCallback((origin: number) => { gridOrigin.current = origin; }, []);
+  const startGridDrag = useCallback<OnNodeDrag<AppNode>>((_event, node) => {
+    if (!gridSnap) return;
+    const absolute = canvasStore.getState().nodeLookup.get(node.id)?.internals.positionAbsolute;
+    if (absolute) {
+      gridDragAnchor.current = { id: node.id, offset: { x: absolute.x - node.position.x, y: absolute.y - node.position.y } };
+    }
+  }, [canvasStore, gridSnap]);
+  const endGridDrag = useCallback(() => { gridDragAnchor.current = null; }, []);
+  const changeCanvasNodes = useCallback((changes: NodeChange<AppNode>[]) => {
+    const anchor = gridDragAnchor.current;
+    onNodesChange(anchor ? snapDragChanges(changes, anchor, gridOrigin.current) : changes);
+    // React Flow can send a final position batch without a stop callback when a drag is aborted.
+    if (anchor && changes.some(change => change.type === 'position' && change.id === anchor.id && change.dragging === false)) {
+      gridDragAnchor.current = null;
+    }
+  }, [onNodesChange]);
+  const toggleGridSnap = () => {
+    const enabled = !gridSnap;
+    setGridSnap(enabled);
+    saveGridSnap(enabled);
+  };
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -637,7 +665,9 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
       } : (isImageGeneratorNode(node) || isPainterNode(node) || node.type === 'interactive-edit' || node.type === 'masks-extractor' || node.type === 'crop' || node.type === 'color-correction' || node.type === 'matte-grow-shrink' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'blend' || node.type === 'compare' || node.type === 'resize' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview' || node.type === 'router' || node.type === 'text-iterator' || node.type === 'position-logger') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
       nodeTypes={nodeTypes}
-      onNodesChange={onNodesChange}
+      onNodesChange={changeCanvasNodes}
+      onNodeDragStart={startGridDrag}
+      onNodeDragStop={endGridDrag}
       onNodesDelete={deleted => {
         const ids = new Set(deleted.map(node => node.id));
         setEdges(current => current.filter(edge => !ids.has(edge.source) && !ids.has(edge.target)));
@@ -751,7 +781,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       onMoveEnd={(_event, next) => setViewport(next)}
       fitView={!saved}
     >
-      <CanvasBackground />
+      <CanvasBackground onGridOriginChange={updateGridOrigin} />
       {projectSession && <CanvasProjectHeader project={projectSession.project} projects={projectSession.projects}
         nodeCount={nodes.length} status={persistence.status}
         refresh={() => projectSession.refresh(workflow)}
@@ -775,6 +805,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         <button type="button" onClick={persistence.retry}>重试保存</button>
       </Panel>}
       <CanvasSidebar tool={tool} onToolChange={setTool} addTrigger={addTrigger}
+        gridSnap={{ enabled: gridSnap, toggle: toggleGridSnap }}
         onApiSettings={() => { dismissNodeMenu(); setApiSettingsOpen(true); }}
         menuOpen={Boolean(pendingNodeMenu && 'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock')}
         onAddMenu={keyboard => {

@@ -1,5 +1,6 @@
 import { Background, useStoreApi } from '@xyflow/react';
 import { useLayoutEffect, useRef, useState } from 'react';
+import { canvasGridDotSize, canvasGridGap, canvasGridOrigin, canvasSvgGridOrigin } from './canvasGrid';
 import './CanvasBackground.css';
 
 const vertexSource = `#version 300 es
@@ -30,10 +31,13 @@ void main() {
 }`;
 
 /** Draw only when the viewport changes; panning does not render React per frame. */
-export function CanvasBackground() {
+export function CanvasBackground({ onGridOriginChange }: { onGridOriginChange?: (origin: number) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const store = useStoreApi();
   const [fallback, setFallback] = useState(false);
+  useLayoutEffect(() => {
+    onGridOriginChange?.(fallback ? canvasSvgGridOrigin : canvasGridOrigin);
+  }, [fallback, onGridOriginChange]);
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
@@ -62,8 +66,8 @@ export function CanvasBackground() {
         canvas.width = pixelWidth;
         canvas.height = pixelHeight;
       }
-      const gap = Math.max(32 * zoom * dpr, 1);
-      const radius = zoom * dpr / 2;
+      const gap = Math.max(canvasGridGap * zoom * dpr, 1);
+      const radius = canvasGridOrigin * zoom * dpr;
       const wrap = (value: number) => ((value * dpr + radius) % gap + gap) % gap;
       gl.viewport(0, 0, pixelWidth, pixelHeight);
       gl.clear(gl.COLOR_BUFFER_BIT);
@@ -143,7 +147,7 @@ export function CanvasBackground() {
 
   return <>
     <div className="canvas-background" aria-hidden="true">
-      {fallback && <Background gap={32} size={1} bgColor="var(--canvas-background)" color="var(--canvas-grid-dot)" />}
+      {fallback && <Background gap={canvasGridGap} size={canvasGridDotSize} bgColor="var(--canvas-background)" color="var(--canvas-grid-dot)" />}
       <canvas ref={canvasRef} />
     </div>
     <div className="canvas-top-fade" aria-hidden="true" />
