@@ -1,280 +1,51 @@
 # 节点索引与开发约定
 
-本目录包含自定义节点组件、节点数据类型，以及文本解析、文件处理和模型运行等配套逻辑。本文记录节点用途、输入输出与开发入口；项目启动、环境变量和服务接入说明见[项目 README](../../README.md)，通用开发要求见 [AGENTS.md](../../AGENTS.md)。
+新增或扩展节点从[接入步骤](#新增或扩展节点)开始。修改已有节点可按任务选文档，或在[节点表](#现有节点)中按名称查找组件、端口和约定。
+
+| 开发任务 | 阅读入口 |
+| --- | --- |
+| 添加节点、改菜单或连线 | [节点创建、端口与连接](guides/connections.md) · <a name="输入输出与交互约定"></a>[输入输出与交互约定](guides/connections.md#输入输出与交互约定) · <a name="代码入口与职责"></a>[代码入口与职责](guides/connections.md#代码入口与职责) |
+| 改节点外观与交互 | [节点外观与共享控件](guides/shared-ui.md) |
+| 改批处理或任务调度 | [路由、迭代与工作流执行](guides/workflow.md) · <a name="按依赖自动执行与结果复用"></a>[按依赖自动执行与结果复用](guides/workflow.md#按依赖自动执行与结果复用) |
+| 接入或调整模型 | [模型节点与渠道](guides/models.md) · <a name="模型运行约定"></a>[模型运行约定](guides/models.md#模型运行约定) |
+| 改色板、像素算法 | [色板、调色与滤镜](guides/color-filters.md) |
+| 改图片尺寸、图层或预览 | [尺寸变换、合成与预览](guides/image-tools.md) |
+| 改绘图、蒙版或标注 | [绘图、蒙版与交互编辑](guides/painting-masks.md) |
 
 ## 现有节点
 
 以下节点类型已在 [index.ts](./index.ts) 的 `nodeTypes` 中注册。`initialNodes` 当前为空，默认不预置节点。
 
-| 显示名称 / 用途 | 类型标识 | 组件文件 | 输入与输出 |
+| 节点 / 开发约定 | 类型标识 | 组件文件 | 输入与输出 |
 | --- | --- | --- | --- |
-| 路由（Router）：整理连线、统一更换上游 | `router` | [RouterNode.tsx](./RouterNode.tsx) | 单输入 `input`（Input）；`output`（Output）原样透传，可连接多个下游 |
-| 文本迭代（Text Iterator）：批量执行文本列表 | `text-iterator` | [TextIteratorNode.tsx](./TextIteratorNode.tsx) | `input` 接收文本或 JSON 文本数组；`text` 为逐项文本输出，后续模型按条目分别运行 |
-| 图片迭代（Image Iterator）：批量执行图片列表 | `image-iterator` | [ImageIteratorNode.tsx](./ImageIteratorNode.tsx) | 无输入端口；`file` 为逐张图片输出，后续模型按图片分别运行 |
-| 提示词（Prompt）：编辑文本、组合上游变量 | `text` | [TextNode.tsx](./TextNode.tsx) | 变量输入 `variable-1` 起；输出解析后的文本 |
-| 导入 / 文件（Import / File）：导入、预览和管理文件集合 | `file` | [FileNode.tsx](./FileNode.tsx) | 无输入端口；通过 `file` 端口输出文件，端口类型随集合内容变化 |
-| 图像描述（Image Describer）：根据图片生成可继续编辑的文本 | `image-describer` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) | 图片输入 `image-0` 起；可暴露 `model`、`instructions` 文本输入；输出 `data.text` |
-| 模型名称 / 参数选项（Model Name）：提供一个可选的文本值 | `model-input` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) 中的 `ModelInputNode` | 输出当前 `data.model`；`options` 输入仅展示，不能连接 |
-| GPT Image 2.6：生成或编辑图片 | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`（OpenAI 官方和 APIMart 标准版支持交互编辑标注）、`image-0` 起及受渠道和格式限制的 `mask`；`result` 输出当前选中的结果图片 |
-| Ideogram 4.5：旧工作流兼容 | `ideogram` | [IdeogramNode.tsx](./IdeogramNode.tsx) | 保留存量输入端口及连线；`result` 输出已保存的选中图片 |
-| Nano Banana：生成或编辑图片 | `nano-banana` | [NanoBananaNode.tsx](./NanoBananaNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起的参考图输入；`result` 输出选中图片 |
-| Seedream 5.5：生成或编辑图片 | `seedream` | [SeedreamNode.tsx](./SeedreamNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起的参考图输入；`result` 输出选中图片 |
-| 调色板（Color palette）：制作最多十色色板 | `color-palette` | [ColorPaletteNode.tsx](./ColorPaletteNode.tsx) | 无输入；`image`（Image）输出纯色条 PNG，`text`（Text）输出按顺序以 `*` 连接的 HEX 色值 |
-| 合成器（Compositor）：图片、文本与矢量图层合成 | `compositor` | [CompositorNode.tsx](./compositor/CompositorNode.tsx) | `background`、`layer-1` 起的动态图片输入；`result`（Output）输出实际合成 PNG；独立图层编辑器见[使用与架构](../../docs/compositor.md) |
-| 色彩校正（Color correction）：本地图片调色 | `color-correction` | [ColorCorrectionNode.tsx](./ColorCorrectionNode.tsx) | 单图片输入 `file`（File）；`result` 输出调色后的 PNG |
-| 色阶（Levels）：本地图片色阶 | `levels` | [LevelsNode.tsx](./LevelsNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
-| 混合（Blend）：双图片混合 | `blend` | [BlendNode.tsx](./BlendNode.tsx) | `back`（Back）、`front`（Front）图片输入；`result`（Result）输出合成 PNG |
-| 对比（Compare）：双图片对比 | `compare` | [CompareNode.tsx](./CompareNode.tsx) | `input-1` / `input-2`（Input 1 / Input 2）；`output-1` / `output-2`（Output 1 / Output 2）分别透传对应输入 |
-| 调整尺寸（Resize）：本地调整图片宽高 | `resize` | [ResizeNode.tsx](./ResizeNode.tsx) | 单图片输入 `image`（Image）；`result`（Result）输出指定尺寸 PNG |
-| 旋转与翻转（Rotate and flip）：本地旋转与镜像 | `rotate-flip` | [RotateFlipNode.tsx](./RotateFlipNode.tsx) | 单图片输入 `image`（Input）；`result`（Result）输出旋转后的原分辨率 PNG |
-| 反相（Invert）：本地图片 / 遮罩反选 | `invert` | [InvertNode.tsx](./InvertNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸反色 PNG |
-| 模糊（Blur）：本地图片模糊 | `blur` | [BlurNode.tsx](./BlurNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
-| 裁剪（Crop）：本地裁剪图片 | `crop` | [CropNode.tsx](./CropNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出裁剪后的 PNG |
-| 绘图（Painter）：在图片或空白画布上绘制 | `painter` | [PainterNode.tsx](./PainterNode.tsx) | 单图片输入 `image`；`result` 输出合成图片，`mask` 输出黑底白色绘制区域 |
-| 蒙版扩张 / 收缩（Matte Grow / Shrink）：调整蒙版边缘 | `matte-grow-shrink` | [MatteGrowShrinkNode.tsx](./MatteGrowShrinkNode.tsx) | `image`（Input）接收图片或黑白蒙版；`result`（Output）输出原尺寸灰度蒙版 PNG |
-| 交互编辑（Interactive Edit）：为图片添加点和框 | `interactive-edit` | [InteractiveEditNode.tsx](./InteractiveEditNode.tsx) | 单图片输入 `image`，最多六个独立标注输出，连接提示词的「标注」端口 |
-| 蒙版提取（Masks Extractor）：点击物体生成蒙版 | `masks-extractor` | [MasksExtractorNode.tsx](./MasksExtractorNode.tsx) | 单图片输入 `image`；`result`（Image With Alpha）输出透明抠图，`mask`（Mask）输出黑白蒙版 |
-| 预览（Preview）：查看上游图片与遮罩 | `preview` | [PreviewNode.tsx](./PreviewNode.tsx) | 单图片输入 `file`，无输出；实时显示上游图片 |
-| 坐标记录（Position Logger）：显示节点坐标的示例节点 | `position-logger` | [PositionLoggerNode.tsx](./PositionLoggerNode.tsx) | 左侧输入、右侧输出；不执行模型任务 |
-
-画布节点的默认标题使用中文，自定义名称与导入文件名保持原样；模型品牌名（如 GPT Image 2.6）保留英文。标题与重命名框使用相同默认文案，界面字体通过 `--font-ui` 统一引用：全局字体栈优先使用 Inter、苹方及 Noto Sans SC 等中文回退字体；新版 `.node-frame` 在局部覆盖为 Inter / Noto Sans SC Variable，具体作用域见下方共享视觉约定。
-
-侧边栏、画布右键创建与拖线推荐共用 `NodeAddMenu`，以 `libraryItemLabel` 为基础显示名称，Figma 菜单中的 Resize 显示为“调节尺寸”；GPT Image 2.6 与 Nano Banana 的节点标题、设置面板和任务列表复用对应模型的名称常量，保持一致。菜单搜索同时匹配中文和原英文，端口说明仅翻译显示，不改变连接标识。拖线入口仍由 `connectionRecommendations` 按兼容端口筛选，同一节点的多个端口保持独立选择身份；提交前再次校验。新增节点入口或调整分组时同步维护 `nodeMenuCatalog.ts`，创建数据仍由 `createLibraryNode()` 提供。
-
-GPT Image 2.6、Nano Banana 和 Seedream 5.5 在 Dock 与空白画布右键菜单的二级菜单中依次提供「模型节点」「文生图」和「图生图」。「模型节点」只创建模型，输入端口供手动连接。「文生图」和「图生图」都在模型左侧创建空白提示词节点，接到模型的 `prompt` 输入。「图生图」还在提示词下方创建空白导入节点，将其 `file` 输出预接至模型的 `image-0` 输入。GPT Image 在所选渠道和输出格式不支持参考图时为新节点使用 PNG。创建后选中模型并打开对应设置侧栏，节点超出可视区域时调整画布视野。拖线创建时，如果已有连线接入提示词输入，则直接使用上游提示词。一次创建产生的节点和连线可一起撤销或重做。
-
-通过 Dock、空白右键或拖线菜单新建节点时，共享 `NodeFrame` 从 94% 轻弹至正常大小，复用 `spring.slow`；未连线节点以自身中心为支点，拖线新建则以连接端口为支点并配合连线回弹、端口涟漪。减少动态效果时保留淡入。临时状态由 `src/edges/connectionEffects.ts` 管理，不写入节点、连线或历史；撤销、重做和恢复不重播。`NodeEntrance` 等待节点测量后启动，拖线场景使用未缩放的端口布局坐标固定线头，完成或被指针打断后刷新 React Flow 测量。文本节点在拖线创建事务内初始化变量文档，确保新节点与连线可一起撤销。
-
-侧边栏、Dock 与画布右键添加菜单隐藏坐标记录（`position-logger`）和模型名称（`model-input`）入口，包括分类列表、搜索及快速访问；节点注册、已有节点与 `createLibraryNode()` 保持可用。两个节点复用 250px 宽的新版共享外框、标题、更多菜单与端口；坐标记录分行显示 X / Y 并随拖动更新，模型名称保留参数选项及不可连接的 `options` 输入。
-
-节点库的名称、分类和创建数据在 [libraryCatalog.ts](../components/libraryCatalog.ts) 中维护。只有提供 `nodeType` 的条目才能通过 `createLibraryNode` 创建节点；目录中的展示卡片不等于已实现的节点，不应为占位卡片生成替代节点。
-
-节点标题与侧栏卡片共用 [nodeIcons.ts](./nodeIcons.ts) 中的共享图标映射（通用节点使用 Hugeicons Stroke Rounded）；使用该映射的标题通过 [NodeIcon.tsx](./NodeIcon.tsx) 渲染并保留各节点原有尺寸；部分节点直接使用 Hugeicons 或下文列出的 Figma 原始 SVG。修改节点图标时更新共享映射，避免两处显示不一致。Seedream 复用菜单原有的 Jimeng 品牌图标；Nano Banana 与 Ideogram 4.5 使用 [modelBrandIcons.ts](./modelBrandIcons.ts) 中从 Weavy 对应模型卡片同步的原始 SVG 路径；Nano Banana 保留品牌紫色，Ideogram 随主题文字颜色变化，节点库、标题与设置面板共用同一图标。Router 仍根据输入内容切换文本、图片 / 蒙版、视频、音频、3D 或文件图标，未连接时使用路由图标。
-
-应用仅支持深色模式；不再提供浅色切换、制作或验收。历史画布中的浅色设置读取时按深色处理，重新保存时写入深色设置，节点、连线和素材内容不变。图片操作按钮为 24×24px、8px 圆角，默认透明，悬停背景按 Figma 使用 10% 白色（`rgba(255,255,255,0.1)`）。
-
-悬停时显示边缘阴影和工具栏的图片预览统一使用 [shared/imageOverlay.css](./shared/imageOverlay.css)。移入时上下渐变先淡入 80ms，顶部操作和底部尺寸随后淡入，整段移入为 500ms，工具栏沿边缘移动 2px。移出统一用 400ms，反向移动指针时从当前进度继续。键盘聚焦直接显示工具栏，触屏始终提供操作入口，减少动态效果时即时显隐。`/tests/image-hover-motion.html` 使用真实节点与本地浅色样图对照淡入顺序。
-
-新版节点视觉基础位于 [shared/NodeFrame.tsx](./shared/NodeFrame.tsx) 和 [shared/nodeStyle.css](./shared/nodeStyle.css)：`NodeFrame` 与 `NodeHeader` 共用外框、标题栏、颜色和尺寸变量，各节点通过局部样式设置差异；[shared/NodePort.tsx](./shared/NodePort.tsx) 管理端口与标签布局，[shared/NodeOptionsMenu.tsx](./shared/NodeOptionsMenu.tsx) 和 [shared/NodeMenu.tsx](./shared/NodeMenu.tsx) 提供菜单外观、键盘导航与共用悬停高亮。Text、图像描述、绘图、图片模型、文件导入及其他已接入的工具节点使用共享外框；四个图片模型与导入节点宽 456px、内边距 15px，保持 424px 图片内容宽度。四个图片模型直接共用 [SunburstNode.tsx](./SunburstNode.tsx) 导出的 `ImageGenerationNode` 的外框、端口、预览、画廊、悬停操作和运行按钮；模型品牌图标、输入数量、参数与运行逻辑仍由各自组件提供。图片迭代通过 `FileNode` 复用新版共享外框、端口和图库，保留迭代器专用内容与行为。共享外框内使用 Inter / Noto Sans SC Variable，字体覆盖限定在 `.node-frame` 内。图像描述复用 Text 的外框、标题栏、更多菜单和文本内容区样式，宽 454px、内边距 14px，空状态高 403px；底部提供添加图片输入与运行模型，进度和取消复用图片模型的 `ModelRunButton`。Text 与图像描述的标题、更多、加号、运行、下拉箭头与文本端口使用 `public/node-style/` 中的 Figma 原始 SVG。GPT 与导入的图片操作图标、品牌图标、棋盘格和媒体端口使用 `public/image-node/` 中的 Figma 原始 SVG，作为设计还原的例外；节点库图标映射不变。可运行图片模型的运行按钮固定为 98px 宽，「运行模型」沿用与图像描述节点相同的界面字体。运行时进度数字使用本地 DM Mono，填充与数字读取临时任务状态，仍支持取消；Figma 的循环动画仅是演示，不作为运行进度来源。空 Text 节点保留 `variable-1` 输入端口，添加变量后沿用相同端口；变量显示控件在存在变量时出现。`TextNodeMenu` 继续复用原有节点操作，`appearance="shared"` 只切换表现层。
-
-用选择工具从画布空白处拖动时，和直角选框相交的节点即时高亮。松手后，多选外框与所选节点的整体边界相距 3 个屏幕像素。端口圆盘盖住经过的描边，整个圆盘可响应拖线。可从外框或框内空白处拖动整组，按 Esc 清除选中。灰白选框样式由主画布与 `/tests/canvas-selection.html` 共用。
-
-所有单值参数滑块共用 [shared/NodeRangeInput.tsx](./shared/NodeRangeInput.tsx)，基于已验收的 [Arc Elastic Slider](https://uiarc.dev/components/elastic-slider) 接入边界拉伸回弹、拖动数值标签和双向参数的零点吸附。色彩校正、模糊、蒙版扩缩、混合、绘图参数、合成器的颜色面板与效果参数均复用它；绘图 / 调色板的颜色面板使用下述 beUI 专用滑块，色阶的多手柄轨道、图片对比的分隔线和二维选色区域保留专用交互。
-
-`NodeRangeInput` 接收数值回调：`onValueStart` 开始草稿，`onValueChange` 实时更新，`onValueCommit` 松手或键盘调节时提交，`onValueCancel` 放弃草稿。`resetKey` 在换图或更换编辑对象时取消未完成手势。无草稿管线的连续控制只传 `onValueChange`，取消时恢复起始值。锁定须显式传入 `disabled`（原生 fieldset 不会禁用自定义滑块）。控件不写入工作流；数字输入、范围、步长和颜色渐变由使用处维护。方向键微调、Shift / PageUp / PageDown 大步调节、Home / End 到边界；键盘不播放位移，减少动态时去除拉伸和标签摆动。指针位置按实际轨道尺寸换算，兼容画布缩放；数字框失焦先完成提交，再开始拖动。验证入口为 `/tests/node-range-input.html`；`/tests/node-range-nodes.html` 另验真实色彩校正、模糊与蒙版扩缩的草稿、输出、下游预览、历史和锁定。沿用 React 浏览器断言，无新依赖。
-
-反相、裁剪和模糊也使用新版共享外框、标题、更多菜单与图片端口，宽 456px、图片区域宽 424px。反相沿用预览节点的图片样式；裁剪保留选区与外侧拖动手柄，图片和遮罩单独裁切圆角；模糊复用色彩校正的参数行和 `NodeRangeInput` 滑条，类型与裁剪比例复用已有下拉菜单。图片处理、端口 ID 和保存数据不变。
-
-文件导入的单图和瀑布流图片可双击打开大图，单图区域使用节点的拖动光标，按住图片可直接移动未锁定节点；单击瀑布流图片只选择当前图片，图片从画布缩略图展开。文件导入、图片生成和预览节点的全屏按钮使用同一个图片查看器。查看器支持下载、缩放和翻页，键盘可用 Enter 或空格打开、方向键翻页。按 Esc 或点关闭按钮时，默认缩放下的大图会缩回可见的画布缩略图；关闭后焦点回到打开预览的位置。拖动缩略图到空白画布仍可拆分为独立文件节点。
-
-`/tests/media-node-style.html` 是 GPT、Nano Banana、Ideogram 与文件导入的独立浏览器验收入口，使用 React、真实 React Flow 及浏览器断言，覆盖外框尺寸、真实图片比例、双图/四图瀑布流、文件图片单击不展开与双击展开、键盘操作、全屏、等宽进度与取消。运行 `npm run dev` 后打开该页面；仅使用本地 Figma 示例素材，不读取用户画布或调用模型，类型检查包含在 `npm run check` 中。
-
-`/tests/text-node-style.html` 是独立的 Text 样式与交互验收入口，使用真实画布与隔离存储，不调用模型、不读写用户工作流；检查尺寸、资源、编辑、变量三种显示、菜单和锁定。先运行 `npm run dev`，再在浏览器打开该页面；浏览器验收不由 `npm test` 执行，类型检查包含在 `npm run check` 中。
-
-Compositor 文本、形状及钢笔交互与验证入口见 [合成编辑器文档](../../docs/compositor.md)。锚点在不同缩放下保持固定命中区，可越界调整及插入曲线点；交互草稿按帧更新，提交仍复用工作流历史与持久化。
-
-Compositor 输出解析在每次读取中按节点与输出端口复用校验结果，环路检查独立跟踪当前路径；缓存不跨编辑、撤销或恢复复用。`compositorResolution.test.ts` 随 `npm test` 检查共享上游、输出端口区分、失效和环路；浏览器验证页同时运行 Enter 键回归。
-
-## 代码入口与职责
-
-| 入口 | 职责 |
-| --- | --- |
-| [types.ts](./types.ts)、[index.ts](./index.ts) | 节点数据类型、`AppNode` 联合类型、类型判断，以及组件注册 |
-| [defaults.ts](./defaults.ts)、[describer.ts](./describer.ts)、[sunburst.ts](./sunburst.ts) | 文本默认值、描述器配置、Sunburst 参数与校验；创建节点时由节点库等入口使用 |
-| [App.tsx](../App.tsx) | 画布状态、右键与拖线创建节点菜单、拖放和剪贴板入口，以及节点交互属性 |
-| [connectionRules.ts](./connectionRules.ts)、[connectionRecommendations.ts](./connectionRecommendations.ts)、[NodeAddMenu.tsx](../components/NodeAddMenu.tsx)、[nodeMenuCatalog.ts](../components/nodeMenuCatalog.ts) | 共用连接校验、按端口类型推荐节点，以及 Dock、右键和拖线共用的级联搜索菜单；`ConnectionMenu` 作为兼容导出入口 |
-| [TextPromptEditor.tsx](./TextPromptEditor.tsx)、[textDocument.ts](./textDocument.ts)、[textVariables.ts](./textVariables.ts) | 富文本编辑、文档转换、变量端口编号与上游文本解析；变量视图见 `PromptVariableView.tsx` |
-| [fileAsset.ts](./fileAsset.ts)、[fileCollection.ts](./fileCollection.ts)、[fileMedia.ts](./fileMedia.ts) | 文件导入、集合与输出类型、拆分文件、媒体预览及下载 |
-| [describerRun.ts](./describerRun.ts)、[sunburstRun.ts](./sunburstRun.ts) | 从画布解析输入、校验运行条件、建立任务输入快照；`imageOutput` 定义图片输出语义 |
-| [describerClient.ts](./describerClient.ts)、[sunburstClient.ts](./sunburstClient.ts) | 浏览器请求与响应处理；服务端接入位于根目录 `server/` |
-| [workflowExecution.ts](./workflowExecution.ts)、[executionGraph.ts](./executionGraph.ts)、[useWorkflowExecution.ts](../components/useWorkflowExecution.ts) | 按依赖准备输入、校验与执行、结果复用、取消和结果写回 |
-| [taskQueue.ts](./taskQueue.ts)、[DescriberPanel.tsx](../components/DescriberPanel.tsx)、[TaskManager.tsx](../components/TaskManager.tsx) | 任务队列、运行入口与设置展示，以及任务列表、取消和重试界面 |
-| [ModelRunButton.tsx](../components/ModelRunButton.tsx)、[useModelTasks.ts](../components/useModelTasks.ts)、[ModelTasksProvider.tsx](../components/ModelTasksProvider.tsx) | 节点和任务面板共享临时运行状态，显示启动、旋转圆环、百分比和取消操作；不写入画布历史或持久化 |
-| [TextNodeMenu.tsx](./TextNodeMenu.tsx)、[cloneTextNode.ts](./cloneTextNode.ts)、[sunburstClipboard.ts](./sunburstClipboard.ts) | 节点菜单及现有类型的复制、粘贴与克隆处理 |
-| [assetResources.ts](./assetResources.ts)、[workflowStorage.ts](../persistence/workflowStorage.ts)、[useWorkflowPersistence.ts](../persistence/useWorkflowPersistence.ts) | 素材引用生命周期、IndexedDB 保存恢复及自动保存；撤销历史见 [useCanvasHistory.ts](../components/useCanvasHistory.ts) |
-| [shared/NodeFrame.tsx](./shared/NodeFrame.tsx)、[shared/NodePort.tsx](./shared/NodePort.tsx)、[shared/nodeStyle.css](./shared/nodeStyle.css)、[shared/mediaNodeStyle.css](./shared/mediaNodeStyle.css) | 共享外框、标题、端口与媒体节点视觉基础 |
-| [NodeSettingsSection.tsx](../components/NodeSettingsSection.tsx)、[ParameterField.tsx](../components/ParameterField.tsx)、[NodeSettingsSidebar.css](../components/NodeSettingsSidebar.css) | 设置面板分组、参数行及共用样式 |
-| [index.css](../index.css)、[SunburstNode.css](./SunburstNode.css) | 全局基础样式、兼容样式及 Sunburst 专用样式 |
-
-## 输入输出与交互约定
-
-- 连接规则由 `connectionRules.ts` 的 `canConnect` 统一校验，`App.tsx` 的 `isValidConnection` 和推荐菜单创建入口共用：拒绝自连接、环路、涉及锁定节点的连接和连接到 `model-input` 的输入。同一个文本变量输入或描述器、生成器、图像工具、Preview、Router 输入端口只保留一条边；将兼容的新输出拖到已连接的输入端口时，直接替换该端口的旧连线，保留其他端口与下游分支。校验与提交共用 `withoutReplacedInput`，只在有效连接提交时替换，取消或无效连接保留原图；替换可一次撤销/重做，重复连接同一输出不产生修改。
-- 主画布连线使用 [MagneticEdge.tsx](../edges/MagneticEdge.tsx) 与 [MagneticConnectionPreview.tsx](../edges/MagneticConnectionPreview.tsx)，和磁吸实验页共享融球、回弹及端口反馈实现。正式默认值集中在 [magneticTypes.ts](../edges/magneticTypes.ts)：100% 视图下吸附范围 86px、线宽 2px、拖线小球使用起始端口的已连接圆心半径（文本端口 2.5px、媒体 / Router / 调色板端口 3px）、刚性 50%、回弹力度与范围 100%、涟漪羽化 1px、速度 1×；调参滑块保留在实验页。低于 100% 时，吸附距离、融球与涟漪随视图等比例缩小（50% 时吸附距离为 43px），100% 以上保持原屏幕大小上限；拖线两端的小球始终随端口一起缩放，使尺寸与连接后的圆心一致。选中的连线使用 3px 描边，线宽仍保持屏幕像素粗细。静止曲率沿用主画布的 0.25；拖线预览直接读取起始端口作用域内的颜色变量，线身、起点小球、前端小球和磁场同色；起点小球固定在起拖端口中心，与前端小球共用端口的 `--node-port-dot-radius` 和缩放规则，仅在连接预览期间显示；输入端口反向拖线也沿用该端口颜色，悬停目标不会改变取色。Router 按透传类型动态取色，旧 File 媒体端口读取其 `--file-port`；已连接线保留原有类型颜色。成功吸附后小球沿松手时的实际半径缩入端口、线身回弹并展开柔光涟漪；180 屏幕像素内的邻线沿整条线身轻弹，随距离衰减。反馈由 [connectionEffects.ts](../edges/connectionEffects.ts) 独立管理，不写入节点、边、历史或工作流；撤销/重做清理反馈，恢复工作流不重播。端口效果通过实际 handle bounds 定位，兼容共享及旧节点；手势清理由 [useConnectionGesture.ts](../edges/useConnectionGesture.ts) 管理：Escape、失焦与触摸取消同步结束拖动和自动平移，并清理待完成的点击连接；下一次拖动或点击连接都重新开始。拖动中缩放或平移时刷新命中，预览与提交均按当前缩放校验吸附距离，避免使用起拖时的范围误替换输入。无效连接、锁定限制与输入替换仍遵守原连接规则，减少动态效果时跳过位移并使用短暂原位确认。
-- 拖动单个或多个节点时，已连接的线身按 `/tests/node-wire-spring.html` 默认 45% 力度拉伸，松手后带阻尼回弹。线头跟随实际端口，力度计算使用当前缩放比例。弹簧仅用于拖动反馈，减少动态效果时关闭，撤销、重做、键盘移动和恢复工作流不会触发。`/tests/magnetic-canvas.html` 用隔离画布验证这一交互。
-- 将输入或输出把手拖到空白画布会打开可搜索的推荐菜单，按方向和端口类型筛选已实现节点；选中后才创建节点并连接正确端口，创建与连线作为一次撤销记录；从已连接的输入反向创建新节点时同样替换旧连接。Escape、点击外部或移动画布关闭菜单，取消不修改图数据。落在已有节点上仍使用普通连接规则。
-- 右键单击空白画布打开同一快捷创建菜单，显示菜单目录中开放创建的节点，不按端口筛选；`model-input` 与 `position-logger` 保持隐藏，展示占位条目不创建节点；选择后在右键对应的画布坐标创建并选中节点，图像模型按所选模式附加输入节点与连线。搜索、键盘选择和关闭方式与拖线菜单一致；选择工具和手形工具均支持，右键拖动画布仍用于平移。
-- 从图片/遮罩输入反向选择 Import 时，允许先创建并连接空 File，之后由用户添加图片；该特例只适用于本次新建的 Import，运行前仍必须通过已有图片校验。推荐 Image Describer 的 System Instructions 时会同时暴露该输入。未知或不兼容的媒体输出不推荐文本节点。
-- Prompt 的变量端口从 `variable-1` 开始，图片端口从 `image-0` 开始。沿用 `variableHandleId`、`variableIndex` 等辅助函数，避免混用编号。端口数量或位置变化后调用 `useUpdateNodeInternals`，使连线位置跟随更新。
-- 连接期间，文本值通过 `resolveTextValue` 从当前图数据动态解析，不持续复制到下游节点数据中。参数从外部输入切回 **Use local value** 时例外：Image Describer 会将当前解析值写回本地参数并移除对应连线。具体入口见 [DescriberPanel.tsx](../components/DescriberPanel.tsx)。
-- Prompt 连接到已有素材的 File 时会显示类型不兼容；连接空 File 时不显示该错误。两种情况下 File 都解析为空文本，不会转换成提示词内容；这与模型节点在连接时直接拒绝错误输入的行为不同。
-- Image Describer、Sunburst、Painter、Crop、Blur、Invert、Levels 和 Color correction 的图片输入接受纯图片 File 集合、Sunburst 结果、Painter、Crop、Blur、Invert、Levels 或 Color correction 输出。Painter、Crop、Blur、Invert、Levels 和 Color correction 使用集合的第一张图片作为底图。`imageOutput` 对 File 返回集合中的图片，对 Sunburst 只返回当前选中结果（没有有效选中项时取最后一张），对 Crop、Blur、Invert、Levels 和 Color correction 返回当前有效的处理结果；对 Painter 按 `sourceHandle` 区分 Result 与 Mask，并在上游或绘制内容变化后拒绝尚未更新的输出。不要将 File 的预览选中项误当作唯一输出。
-- Sunburst 的右侧渠道商提供 OpenAI 官方与 APIMart。打开旧画布或粘贴旧节点时，显式使用 ZenMux 的节点迁移到 APIMart GPT Image 2.6 标准版，保留原像素尺寸、背景、输出格式、结果及媒体和提示词连线。GPT Image 2.6、Nano Banana 和 Seedream 分别记住当前浏览器最近一次在右侧面板设定的有效生成参数，新建同类节点时沿用，跨画布和刷新保留。没有预设时，GPT Image 2.6 使用 APIMart GPT Image 2.6 EXT、Sunburst 版本和 medium（中）画质，Nano Banana 和 Seedream 使用各自的默认值。每个节点独立保存自己的参数；预设只记录本地生成参数，连线和结果随各自节点保存。未保存渠道的旧节点使用 OpenAI。渠道随节点保存、复制与撤销恢复，运行快照固定渠道，服务端使用该渠道的 API 设置或服务端默认配置。两个渠道提供 auto / low / medium / high / xhigh / max 六档画质。
-- Sunburst 的 Prompt 接受 `text`、`image-describer`、`model-input` 的文本输出；Image Describer 的模型与指令输入也接受这些类型。Sunburst、Painter、Crop、Blur、Invert、Levels 和 Color correction 图片输出可连到 Sunburst 的图片/遮罩输入、Image Describer 的图片输入或 Painter / Crop / Blur / Invert / Levels 的 Image 输入，以及 Color correction / Preview 的 File 输入。
-- `model-input` 用于模型名称和支持外部输入的节点参数，`parameter` 标识参数用途，`options` 保存可选文本。Options 输入端口尚未实现，继续保持不可连接。
-- Sunburst 的 OpenAI 渠道将宽高比与 1K / 2K / 4K 分辨率预设统一编码到 `data.size`，不另存可能冲突的比例/分辨率状态。`sunburstSizePresets` 保持旧 1K 尺寸，按精确比例、16 像素对齐、3840 边长与 8,294,400 像素上限生成高分辨率；正方形最高 2880×2880。宽高比菜单提供自动和自定义。自动尺寸下没有选中的分辨率档位，自定义尺寸下隐藏分辨率。预览、执行快照、服务端与保存恢复均沿用实际尺寸。
-- APIMart 渠道增加“渠道模型”选项（`channelModel`）：GPT Image 2.6 EXT / GPT Image 2.6；未保存该字段时继续使用 EXT。EXT 使用 `gpt-image-2.6-ext` 和 `version: sunburst / flare`，保留原有 10 种比例和 1K / 2K / 4K，输出格式可选 PNG / JPEG / GIF；不支持自定义尺寸、背景、审核强度或 Mask，GIF 仅文生图、比例为 auto，SVG 保持禁用。新款使用 `gpt-image-2.6-sunburst / flare`，不发送 `version`，支持 15 种比例或符合 OpenAI 同等限制的自定义像素尺寸、背景和静态编辑的 PNG `mask_url`；精确尺寸不发送 `resolution`。两款的复杂度固定为 auto、内容审核固定为 low，侧栏不再提供这两项控件或暴露输入；旧节点和直接请求中的对应值不会覆盖固定值。复杂度 auto 沿用接口默认值，不发送 `complexity`；新款显式发送 `moderation: low`，EXT 不支持该参数而不发送。两款均使用 `nsfw_check: false`、`n: 1`，参考图先按顺序上传 `/uploads/images?retention_days=3`，再向 `/images/generations` 发送 `image_urls`；新款的蒙版使用 PNG Data URL，沿用首图同尺寸、Alpha 透明区域可编辑的校验和白色亮度蒙版转换。已有不兼容连线保留禁用端口供断开或切回，运行前拒绝无效组合。参考图单张最多 20 MiB；EXT 仅 1K 接受 GIF 参考图，新款各档接受 GIF 参考图。
-- APIMart 新款支持参考图生成 GIF / SVG，两者均禁用 Mask。GIF 侧栏提供 `frameCount`（2–16，默认 9），请求使用 `frame_count`；尺寸为 auto（512×512）或自定义单帧像素，不接受比例名，不发送分辨率。按帧数校验 4×2 / 3×3 / 4×3 / 4×4 拼图的 3840 单边、8,294,400 总像素和 3:1 比例限制。SVG 侧栏提供 `svgModel`（默认 `gpt-6-luna`，可选 `gpt-6.1-sol`）和 `svgEffort`；请求使用必填 `svg.model` 及可选 `svg.reasoning.effort`。Luna 支持 none / low / medium / high / xhigh / max，Sol 不支持 none，两者不提供 minimal；自动时省略 reasoning，切换模型会将不兼容的本地 effort 复位为自动。浏览器直接下载结果并校验 SVG，保留原始矢量文件。渠道模型、帧数和 SVG 参数会冻结进任务及复用签名，并随保存、复制与撤销恢复。OpenAI 的原有参数和 SVG 写作模型不变。
-- APIMart BYOK 参考图由浏览器直传 `POST /v1/uploads/images?retention_days=3`（multipart `file`），读取顶层 `url`；新款的 PNG Mask 经透明度及尺寸校验后同样直传（上传上限 30 MiB）。全部文件在首次上传前校验，保持图片顺序和原始字节；应用 API 仅接收 HTTPS URL 和参数，不承载二进制。上传失败、超时或取消不生成、不自动重试、不回退 Base64。上传域名来自本次 API 配置快照，禁止重定向、Cookie 和 Referer；服务商需允许浏览器跨域认证。仅本地环境变量默认 Key 模式保留旧路径，不暴露服务端密钥。`/api/apimart/images` 返回任务号，`/api/apimart/task` 只查询并返回 `imageUrl`、格式、任务号及可用的过期时间，不下载图片或编码 Base64；浏览器从 CDN 无凭据下载原始字节，校验 MIME、32 MiB 上限及 SVG 内容后创建本地 Blob 素材，继续由 IndexedDB 保存，工作流不依赖临时链接。下载失败保留任务号且不重新生成；CDN 必须允许跨域读取。每 4 秒以 `GET /v1/tasks/{task_id}?language=zh` 查询已有任务，保留中文失败原因；支持 pending / processing / completed / failed / cancelled，远程 cancelled 同步为本地已取消并停止依赖分支。超时继续查询，不重新创建生成，本地取消停止查询。API 设置支持 APIMart BYOK（默认 `https://api.apimart.ai/v1`）及 `APIMART_API_KEY`，连接测试仅查询 `/balance`。自动测试和 `/tests/apimart-provider.html` 均使用受控响应，覆盖 EXT 回归、新款蒙版、自定义尺寸、GIF 帧数、SVG effort、保存恢复和锁定；未调用真实模型。
-- GPT Image 2.6 参数侧栏最多 300px 宽并撑满画布高度，标题与运行区固定，参数列表独立滚动。下拉框使用 beUI Select 的展开动效，模型版本、分辨率和输出格式用分段控件。所有生成参数都在侧栏本地编辑。渠道和版本继续在运行前校验。运行次数复用 `NodeRangeInput`，仍使用原有的共享次数状态与执行入口。
-- GPT Image 2.6 的输出格式不再提供 WebP，新节点若读到旧的 WebP 预设会改用 PNG。已有节点的 WebP 值仍能运行，侧栏标为旧设置，已有 WebP 图片仍能查看和下载。各渠道原有的 GIF、SVG、自定义尺寸和其它参数规则保留。Seedream 5.5 与 Nano Banana 复用同一套侧栏样式、下拉、分段控件和运行次数滑块。两者通过 APIMart 运行，侧栏标题下直接显示模型参数。图像描述和模型选项沿用原有侧栏样式。
-- `/tests/right-sidebars.html` 是五类共享参数侧栏及调色板无侧栏行为的独立浏览器验收入口（React / React Flow，`npm run dev` 后打开），使用隔离 IndexedDB 并拦截真实模型请求。可通过页面按钮切换节点，检查标题、滚动、32px 控件、下拉菜单、expose、模型选项和运行区域，以及选中调色板不打开侧栏；原有 Nano Banana 和调色板浏览器验收入口继续用于功能回归。
-- `/tests/sunburst-sidebar.html` 是这次侧栏的独立浏览器验收页（React 与现有浏览器测试入口），运行 `npm run dev` 后打开，可检查满高、等宽、键盘操作、本地参数、自定义尺寸和短窗口滚动；隔离 IndexedDB 且拦截真实模型请求。`sunburstRun.test.ts` 和 `connectionRecommendations.test.ts` 随 `npm test` 验证渠道和版本的运行校验及已退役参数端口的连接拒绝。
-- 旧画布加载时移除 GPT Image 2.6、Seedream 5.5 和 Nano Banana 的参数端口标记和参数连线。可解析且通过校验的参数组合会转为节点本地设置，校验失败时保留原本地设置。来源节点、提示词、参考图、蒙版和历史结果保留。
-- 对支持锁定的节点，数据更新、拖动、删除、连线和运行入口都需考虑 `locked`，异步结果写回前再次检查。节点内的编辑与点击控件按交互需要使用 `nodrag`、`nopan`、`nowheel`，避免与画布手势冲突。
-- Sunburst 和 Image Describer 运行时共用 98×32px、13px 圆角的进度框：启动状态、0.84 秒一圈的圆环、百分比与悬停 / 聚焦可见的取消按钮。现有接口没有进度回传，百分比明确标注为预估，平滑趋近 95% 后等待真实响应；只有成功响应和结果写回后才完成。节点取消操作停止该节点的运行与排队任务，不影响其他节点；任务面板仍可单独取消一项。运行结束或失败后恢复运行按钮，失败详情保留在任务列表。减少动态效果时圆环改为 4 秒四步旋转。
-- `taskQueue.test.ts` 随 `npm test` 验证预估进度不提前完成、不倒退、不推进终态；`/tests/model-run-progress.html` 使用真实节点、调度与本地受控响应验证动画、完成、失败、并发取消隔离和迟到结果保护，不调用真实模型，不读写用户工作流。
-
-## Text Iterator 文本迭代约定
-
-文本迭代位于工具 → 辅助工具节点 → 流程与批量，搜索支持中文及 Text Iterator。节点沿用新版共享外框、标题、更多菜单和端口：454px 宽、28px 圆角、标题计数 `n/50`、带序号的独立文本条目和底部添加入口。文本/数组输入与紫色文本输出位于内容区两侧；长列表在节点内部滚动。默认一条空文本，最多 50 条；文本可换行，条目使用稳定 ID，支持删除、拖放排序及排序按钮的上下键、Home / End。新增条目聚焦输入框，中文输入与文本编辑保留原生按键行为；锁定后不能编辑、排序、增删、拖动或新建连接。菜单、独立副本、剪切粘贴、撤销重做和 IndexedDB 保存恢复复用画布机制。
-
-输入连接存在时显示上游内容并只读，本地条目仍保留，断开后恢复。普通文本（包括换行）是一条；显式 JSON 字符串数组逐项展开，空列表、非文本成员、空白条目、超过 50 条或每条超过 32000 字符都给出明确错误。异常输入不阻止重命名、锁定、解锁或删除；只有创建副本和剪切等需要内容快照的操作才解析输入，并直接报告输入错误。当前没有新增独立 Array 节点或 CSV 列导入界面，可以在 Prompt 中提供 JSON 数组。动态模型生成的列表需先运行并设为手动文本，批量开始前确定实际条数。同一个目标依赖多个独立迭代器时拒绝运行，避免隐式进行组合；互相依赖的多选批量节点需只选择最终目标。
-
-空列表或未填写的条目会在下游模型和设置面板的批量摘要区域显示提示：顶部分隔线、圆形感叹号和暖红色文字，支持换行及深浅主题。补齐或删除空条目后自动恢复正常摘要；提示中不显示内部节点类型名称，运行前的校验规则保持一致。文本迭代节点自身保留紧凑列表布局，上游文本数组解析失败时使用相同的提示样式。
-
-连接到 GPT Image 2.6、Seedream 5.5 或 Nano Banana 的 Prompt，以及图像描述的文本指令时，每个条目创建独立任务。可经过 Router、Prompt 内联变量及后续模型/图像处理链。执行器为每条创建独立图快照和依赖输出，支持已有的四任务并发限制；原始画布条目不会被临时值覆盖。模型节点、设置面板与运行入口共用临时运行次数状态，不写入撤销或持久化；切换选择后任务数仍与执行一致。运行次数作用于每条文本，`3 条 × 2 次` 为 6 个目标任务。运行前校验全部已知文本与参数；重复文本仍是独立目标任务。
-
-每项失败不会重试或阻止其他条目，任务面板保留条目编号与原始提示词。单项重试只创建该条目的一个新任务，原条目被修改/删除后要求重新检查列表。依赖运行中的上游模型时按迭代器、条目 ID 和文本匹配结果，重复文本、乱序完成或单项失败不会混用其他条目。已完成的上游图片按 `generation.iteration` 从历史结果中恢复对应条目，并继续校验当前请求输入；输入已变或缺少对应记录时重新生成，不回退到其他条目的封面。不同条目即使请求内容相同，也不共享同一个上游模型请求。只有实际依赖迭代器的共享上游任务附带条目信息，无关共享上游仍按普通任务重试。取消单项不影响其他条目；节点取消停止整批。运行中修改文本、顺序、输入连接或锁定节点会中止受影响任务，迟到结果不会写回。成功结果追加到同一模型的现有结果列表，`generation.iteration` 保留来源条目，结果仍使用已有的画廊、下载和选中输出行为。
-
-依赖批量多选检查同时查看上游和下游的运行计划；即使上游已有固定图片或手动描述，使下游自身不再展开迭代，也不能同时选择该批量上游和下游运行。重命名输入框在中文合成期间忽略 Enter / Escape，合成结束后才提交或取消。
-
-`textIterator.test.ts` 和 `workflowExecution.test.ts` 使用现有 Node.js 测试运行器，随 `npm test` 验证数据、连接、数组、各模型的独立请求、重复运行、并发依赖按条目隔离、共享上游重试、失败、取消与单项重试。浏览器入口为 `/tests/text-iterator.html`（`npm run dev`），使用独立存储与拦截后的本地模拟响应，不访问真实模型或用户已保存画布；验证列表编辑、排序、锁定、副本、异常输入下菜单操作、上限、运行次数与实际请求数量一致、实际任务界面和保存恢复。浏览器验收与自动门禁是两层独立检查。
-
-## Image Iterator 图片迭代约定
-
-图片迭代位于工具 → 辅助工具节点 → 流程与批量，支持中文及 Image Iterator 搜索。节点沿用新版共享外框、标题、更多菜单及图片端口，宽 456px、圆角 28px，标题显示 `n/50`；空态为 424px 棋盘格、多选上传和图片链接；多图默认双列缩略图，可切换单图、前后浏览、按添加时间或名称排序，底部添加更多图片。右键图片可下载当前图片、下载全部、设为封面和复制图片；节点菜单提供清空、重命名、锁定、副本、剪切和删除。仅接受图片，最多 50 张；没有输入端口，绿色 `file` 输出可在列表为空时预先连接。没有图片时，下游显示共用的迭代警告并阻止运行。
-
-`ImageIteratorNode` 复用 `FileNode` 的导入、预览和图库，共享深灰节点外观；`imageIterator.ts` 负责图片列表与剪贴板校验。当前封面只用于画布预览，不改变批量范围。运行时 `workflowIterations` 按列表的显示顺序生成稳定图片身份，`iterationGraph` 为每个任务投影成只含对应图片的文件节点，原始列表保持不变。支持图像描述、GPT Image 2.6、Nano Banana、Seedream，以及 Router / 本地图片处理 / 后续模型链；同一张图片的多个依赖共享本轮结果，跨图片和并发批次按身份匹配，不混用其他图片。与文本迭代共用运行次数，`3 张 × 2 次` 创建 6 个目标任务；同一目标只允许一个迭代器，多个图片列表或图片与文本列表同时汇入时先报错，不隐式组合请求。
-
-单张失败不影响其他图片；单张重试只运行对应图片，图片已删除或内容身份已变则拒绝重试。任务面板和成功结果记录图片序号、名称与来源身份。远程图片按本项建立快照，一张链接失败不阻断其他项。切换封面或网格/单图不会取消任务；增删、清空、有效顺序变化或锁定会中止受影响任务，迟到结果不写回。清空还会废弃尚未完成的导入。列表、排序、封面、结果和图片二进制随 IndexedDB 保存；素材同时由画布、历史和剪贴板保留，清空可单步撤销/重做，副本独立修改。
-
-本地图像处理的并发共享同时匹配内容指纹与实际输入素材 ID，避免内容相同的不同图片复用绑定了其他素材的 `outputRevision`。同一图片的多个下游仍共享处理；与迭代器无关的图片分支也保持共享。`workflowExecution.test.ts` 覆盖相同/不同链接、相同内容、多目标与多次运行；`/tests/workflow-execution.html` 使用真实 Invert PNG 导出验证两项均完成、结果归属和像素，不调用真实模型。
-
-`imageIterator.test.ts` 和 `workflowExecution.test.ts` 使用现有 Node.js 测试运行器，随 `npm test` / `npm run check` 验证数据、连接、逐图投影、各模型、重复运行、并发匹配、失败重试、取消和素材恢复。运行 `npm run dev` 后访问 `/tests/image-iterator.html`，浏览器页使用真实画布、独立 IndexedDB 和本地模拟响应，验证上传/拖放、单图/网格、排序、右键菜单、清空撤销、锁定、副本、剪切粘贴、数量、请求与保存恢复；不读取用户画布、不调用真实模型。该浏览器页需单独运行，不包含在 `npm test` 中。
-
-## Color palette 色板约定
-
-Color palette 位于 Tools → Editing，新建时使用 Figma 的五种预设颜色：`#4ADE80`、`#FBBF24`、`#60A5FA`、`#C084FC`、`#222222`。节点采用双列色签列表，每项显示圆形色样和 HEX；加号位于下一个网格空位，满十色后隐藏。允许重复颜色，已保存的颜色与空色板按原数据恢复。点击色签打开选色弹窗；仅悬停或键盘聚焦当前色签时，在右侧显示六点排序手柄与删除按钮；触屏始终显示这两个操作。选中调色板不打开右侧参数栏；添加、HEX 编辑、选色、删除与排序均在节点内完成。
-
-拖动时保持原顺序，以目标色签上方或下方的细线提示插入位置，落点同时识别双列的横向位置；其他色签变暗，松开后一次性排序，拖出列表取消。节点内使用原位反馈和预加载的透明图片抑制额外的浏览器拖拽预览。手柄支持方向键、Home / End；Escape 取消排序，锁定后禁止修改。共享标题栏、更多菜单与端口复用节点组件；Image / Text 端口随节点高度变化整体保持上下居中。
-
-节点没有输入，Image（`image`）输出 1024 × 1024 的纯色横条 PNG，不包含 HEX 和编辑控件；Text（`text`）输出大写 HEX，以 `*` 连接，顺序与画布一致。Image 可连接所有图片消费者（包括 Compositor、Preview、Sunburst 和 Image Describer）；Text 可连接 Prompt 变量、Sunburst 文本输入和 Image Describer 文本参数。连接推荐按输出端口区分类型，反向创建也支持这两个端口。空色板无图片且文本为空；改色或排序后立即使旧图片失效，导出完成才提供新图片，迟到的结果不会覆盖新状态。
-
-每次添加、删除、排序、HEX 提交或颜色选择手势各记录一次撤销；颜色选择器拖动时先在弹窗预览，松开提交。派生图片不增加撤销记录。支持重命名、锁定、副本、剪切粘贴和 IndexedDB 恢复；颜色顺序和 PNG 素材随画布保存，素材引用复用现有生命周期。数据与纯函数见 [colorPalette.ts](./colorPalette.ts)，颜色列表和弹窗见 `ColorPaletteColors.tsx` / `ColorPalettePicker.tsx`。`colorPalette.test.ts` 使用现有 Node.js 测试运行器，随 `npm test` 检查十色上限、排序、文本、输出失效、双端口连接、剪贴板校验和素材映射。
-
-调色板与绘图的选色弹窗共用 [shared/NodeColorPicker.tsx](./shared/NodeColorPicker.tsx)，适配 [beUI Color Picker](https://beui.dev/components/motion/color-picker) 的色块展开、拖动放大取色提示、HEX / RGB / HSL 格式切换、屏幕取色与八个预设颜色；调色板始终输出不透明六位 HEX，不显示透明度控件。面板通过固定定位 Portal 避免节点裁切，并随画布缩放、平移与窗口变化更新位置；减少动态效果时禁用形变、放大提示与预设位移。选色弹窗的 HEX 在 Enter、失焦或点击外部关闭时提交合法值；无效值与 Escape 不产生修改。弹窗及滑块上的 Cmd/Ctrl+Z、Cmd/Ctrl+Shift+Z 操作画布历史，HEX 输入框保留原生文本撤销。浏览器回归测试在 `tests/color-palette-picker.test.tsx`，沿用项目现有的浏览器测试页方式，无新增测试依赖：运行 `npm run dev` 后打开 `/tests/color-palette-picker.html`，页面自动挂载真实节点、弹窗和画布历史并报告结果，并验证选中调色板与打开选色弹窗时不出现参数侧栏。覆盖外部关闭保存、HEX 规范化、取消、重复提交、弹窗/滑块撤销重做、文本撤销与中文输入保护，以及连续编辑的历史边界；另覆盖 53% / 100% / 150% 缩放下的合成拖拽事件、预览图片加载、取消、双列横向落点及上下半区插入线、落点排序、单步撤销重做；测试使用独立状态，不读写已保存的工作流。
-
-节点内的色样保持静态布局，节点拖动与画布移动由 React Flow 直接更新。弹窗使用 `#282828` 深灰底色，仅作用于选色面板。展开与收回由 [shared/useColorPickerMorph.ts](./shared/useColorPickerMorph.ts) 在固定定位弹出层中完成，收回目标每帧读取色样的当前屏幕位置，视图更新不重启动画；中键持续平移时也能完成收回并显示节点色样，避免被按钮裁切或留下旧选色区。所有取色器共享当前打开对象，连续切色时旧面板收回、新面板展开；快速重开会打断并反转当前动画。`/tests/color-picker-motion.html`（入口 `color-picker-motion.test.tsx`）逐帧检查两种节点在三档缩放下的可见收回路径、原位置、退出清理、连续 / 快速 / 同批次切色及收回中重开；使用合成中键事件驱动真实 React Flow 平移，检查打开中开始平移、关闭后立即平移及松键前恢复色样，`?pan-only` 单独运行这些平移用例。支持 `?reduce-motion`，使用独立节点状态。`/tests/color-picker-node-drag.html`（入口 `color-picker-node-drag.test.tsx`）在 53% / 100% / 150% 视图下逐帧比较调色板和绘图色样与按钮的位置，检查面板收回后继续拖动，并提供真实鼠标拖动的偏移量检查；支持 `?reduce-motion`，使用独立节点状态，不读写保存的画布。
-
-原生拖拽验收页为 `/tests/color-palette-native-drag.html`（入口 `tests/color-palette-native-drag.test.tsx`），同样通过 Vite 运行且不读写用户工作流。用真实鼠标在节点中拖动，页面检查可信 `dragstart`、透传原生 `setDragImage`、已加载的 1×1 透明图片和可信 `dragend`；`Broken canvas control` 使用旧实现作负例，必须失败，`Fixed image` 应通过。分别检查 53% / 100% / 150%，拖出及 Escape 取消后顺序/历史不变，落点后节点顺序更新且可单步撤销重做。原生预览使用预加载的离屏 `HTMLImageElement`，不可用没有布局的 canvas 替代。页面的 PASS 仅代表原生调用及图片有效，浏览器页面截图不包含系统拖拽图层；大色条是否消失仍必须用系统目视或能包含该图层的录屏对照确认，不得用合成事件或页面截图代替。
-
-## Compositor 合成约定
-
-Compositor 位于 Tools → Editing。稳定的 Background / Layer 输入映射与内部堆叠顺序分开保存；上游图片更新保留已有图层参数，普通输入断开后清除对应画面。多个端口可使用同一上游。编辑器采用 Layers / Assets、Canvas、Properties 三栏；素材可预览、搜索和拖入画布，图层菜单与底部缩放菜单支持键盘操作。画布提供八向缩放、旋转及屏幕距离吸附辅助线，支持约束方向、中心缩放与手势取消。底部还提供文本、钢笔和矩形/椭圆/三角形/星形工具：文字可双击编辑，钢笔保存可编辑的锚点和 Bézier 控制柄，新增图层共用撤销与持久化，不新增输入端口。提供变换、重排、显示/锁定、尺寸/填充与有序的 Blur、Color correction、Invert、Levels 效果，复用现有像素算法。Levels 使用 Inputs 三手柄 / Outputs 双手柄和 RGB/R/G/B 通道，中间调复用对数 Gamma 映射。
-
-Output 是当前文档与输入共同确定的原尺寸 PNG，可供所有现有图片消费者读取，Compositor 也接受这些图片节点的输出。连接仍待处理或结果版本过期时 `imageOutput` 拒绝旧输出。节点和编辑器共用同一合成帧；效果开关等离散操作先反馈快速预览，再替换为原尺寸帧，只有原尺寸结果发布到 Output；受限效果缓存复用最近的开关组合。松手提交历史，输出和素材按现有 IndexedDB / 资源引用机制保存。复制节点保留输入素材快照，普通断线不保留旧画面。Timeline 只保存基础开关和扩展结构，不执行视频处理。详细限制、快捷键、模块入口及浏览器像素检查见 [Compositor 文档](../../docs/compositor.md)。
-
-## Preview 预览约定
-
-Preview 位于 Tools → Helpers，也出现在图片输出拖到空白处的推荐菜单中。`file` 输入接受纯图片 Import、Sunburst 当前结果、Painter Result / 黑白 Mask、Crop / Blur / Invert / Levels Output 或 Color correction Result，同一个输入只允许一条连线，不接受文本或视频。输入反向拖线可创建 Import、Sunburst、Crop、Blur、Invert、Levels、Color correction 或 Painter，并选择 Result / Mask。
-
-图片按原始比例展示，悬停显示尺寸、下载和全屏入口；双击图片也可打开共用的 FileGallery。Painter 的 Result 和 Mask 通过 `painterLivePreview.ts` 同步绘制帧，按住鼠标绘制、擦除或拖动形状时实时更新，取消笔画时同步恢复。绘制中和正式图片尚未导出时，下载与全屏入口暂不可用。实时画面仅存在内存中，不写入节点数据、历史、存储或模型输入；每笔仍在松开后提交一次。Import 图片集合可翻页查看，翻页不改变上游输出。未连接或上游未就绪时仅显示棋盘格，不显示居中图标与文字；图片加载失败时显示错误提示。断开或删除上游后立即清空，不缓存旧输出。解析入口为 `preview.ts`，连接与失效行为由 `preview.test.ts` 随 `npm test` 验证。
-
-Preview 不运行模型、不生成新的图片素材；节点、选中图片和连线随画布保存。支持重命名、锁定、复制粘贴、删除和撤销；复制或剪切得到的独立 Preview 不携带上游连线，需重新连接图片。主题、菜单、下载和全屏复用现有节点组件。
-
-## Color correction 调色约定
-
-Color correction 位于 Tools → Editing，也出现在图片输入/输出的推荐菜单中。File 接受一张上游图片（集合取第一张），Result 输出原尺寸 PNG 并保留透明通道。在浏览器本地处理，不调用模型。曝光为 −5～5（步长 0.01），对比度、饱和度、色温、色调、高光、阴影为 −100～100（步长 1），默认均为 0。曝光在线性光空间处理，其余调节使用本地像素算法；界面参考 Weavy，不承诺与其内部算法逐像素一致。
-
-滑块拖动实时更新节点和已连接的 Preview，松开后提交一次；Escape 或指针取消放弃当前拖动。数字输入失焦或 Enter 提交，Escape 取消；Reset 将七项全部归零。图片悬停/键盘聚焦显示左上角原图对比、右上角下载、左下角原始尺寸。按住对比按钮或在按钮上按住空格/Enter 暂时显示原图，松开恢复效果；对比不改变参数、Result 或下载内容。
-
-拖动时，后台线程在缓存的最长边 1024 像素底图上生成轻量预览；它是交互近似，细碎纹理可能与最终结果略有差异。松手或取消后按原尺寸调色，再从同一份像素生成精确预览和原尺寸 PNG；精确预览就绪前禁用下载。拖动时只保留最新待处理参数，源图变化时终止旧线程；取消操作后的旧帧不会回写。导出未完成时禁用下载；上游变化、断开或参数变更时，下游不读取旧结果。实时预览仅在内存中，派生图片不增加撤销步骤。支持锁定、重命名、副本、剪切粘贴、撤销重做和 IndexedDB 恢复；复制/剪切保留输入底图快照。跨域图片需允许浏览器读取，失败时显示提示。
-
-数据与像素算法见 [colorCorrection.ts](./colorCorrection.ts)，预览/导出见 [colorCorrectionRender.ts](./colorCorrectionRender.ts)，实时帧见 [colorCorrectionLivePreview.ts](./colorCorrectionLivePreview.ts)。`colorCorrection.test.ts` 随 `npm test` 验证七项调节方向、默认像素与透明通道、输出失效、连线、剪贴板及素材映射。
-
-节点复用新版共享外框、标题栏、更多菜单、图片端口和 `NodeRangeInput` 滑块。启动 `npm run dev` 后打开 `/tests/color-correction-node-style.html`，通过隔离画布验证空状态、七项调节、撤销重做、取消、重置、原图对比、输出像素与原尺寸、锁定及下游预览；该页不调用模型，浏览器验收不属于 `npm test`。
-
-## Levels 色阶约定
-
-Levels 位于 Tools → Editing 和图片连线推荐菜单。Input（`image`）接收上游图片，集合使用第一张；Output（`result`）输出原尺寸 PNG，可连接所有现有图片处理节点、Preview、Sunburst 和 Image Describer。全部计算在本地浏览器完成。
-
-节点使用共享外框、标题、更多菜单和图片端口，宽度为 456，预览宽度为 424；接图后预览高度随图片实际宽高比调整，图片完整填满棋盘格区域，未接图时预览为 424×280、节点为 456×696。悬停或选中显示 Image / Result 端口名称。界面依次为通道 / Reset、带网格的全宽直方图、输入色阶手柄与数值、黑白渐变输出标尺与数值；通道菜单在选择框下方展开，显示 RGB、红、绿、蓝，内部仍使用 RGB/R/G/B。RGB、R、G、B 各自保存独立的输入黑点、Gamma、输入白点与输出黑白点；在线性色彩空间先应用单通道、再应用 RGB 总调整，最后编码回 sRGB。输入范围 0–255，黑点不大于白点（相同值产生阈值效果）；Gamma 为 0.1–10（默认 1），大于 1 提亮中间调；输出范围 0–255，可反向或设为同值。“重置”恢复全部通道参数。直方图以相同纵轴比例叠加原图（75%）和调整结果（25%），拖动时随预览更新；RGB 使用 0.299R + 0.587G + 0.114B 的亮度分布，R/G/B 显示对应颜色分布，透明像素按 alpha 加权。256 个直方图桶以细柱绘制，原图与结果共用纵轴比例。
-
-Gamma 滑块采用对数位置映射，向右增大并提亮；黑白点变动时中点随输入范围定位。滑块支持指针拖动及方向键，Shift 加速、Home / End 到边界；数字框 Enter / 失焦提交、Escape 取消。每次拖动只记录一次撤销；512 边长的独立线程提供拖动预览，松开后用原尺寸处理得到 PNG，再从相同像素生成最终预览。下载等待准确结果。保留透明度、原图比较、尺寸显示和 Preview 实时联动；换图、取消、锁定后拒绝迟到的结果，下游不能读取过期输出。
-
-支持重命名、锁定、副本、剪切粘贴、撤销重做及 IndexedDB 素材恢复；独立副本保留底图。数据及像素算法见 `levels.ts`，处理线程和请求合并见 `levels.worker.ts` / `levelsRender.ts`。`levels.test.ts`、`levelsRender.test.ts` 使用现有 Node.js 内置测试运行器，随 `npm test` 验证像素映射、透明度、直方图、连线约束、输出失效、素材保存和请求取消。`tests/levels-node-style.html` 是独立浏览器验收入口（启动 Vite 后访问），验证 Figma 尺寸、素材、通道菜单、真实图片输出、数值与键盘操作、撤销重做、锁定和下游预览；不调用模型。
-
-## Invert 反选约定
-
-Invert 位于 Tools → Editing 和图片连接推荐菜单。Input（`image`）接收上游图片或 Painter 的黑白 Mask，图片集合取第一张；Output（`result`）输出原尺寸 PNG，可连接 Preview、其他图片处理节点、Sunburst 图片/遮罩输入和 Image Describer。在浏览器本地按 `255 − RGB` 反色，黑白遮罩互换黑白，保留灰度软边与透明通道；普通彩色图片输出反色图片，不强制二值化。
-
-Invert Output 接入 Sunburst Mask 时，仅在请求准备阶段将完全不透明的遮罩按亮度转换为透明 PNG：白色为透明编辑区域，黑色为不透明保护区域，灰色保留部分透明的软边。已有透明区域的遮罩沿用原透明通道。转换不改变 Invert 素材、预览、下载或其他下游图片输入；原图仍须另接 Sunburst Image，遮罩仍须与第一张原图尺寸一致且存在透明区域。`sunburstRun.ts` 在任务快照中标记转换方式，`sunburstClient.ts` 在本地完成转换和校验，不向服务端发送该标记；`invert.test.ts` 和 `sunburstClient.test.ts` 随 `npm test` 验证这条路径、软边、取消及已有透明遮罩兼容性。
-
-图片按原比例展示，无需额外参数或运行按钮。悬停或键盘聚焦时，左上角显示隐藏效果按钮：点击切换原图，再点击恢复反选；此对比仅影响当前预览，不改变 Output 和下载内容。右上角下载反选 PNG，左下角显示原始像素尺寸。未连接或上游未就绪时显示棋盘格，处理完成前禁用下载；输入变化、断开或删除后不显示或传递旧结果，导出回写前检查当前连接和锁定状态。
-
-支持重命名、锁定、副本、剪切粘贴、撤销重做及 IndexedDB 保存恢复；独立副本保留输入底图，派生结果不增加撤销步骤。核心像素算法和数据在 `invert.ts`，界面与导出在 `InvertNode.tsx`。`invert.test.ts` 随 `npm test` 验证黑白/灰度/透明像素、Painter Mask 输入、连线限制、链式失效和素材恢复。
-
-## Matte Grow / Shrink 蒙版扩张与收缩约定
-
-位于 Tools → Matte，中文名称“蒙版扩张 / 收缩”，支持中文及英文搜索、右键创建和拖线推荐。只有一个“尺寸”（Size）参数，范围 −100～100，整数步进，默认 0；正值扩张白色选区，负值收缩，绝对值为原图像素半径。0 保持原有灰度蒙版。Input（`image`）接受图片与 Painter / Masks Extractor 的 Mask，集合取第一张；Output（`result`）为原尺寸不透明灰度 PNG，端口及连线使用 Mask 颜色。经 Router 连接 Preview 或 Sunburst Mask 时保留蒙版语义；结果素材携带 `maskMode: luminance` 标识，经过 Compare 任一路透传、独立副本或保存恢复后仍可用于 Sunburst Mask。旧的 Matte 输出读取时补充该标识，普通图片不受影响。Sunburst 将白色区域转换为可编辑区域，蒙版处理本身不调用模型。
-
-像素处理采用方形邻域的灰度最大值 / 最小值滤波，保留软蒙版灰度；透明输入先合成到黑底并转换为亮度，边界延用最近像素。后台线程使用滑动极值队列，处理量随像素数量增长，不随尺寸参数增大。交互和范围参考 Weavy，未承诺内部算法逐像素一致。拖动时使用独立线程的最长边 1024 像素预览，并同步连接的 Preview；松开后从原图生成最终预览与 PNG。原图对比、下载与分辨率沿用图像工具的悬停布局。
-
-数字输入失焦或 Enter 提交，Escape 取消；切换滑块时先完成数字提交，再开始拖动。滑块一次拖动只记录一次撤销，聚焦时支持 Cmd/Ctrl+Z 撤销及 Cmd/Ctrl+Shift+Z 重做；数字框保留原生文本撤销。Escape、失焦、锁定或换图取消未提交操作。旧结果在参数或输入变化后立即失效；异步回写复核当前图，下载等待最终输出。支持重命名、锁定、复制 / 剪切粘贴、独立副本、撤销重做和 IndexedDB 保存恢复，派生 PNG 不增加历史步骤。算法与数据在 [matteGrowShrink.ts](./matteGrowShrink.ts)，线程和排队分别在 `matteGrowShrink.worker.ts`、`matteGrowShrinkRender.ts`。`matteGrowShrink.test.ts`、`matteGrowShrinkRender.test.ts` 使用现有 Node.js 测试运行器，随 `npm test` 验证像素、边界、透明与灰度、连接与失效、素材恢复和排队。独立浏览器入口 `tests/matte-grow-shrink.html` 检查双向变化、4K、数字框切换滑块、快捷历史、拖动取消、锁定、断连及持久化，并验证 Compare 两路输出转换后的实际透明蒙版面积；拦截模型 API，不读取用户工作流，也不调用模型。
-
-## Blur 模糊约定
-
-Blur 位于 Tools → Editing 和图片连接推荐菜单。Input（`image`）接收一张上游图片，集合取第一张；Output（`result`）输出原尺寸 PNG，可连接 Preview、Painter、Crop、Color correction、Blur、Sunburst 和 Image Describer。类型为 Box / Gaussian，Size 为 1–100 的整数，初始 Gaussian / 50；Size 1 保持原图。图片悬停显示按住查看原图、下载和尺寸。
-
-本地后台线程处理图片，不调用模型。Box 使用可分离均值滤波；Gaussian 使用按高斯函数采样、截断至 4σ 并归一化的可分离卷积（σ = (Size − 1) / 3），不再使用 Box 近似。Size 控制模糊强度，不承诺与 Weavy 内部算法逐像素一致。预乘透明度后滤波，边界使用最近边缘像素，避免透明区域的隐藏颜色渗入。Gaussian 拖动时在独立线程的最长边 512 像素底图上进行高斯卷积，并按比例缩放 σ；原尺寸任务不会阻塞这条交互队列。Box 保持最长边 1024 的拖动预览。连到 Preview 时同步显示；松开后从同一份原尺寸处理像素生成最终预览和 PNG，下载在最终结果就绪后才启用。Gaussian 输出版本变化会使旧近似结果失效并重新计算。
-
-数字输入失焦或 Enter 提交，Escape 取消；一次滑块拖动只提交一个撤销步骤。取消、换图或锁定使旧处理帧失效；导出尚未完成时禁用下载，下游不读取过期结果。支持锁定、重命名、副本、剪切粘贴、撤销重做与 IndexedDB 保存恢复，独立副本保留底图。算法与数据在 [blur.ts](./blur.ts)，线程在 [blur.worker.ts](./blur.worker.ts)，排队与实时预览在 `blurRender.ts` 和 `blurLivePreview.ts`。`blur.test.ts` 与 `blurRender.test.ts` 使用现有 Node.js 测试运行器，随 `npm test` 验证像素、透明边缘、连线、失效输出、素材恢复和请求合并。
-
-## Crop 裁剪约定
-
-Crop 位于 Tools → Editing，也出现在图片连接的推荐菜单中。Input 接收 Import、Sunburst、Painter、Color correction 或另一个 Crop 的图片；集合使用第一张图片。Output 输出原始分辨率下裁剪后的透明通道 PNG，不缩放图像、不运行模型或消耗额度。裁剪矩形以原图的归一化坐标保存，上游图片更换时保留相对选区。
-
-图像上显示裁剪框、四角/四边拖动区域、三分辅助线和框外遮罩。拖动内部移动选区；拖动边角调整大小，选区不会超过原图边界。底部宽高比提供 21:9、16:9、4:3、3:2、1:1、2:3、3:4、9:16、9:21，选择后在整张原图中居中适配并锁定比例。尺寸中的宽/高是实际输出像素，失焦或 Enter 提交，Escape 取消；解锁时可独立修改，锁定时联动且限制在图片范围内。“重置”恢复整张原图并解除比例锁定。
-
-每次拖动结束提交一次，可撤销/重做；Escape 或指针取消恢复拖动前状态。连接的 Preview 在拖动中显示本地裁剪帧，正式输出在松开后导出。临时帧不进入保存、历史或模型请求。上游断开、替换或选区尚未导出时不向下游提供旧结果，异步导出检查最新图结构以防止过期回写。复制/剪切保留底图快照，副本无需原连线即可编辑；底图、结果和选区随 IndexedDB 保存，锁定节点禁止编辑。
-
-核心几何与剪贴板校验位于 [crop.ts](./crop.ts)，界面与导出位于 [CropNode.tsx](./CropNode.tsx)，实时预览位于 [cropLivePreview.ts](./cropLivePreview.ts)。`crop.test.ts` 使用现有 Node.js 测试运行器随 `npm test` 验证边界、比例、尺寸、输出失效、连接和素材恢复。
-
-## Painter 绘制约定
-
-Painter 在浏览器本地绘制，不运行模型或消耗额度。外框、标题、更多菜单和端口复用新版共享组件；默认宽 456px、高 656px，绘图区为 424×424px，随实际图片比例调整。底部工具栏仅保留画笔、形状、形状下拉和橡皮擦，移除画板按钮及其参数区；形状提供矩形、圆形、三角形、星形，选择后同步工具栏图标。画笔支持颜色、透明度、大小和硬度，橡皮擦拥有独立参数；“重置”清除绘制层，保留底图和已有画布设置，可撤销。新建节点默认为 1024×1024 的透明背景，已有节点保存的背景、透明度与尺寸不改写；连接图片后按原图尺寸绘制。
-
-颜色面板由 `PainterColorPicker.tsx` 接入共享的 beUI 选色器（`shared/BeuiColorPicker.tsx` / `shared/NodeColorPicker.tsx` / `shared/NodeColorPicker.css`），宽 288px、选色区 264×160px，高度随格式与透明度控件变化。支持连续拖动饱和度 / 明度、色相、透明度、HEX / RGB / HSL、屏幕取色及八个预设颜色，与底部颜色参数实时同步；更换预设保留画笔透明度，透明度仍与六位笔画颜色独立存储。支持色样按钮切换、Escape、外部点击和锁定关闭；Escape、指针取消、丢失捕获与窗口失焦放弃未完成手势。形状菜单复用 `NodeMenu` 的键盘导航与共用悬停高亮，图标来自 `public/painter-node/` 的 Figma 原始 SVG。
-
-笔画使用归一化坐标保存；预览、Result、黑白 Mask 和供 Sunburst 使用的透明 Mask 由同一绘制层生成，橡皮擦只移除绘制内容。白色 Mask 表示绘制区域，与笔画颜色无关；连接到 Sunburst 的 Mask 输入时使用对应的透明 PNG，保持现有 API 的透明区域编辑语义。输入缺失、导出未完成或上游变化时不可使用旧输出。源图片必须允许浏览器跨域读取。
-
-每笔绘制在松开指针后提交一次，指针取消或 Escape 放弃当前笔画。派生输出更新不增加撤销步骤，笔画和重置可通过画布撤销/重做。交互预览最长边限制为 1024 像素，导出仍使用原图完整尺寸。复制或剪切时保留底图快照，副本无需原来的连线也能继续编辑。笔画及输出素材随画布保存到 IndexedDB；素材收集、复制、锁定与恢复使用现有机制。绘制渲染位于 `painterRender.ts`，数据与剪贴板校验位于 `painter.ts`；`painter.test.ts` 验证端口、失效输出、透明 Mask 转换和素材映射，随 `npm test` 运行。
-
-`/tests/painter-node-style.html` 使用现有 React / React Flow 浏览器测试方式（入口 `painter-node-style.test.tsx`），验证外框、工具和颜色面板、参数同步、形状图标、真实 PNG / Mask 像素、重置撤销重做、锁定和保存。运行 `npm run dev` 后打开；使用隔离 IndexedDB，不读写用户画布或调用模型，类型检查包含在 `npm run check` 中。拖动绘制、连续选色、缩放和连线另用真实指针验收。
-
-## 模型运行约定
-
-Image Describer 运行前需要至少一张有效的上游图片和非空模型值；当前实际接入的描述模型为 `deepseek-flash`。图片按输入端口编号排序，生成文本写回 `data.text`。
-
-使用 API 设置中的 DeepSeek Key 时，[describerClient.ts](./describerClient.ts) 先检查所有图片（JPEG、PNG、GIF、WebP，最多 14 张，单张 64 MiB，合计 200 MiB），再按顺序将原图直传到同一配置地址的 `/files`。文件在创建 1 小时后过期。上传完成后 `/api/describer` 只接收文件 ID 和系统指令，[deepseek.ts](../../server/deepseek.ts) 用 `file` 内容块调用对话补全。上传失败或取消时不提交描述请求，也不回退内联图片。仅本机未配置用户 Key、使用 `.env.local` 默认 Key 时保留原内联路径。
-
-Sunburst 运行前必须连接非空 Prompt，栅格输出时参考图片和 Mask 可选。SVG 输出仅支持 Prompt 文生图，连接参考图片或 Mask 会在执行任何上游模型前报错；每个请求 n=1，OpenAI SVG 请求显式使用 `svg.model: gpt-6.1-terra` 编写矢量 XML，顶层模型仍为所选 Flare / Sunburst；栅格格式省略此参数。`vectorSvg.ts` 使用 saxes 解析并验证纯矢量 XML，拒绝内嵌位图、脚本、动画及外部资源。服务端和客户端均校验，结果使用 image/svg+xml Blob 和 .svg 名称，预览、原文件下载、ZIP 与 IndexedDB 保留原始矢量字节，不经 Canvas 栅格化。SVG 不能直接作为模型图片参考输入。连接了 Image 时，执行器会先准备所需上游，提交图片模型请求前必须取得有效图片；使用 Mask 时还必须连接参考图片，且 Mask 只能提供一张图片。图片格式、尺寸及参数限制由 `sunburst.ts`、`sunburstClient.ts` 和服务端共同校验，不应只依赖界面限制。成功结果追加到 `results`，并更新 `activeResultId`。多张结果时，页码前的图标可切换单张预览与全部图片；全部视图与文件导入共用 [shared/NodeImagePreview.tsx](./shared/NodeImagePreview.tsx) 的两列瀑布流（8px 内边距、4px 列距），点击缩略图选择输出结果，双击打开全屏。视图切换仅影响当前预览，不改变已选结果。下载按钮同样复用 File Node：单张视图下载当前图片，全部图片视图按当前排序将所有结果打包为 `images.zip`。
-
-GPT Image 2.6 的 Sunburst / Flare 在 OpenAI 渠道的生图、编辑请求均由服务端显式附加 `moderation: 'low'`，新旧节点统一生效；画质、背景、尺寸及输出格式沿用原有设置。
-
-Sunburst 的单张预览框在生成前即按有效宽高比调整高度，支持预设和自定义尺寸。节点宽度保持一致，高度随预览变化，并为输入端口保留最小空间。自动比例或无效的尺寸草稿使用当前结果的实际比例；无结果时使用正方形。已有结果在新比例内完整显示，尺寸调整不修改图片、下载或下游输出；全部图片视图保留网格布局。
-
-Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排序偏好保存在节点数据中；排序只改变预览顺序，不改变当前输出或原始结果顺序。全部视图中可将缩略图拖到空白画布，复用 `extractFileAsset` 将图片移至新的 File 节点；原节点至少保留一张结果，若移走当前输出则选中剩余的最新结果。创建与移出作为一次撤销记录，取消拖动、落在非画布区域、节点删除或锁定时不执行。
-
-描述器、GPT Image、Nano Banana 与 Seedream 共用 `useWorkflowExecution` 的执行入口，`DescriberPanel` 负责触发运行和展示设置、任务。执行前检查必要依赖链的已知输入与参数，依赖运行后才能取得的动态值在请求提交前继续校验，客户端和服务端仍各自校验图片格式、体积及蒙版等约束。失败、并发与结果复用边界见下方“按依赖自动执行与结果复用”，不能将准备阶段校验理解为全部请求已通过验证。
-
-任务保存运行时的输入快照，同一节点的多次运行按顺序处理，不同节点可并行；已有活动任务时阻止重复运行。
-
-画布右下角的任务队列默认折叠，新任务排队或开始运行时自动展开。展开后只显示最新创建的 3 个任务，新的任务从顶部淡入，其余任务下移，最旧的一条向下淡出；减少动态效果时仅保留淡入淡出。任务状态变化不改变排列顺序，隐藏的任务继续正常执行；活动计数与折叠时的平均预估进度仍基于全部任务。可逐项查看状态、定位节点、取消、重试或清除已结束的任务。打开节点设置侧栏时，队列会移到侧栏左侧。
-
-取消会中断本地请求等待，已取消或超时任务的迟到结果不得写回。节点删除或锁定后也不得写入结果。失败和超时可手动重试，按当前节点输入和参数重新创建一次任务，迭代任务只重试对应条目。取消或超时不代表服务商停止处理或计费。进度为预估值，完成以实际调用结果为准。
-
-默认密钥由服务端环境变量读取。左侧 Dock 的“更多 → API 设置”可按渠道保存 BYOK 地址和 Key 到当前浏览器；请求开始时读取对应渠道配置，仅传给本地 API，由服务端发往该地址。清空 Key 并保存会删除当前渠道覆盖，恢复默认服务端 Key 和地址。密钥不放入节点数据、任务快照或工作流导出。纯前端验证和自动化测试不需要真实模型请求；需要验证真实生成时，应明确区分其结果和可能产生的费用。
+| <a name="router"></a>[路由（Router）](guides/workflow.md#router) | `router` | [RouterNode.tsx](./RouterNode.tsx) | 单输入 `input`（Input）；`output`（Output）原样透传，可连接多个下游 |
+| <a name="text-iterator-文本迭代约定"></a>[文本迭代（Text Iterator）](guides/workflow.md#text-iterator-文本迭代约定) | `text-iterator` | [TextIteratorNode.tsx](./TextIteratorNode.tsx) | `input` 接收文本或 JSON 文本数组；`text` 为逐项文本输出，后续模型按条目分别运行 |
+| <a name="image-iterator-图片迭代约定"></a>[图片迭代（Image Iterator）](guides/workflow.md#image-iterator-图片迭代约定) | `image-iterator` | [ImageIteratorNode.tsx](./ImageIteratorNode.tsx) | 无输入端口；`file` 为逐张图片输出，后续模型按图片分别运行 |
+| [提示词（Prompt）](guides/connections.md#输入解析与锁定) | `text` | [TextNode.tsx](./TextNode.tsx) | 变量输入 `variable-1` 起；输出解析后的文本 |
+| [导入 / 文件（Import / File）](guides/shared-ui.md#文件导入与图片查看器) | `file` | [FileNode.tsx](./FileNode.tsx) | 无输入端口；通过 `file` 端口输出文件，端口类型随集合内容变化 |
+| [图像描述（Image Describer）](guides/models.md#图像描述) | `image-describer` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) | 图片输入 `image-0` 起；可暴露 `model`、`instructions` 文本输入；输出 `data.text` |
+| [模型名称 / 参数选项（Model Name）](guides/connections.md#输入解析与锁定) | `model-input` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) 中的 `ModelInputNode` | 输出当前 `data.model`；`options` 输入仅展示，不能连接 |
+| [GPT Image 2.6](guides/models.md#gpt-image-26) | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`（OpenAI 官方和 APIMart 标准版支持交互编辑标注）、`image-0` 起及受渠道和格式限制的 `mask`；`result` 输出当前选中的结果图片 |
+| <a name="旧工作流中的-ideogram-45"></a>[Ideogram 4.5](guides/models.md#旧工作流中的-ideogram-45) | `ideogram` | [IdeogramNode.tsx](./IdeogramNode.tsx) | 保留存量输入端口及连线；`result` 输出已保存的选中图片 |
+| <a name="nano-banana"></a>[Nano Banana](guides/models.md#nano-banana) | `nano-banana` | [NanoBananaNode.tsx](./NanoBananaNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起的参考图输入；`result` 输出选中图片 |
+| <a name="seedream-55apimart"></a>[Seedream 5.5](guides/models.md#seedream-55apimart) | `seedream` | [SeedreamNode.tsx](./SeedreamNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起的参考图输入；`result` 输出选中图片 |
+| <a name="color-palette-色板约定"></a>[调色板（Color palette）](guides/color-filters.md#color-palette-色板约定) | `color-palette` | [ColorPaletteNode.tsx](./ColorPaletteNode.tsx) | 无输入；`image`（Image）输出纯色条 PNG，`text`（Text）输出按顺序以 `*` 连接的 HEX 色值 |
+| <a name="compositor-合成约定"></a>[合成器（Compositor）](guides/image-tools.md#compositor-合成约定) | `compositor` | [CompositorNode.tsx](./compositor/CompositorNode.tsx) | `background`、`layer-1` 起的动态图片输入；`result`（Output）输出实际合成 PNG；独立图层编辑器见[使用与架构](../../docs/compositor.md) |
+| <a name="color-correction-调色约定"></a>[色彩校正（Color correction）](guides/color-filters.md#color-correction-调色约定) | `color-correction` | [ColorCorrectionNode.tsx](./ColorCorrectionNode.tsx) | 单图片输入 `file`（File）；`result` 输出调色后的 PNG |
+| <a name="levels-色阶约定"></a>[色阶（Levels）](guides/color-filters.md#levels-色阶约定) | `levels` | [LevelsNode.tsx](./LevelsNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
+| <a name="blend"></a>[混合（Blend）](guides/image-tools.md#blend) | `blend` | [BlendNode.tsx](./BlendNode.tsx) | `back`（Back）、`front`（Front）图片输入；`result`（Result）输出合成 PNG |
+| <a name="compare"></a>[对比（Compare）](guides/image-tools.md#compare) | `compare` | [CompareNode.tsx](./CompareNode.tsx) | `input-1` / `input-2`（Input 1 / Input 2）；`output-1` / `output-2`（Output 1 / Output 2）分别透传对应输入 |
+| <a name="resize"></a>[调整尺寸（Resize）](guides/image-tools.md#resize) | `resize` | [ResizeNode.tsx](./ResizeNode.tsx) | 单图片输入 `image`（Image）；`result`（Result）输出指定尺寸 PNG |
+| <a name="rotate-and-flip"></a>[旋转与翻转（Rotate and flip）](guides/image-tools.md#rotate-and-flip) | `rotate-flip` | [RotateFlipNode.tsx](./RotateFlipNode.tsx) | 单图片输入 `image`（Input）；`result`（Result）输出旋转后的原分辨率 PNG |
+| <a name="invert-反选约定"></a>[反相（Invert）](guides/color-filters.md#invert-反选约定) | `invert` | [InvertNode.tsx](./InvertNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸反色 PNG |
+| <a name="blur-模糊约定"></a>[模糊（Blur）](guides/color-filters.md#blur-模糊约定) | `blur` | [BlurNode.tsx](./BlurNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出原尺寸 PNG |
+| <a name="crop-裁剪约定"></a>[裁剪（Crop）](guides/image-tools.md#crop-裁剪约定) | `crop` | [CropNode.tsx](./CropNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出裁剪后的 PNG |
+| <a name="painter-绘制约定"></a>[绘图（Painter）](guides/painting-masks.md#painter-绘制约定) | `painter` | [PainterNode.tsx](./PainterNode.tsx) | 单图片输入 `image`；`result` 输出合成图片，`mask` 输出黑底白色绘制区域 |
+| <a name="matte-grow--shrink-蒙版扩张与收缩约定"></a>[蒙版扩张 / 收缩（Matte Grow / Shrink）](guides/painting-masks.md#matte-grow--shrink-蒙版扩张与收缩约定) | `matte-grow-shrink` | [MatteGrowShrinkNode.tsx](./MatteGrowShrinkNode.tsx) | `image`（Input）接收图片或黑白蒙版；`result`（Output）输出原尺寸灰度蒙版 PNG |
+| <a name="交互编辑"></a>[交互编辑（Interactive Edit）](guides/painting-masks.md#交互编辑) | `interactive-edit` | [InteractiveEditNode.tsx](./InteractiveEditNode.tsx) | 单图片输入 `image`，最多六个独立标注输出，连接提示词的「标注」端口 |
+| <a name="masks-extractor"></a>[蒙版提取（Masks Extractor）](guides/painting-masks.md#masks-extractor) | `masks-extractor` | [MasksExtractorNode.tsx](./MasksExtractorNode.tsx) | 单图片输入 `image`；`result`（Image With Alpha）输出透明抠图，`mask`（Mask）输出黑白蒙版 |
+| <a name="preview-预览约定"></a>[预览（Preview）](guides/image-tools.md#preview-预览约定) | `preview` | [PreviewNode.tsx](./PreviewNode.tsx) | 单图片输入 `file`，无输出；实时显示上游图片 |
+| [坐标记录（Position Logger）](guides/connections.md#创建菜单) | `position-logger` | [PositionLoggerNode.tsx](./PositionLoggerNode.tsx) | 左侧输入、右侧输出；不执行模型任务 |
 
 ## 新增或扩展节点
 
@@ -284,142 +55,14 @@ Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排�
 4. 定义稳定的输入输出端口 ID、允许连接的类型和单端口连接数量。按需扩展 `connectionRules.ts` 的统一校验和文本或图片解析逻辑，并验证动态端口布局。
 5. 需要设置面板或模型运行时，接入对应面板、运行前校验、任务状态、取消与结果写回流程。复用现有任务机制，避免在组件中另建一套请求和状态管理。
 6. 核对复制粘贴、克隆、删除、锁定与撤销重做。复用 `TextNodeMenu` 时，还需扩展其允许操作的节点类型判断，不能只挂载组件；菜单中的“保存节点”目前仍禁用，与画布自动保存是独立功能。需要持久化的数据放入节点数据；临时 UI 状态和请求控制器留在运行时。涉及新素材字段时，同时扩展素材引用收集与 `workflowStorage.ts` 的 `mapAssets`，验证保存恢复及资源释放。任务和撤销历史目前不跨刷新恢复，恢复画布也不会自动重发模型任务。
-7. 为新增行为选择合适的验证，并在同一次改动中更新本文的节点索引和受影响约定。删除节点或更改已保存数据、类型标识、端口 ID 时，还需考虑旧画布和剪贴板内容的兼容处理。
+7. 同步更新本页索引及受影响的专题。删除节点或改变类型标识、端口 ID、持久化数据时，核对旧画布和剪贴板的兼容性。
 
 ## 验证与文档维护
 
-按仓库要求运行 `npm run check`，统一执行测试、lint、含类型检查的构建、节点文档和补丁空白检查。`npm run check:docs` 会核对本页节点索引与 `nodeTypes` 注册表及本页的本地链接；端口语义、运行条件和持久化约定仍需人工同步审查。现有测试使用 Node.js 内置测试运行器，覆盖节点逻辑、持久化和服务端校验；测试使用受控输入或响应，不需要真实模型额度。新测试采用有明确含义的 `*.test.ts` 或 `*.test.tsx` 文件名，并确保测试命令实际能够运行它；浏览器 `tests/*.test.tsx` 通过相应 HTML 页面执行，不属于 `npm test`。机制与验收入口见[代码质量检查](../../docs/code-quality.md)。
+自动检查和正式画布验收按[项目约定](../../AGENTS.md)执行。新增测试接入实际运行入口，浏览器测试页须单独打开，详见[质量检查](../../docs/code-quality.md#按修改范围补充浏览器验收)。
 
-画布改动需手动验证节点拖动、坐标更新、新建连线、缩放和小地图；根据改动检查锁定、复制粘贴、撤销与刷新恢复。编辑器改动还需验证 Tab 建议、中文输入、撤销、粘贴和内联变量；模型流程改动需检查缺少输入、重复运行、取消、失败与结果写回。
+编辑器改动需验证 Tab 建议、中文输入、撤销、粘贴和内联变量。模型流程改动需检查缺少输入、重复运行、取消、失败和结果写回。
 
-新增、删除节点，或修改输入输出、运行条件、注册方式及本文已记录的开发约定时，同步更新相应内容。仅调整内部实现或样式且不影响描述时，无需更新。本文保留稳定约定和代码入口，不逐行复述实现，也不充当逐次变更日志；复杂节点需要更详细说明时，可另建文档并在此链接。
+新增、删除或更改节点接口时，同步更新节点表和对应专题。表中每个注册类型保留一行。只改实现或样式且现有描述仍准确时，无需改文档。
 
-## Rotate and flip
-
-入口位于 Tools → Editing，或从图像端口拖出后的兼容节点菜单。底部三个按钮从左到右为顺时针旋转 90°、水平镜像、垂直镜像，右侧 Reset 恢复 0° 并清除两种镜像。与 Weavy 一致，旋转按 0° / 90° / 180° / 270° 循环，镜像各自切换，最终先旋转再按输出图像的水平 / 垂直轴翻转；操作按钮的先后次序不改变这套组合规则。
-
-接入图像后自动在本地处理，无需运行模型。90° / 270° 交换输出宽高；整数坐标变换保留透明通道，不裁切、不缩小导出。悬停显示下载和实际尺寸；预览与下载来自同一份原分辨率画布。支持 Import、Painter Result / Mask 及其他图像节点输入，并可连接 Preview、其他图像处理节点、Sunburst 和 Image Describer。参数、输入或连接变化会立即使旧结果失效，未完成的结果不可下载，过期异步任务不会覆盖新结果。
-
-支持重命名、锁定、创建副本、剪切粘贴、逐次撤销重做与 IndexedDB 保存恢复；独立副本保留底图，派生图像不增加撤销步骤。设置、旋转矩阵和剪贴板校验见 `rotateFlip.ts`，界面与 PNG 导出见 `RotateFlipNode.tsx`。`rotateFlip.test.ts` 使用现有 Node.js 内置测试运行器，随 `npm test` 检查非正方形像素方向、组合顺序、连续操作、输出失效、连接约束和素材恢复。
-
-
-## Resize
-
-节点沿用共享外框、标题、更多菜单和图片端口；空节点为 456×542，预览为 424×424，悬停或选中显示 Image / Result 标签。底部为 W / H 标签与 70×26 输入框、比例锁定按钮和右侧 Reset；接图后预览按实际输出比例调整高度。
-
-入口位于 Tools → Editing，也可通过图片端口的连接推荐菜单创建。W / H 显示输出像素尺寸，首次接入默认使用原图尺寸。默认锁定比例，首次调整时保存未取整的宽高比，后续修改任意一边均沿用该比例计算，避免连续缩小、放大产生取整误差；解锁后可独立修改宽高，图像拉伸到指定尺寸。重新锁定采用当前宽高比，Reset 清除之前保存的比例。锁定比例随撤销、复制粘贴和保存恢复保留；旧数据未记录比例时，以当前尺寸作为首次调整的基准。右侧 Reset 恢复当前输入原图的尺寸，并保留比例锁定状态；尚未手动设定尺寸或 Reset 后，上游尺寸变化会自动跟随原图。
-
-输入在 Enter 或失焦时提交，Escape 取消，输入过程中不反复生成图片。尺寸为正整数，小数四舍五入；空输入恢复原值，无效或超限输入保留原值并提示。每边上限 16384 像素、总像素上限 64 × 1024²。没有图片时尺寸编辑和 Reset 禁用。每次操作独立撤销，比例按钮及 Reset 上的 Cmd/Ctrl+Z、Cmd/Ctrl+Shift+Z 透传画布，尺寸输入保留原生文本撤销。
-
-每次从原始输入本地重采样，保留透明通道；预览最多 1024 像素长边，预览容器保持目标宽高比，位图填满容器以消除预览取整产生的边缘空隙；节点高度随比例变化。下载和下游收到的 PNG 使用实际目标尺寸。参数、输入或连接变化立即使旧输出失效，过期异步结果不会写回。接受所有现有图片输出，包括 Painter 的 Result / Mask；输出可连接 Preview、图片处理节点、Compositor、Sunburst 图片/遮罩和 Image Describer。支持重命名、锁定、独立副本、剪切粘贴和 IndexedDB 保存恢复，沿用项目现有历史及素材生命周期。
-
-尺寸规则、输出版本与剪贴板校验见 `resize.ts`；`resize.test.ts` 随 `npm test` 覆盖比例、自定义尺寸、边界、连接、输出失效及素材映射，并检查连续小尺寸取整、宽高交替调整、重新锁定、Reset、旧数据和剪贴板中的比例恢复。浏览器回归沿用现有独立测试页机制：启动 `npm run dev` 后打开 `/tests/resize.html`，`tests/resize.test.tsx` 挂载真实 Resize / Preview / File 节点，自动验证宽高、PNG 分辨率与透明区域、下游预览、Reset、键盘撤销重做、非法输入、锁定、IndexedDB 保存恢复、断开重连、替换输入及 4K 输出；另覆盖 3840 × 2160 缩小后恢复的比例、保存与撤销后的比例、细长/扁宽预览铺满以及 100 × 300 不受高度限制。页面使用独立数据和测试数据库，不读取用户工作流，也可继续手动检查连线、拖动、缩放和主题。
-
-
-## Compare
-
-从 Tools → Helpers 或搜索 Compare 添加。Slider 左侧显示 Input 1，右侧显示 Input 2；使用 [beUI Before After Slider](https://beui.dev/components/motion/before-after-slider) 的本地适配组件 `shared/BeforeAfterSlider.tsx`，保留弯曲分割线、居中圆形手柄的悬停 / 按压反馈和两侧图片标签。拖动直接跟随指针，点击图片可平滑定位；裁切和分割线按节点本地尺寸同步计算，兼容画布缩放。松开时提交一次历史记录，Escape、窗口失焦、指针取消、丢失捕获、锁定和换图取消草稿；减少动态效果时去除弯曲、缩放和定位动画。画布内不播放首次提示扫动。Reset 恢复 50%，居中时禁用；方向键微调，Shift / PageUp / PageDown 加大步长，Home / End 到两端，Escape 取消拖动。Toggle 默认显示 Image 2，按住左上角眼睛（或 Space / Enter）显示 Image 1，松开、失焦或取消时恢复；与 Weavy 的按住预览行为一致。切换模式时分割线回到中间。
-
-预览按第一张可用图片比例布局，两张图等比例居中；仅一路可用时显示该图，无输入时显示棋盘格。左右端口分别位于 89 / 149px，每个输入只允许一条图片连线；支持两路连接同一来源，拒绝环路、锁定节点及非图片输入。两个输出分别透传原始图片，保留原生尺寸、透明度、资源标识和素材上的灰度蒙版标识（包括 Painter / MasksExtractor 的 Mask、Invert 和 Matte Grow / Shrink 输出），不导出对比拼图；模式、拖动与临时预览不改变输出。
-
-模式和分割位置参与撤销重做与工作流保存。副本、剪切粘贴保存两路输入快照；已有连线优先于快照，上游暂不可用时不返回旧快照。支持重命名、锁定和删除，素材生命周期与 IndexedDB 复用现有机制。无模型请求或付费调用。
-
-`compare.test.ts` 使用现有 Node.js 测试运行器，随 `npm test` 验证双输出、断开重连、递归、连接规则、剪贴板校验和素材映射。启动 `npm run dev` 后打开 `/tests/compare.html`，可在隔离画布检查 Slider / Toggle、撤销重做、主题、连线和缩放；该页使用独立测试数据库，不访问用户工作流。
-
-## Blend
-
-从 Tools → Helpers 或搜索 Blend 添加。Back 是底图，Front 是前景；Opacity（0–100%，默认 100%）控制前景透明度，Mode 默认 Normal。模式按照 Weavy 分成六组：Normal；Darken / Multiply / Color Burn；Lighten / Add / Screen / Color Dodge；Overlay / Hard Light / Soft Light；Difference / Exclusion / Divide；Hue / Saturation / Color / Luminosity。节点宽 460px，底部单行模式选择和百分比透明度，菜单支持方向键、Home / End、Enter、Escape 和外部点击关闭。
-
-当前支持静态图片文件，不合成视频、音频或任意文档。输出尺寸以 Back 为准，Front 缩放铺满 Back；仅接 Front 时使用 Front 尺寸。空端口视为透明图层，均为空时没有输出；已连接但无有效图片时等待上游。改变设置、断开或重连会使旧输出立即失效。Result 可连接 Preview（含下载）、后续图片处理和模型图片输入。
-
-`blend.ts` 对齐 Weavy 的线性 RGB 混合与透明合成，包括 Add 的钳制顺序、Soft Light / Divide 边界、四种 HSL 模式和透明底图行为。读取输入时使用非预乘 ImageBitmap 与 float16 Canvas，避免低 alpha 颜色精度损失；浏览器需支持 float16 Canvas。实现和差异边界详见 [Blend 核验记录](../../docs/blend-verification.md)。不引入第三方算法依赖。
-
-Worker 使用有界任务队列；拖动时 512px 草稿，释放时原尺寸 PNG，预览和导出使用同一公式。拖动只提交一次撤销记录，Escape 取消，锁定禁止修改。支持独立副本素材快照、剪切粘贴、IndexedDB 恢复与资源回收。算法修订号会使旧 PNG 缓存失效。
-
-`blend.test.ts`、`blendMath.test.ts` 和 `blendWeavy.test.ts` 随 `npm test` 检查模式、全部通道输入与 alpha 对、边界、连接、失效、剪贴板、素材映射，以及 108 张实际 Weavy PNG 的独立参照。原始参照和元数据保存在 `tests/fixtures/blend-weavy.*`。
-
-启动 `npm run dev` 后访问 `/tests/blend.html`，执行真实 Worker / PNG、4K、历史、持久化和交互验收；使用独立数据库，不读取或改写用户画布。`/tests/blend-modes.html` 将 18 种模式 × 六档透明度的真实 Worker / PNG 与 Weavy 导出逐像素对照，另核对预览。2026-10-26 完整对照已通过，详细指标与允许的量化误差见上述核验记录；历史九模式与原生 Canvas 诊断不再代表当前算法。
-
-
-## Router
-
-从工具 → 辅助工具节点 → 流程与批量、搜索 Router 或拖线到空白处的推荐菜单添加；双击可连接的输出端口也会在其右侧创建并连接一个 Router，已有分支保留。复用新版共享外框、标题、更多菜单和端口，默认尺寸 250 × 56、28px 圆角，单行图标、名称和菜单，左右居中的 Input / Output；端口颜色与图标跟随输入类型，空节点使用中性色，沿用共享深灰节点外观。
-
-Router 直接从当前图解析来源，不保存文本或素材副本，不运行模型。Input 只保留一条连线，拖入新来源会替换旧线并保留所有下游分支，替换前校验整个 Router 链的消费者；不允许用文本替换仍连接图片输入的来源，反向亦然。Output 可连接多个兼容输入，也可继续连接 Router。空 Router 可以先连接下游，之后接入的来源必须匹配下游要求；推荐菜单随输入和下游约束筛选。环路、自连接、无效端口和涉及锁定节点的新连接会被拒绝。
-
-文本、图片集合、各节点的具体输出端口保持原语义：File 传递整个图片集合，Sunburst 传递选中结果，色板区分 Image / Text，Painter 区分 Result / Mask。Router 后的 Sunburst Mask 仍使用 Painter 的透明遮罩或 Invert 的亮度转换。断开或上游失效后没有旧值残留，Preview 的绘制和调色实时预览也能穿过 Router 链。视频、音频和 3D File 可以接入 Router 并继续中转，能否连接其他节点仍由已有消费者支持范围决定。
-
-支持重命名、锁定、副本、剪切粘贴、撤销重做和 IndexedDB 保存恢复；单独复制 Router 不复制上游内容和连线。创建并连接、替换输入各算一次撤销。数据解析及快捷创建在 `router.ts`；`router.test.ts` 使用现有 Node.js 测试运行器随 `npm test` 验证透传、集合、分支、替换、环路、类型限制、遮罩和保存恢复。浏览器验收入口为 `/tests/router.html`（`tests/router.test.tsx`），运行 `npm run dev` 后打开，使用独立数据库和真实画布检查菜单、文本 / 图片透传、历史与持久化，也可手动检查拖动、连线、缩放和小地图。
-
-
-## Seedream 5.5（APIMart）
-
-替换 Dock / 右键菜单中的 Seedance 2.0 占位入口，归入图像分类；搜索和拖线推荐同样可创建。依据[接入文档](https://docs.apimart.ai/cn/api-reference/images/seedream-5-5/generation)，模型为 `seedream-5-5`。
-
-[seedream.ts](./seedream.ts) 定义分辨率 1.5K / 2K、JPEG / PNG、内容审核与水印；默认 1.5K、PNG、自动背景、审核关闭、水印关闭。宽高比默认自动，保留原有只发送分辨率档位的行为；可选 1:1、4:3、3:4、16:9、9:16、3:2、2:3、21:9、2:1、1:2，选择比例时同时发送 `size` 和 `resolution`。精确像素在同一菜单中切换，输入正整数宽高，总像素须为 921,600–4,624,220、比例为 1:16–16:1，不要求 16 的倍数。宽高编辑使用本地草稿；停止输入 250ms 后自动取整并校正，不要求失焦或回车。连续输入会重置等待，清空输入及中文合成期间不启动自动校正；离开整个尺寸输入区或按 Enter 仍立即确认，优先等比缩放，超出比例范围时调整至最近的允许比例，再选择符合面积和比例限制的整数尺寸。合法尺寸不变，清空或非正数恢复该边上次提交的数值；校正作为一次参数修改参与撤销，锁定、撤销、切换模式及切换节点会清理草稿和待执行的校正，不触发模型运行。运行前和 API 入口仍严格校验。精确像素只发送 `size`，侧栏隐藏分辨率并保留之前的档位。旧画布缺少 `size` 时按自动恢复，未生成图片时预览随比例或精确尺寸变化，已有结果继续按实际尺寸显示。背景可选自动、透明、不透明，文生图和图生图均支持透明；透明背景必须使用 PNG。切换透明背景时将本地输出格式改为 PNG。不支持 `layer_decomposition` 和 Mask；提示词优化使用默认标准模式。六个参数均在侧栏本地编辑。
-
-必须连接非空提示词（每个请求最多 32000 字符）；参考图片按端口顺序展开集合。运行时补入提示词内有效标注的原图。同一原图的标注合在一个请求中；涉及多张标注原图时，按标注在提示词里首次出现的顺序分组，每个请求只发送对应原图、包含该图标注的指令和单独成段的公共文字，手动图片端口不参与这次分组运行。不同原图的指令可用逗号、句号或换行分隔，无法区分归属的语句在提交前提示调整。只有一张标注原图时，沿用图片端口的参考图顺序，同一标注原图只补入一次；多图请求为坐标加上实际输入图号。每个请求最多 10 张参考图，单张 30 MiB，合计 46 MiB。支持文档列出的 JPEG / PNG / WebP / BMP / TIFF / GIF / HEIC / HEIF，读取与尺寸校验仍受浏览器解码能力限制。参考图总像素不超过 3600 万，按宽高乘积判断，不限制单边 6000 像素。每组计入所选运行次数，成功图片依次存入同一个节点图库。每组独立显示任务状态，任务重试只运行原图对应的一组。结果原始字节、实际尺寸、下游选图输出、复制、锁定、撤销及保存恢复复用图片生成节点约定。
-
-[seedreamRun.ts](./seedreamRun.ts) 建立不可变任务快照，[seedreamClient.ts](./seedreamClient.ts) 校验全部参考图后复用 [apimartUpload.ts](./apimartUpload.ts) 浏览器直传，取得 URL 后请求 `/api/apimart/seedream`。服务端 [seedream.ts](../../server/seedream.ts) 先校验参数，再由现有 [apimart.ts](../../server/apimart.ts) 异步接口提交一次；参考图使用 `image_urls` HTTPS URL，避免 Vercel 请求体限制；仅本地无 BYOK、使用环境变量默认 Key 时保留 Data URI 兼容路径。复用 API 设置中的 APIMart BYOK 配置或 `APIMART_API_KEY`，开发和预览均可运行。每 4 秒查询相同任务，查询超时继续等待；失败保留任务编号且不自动重新提交，取消停止本地等待，不代表供应商任务已撤回。
-
-`seedream.test.ts`、`seedreamClient.test.ts` 和 `server/seedream.test.ts` 随 `npm test` / `npm run check` 执行。独立浏览器入口 `/tests/seedream.html` 使用隔离数据库和模拟响应，覆盖参数、端口、生成、下游、失败、取消、锁定、撤销与保存恢复，不调用真实模型。自动检查、浏览器模拟验收与真实付费生图是独立结果。
-
-## Nano Banana
-
-模型固定为 APIMart 的 `gemini-nano-banana-2.1`。必须连接非空提示词（最多 32000 字符），参考图按端口顺序展开，最多 14 张。支持 PNG、JPEG、WebP，单张最多 20 MiB、合计 46 MiB。已连但无结果的图片输入阻止运行。右侧支持自动比例与 14 种固定比例、1K / 2K / 4K 和 PNG / JPEG，保留原参数及端口 ID。
-
-[nanoBananaRun.ts](./nanoBananaRun.ts) 建立运行快照。[nanoBananaClient.ts](./nanoBananaClient.ts) 使用 APIMart 用户 Key 直传参考图并提交 URL；本地服务使用环境变量 Key 时，在服务端上传 multipart 文件。上传成功后以 `image_urls` 提交 `POST /v1/images/generations`，固定 `n: 1`。浏览器每 4 秒查询任务；完成后从 CDN 下载结果并保存为本地图片素材。选择的输出格式由浏览器处理。上传或生成失败时保留已有结果，取消停止本地等待。[生成接口](https://docs.apimart.ai/cn/api-reference/images/gemini-nano-banana-2.1/generation) · [上传接口](https://docs.apimart.ai/cn/api-reference/uploads/images)
-
-`/tests/nano-banana.html` 使用隔离数据库与模拟响应，覆盖文生图、参考图上传、结果查询、图片格式、取消、失败、撤销和保存恢复。
-
-## Masks Extractor
-
-蒙版提取位于 Tools → Matte（蒙版），支持右键创建及图片端口拖到空白处的推荐菜单。`image` 输入只接收图片，集合取第一张；可通过 Router 中转。`result`（Image With Alpha）和 `mask`（Mask）输出原图尺寸 PNG，前者保留原图透明度并抠出选区，后者为黑底白色选区。两者可连接 Preview、图片处理和模型图片输入；Mask 连到 Sunburst Mask 时在请求准备阶段按亮度转换为透明编辑区，与现有 Invert 蒙版语义一致，白色可编辑、黑色受保护，不改变节点导出文件。
-
-单击替换选区，Shift + 单击添加独立物体，Alt + Shift + 单击减去区域；也可使用选择 / 添加 / 减去按钮。每次模型返回的区域与当前蒙版执行并集或差集，不把多个物体简单当作同一次点提示。首次点选后支持悬停预览；预览不进入历史或下游输出。Image / Mask 切换、清空、重新计算、下载及节点菜单均支持键盘；Escape 取消推理，画布撤销快捷键可从节点控件透传。每次确认选区或清空产生一个撤销步骤，派生 PNG 不产生额外步骤。
-
-浏览器推理由 [masksInference.worker.ts](./masksInference.worker.ts) 中的 Transformers.js 3.5.0 和 `Xenova/slimsam-77-uniform` FP16（固定模型 revision `d827ef0`）完成，不调用付费模型、不上传输入图像。仅在首次实际点选时加载 Worker / 模型；FP16 权重约 20.75 MB，另有推理运行库。模型默认下载自 Hugging Face，使用 `transformers-cache` Cache Storage；同源缓存可在刷新后复用，但清除网站数据、存储被回收或更换域名后需重下。首次下载显示进度，失败可通过再次点击重试。需支持 WebGPU 和 shader-f16；不支持时给出明确提示，无隐式服务端或更大模型回退。
-
-Worker 串行执行，最多保留一张图片的特征，模型闲置两分钟后释放内存，磁盘缓存继续保留。同一点的点击复用该节点最近一次悬停结果或正在进行的推理，避免重复提交；换图、换点、失败或重新计算会使候选缓存失效。只对最高评分候选执行尺寸恢复和二值化，保留原来的选区判定。交互分割最长边为 1024，输出恢复原图尺寸；恢复尺寸不会增加模型边缘精度。选区采用压缩游程保存于节点数据，刷新、复制、剪切粘贴后无需重新推理即可恢复输出；素材 URL 沿用现有 IndexedDB 与引用回收机制。输入变化或断开时旧输出立即失效，取消、撤销、锁定、删除节点后未完成任务不得覆盖当前选区。恢复原输入可以恢复其既有选区。
-
-[masksExtractor.test.ts](./masksExtractor.test.ts) 随 `npm test` 验证合并/减去、压缩校验、缩放坐标、连线、Router、Sunburst 转换、失效及素材映射。`/tests/masks-extractor.html` 使用隔离画布和独立数据库，以受控分割结果验证真实组件、PNG、4K、撤销、恢复、锁定、取消、换图竞态、重新计算和副本，不下载模型；页面的“使用真实模型”按钮另行运行 SlimSAM / WebGPU，“检查模型缓存”可在刷新后读取权重文件数量和大小。实际下载与模型质量不属于自动测试的通过结论。依赖与模型出处见 [第三方说明](../../docs/masks-extractor-third-party.md)。
-
-## 交互编辑
-
-从「图像编辑节点」或图片输出端口的推荐菜单创建「交互编辑」。连接待编辑图片，开启「标注」后单击添加点、拖动添加框，点和框合计最多 6 个。坐标相对原图归一化到 0–999，点输出 `<point>x y</point>`，框输出左上与右下坐标 `<bbox>x1 y1 x2 y2</bbox>`。标注与原图绑定，换图或断开时旧标注停止输出。节点内的撤销、重做和重置随画布保存，重做可以恢复标注及其已有连线。
-
-悬停点标注编号、框内或框标注编号时显示移动光标，可以拖动对应标注。拖动整框时保留原宽高。拖动四角的白色手柄可以调整大小，对角保持固定。移动和缩放都限制在图片范围内，松手后更新坐标、保留已有连线，并可通过节点内的撤销恢复。悬停标注编号或用 Tab 聚焦其右上角的减号按钮，可以移除该标注，再用节点内的撤销恢复。
-
-交互编辑的蓝色输出直连提示词节点的「标注」输入。提示词保留普通文本变量，标注连接在光标处插入行内缩略图与编号，悬停时展开原图并放大到对应区域。删除提示词里的标注会断开对应连线，手动删除连线也会移除提示词里的对应标注。复制纯文本时标注解析为坐标。Seedream 编辑使用坐标提示，自动提交这些标注的原图，并复用已接入的同一素材。
-
-GPT Image 2.6 会从提示词读取交互编辑标注，自动把标注原图放到首位，合并重复接入的原图，其他图片按端口顺序作为参考。每次运行可标注一张原图，使用静态图片输出，且不能同时连接 Mask。不同原图的标注需分别连接提示词和 GPT Image 节点。
-
-- OpenAI 官方与 APIMart 标准版通过透明标注图定位编辑。浏览器将点和框渲染为原图同尺寸的透明 PNG，提示词引用红圈、红框及编号，原图最多 16,777,216 像素。OpenAI 官方以 multipart 的 `markup` 字段提交。APIMart 标准版先将原图、参考图与标注图上传到 `/v1/uploads/images?retention_days=3`，然后以 `image_urls` 和 `markup_url` 提交编辑。
-- APIMart GPT Image 2.6 EXT 使用普通提示词和参考图。提示词包含有效的交互编辑标注时，运行前会提示切换到 APIMart 标准版或 OpenAI 官方渠道。
-- APIMart 的浏览器 API Key 配置使用直传。本地环境变量 Key 由开发服务器代传文件，两种方式都先取得文件 URL，再创建生成任务。
-
-[交互编辑验收页](../../tests/interactive-edit.html)使用正式节点和独立的浏览器存储。无需模型密钥。
-
-## 旧工作流中的 Ideogram 4.5
-
-保留 `ideogram` 类型及原有输入端口用于恢复旧工作流。模型已下线，节点显示已保存的结果，支持预览、提取、下载及下游复用。节点库、搜索、拖线创建和运行入口已移除。
-
-## 按依赖自动执行与结果复用
-
-点击模型节点或“运行选中节点”时，目标模型强制运行，上游按实际使用的端口准备。上游图片生成节点已有结果时，直接使用当前选中的图片，并停止追溯该节点之前的依赖；修改提示词、模型、服务商或生成参数只影响下一次主动运行，不会因运行下游而重新生成。没有结果的图片生成节点仍自动补齐首次生成。`executionGraph.ts` 定义依赖、生成条件指纹、输出有效性和执行前检查；`workflowExecution.ts` 管理运行身份、共享任务、取消和写回；`useWorkflowExecution.ts` 提供请求与素材适配。`DescriberPanel` 只触发运行和展示设置、任务。描述器、GPT Image 2.6、Nano Banana、Seedream 共用此机制。
-
-互不依赖的分支可并发；汇合节点在必需上游成功后才组装请求。Text 只追踪实际引用的富文本变量（旧文本仍按原规则拼接全部输入）；Router 保留原端口语义，Compare 只追踪所用一路。执行前检查整条必要依赖链，缺图、无连接、无选区、已知不匹配的选区和环路都先定位到问题节点，不提交模型请求。依赖运行后才能确定的错误在下一节点提交前检查。
-
-成功记录与结果同时写入：描述保存 `generation`，生图每张 `FileAsset` 保存自己的 `generation`，包含版本、实际请求输入指纹和输出标识。记录随 IndexedDB 与撤销历史恢复；进度、等待、取消和运行身份仅保留在临时 store。输入指纹排除临时 Blob URL，使用本地不可变素材 ID（有内容哈希时优先使用）；生成图片的派生缓存指纹包含所选结果 ID 与内容身份；远程内容哈希变化时重算下游本地输出，内容相同而临时 Blob URL 改变时仍可复用。远程 URL 仅对本次实际使用的端口、原始素材及确认复用的当前结果读取独立快照并计算 SHA-256，实际请求使用该快照；跳过未选中的历史结果、Compare 未使用的一路及被连接覆盖的备用素材。本地处理的旧结果读取失败时自动重建，已有生成图片或必需原始素材读取失败则停止提交；生成图片无法读取时提示恢复图片或主动运行对应生图节点，不以付费生成自动恢复。重复上传同一文件仍可保守地重新计算。未改变的上游复用，目标 Runs 为 N 时上游准备一次、目标独立执行 N 次；某次目标请求失败不跳过其余排队次数，取消或依赖失效则停止剩余运行；互有依赖的多选暂不允许 Runs > 1。
-
-输入变化与结果复用由系统内部记录和判断，节点卡片及右侧设置面板不展示来源记录、手动复用或固定结果的提示与按钮。手动编辑描述后自动保留文字，换图时内部追踪来源变化，运行下游继续使用手动文字；主动运行描述节点会替换手动结果并恢复自动更新。历史数据中已固定的结果仍作为素材用于下游；切换历史图片会改变下游输入。旧的描述结果没有生成记录时视为不可确认复用，点击下游运行后自动重跑所需描述器；已有生成图片即使没有生成记录也作为当前素材使用。描述更新失败保留旧结果供查看，但不把旧描述当作成功继续下游；不会在打开画布时自动调用模型。锁定的生图节点仍可提供已有图片，缺少结果且需要首次生成时会阻止流程；主动运行锁定节点仍需先解锁。单节点复制不复制上游连接，已有结果仍保留；已有生成图片仍作为素材供下游使用，主动生成时按新连接准备输入。
-
-每轮拥有独立取消身份。实际使用的输入、连接、输出选择或相关手动内容变化时终止受影响运行；作为素材使用的上游生图节点，其参数及更前方输入变化不影响当前图片，不终止下游运行，切换所选图片仍会终止。A → B → 撤销回 A 也不会恢复已取消请求。迟到响应不得写回或继续下游。失败不自动重试；取消只释放本轮消费者，共享上游仍有其他消费者时继续。已提交请求的计费取决于供应商。刷新不会自动恢复未完成的模型任务。
-
-`executionLocal.ts` 在节点预览之外生成正式本地输出，复用现有 Worker、Canvas 算法及 revision 规则；正式 Worker 与可替换的预览队列隔离，空返回作为失败，取消和超时有明确终态。支持 Resize、Crop、Rotate/Flip、Invert、Blur、Levels、Color correction、Matte、Blend、Compositor、Color palette、Painter 及已有选区的 Masks Extractor；不会替用户选择区域或触发分割模型。已有效且可读取的本地输出直接复用；本地缓存失效时从现有输入自动重算一次，失败则停止下游，不循环重试。原始文件缺失、用户取消或节点锁定时不进行自动重建。
-
-`workflowExecution.test.ts` 随 `npm test` 验证分支汇合、复用、端口依赖、取消、共享任务、Runs、保存恢复和失败。浏览器入口 `/tests/workflow-execution.html` 使用真实 React Flow、运行入口、Worker、撤销历史和独立 IndexedDB，拦截所有模型 API 并阻止外部请求。额外验收包含：本地失效缓存自动重算、无关远程图片不读取、已有本地或远程生成图片无法读取时零模型提交、必需原图失效阻止模型请求；旧描述自动更新、旧图片直接复用、修改生图参数后保留图片、显式生成使用最新参数、本地处理参数变化仍重算；手动描述后换图；A → B → 撤销回 A 的迟到响应；目标 Runs = 3；缺少必要选区时零模型提交；预览任务被替换后正式输出不误报成功、不无限等待。`/tests/model-run-progress.html` 继续检查独立分支并发、进度和取消。检查均不消耗真实模型额度。
-
-自动执行的补充边界：各运行保存自己接受的上游模型输出，其他并发运行更新同一节点时不替换本次输入。每轮开始时记录需要生成的图片节点，首次结果写回不会改变本轮后续条目的依赖边界；正在执行的迭代上游继续按条目匹配。后续独立运行把已有图片节点视为当前选中图片的素材来源，不再穿透该节点展开其上游迭代器；同一迭代器若另有路径直达目标，仍按该路径展开目标任务，每项使用选中的图片。开始执行前检查已知提示词、静态参数和必要连接；来自待运行节点的动态文本在准备好后再校验。Painter Mask 直连或经过 Router 接入 GPT Image 时，按实际请求的 alpha PNG 校验缓存，缺失或无法读取则自动重新导出；Compare 保持原来的可见图片输出语义。模型请求超时从取得并发名额后开始计时，排队期间仍可取消。每张资源读取设 30 秒期限，包含响应体和远程内容指纹计算，超时中止读取并结束等待；原图读取失败不会提交模型请求。
-
-这些边界由 `workflowExecution.test.ts`、`executionAssets.test.ts` 随 `npm test` 验证（包括虚拟时钟下的排队、取消和迟到返回）。`tests/workflow-boundaries.test.ts` 由 `/tests/workflow-execution.html` 调用，使用隔离的执行器、模拟模型返回、原生 Painter 导出与资源读取检查并发、提前校验、蒙版恢复和超时；另以真实 Resize 像素验证远程生成内容更新、相同内容复用，以及 Runs 中单次失败后的剩余次数执行；不读取或改动用户保存的画布，不调用真实模型。
+项目启动、环境变量与服务接入见[项目 README](../../README.md)。

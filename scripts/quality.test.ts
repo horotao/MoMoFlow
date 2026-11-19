@@ -117,9 +117,13 @@ test('node documentation check catches undocumented registration and broken loca
   mkdirSync(join(root, 'src/nodes'));
   writeFileSync(join(root, 'src/nodes/index.ts'), "export const nodeTypes = { text: TextNode, 'new-node': NewNode } satisfies NodeTypes;\n");
   writeFileSync(join(root, 'src/nodes/README.md'), '| Text | `text` | [TextNode](./Missing.tsx) |\n');
+  mkdirSync(join(root, 'src/nodes/guides'));
+  writeFileSync(join(root, 'src/nodes/guides/connections.md'), '[注册](../index.ts) · [端口](./missing.md)\n');
   const errors = checkNodeDocs(root);
   assert.ok(errors.some(message => message.includes('new-node')));
   assert.ok(errors.some(message => message.includes('Missing.tsx')));
+  assert.ok(errors.some(message => message.includes('connections.md') && message.includes('missing.md')));
+  assert.ok(!errors.some(message => message.includes('../index.ts')));
 });
 
 test('real Stop hook emits JSON, reports failed checks, rechecks once and avoids endless continuation', t => {

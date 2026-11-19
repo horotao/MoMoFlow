@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, globSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import ts from 'typescript';
 import { isMain, projectRoot } from './quality.ts';
@@ -22,19 +22,23 @@ export function checkNodeDocs(root: string): string[] {
   }
   visit(source);
   if (!registered.length) throw new Error('未找到 nodeTypes，不能确认节点文档完整性。');
-  const documentPath = resolve(root, 'src/nodes/README.md');
-  const markdown = readFileSync(documentPath, 'utf8');
+  const indexFile = 'src/nodes/README.md';
+  const markdown = readFileSync(resolve(root, indexFile), 'utf8');
   const documented = [...markdown.matchAll(/^\|[^\n|]+\|\s*`([^`]+)`\s*\|/gm)].map(match => match[1]);
   const errors = [
     ...registered.filter(name => !documented.includes(name)).map(name => `README 缺少已注册节点：${name}`),
     ...documented.filter(name => !registered.includes(name)).map(name => `README 包含未注册节点：${name}`),
     ...documented.filter((name, index) => documented.indexOf(name) !== index).map(name => `README 节点重复：${name}`),
   ];
-  for (const match of markdown.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
-    const link = match[1];
-    if (/^(?:https?:|mailto:|#)/.test(link)) continue;
-    const target = decodeURIComponent(link.split('#')[0]);
-    if (!existsSync(resolve(dirname(documentPath), target))) errors.push(`README 本地链接失效：${link}`);
+  const guides = globSync('src/nodes/guides/*.md', { cwd: root });
+  for (const file of [indexFile, ...guides]) {
+    const content = file === indexFile ? markdown : readFileSync(resolve(root, file), 'utf8');
+    for (const match of content.matchAll(/\[[^\]]*\]\(([^)]+)\)/g)) {
+      const link = match[1];
+      if (/^(?:https?:|mailto:|#)/.test(link)) continue;
+      const target = decodeURIComponent(link.split('#')[0]);
+      if (!existsSync(resolve(root, dirname(file), target))) errors.push(`${file} 本地链接失效：${link}`);
+    }
   }
   return errors;
 }
@@ -43,7 +47,7 @@ if (isMain(import.meta.url)) {
   try {
     const errors = checkNodeDocs(projectRoot);
     if (errors.length) { console.error(errors.join('\n')); process.exitCode = 1; }
-    else console.log('节点注册表、README 索引与本地链接一致。');
+    else console.log('节点注册表与索引一致，索引及专题文档的本地文件链接有效。');
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
     process.exitCode = 1;

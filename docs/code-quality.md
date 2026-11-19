@@ -21,7 +21,7 @@ npm run check
 | `npm test` | `src/nodes/*.test.ts`、`src/persistence/*.test.ts`、`server/*.test.ts`、`scripts/*.test.ts`，使用 Node.js 内置测试运行器 |
 | `npm run typecheck` | 先使用原 `tsconfig.json` 检查前端，再用 `tsconfig.check.json` 检查服务端、浏览器夹具、质量脚本和 Vite 配置 |
 | `npm run build` | 上述类型检查与 Vite 生产构建，包括 Worker 打包 |
-| `npm run check:docs` | `nodeTypes` 注册项与节点 README 表格一致，且该 README 的本地链接存在 |
+| `npm run check:docs` | `nodeTypes` 注册项与节点 README 表格一致，且节点 README 和 `src/nodes/guides/*.md` 中链接的本地文件存在 |
 | `npm run check:diff` | 工作区、暂存区、未跟踪文件的空白错误；CI 另检查指定提交范围 |
 
 `tsconfig.check.json` 继承原有严格类型规则；工具和 Node.js 测试使用 ES2022 标准库以覆盖 `Error.cause` / `AggregateError`。前端仍由原配置单独检查。未改变现有 TypeScript 严格度，也没有使用 `@ts-ignore` 隐藏旧问题。
