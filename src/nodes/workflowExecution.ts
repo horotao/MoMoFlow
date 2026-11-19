@@ -21,6 +21,7 @@ export type ExecutionIO = {
   retain: (graph: ExecutionGraph) => () => void;
   discard: (assets: FileAsset[]) => void;
   patch: (id: string, data: Record<string, unknown>) => void;
+  onImageGenerated?: (prompt: string) => Promise<void>;
 };
 type Root = { refreshImages: ReadonlySet<string>; id: string; batchId: string; iteration?: WorkflowIteration; controller: AbortController; guard: string; tasks: string[]; memo: Map<string, Promise<void>>; remote: Map<string, FileAsset>; outputs: Map<string, Record<string, unknown>>; releases: (() => void)[]; done?: Promise<void> };
 type LocalFlight = { controller: AbortController; consumers: Set<AbortSignal>; promise: Promise<Record<string, unknown>> };
@@ -429,6 +430,12 @@ export class WorkflowExecution {
         attached = true;
       }
       this.state(taskId, { state: 'Done', progress: 100, notice: undefined });
+      const prompt = (task.imageRequest ?? task.seedreamRequest ?? task.nanoBananaRequest)?.prompt;
+      if (attached && prompt?.trim() && this.io.onImageGenerated) {
+        // Project metadata is written independently of the completed image task.
+        const notify = this.io.onImageGenerated;
+        void Promise.resolve().then(() => notify(prompt)).catch(() => {});
+      }
       return output;
     } catch (error) {
       const deadline = controller.signal.reason instanceof ModelRequestTimeout;

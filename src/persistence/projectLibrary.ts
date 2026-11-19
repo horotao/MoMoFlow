@@ -1,4 +1,6 @@
+/// <reference lib="es2022.intl" />
 import { mapAssets, WorkflowStorage, type Workflow } from './workflowStorage.ts';
+import { earliestSavedImagePrompt } from '../nodes/executionGraph.ts';
 
 export type CanvasProject = {
   id: string;
@@ -6,9 +8,26 @@ export type CanvasProject = {
   updatedAt: number;
   thumbnail?: string;
   deletedAt?: number;
+  nameStatus?: 'manual' | 'automatic' | 'auto-attempted';
 };
 
-const legacyProject: CanvasProject = { id: 'current', name: '未命名项目', updatedAt: 0 };
+const untitledProjectName = '未命名项目';
+const maxAutomaticNameLength = 32;
+const legacyProject: CanvasProject = { id: 'current', name: untitledProjectName, updatedAt: 0 };
+
+function canAutoName(project: CanvasProject) {
+  return project.name === untitledProjectName && project.nameStatus !== 'manual' && project.nameStatus !== 'automatic';
+}
+
+function nameFromPrompt(prompt: string) {
+  const name = prompt.trim().replace(/\s+/g, ' ');
+  if (name.length <= maxAutomaticNameLength) return name;
+  const characters = typeof Intl.Segmenter === 'function'
+    ? Array.from(new Intl.Segmenter().segment(name), ({ segment }) => segment)
+    : Array.from(name);
+  if (characters.length <= maxAutomaticNameLength) return name;
+  return `${characters.slice(0, maxAutomaticNameLength - 1).join('').trimEnd()}…`;
+}
 
 function completed(transaction: IDBTransaction): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -96,8 +115,8 @@ export class ProjectLibrary {
     await done;
   }
 
-  async create(name = '未命名项目'): Promise<CanvasProject> {
-    const project = { id: crypto.randomUUID(), name: name.trim() || '未命名项目', updatedAt: Date.now() };
+  async create(name = untitledProjectName): Promise<CanvasProject> {
+    const project = { id: crypto.randomUUID(), name: name.trim() || untitledProjectName, updatedAt: Date.now() };
     // A real empty snapshot prevents a new project from inheriting initial/demo nodes.
     const storage = this.storage(project);
     try { await storage.save({ nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 }, colorMode: 'dark' }); }
@@ -115,16 +134,59 @@ export class ProjectLibrary {
     await done;
   }
 
-  async rename(id: string, name: string) {
+  private nameChannel() {
+    if (typeof BroadcastChannel === 'function') return new BroadcastChannel(`${this.databaseName}:project-names`);
+  }
+
+  watchNames(onChange: () => void) {
+    const channel = this.nameChannel();
+    if (channel) channel.onmessage = onChange;
+    return () => channel?.close();
+  }
+
+  private async updateName(id: string, change: (project: CanvasProject) => Pick<CanvasProject, 'name' | 'nameStatus'> | undefined) {
     const db = await this.open();
     const transaction = db.transaction('projects', 'readwrite');
     const done = completed(transaction);
     const store = transaction.objectStore('projects');
     const request = store.get(id);
+    let current: CanvasProject | undefined;
+    let updated = false;
     request.onsuccess = () => {
-      if (request.result) store.put({ ...request.result, name: name.trim() || '未命名项目' });
+      const project = request.result as CanvasProject | undefined;
+      if (!project || project.deletedAt) return;
+      const patch = change(project);
+      current = patch ? { ...project, ...patch } : project;
+      if (!patch) return;
+      store.put(current);
+      updated = true;
     };
     await done;
+    if (updated) {
+      const channel = this.nameChannel();
+      channel?.postMessage(null);
+      channel?.close();
+    }
+    return current;
+  }
+
+  async rename(id: string, name: string) {
+    await this.updateName(id, () => ({ name: name.trim() || untitledProjectName, nameStatus: 'manual' }));
+  }
+
+  autoName(id: string, prompt: string) {
+    if (!prompt.trim()) return Promise.resolve(undefined);
+    // Check and write together so concurrent runs and tabs cannot overwrite another name.
+    return this.updateName(id, project => {
+      if (!canAutoName(project)) return;
+      return { name: nameFromPrompt(prompt), nameStatus: 'automatic' };
+    });
+  }
+
+  async backfillName(project: CanvasProject, workflow: Workflow) {
+    if (!canAutoName(project)) return;
+    const prompt = earliestSavedImagePrompt(workflow.nodes);
+    if (prompt) return this.autoName(project.id, prompt);
   }
 
   async remove(id: string, nextActiveId?: string) {

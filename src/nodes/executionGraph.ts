@@ -32,6 +32,7 @@ export type ExecutionGraph = {
 };
 export type GenerationRecord = { version: 1; inputSignature: string; outputSignature: string; iteration?: WorkflowIteration };
 export type OutputPolicy = { outputMode?: 'manual' | 'fixed'; sourceSignature?: string };
+const modelInputSignatureVersion = 'model-input-v1';
 export const isModelNode = (node: AppNode) => isDescriberNode(node) || (isImageGeneratorNode(node) && node.type !== 'ideogram');
 export const stableSignature = (value: unknown): string => JSON.stringify(value, (_key, item: unknown) => {
   if (item && typeof item === 'object' && !Array.isArray(item)) return Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)));
@@ -186,7 +187,36 @@ export function requestSignature(task: PreviewTask, graph: ExecutionGraph) {
   }
   const replace = (value: unknown): unknown => typeof value === 'string' && assets.has(value) ? assets.get(value)
     : Array.isArray(value) ? value.map(replace) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replace(item)])) : value;
-  return stableSignature(['model-input-v1', task.model, replace(task.seedreamRequest ?? task.imageRequest ?? task.nanoBananaRequest ?? { instructions: task.instructions, images: task.images })]);
+  return stableSignature([modelInputSignatureVersion, task.model, replace(task.seedreamRequest ?? task.imageRequest ?? task.nanoBananaRequest ?? { instructions: task.instructions, images: task.images })]);
+}
+
+function savedImagePrompt(asset: FileAsset): string | undefined {
+  const generation = asset.generation;
+  if (asset.kind !== 'image' || generation?.version !== 1 || generation.outputSignature !== asset.id) return;
+  try {
+    const input: unknown = JSON.parse(generation.inputSignature);
+    if (!Array.isArray(input) || input[0] !== modelInputSignatureVersion) return;
+    const prompt: unknown = input[2]?.prompt;
+    if (typeof prompt === 'string' && prompt.trim()) return prompt;
+  } catch { /* Older or damaged generation records may not contain a recoverable prompt. */ }
+}
+
+export function earliestSavedImagePrompt(nodes: AppNode[]): string | undefined {
+  let earliest = Infinity;
+  let prompt: string | undefined;
+  for (const node of nodes) {
+    const assets = isImageGeneratorNode(node) ? node.data.results ?? [] : node.type === 'file' ? fileAssets(node.data) : [];
+    for (const asset of assets) {
+      // The image clients record completion time in result filenames.
+      const time = Number(/-(\d{13})\.[^.]+$/.exec(asset.name)?.[1]);
+      if (!Number.isFinite(time) || time >= earliest) continue;
+      const candidate = savedImagePrompt(asset);
+      if (!candidate) continue;
+      earliest = time;
+      prompt = candidate;
+    }
+  }
+  return prompt;
 }
 export function reusable(node: AppNode, signature: string) {
   if (isDescriberNode(node)) return Boolean(node.data.text.trim() && node.data.generation?.version === 1 && node.data.generation.inputSignature === signature && node.data.generation.outputSignature === stableSignature(node.data.text));

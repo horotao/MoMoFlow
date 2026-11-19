@@ -65,7 +65,7 @@ function NodeSettingsSidebar({ children, label, onKeyDown, imageModel = false }:
   >{children}</motion.aside>;
 }
 
-export function DescriberPanel() {
+export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (prompt: string) => Promise<void> }) {
   const nodes = useNodes<AppNode>();
   const edges = useEdges();
   const { setNodes, setEdges, updateNodeData: rawUpdateNodeData, getNodes, setCenter } = useReactFlow<AppNode>();
@@ -82,7 +82,7 @@ export function DescriberPanel() {
   const panelOpen = Boolean(selected || selectedModel || selectedImage);
   const tasks = useModelTasks();
   const taskStore = useModelTaskStore();
-  const execution = useWorkflowExecution();
+  const execution = useWorkflowExecution(onImageGenerated);
   const [runs, setRuns] = useModelRuns();
   const { toasts, showToast, dismissToast, clearToasts } = useAnimatedToastStack({ limit: 4 });
   const effective = (node: ImageDescriberNode, field: 'model' | 'instructions') => {

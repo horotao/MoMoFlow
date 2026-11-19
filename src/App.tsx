@@ -103,6 +103,7 @@ type ProjectSession = {
   open: (project: CanvasProject, workflow: Workflow) => Promise<void>;
   create: (workflow: Workflow) => Promise<void>;
   rename: (name: string) => Promise<void>;
+  autoName: (prompt: string) => Promise<void>;
   remove: (project: CanvasProject, workflow: Workflow) => Promise<void>;
 };
 
@@ -830,7 +831,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
           openNodeMenu({ origin: 'dock', keyboard, screen: { x: anchor.right + 12, y: anchor.top - 90 },
             position: screenToFlowPosition({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }) });
         }} />
-      <DescriberPanel />
+      <DescriberPanel onImageGenerated={projectSession?.autoName} />
       {importError && <Panel position="top-center" className="canvas-import-error" role="alert">
         <span>{importError}</span><button type="button" aria-label="Dismiss import error" onClick={() => setImportError('')}>×</button>
       </Panel>}
@@ -848,17 +849,21 @@ export default function App({ projectLibrary }: { projectLibrary?: ProjectLibrar
   const [loaded, setLoaded] = useState<{ project: CanvasProject; storage: WorkflowStorage; saved: Workflow | null }>();
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
+  const refreshProjects = useCallback(async () => {
+    setProjects((await library.restore()).projects);
+  }, [library]);
+  useEffect(() => library.watchNames(() => { void refreshProjects().catch(() => {}); }), [library, refreshProjects]);
   useEffect(() => {
     let storage: WorkflowStorage | undefined;
     let cancelled = false;
     setError('');
     void library.restore().then(async restored => {
       if (cancelled) return;
+      setProjects(restored.projects);
       const next = library.storage(restored.active);
       storage = next;
       const saved = await next.load();
       if (cancelled) { next.dispose(); return; }
-      setProjects(restored.projects);
       setLoaded({ project: restored.active, storage: next, saved });
     }).catch(cause => {
       storage?.dispose();
@@ -867,11 +872,22 @@ export default function App({ projectLibrary }: { projectLibrary?: ProjectLibrar
     return () => { cancelled = true; };
   }, [attempt, library]);
   useEffect(() => () => loaded?.storage.dispose(), [loaded]);
+  useEffect(() => {
+    if (!loaded?.saved) return;
+    void library.backfillName(loaded.project, loaded.saved).then(async project => {
+      if (project) await refreshProjects();
+    }).catch(() => { /* The saved canvas stays usable if metadata cannot be updated. */ });
+  }, [library, loaded, refreshProjects]);
+
+  const projectId = loaded?.project.id;
+  const autoName = useCallback(async (prompt: string) => {
+    if (projectId && await library.autoName(projectId, prompt)) await refreshProjects();
+  }, [library, projectId, refreshProjects]);
 
   const refresh = async (workflow: Workflow) => {
     if (!loaded) return;
     await library.updatePreview(loaded.project.id, workflow);
-    setProjects((await library.restore()).projects);
+    await refreshProjects();
   };
   const open = async (project: CanvasProject) => {
     const storage = library.storage(project);
@@ -894,12 +910,12 @@ export default function App({ projectLibrary }: { projectLibrary?: ProjectLibrar
     <ReactFlowProvider key={loaded.project.id}>
       <ModelTasksProvider><Flow storage={loaded.storage} saved={loaded.saved} projectSession={{
         project: projects.find(project => project.id === loaded.project.id) ?? loaded.project,
-        projects, refresh,
+        projects, refresh, autoName,
         open: async (project, workflow) => { await refresh(workflow); await open(project); },
         create: async workflow => { await refresh(workflow); await open(await library.create()); },
         rename: async name => {
           await library.rename(loaded.project.id, name);
-          setProjects((await library.restore()).projects);
+          await refreshProjects();
         },
         remove: async (project, workflow) => {
           await refresh(workflow);

@@ -5,6 +5,10 @@ import { ProjectLibrary } from '../src/persistence/projectLibrary';
 import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
 import { useWorkflowPersistence } from '../src/persistence/useWorkflowPersistence';
 import { isFileNode } from '../src/nodes/fileAsset';
+import { extractFileAsset } from '../src/nodes/fileCollection';
+import { defaultSunburstSettings } from '../src/nodes/sunburst';
+import { defaultSeedreamSettings } from '../src/nodes/seedream';
+import type { FileAsset } from '../src/nodes/types';
 import '../src/index.css';
 import '../src/nodes/PreviewNode.css';
 
@@ -181,7 +185,75 @@ async function run() {
   const replacement = await library.restore();
   assert(replacement.projects.length === 1 && replacement.active.id !== remaining.active.id
     && document.querySelector('.canvas-project-count')?.textContent === '节点 0', '删除最后一个项目后保留一个新的空白画布');
+
+  const otherSession = new ProjectLibrary(prefix, `${prefix}-legacy`);
+  const unnamedId = replacement.active.id;
+  assert(!await library.autoName(unnamedId, ' \n '), '空白提示词不用于命名');
+  const [firstNamed, secondNamed] = await Promise.all([library.autoName(unnamedId, ' 山间云海\n 晨光 '), otherSession.autoName(unnamedId, '海边日落')]);
+  assert(firstNamed && firstNamed.name === secondNamed?.name && ['山间云海 晨光', '海边日落'].includes(firstNamed.name), '并发会话均得到最终保存的标题');
+  assert((await otherSession.autoName(unnamedId, '另一次的提示词'))?.name === firstNamed.name
+    && (await otherSession.restore()).active.name === firstNamed.name, '按提示词命名后持久化，重新打开项目后不再起名');
+  const long = await library.create();
+  const prefixText = `${'山'.repeat(30)}👩‍🎨`;
+  assert(await library.autoName(long.id, `${prefixText}晨光`)
+    && (await library.restore()).projects.find(project => project.id === long.id)?.name === `${prefixText}…`, '长提示词截断到 32 个字符并保留完整表情');
+  await otherSession.rename(long.id, '未命名项目');
+  const manualName = await library.autoName(long.id, '新的标题');
+  assert(manualName?.name === '未命名项目' && manualName.nameStatus === 'manual', '手动标题即使与默认名相同也不会被覆盖');
+
+  root.unmount();
+  const archive = new ProjectLibrary(`${prefix}-archive`, `${prefix}-archive-legacy`);
+  const archivePeer = new ProjectLibrary(`${prefix}-archive`, `${prefix}-archive-legacy`);
+  const firstArchive = (await archive.restore()).active;
+  const secondArchive = await archive.create();
+  const png = canvas.toDataURL('image/png');
+  const result = (id: string, time: number, prompt: string, model: 'Sunburst' | 'Seedream'): FileAsset => ({
+    id, name: `${model}-${time}.png`, url: png, kind: 'image',
+    generation: { version: 1, inputSignature: JSON.stringify(['model-input-v1', model, { prompt }]), outputSignature: id },
+  });
+  const newest = result('newest', 1790000000400, '后来运行的提示词', 'Seedream');
+  const earliest = result('earliest', 1790000000200, `${prefixText}晨光`, 'Sunburst');
+  const olderWithoutPrompt = { ...result('unreadable', 1790000000100, '', 'Sunburst'), generation: undefined };
+  const corrupt = result('corrupt', 1790000000150, '损坏记录', 'Sunburst');
+  corrupt.generation!.inputSignature = '{broken';
+  const firstStorage = archive.storage(firstArchive);
+  const archivedNodes = extractFileAsset([
+    { id: 'newest-model', type: 'seedream', position: { x: 20, y: 120 }, data: { ...defaultSeedreamSettings, imageInputs: 1, results: [newest] } },
+    { id: 'earliest-model', type: 'sunburst', position: { x: 500, y: 120 }, data: {
+      ...defaultSunburstSettings, imageInputs: 1, results: [olderWithoutPrompt, corrupt, earliest], activeResultId: 'unreadable',
+    } },
+    { id: 'current-prompt', type: 'text', position: { x: 20, y: 560 }, data: { text: '后来编辑的画布提示词' } },
+  ], 'earliest-model', earliest.id, { x: 910, y: 120 }, 'detached-result');
+  await firstStorage.save({ ...empty, nodes: archivedNodes });
+  firstStorage.dispose();
+  const secondStorage = archive.storage(secondArchive);
+  await secondStorage.load();
+  await secondStorage.save({ ...empty, nodes: [
+    { id: 'another-file', type: 'file', position: { x: 20, y: 120 }, data: {
+      assets: [result('another', 1790000000500, '项目切换补名', 'Sunburst')],
+    } },
+  ] });
+  secondStorage.dispose();
+
+  const reopened = createRoot(document.getElementById('root')!);
+  reopened.render(<StrictMode><App projectLibrary={archive} /></StrictMode>);
+  await until(() => document.querySelector('.canvas-project-name')?.textContent === `${prefixText}…`);
+  assert((await archive.restore()).active.name === `${prefixText}…`, '启动时恢复拆到 File 节点的最早生图提示词并截断保存');
   button('.canvas-project-trigger').click();
+  await until(() => document.querySelector('.canvas-project-row[aria-checked="false"]'));
+  button('.canvas-project-row[aria-checked="false"]').click();
+  await until(() => document.querySelector('.canvas-project-name')?.textContent === '项目切换补名');
+  assert((await archive.restore()).active.name === '项目切换补名', '从菜单打开只保留独立 File 生图的旧项目也能补名');
+  await archivePeer.rename(secondArchive.id, '另一个标签页手动改名');
+  await until(() => document.querySelector('.canvas-project-name')?.textContent === '另一个标签页手动改名');
+  assert((await archive.restore()).active.name === '另一个标签页手动改名', '其他会话保存手动标题后同步更新当前项目');
+
+  await archive.rename(firstArchive.id, '未命名项目');
+  button('.canvas-project-trigger').click();
+  await until(() => document.querySelector('.canvas-project-row[aria-checked="false"][title="未命名项目"]'));
+  button('.canvas-project-row[aria-checked="false"][title="未命名项目"]').click();
+  await until(() => document.querySelector('.canvas-project-count')?.textContent === '节点 4');
+  assert((await archive.restore()).active.name === '未命名项目' && document.querySelector('.canvas-project-name')?.textContent === '未命名项目', '重新打开旧项目时保留手动设定的默认名称');
   output.textContent += `\n${checks} checks passed`;
   output.dataset.result = 'passed';
 }

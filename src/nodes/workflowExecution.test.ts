@@ -26,7 +26,7 @@ function fixture(): ExecutionGraph {
   return { nodes: [file('a'), file('b'), describer('da'), describer('db'), { id: 'prompt', type: 'text', position: { x: 0, y: 0 }, data: { text: 'combined' } }, generator('g')],
     edges: [edge('a', 'da', 'image-0', 'file'), edge('b', 'db', 'image-0', 'file'), edge('da', 'prompt', 'variable-1'), edge('db', 'prompt', 'variable-2'), edge('prompt', 'g', 'prompt')] };
 }
-function harness(initial = fixture(), request?: ExecutionIO['request'], local?: ExecutionIO['local'], io: Partial<Pick<ExecutionIO, 'verify' | 'snapshot'>> = {}) {
+function harness(initial = fixture(), request?: ExecutionIO['request'], local?: ExecutionIO['local'], io: Partial<Pick<ExecutionIO, 'verify' | 'snapshot' | 'onImageGenerated'>> = {}) {
   let graph = initial, tasks: PreviewTask[] = [];
   const listeners = new Set<() => void>(), requests: PreviewTask[] = [], discarded: FileAsset[] = [];
   const store: ExecutionStore = { getSnapshot: () => tasks, subscribe: listener => { listeners.add(listener); return () => listeners.delete(listener); }, update: change => { tasks = change(tasks); listeners.forEach(listener => listener()); } };
@@ -77,11 +77,15 @@ test('workflow sends a connected annotation through Prompt and Seedream without 
       edge('prompt', 'seedream', 'prompt'),
     ],
   };
-  const h = harness(graph, async () => ({ id: 'edited', name: 'edited', kind: 'image', url: 'blob:edited' }));
+  const namingPrompts: string[] = [];
+  const h = harness(graph, async () => ({ id: 'edited', name: 'edited', kind: 'image', url: 'blob:edited' }), undefined, {
+    onImageGenerated: async prompt => { namingPrompts.push(prompt); },
+  });
   try {
     await h.engine.run(['seedream'], 1);
     assert.deepEqual(h.requests.map(task => task.nodeId), ['seedream']);
     assert.equal(h.requests[0].seedreamRequest?.prompt, '<point>300 600</point> 改为橙色');
+    assert.deepEqual(namingPrompts, [h.requests[0].seedreamRequest?.prompt]);
     assert.deepEqual(h.requests[0].seedreamRequest?.images, ['blob:reference']);
     assert.equal(h.store.getSnapshot()[0].state, 'Done');
   } finally {

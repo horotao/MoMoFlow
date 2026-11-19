@@ -47,6 +47,7 @@ export function CanvasProjectHeader({ project, projects, refresh, open: openProj
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(project.name);
+  const nameAtEdit = useRef(project.name);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -97,7 +98,8 @@ export function CanvasProjectHeader({ project, projects, refresh, open: openProj
   };
   const saveName = () => {
     setEditing(false);
-    if (name.trim() && name.trim() !== project.name) void run(() => rename(name.trim()), false);
+    const next = name.trim();
+    if (next && next !== nameAtEdit.current) void run(() => rename(next), false);
   };
 
   return <Panel position="top-left" className="canvas-project-panel">
@@ -124,7 +126,7 @@ export function CanvasProjectHeader({ project, projects, refresh, open: openProj
           }} /> : <button ref={trigger} type="button" className="canvas-project-trigger" aria-haspopup="menu"
           aria-expanded={open} aria-controls={open ? menuId : undefined} title={`${project.name}（双击重命名）`}
           onClick={event => open ? setOpen(false) : showMenu(event.detail > 0)}
-          onDoubleClick={() => { setOpen(false); setName(project.name); setEditing(true); }}
+          onDoubleClick={() => { setOpen(false); nameAtEdit.current = project.name; setName(project.name); setEditing(true); }}
           onKeyDown={event => { if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); showMenu(); } }}>
           <span className="canvas-project-name">{project.name}</span>
           <motion.span className="canvas-project-chevron" style={{ transform: chevronTransform }} aria-hidden="true">

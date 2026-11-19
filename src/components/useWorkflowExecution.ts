@@ -12,13 +12,14 @@ import { requestNanoBanana } from '../nodes/nanoBananaClient';
 import { advanceEstimatedProgress } from '../nodes/taskQueue';
 import { useModelTaskStore } from './useModelTasks';
 
-export function useWorkflowExecution() {
+export function useWorkflowExecution(onImageGenerated?: (prompt: string) => Promise<void>) {
   const nodes = useNodes<AppNode>(), edges = useEdges();
   const { getNodes, getEdges, updateNodeData } = useReactFlow<AppNode>();
   const store = useModelTaskStore();
   const engine = useRef<WorkflowExecution>();
   useLayoutEffect(() => {
     const instance = new WorkflowExecution({ nodes: getNodes(), edges: getEdges() }, store, {
+      onImageGenerated,
       patch: (id, data) => updateNodeData(id, data),
       retain: graph => assetResources.retain(nodeAssetUrls(graph.nodes)),
       discard: assets => assetResources.discard(assets.map(asset => asset.url)),
@@ -48,7 +49,7 @@ export function useWorkflowExecution() {
     });
     engine.current = instance;
     return () => { instance.dispose(); engine.current = undefined; };
-  }, [getNodes, getEdges, updateNodeData, store]);
+  }, [getNodes, getEdges, updateNodeData, store, onImageGenerated]);
   useLayoutEffect(() => { engine.current?.observe({ nodes, edges }); }, [nodes, edges]);
   useEffect(() => {
     const timer = setInterval(() => store.update(tasks => advanceEstimatedProgress(tasks, Date.now())), 200);
