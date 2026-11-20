@@ -1,0 +1,26 @@
+.image-connection-canvas { position: relative; width: 100%; height: 100%; isolation: isolate; touch-action: none; }
+.image-connection-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; z-index: -1; }
+.image-connection-line, .image-connection-preview, .image-connection-hit { fill: none; }
+.image-connection-line { stroke: #eeeeec2e; stroke-width: 3; }
+/* Flora reveals endpoint chrome on hover; the resting line keeps its muted gray. */
+[data-connection-id][data-selected] .image-connection-line { stroke: #eeeeec8c; }
+.image-connection-lines [data-connection-id]:is(:focus, :focus-visible) { outline: none; }
+[data-connection-id]:focus-visible .image-connection-line { stroke: #eeeeec8c; }
+.image-connection-hit { stroke: transparent; stroke-width: 18; pointer-events: stroke; cursor: pointer; }
+.image-connection-preview { display: none; stroke: #eeeeec; stroke-width: 2; pointer-events: none; }
+[data-connection-dragging=true] .image-connection-preview { display: block; }
+[data-connection-dragging=true] .image-connection-hit { pointer-events: none; }
+.image-connection-canvas [data-connection-node]:is([data-connection-visible=true], [data-connection-origin=true]) .image-node-inputs,
+.image-connection-canvas[data-connection-dragging=true] .image-node-inputs { opacity: 1; visibility: visible; transform: none; }
+.image-connection-canvas [data-connection-node]:is([data-connection-visible=true], [data-connection-origin=true]) .image-node-output,
+.image-connection-canvas[data-connection-dragging=true] .image-node-output { visibility: visible; }
+.image-connection-canvas [data-connection-node]:is([data-connection-visible=true], [data-connection-origin=true]) .image-node-output-visual,
+.image-connection-canvas[data-connection-dragging=true] .image-node-output-visual { opacity: 1; transform: none; }
+.image-connection-canvas [data-connection-port][data-connected=true] .image-node-port { background: radial-gradient(circle, #eeeeec 0 3px, transparent 3.5px); }
+.image-connection-canvas [data-connection-port][data-connection-eligible=false] { color: #eeeeec66; cursor: default; background: transparent; }
+.image-connection-canvas [data-connection-port][data-connection-eligible=false]:hover { background: transparent; }
+.image-connection-canvas [data-connection-port][data-connection-snapped=true] { color: #eeeeec; }
+.image-connection-canvas .image-node-input[data-connection-snapped=true] { background: #fafaf223; }
+.image-connection-canvas .image-node-output[data-connection-snapped=true] .image-node-output-visual { background: #fafaf223; border-radius: 50%; }
+.image-connection-canvas [data-connection-port] { touch-action: none; }
+.image-connection-canvas [data-connection-port]:disabled { cursor: not-allowed; }

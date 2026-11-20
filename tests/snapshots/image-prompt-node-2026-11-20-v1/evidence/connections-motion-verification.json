@@ -1,0 +1,12 @@
+{
+  "browser": "in-app browser",
+  "pointer_stationary": true,
+  "frames": 20,
+  "elapsed_ms": 559,
+  "distinct_paths": 20,
+  "reduced_motion_distinct_paths": 1,
+  "mouse_focus_outline": "none",
+  "keyboard_focus_outline": "none",
+  "keyboard_focus_line_color": "rgba(238, 238, 236, 0.55)",
+  "reverse_connection_committed": true
+}

@@ -1,0 +1,12 @@
+.connection-preview-stage { position: relative; width: 100%; height: 100dvh; min-height: 600px; overflow: auto; background: radial-gradient(circle, #eeeeec18 .75px, transparent 1px) 0 0 / 32px 32px; }
+.connection-preview-world { position: absolute; inset: 0; transform-origin: 0 0; pointer-events: none; }
+.connection-preview-node { position: absolute; width: 384px; pointer-events: auto; }
+.connection-preview-node .image-node-heading { cursor: grab; user-select: none; touch-action: none; }
+.connection-preview-node:active .image-node-heading { cursor: grabbing; }
+.connection-preview-node .is-locked .image-node-heading { cursor: default; }
+.connection-preview-controls { position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 3; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; color: #b5b3ad; font: 12px/16px GeistSans, sans-serif; pointer-events: none; }
+.connection-preview-controls :is(label, button) { pointer-events: auto; padding: 8px 12px; border: 1px solid #fafaf223; border-radius: 10px; background: #191918e6; color: #eeeeec; font: inherit; }
+.connection-preview-controls select { background: #191918; border: 0; color: inherit; font: inherit; }
+.connection-preview-controls button { cursor: pointer; }
+.connection-preview-controls button:hover { background: #333331; }
+@media (max-width: 700px) { .connection-preview-controls span { display: none; } }

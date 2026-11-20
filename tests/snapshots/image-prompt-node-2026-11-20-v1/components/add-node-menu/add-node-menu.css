@@ -1,0 +1,63 @@
+@font-face {
+  font-family: FloraAddNodeGeist;
+  src: url('./assets/geist.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+.flora-add-node-menu, .flora-add-node-menu * { box-sizing: border-box; }
+.flora-add-node-menu {
+  position: fixed;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #fafaf223;
+  border-radius: 16px;
+  background: #0000004d;
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  box-shadow: 0 4px 6px -1px #00000059, 0 2px 4px -2px #0000004d;
+  color: #eeeeec;
+  color-scheme: dark;
+  font: 400 14px/17.5px FloraAddNodeGeist, ui-sans-serif, system-ui, sans-serif;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+}
+.flora-add-node-menu :is(button, input, kbd) { font: inherit; color: inherit; }
+.flora-add-node-menu button { border: 0; padding: 0; background: transparent; cursor: pointer; }
+.flora-add-node-menu input { min-width: 0; border: 0; border-radius: 0; outline: 0; background: transparent; padding: 0; }
+.flora-add-node-menu button:focus-visible, .flora-add-node-quantity input:focus-visible { outline: 1px solid #b5b3ad; outline-offset: -1px; }
+.flora-add-node-menu button:active:enabled { filter: brightness(.9); }
+.flora-add-node-menu button:disabled { opacity: .5; cursor: default; pointer-events: none; }
+.flora-add-node-icon { display: inline-block; flex: none; width: 14px; height: 14px; mask: no-repeat center / contain; background: currentColor; pointer-events: none; }
+.flora-add-node-search { display: flex; align-items: center; flex: none; height: 44px; gap: 12px; padding: 0 12px; border-bottom: 1px solid #fafaf223; }
+.flora-add-node-search > .flora-add-node-icon { color: #b5b3ad; }
+.flora-add-node-search input { flex: 1; width: 100%; }
+.flora-add-node-search input::placeholder { color: #b5b3ad; opacity: 1; }
+.flora-add-node-search .flora-add-node-clear { display: flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; border-radius: 6px; }
+.flora-add-node-clear:hover { background: #fafaf223; }
+.flora-add-node-list { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #fafaf223 transparent; }
+.flora-add-node-group { padding: 4px; }
+.flora-add-node-group + .flora-add-node-group { border-top: 1px solid #fafaf223; }
+.flora-add-node-row { display: flex; align-items: center; gap: 8px; height: 48px; padding-right: 8px; border-radius: 12px; }
+.flora-add-node-row:hover, .flora-add-node-row:focus-within { background: #fafaf223; }
+.flora-add-node-row .flora-add-node-item { display: flex; align-items: flex-start; gap: 8px; flex: 1; min-width: 0; height: 48px; padding: 8.5px 0 8.5px 12px; border-radius: 12px; text-align: left; }
+.flora-add-node-badge { display: flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; border-radius: 8px; background: #fafaf223; backdrop-filter: blur(40px); }
+.flora-add-node-copy { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.flora-add-node-title { display: flex; align-items: center; gap: 4px; height: 17.5px; white-space: nowrap; }
+.flora-add-node-new { flex: none; width: 6px; height: 6px; border-radius: 50%; background: #71d083; }
+.flora-add-node-description { overflow: hidden; color: #7c7b74; font-size: 12px; line-height: 13.5px; text-overflow: ellipsis; white-space: nowrap; }
+.flora-add-node-menu .flora-add-node-shortcut { display: inline-flex; flex: none; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 6px; color: #b5b3ad; background: #fafaf223; font-size: 12px; line-height: 12px; user-select: none; }
+.flora-add-node-quantity { display: none; flex: none; align-items: center; gap: 2px; height: 32px; padding: 4px 8px; border-radius: 8px; background: color-mix(in srgb, #191918 90%, transparent); }
+.flora-add-node-row:is(:hover, :focus-within) .flora-add-node-replaceable { display: none; }
+.flora-add-node-row:is(:hover, :focus-within) .flora-add-node-quantity { display: flex; }
+.flora-add-node-quantity button { display: flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; border-radius: 12px; color: #b5b3ad; }
+.flora-add-node-quantity button:hover { color: #eeeeec; background: #fafaf223; }
+.flora-add-node-quantity .flora-add-node-icon-minus { width: 10px; height: 10px; }
+.flora-add-node-quantity .flora-add-node-icon-plus { width: 12px; height: 12px; }
+.flora-add-node-menu .flora-add-node-quantity input { width: 24px; height: 24px; flex: none; border: 1px solid transparent; border-radius: 8px; font-size: 12px; line-height: 12px; text-align: center; }
+.flora-add-node-empty { padding: 24px 16px; color: #7c7b74; text-align: center; }
+@media (hover: none) {
+  .flora-add-node-row .flora-add-node-replaceable { display: none; }
+  .flora-add-node-row .flora-add-node-quantity { display: flex; }
+}
