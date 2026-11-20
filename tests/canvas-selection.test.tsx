@@ -17,15 +17,15 @@ const sampleNodes: AppNode[] = [
     label: '市集参考图',
     asset: { id: 'market', name: '市集参考图', kind: 'image', url: '/describer-qa/market.jpg' },
   } },
-  { id: 'router', type: 'router', position: { x: 626, y: 144 }, data: { label: '图像分流' } },
-  { id: 'preview', type: 'preview', position: { x: 1050, y: 0 }, data: { label: '画面预览' } },
+  { id: 'router', type: 'text', position: { x: 626, y: 144 }, data: { label: '场景', text: '市集' } },
+  { id: 'preview', type: 'text', position: { x: 1050, y: 0 }, data: { label: '描述', text: '画面描述' } },
   { id: 'prompt', type: 'text', position: { x: 525, y: 435 }, data: {
     label: '画面笔记', text: '保留市集的暖色和光影，突出摊位的层次。',
   } },
 ];
 const sampleEdges: Edge[] = [
-  { id: 'source-router', source: 'source', sourceHandle: 'file', target: 'router', targetHandle: 'input' },
-  { id: 'router-preview', source: 'router', sourceHandle: 'output', target: 'preview', targetHandle: 'file' },
+  { id: 'source-router', source: 'source', sourceHandle: 'file', target: 'router', targetHandle: 'variable-1' },
+  { id: 'router-preview', source: 'router', sourceHandle: null, target: 'preview', targetHandle: 'variable-1' },
 ];
 const fitViewOptions = {
   padding: { top: '160px', bottom: '100px', left: '130px', right: '130px' }, maxZoom: 1,

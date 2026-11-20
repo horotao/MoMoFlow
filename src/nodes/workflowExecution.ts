@@ -1,22 +1,17 @@
 import { annotationOutput, storedAnnotationResult } from './annotationGraph.ts';
 import { seedreamName } from './seedream.ts';
-import { describerRunTimeoutMs } from './describer.ts';
-import type { Edge } from '@xyflow/react';
-import { resolveOutputSource } from './router.ts';
 import type { AppNode, FileAsset } from './types';
 import type { PreviewTask } from './taskQueue';
 import { isActiveTask } from './taskQueue.ts';
 import { ModelRequestCancelled, ModelRequestTimeout } from './modelRequestError.ts';
-import { isDescriberNode, isImageGeneratorNode, isNodeLocked } from './types.ts';
-import { executionInputs, executionSourceAssets, fixedOutput, graphGuard, isModelNode, iterationGraph, nodeProblem, planExecution, prepareModel, requestSignature, reusable, selectedResult, stableSignature, workflowIterations, type ExecutionGraph } from './executionGraph.ts';
-import { sameIteration, type WorkflowIteration } from './workflowIteration.ts';
+import { isImageGeneratorNode, isNodeLocked } from './types.ts';
+import { executionInputs, executionSourceAssets, fixedOutput, graphGuard, isModelNode, nodeProblem, preflight, prepareModel, requestSignature, reusable, selectedResult, stableSignature, type ExecutionGraph } from './executionGraph.ts';
 import { imageOutput } from './sunburstRun.ts';
 import { mapAssets } from '../persistence/workflowStorage.ts';
 
 export type ExecutionStore = { getSnapshot: () => PreviewTask[]; update: (change: (tasks: PreviewTask[]) => PreviewTask[]) => void; subscribe: (listener: () => void) => () => void };
 export type ExecutionIO = {
-  request: (task: PreviewTask, signal: AbortSignal) => Promise<string | FileAsset | FileAsset[]>;
-  local: (node: AppNode, graph: ExecutionGraph, signal: AbortSignal) => Promise<Record<string, unknown>>;
+  request: (task: PreviewTask, signal: AbortSignal) => Promise<FileAsset | FileAsset[]>;
   snapshot: (assets: FileAsset[], signal: AbortSignal) => Promise<{ assets: Map<string, FileAsset>; release: () => void }>;
   verify: (assets: FileAsset[], signal: AbortSignal) => Promise<void>;
   retain: (graph: ExecutionGraph) => () => void;
@@ -24,8 +19,7 @@ export type ExecutionIO = {
   patch: (id: string, data: Record<string, unknown>) => void;
   onImageGenerated?: (prompt: string) => Promise<void>;
 };
-type Root = { refreshImages: ReadonlySet<string>; id: string; batchId: string; iteration?: WorkflowIteration; controller: AbortController; guard: string; tasks: string[]; memo: Map<string, Promise<void>>; remote: Map<string, FileAsset>; outputs: Map<string, Record<string, unknown>>; releases: (() => void)[]; done?: Promise<void> };
-type LocalFlight = { controller: AbortController; consumers: Set<AbortSignal>; promise: Promise<Record<string, unknown>> };
+type Root = { refreshImages: ReadonlySet<string>; id: string; batchId: string; controller: AbortController; guard: string; tasks: string[]; memo: Map<string, Promise<void>>; remote: Map<string, FileAsset>; outputs: Map<string, Record<string, unknown>>; releases: (() => void)[]; done?: Promise<void> };
 type Flight = { nodeId: string; tasks: string[]; controller: AbortController; consumers: Set<AbortSignal>; promise: Promise<Record<string, unknown>> };
 type ModelAttempt = { prepared: PreviewTask; signature: string };
 
@@ -46,28 +40,15 @@ export function withAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<
 // Every consumer keeps the exact accepted output, even if another root commits
 // a different result to the same canvas node before this consumer resumes.
 function modelOutput(node: AppNode): Record<string, unknown> {
-  if (isDescriberNode(node)) return { text: node.data.text, generation: node.data.generation, outputMode: node.data.outputMode };
+
   const result = selectedResult(node);
   return { results: result ? [result] : [], activeResultId: result?.id, outputMode: 'outputMode' in node.data ? node.data.outputMode : undefined };
-}
-
-function reusableModelNode(node: AppNode, signature: string, iteration?: WorkflowIteration) {
-  // Completed roots have already been released. Image history retains the
-  // item's provenance, so choose its latest valid result rather than the cover.
-  const candidates = iteration && isImageGeneratorNode(node)
-    ? [...(node.data.results ?? [])].reverse().map(asset => ({ ...node, data: { ...node.data, results: [asset], activeResultId: asset.id } } as AppNode))
-    : [node];
-  return candidates.find(candidate => {
-    const generation = isDescriberNode(candidate) ? candidate.data.generation : selectedResult(candidate)?.generation;
-    return reusable(candidate, signature) && (!iteration || (generation?.iteration && sameIteration(generation.iteration, iteration)));
-  });
 }
 
 export class WorkflowExecution {
   private graph: ExecutionGraph;
   private roots = new Set<Root>();
   private flights = new Map<string, Flight>();
-  private localFlights = new Map<string, LocalFlight>();
   private stopped = false;
   private modelSlots = 0;
   private slotWaiters = new Set<() => void>();
@@ -103,8 +84,7 @@ export class WorkflowExecution {
     this.io.patch(id, data);
   }
   private graphFor(root: Root): ExecutionGraph {
-    // Project the batch item before applying the snapshots for this run.
-    const graph = iterationGraph({ ...this.graph, refreshImages: root.refreshImages, nodes: this.graph.nodes.map(node => {
+    const graph = { ...this.graph, refreshImages: root.refreshImages, nodes: this.graph.nodes.map(node => {
       const output = root.outputs.get(node.id);
       if (!output) return node;
       const results = output.results as FileAsset[] | undefined;
@@ -113,7 +93,7 @@ export class WorkflowExecution {
         data.results = [...(node.data.results ?? []).filter(asset => !results.some(result => result.id === asset.id)), ...results];
       }
       return { ...node, data } as AppNode;
-    }) }, root.iteration);
+    }) };
     if (!root.remote.size) return graph;
     // Snapshots may identify two different remote URLs as the same image.
     // Keep reference ports already excluded during dependency preparation out
@@ -127,7 +107,7 @@ export class WorkflowExecution {
       return snapshot ? { ...asset, url: snapshot.url, contentHash: snapshot.contentHash ?? asset.contentHash } : asset;
     }) };
   }
-  run(ids: string[], runs: number, retry?: WorkflowIteration, seedreamGroupId?: string) {
+  run(ids: string[], runs: number, seedreamGroupId?: string) {
     if (this.stopped) throw new Error('执行器已关闭。');
     const targets = [...new Set(ids)];
     if (!targets.length) return Promise.resolve();
@@ -136,15 +116,15 @@ export class WorkflowExecution {
     const refreshImages = new Set(this.graph.nodes.filter(node => isImageGeneratorNode(node)
       && (!selectedResult(node) || targets.includes(node.id) || running.has(node.id))).map(node => node.id));
     const plannedGraph = { ...this.graph, refreshImages };
-    const plans = planExecution(plannedGraph, targets, runs, retry);
+    preflight(plannedGraph, targets, runs);
     const batchId = crypto.randomUUID();
-    const roots = targets.flatMap(id => plans.get(id)!.map(iteration => {
-      const tasks = Array.from({ length: runs }, () => this.placeholder(id, batchId, iteration));
-      const root: Root = { refreshImages, id, batchId, iteration, tasks: tasks.map(task => task.id), controller: new AbortController(), guard: graphGuard(plannedGraph, id, true), memo: new Map(), remote: new Map(), outputs: new Map(), releases: [] };
+    const roots = targets.map(id => {
+      const tasks = Array.from({ length: runs }, () => this.placeholder(id, batchId));
+      const root: Root = { refreshImages, id, batchId, tasks: tasks.map(task => task.id), controller: new AbortController(), guard: graphGuard(plannedGraph, id, true), memo: new Map(), remote: new Map(), outputs: new Map(), releases: [] };
       this.roots.add(root);
       this.store.update(current => [...current, ...tasks]);
       return root;
-    }));
+    });
     for (const root of roots) {
       // Deferral lets every selected target register before dependency traversal.
       root.done = Promise.resolve().then(async () => {
@@ -164,7 +144,7 @@ export class WorkflowExecution {
           await this.snapshotAssets(root, sources);
           aborted(signal);
           const node = this.graph.nodes.find(item => item.id === root.id)!;
-          await Promise.all(executionInputs(node, undefined, this.graphFor(root)).map(edge => this.ensureInput(root, node, edge)));
+          await Promise.all(executionInputs(node, undefined, this.graphFor(root)).map(edge => this.ensure(root, edge.source, edge.sourceHandle)));
           aborted(signal);
           const graph = this.graphFor(root);
           const prepared = prepareModel(graph, root.id)
@@ -185,10 +165,10 @@ export class WorkflowExecution {
     }
     return Promise.all(roots.map(root => root.done)).then(() => {});
   }
-  private placeholder(id: string, batchId: string, iteration?: WorkflowIteration): PreviewTask {
+  private placeholder(id: string, batchId: string): PreviewTask {
     const node = this.graph.nodes.find(item => item.id === id)!;
-    const label = node.data.label || ({ sunburst: 'GPT Image 2.6', 'nano-banana': 'Nano Banana', seedream: seedreamName, 'image-describer': '图像描述' } as Record<string, string>)[node.type!] || node.type;
-    return { id: crypto.randomUUID(), nodeId: id, batchId, label: iteration ? `${label} · ${iteration.index + 1}/${iteration.total}` : label, iteration, model: node.type!, createdAt: Date.now(), state: 'Queued', progress: 0, started: 0, notice: '等待上游' };
+    const label = node.data.label || ({ sunburst: 'GPT Image 2.6', 'nano-banana': 'Nano Banana', seedream: seedreamName } as Record<string, string>)[node.type!] || node.type;
+    return { id: crypto.randomUUID(), nodeId: id, batchId, label, model: node.type!, createdAt: Date.now(), state: 'Queued', progress: 0, started: 0, notice: '等待上游' };
   }
   private expandRootTasks(root: Root, attempts: ModelAttempt[]) {
     const current = this.store.getSnapshot();
@@ -197,7 +177,7 @@ export class WorkflowExecution {
       const task = current.find(item => item.id === id);
       if (!task || !isActiveTask(task)) return [];
       return attempts.map((attempt, index) => {
-        const queued = describeAttempt(index ? this.placeholder(root.id, root.batchId, root.iteration) : task, attempt.prepared);
+        const queued = describeAttempt(index ? this.placeholder(root.id, root.batchId) : task, attempt.prepared);
         if (index) added.push(queued);
         else if (queued !== task) updated.set(id, queued);
         return { ...attempt, taskId: queued.id };
@@ -206,16 +186,6 @@ export class WorkflowExecution {
     root.tasks.push(...added.map(task => task.id));
     if (added.length || updated.size) this.store.update(tasks => [...tasks.map(task => updated.get(task.id) ?? task), ...added]);
     return scheduled;
-  }
-  private ensureInput(root: Root, consumer: AppNode, edge: Edge) {
-    // Match the model adapter's Painter Mask alias, including Router chains.
-    // Compare exposes its visible image instead and retains that existing rule.
-    if (consumer.type === 'sunburst' && edge.targetHandle === 'mask') {
-      const graph = this.graphFor(root);
-      const origin = resolveOutputSource(graph.nodes.find(node => node.id === edge.source), edge.sourceHandle, graph.nodes, graph.edges);
-      if (origin?.node.type === 'painter' && origin.handle === 'mask') return this.ensure(root, origin.node.id, 'alpha-mask');
-    }
-    return this.ensure(root, edge.source, edge.sourceHandle);
   }
   private ensure(root: Root, id: string, handle?: string | null): Promise<void> {
     const key = `${id}:${handle ?? ''}`;
@@ -234,7 +204,7 @@ export class WorkflowExecution {
     if (annotation) { await this.verifyOutput(root, [annotation.image]); return; }
     // A running iterator target has one root per item. Shared, non-iterated
     // upstreams can serve every item; iterated upstreams must match its identity.
-    const selected = [...this.roots].find(other => other !== root && other.id === id && (!other.iteration || sameIteration(other.iteration, root.iteration)));
+    const selected = [...this.roots].find(other => other !== root && other.id === id);
     if (selected?.done) {
       await withAbort(selected.done, signal);
       if (!selected.tasks.every(taskId => this.store.getSnapshot().find(task => task.id === taskId)?.state === 'Done')) nodeProblem(node, '上游运行失败或已取消。');
@@ -248,7 +218,7 @@ export class WorkflowExecution {
       this.pinOutput(root, id, modelOutput(node));
       return;
     }
-    await Promise.all(executionInputs(node, handle, graph).map(edge => this.ensureInput(root, node, edge)));
+    await Promise.all(executionInputs(node, handle, graph).map(edge => this.ensure(root, edge.source, edge.sourceHandle)));
     aborted(signal);
     graph = this.graphFor(root); node = graph.nodes.find(item => item.id === id)!;
     if (node.type === 'file' && handle && handle !== 'file') {
@@ -261,8 +231,7 @@ export class WorkflowExecution {
       // Locked nodes may supply a proven result, but may never be executed.
       const unlocked = { ...graph, nodes: graph.nodes.map(item => item.id === id ? { ...item, data: { ...item.data, locked: false } } as AppNode : item) };
       const attempts = prepareModel(unlocked, id).map(prepared => ({ prepared, signature: requestSignature(prepared, graph) }));
-      const iteration = root.iteration && workflowIterations({ ...this.graph, refreshImages: root.refreshImages }, id).find(item => item && sameIteration(item, root.iteration));
-      const cached = attempts.length === 1 ? reusableModelNode(node, attempts[0].signature, iteration) : undefined;
+      const cached = attempts.length === 1 && reusable(node, attempts[0].signature) ? node : undefined;
       if (cached) {
         try {
           await this.verifyOutput(root, isImageGeneratorNode(cached) ? [selectedResult(cached)!] : []);
@@ -272,24 +241,9 @@ export class WorkflowExecution {
         } catch { aborted(signal); /* Missing cached media needs regeneration. */ }
       }
       if (isNodeLocked(node)) nodeProblem(node, '已锁定且结果需要更新，请先解锁。');
-      await this.shared(root, id, attempts, iteration);
-    } else if (!['text', 'router', 'compare', 'model-input', 'position-logger', 'interactive-edit'].includes(node.type ?? '') && !(node.type === 'color-palette' && handle === 'text')) {
-      const output = imageOutput(node, handle, graph.nodes, graph.edges);
-      const localSignature = graphGuard(graph, id, true, handle);
-      const snapshotCompatible = !root.remote.size || node.type === 'file' || ('executionSignature' in node.data && node.data.executionSignature === localSignature);
-      if (output.length && snapshotCompatible) {
-        try {
-          await this.verifyOutput(root, output);
-          this.pinOutput(root, id, Object.fromEntries(Object.entries(node.data).filter(([key]) => ['result', 'mask', 'alphaMask', 'outputRevision', 'executionSignature'].includes(key))));
-          return;
-        } catch (error) {
-          aborted(signal);
-          // Original uploads and locked nodes cannot be rebuilt automatically.
-          if (node.type === 'file' || isNodeLocked(node)) throw error;
-        }
-      }
-      if (isNodeLocked(node)) nodeProblem(node, '已锁定且没有有效输出。');
-      await this.sharedLocal(root, node, graph, localSignature, handle);
+      await this.shared(root, id, attempts);
+    } else if (node.type === 'file') {
+      await this.verifyOutput(root, imageOutput(node, handle));
     }
   }
   private async verifyImageResult(root: Root, node: AppNode) {
@@ -315,50 +269,11 @@ export class WorkflowExecution {
     root.outputs.set(id, patch);
     root.releases.push(this.io.retain(this.graphFor(root)));
   }
-  private async sharedLocal(root: Root, node: AppNode, graph: ExecutionGraph, signature: string, handle?: string | null) {
-    // Content hashes may match across distinct assets, but local outputRevision
-    // also binds to input IDs. Only share a render when both identities match.
-    const inputs = executionInputs(node, handle, graph).map(edge => [edge.targetHandle ?? null,
-      imageOutput(graph.nodes.find(source => source.id === edge.source), edge.sourceHandle, graph.nodes, graph.edges).map(asset => asset.id),
-    ]).sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-    const key = stableSignature([signature, inputs]);
-    let flight = this.localFlights.get(key);
-    if (!flight || flight.controller.signal.aborted) {
-      const controller = new AbortController(), releaseAssets = this.io.retain(graph);
-      const created: LocalFlight = { controller, consumers: new Set(), promise: Promise.resolve({}) };
-      flight = created; this.localFlights.set(key, created);
-      created.promise = Promise.resolve().then(async () => {
-        const signal = controller.signal;
-        aborted(signal);
-        const work = this.io.local(node, graph, signal).then(patch => {
-          if (signal.aborted) this.io.discard(Object.values(patch).filter((value): value is FileAsset => Boolean(value && typeof value === 'object' && 'url' in value && 'id' in value)));
-          return patch;
-        });
-        const patch = await withAbort(work, signal); aborted(signal);
-        const updated = { ...graph, nodes: graph.nodes.map(item => item.id === node.id ? { ...item, data: { ...item.data, ...patch } } as AppNode : item) };
-        if (!imageOutput(updated.nodes.find(item => item.id === node.id), handle, updated.nodes, updated.edges).length) {
-          this.io.discard(Object.values(patch).filter((value): value is FileAsset => Boolean(value && typeof value === 'object' && 'url' in value && 'id' in value)));
-          nodeProblem(node, '正式输出未完成或已被替换。');
-        }
-        const completed = { ...patch, executionSignature: signature };
-        this.commit(node.id, completed);
-        return completed;
-      }).finally(() => { releaseAssets(); if (this.localFlights.get(key) === created) this.localFlights.delete(key); });
-    }
-    const signal = root.controller.signal;
-    flight.consumers.add(signal);
-    const release = () => { flight!.consumers.delete(signal); if (!flight!.consumers.size) flight!.controller.abort('本地图像处理已取消。'); };
-    signal.addEventListener('abort', release, { once: true });
-    try { const patch = await withAbort(flight.promise, signal); aborted(signal); this.pinOutput(root, node.id, patch); }
-    finally { signal.removeEventListener('abort', release); release(); }
-  }
-  private async shared(root: Root, id: string, attempts: ModelAttempt[], iteration?: WorkflowIteration) {
-    // Equal requests from distinct items still represent distinct upstream
-    // results. Only consumers of the same item may share an in-flight request.
-    const key = stableSignature([id, attempts.map(attempt => attempt.signature), iteration && [iteration.kind ?? 'text', iteration.nodeId, iteration.itemId, iteration.kind === 'image' ? iteration.signature : iteration.text]]);
+  private async shared(root: Root, id: string, attempts: ModelAttempt[]) {
+    const key = stableSignature([id, attempts.map(attempt => attempt.signature)]);
     let flight = this.flights.get(key);
     if (!flight || flight.controller.signal.aborted) {
-      const tasks = attempts.map(attempt => describeAttempt(this.placeholder(id, root.batchId, iteration), attempt.prepared));
+      const tasks = attempts.map(attempt => describeAttempt(this.placeholder(id, root.batchId), attempt.prepared));
       const controller = new AbortController();
       flight = { nodeId: id, tasks: tasks.map(task => task.id), controller, consumers: new Set(), promise: Promise.resolve({}) };
       this.flights.set(key, flight);
@@ -414,19 +329,19 @@ export class WorkflowExecution {
       aborted(signal); aborted(controller.signal);
       releaseSlot = await this.acquireModelSlot(controller.signal);
       aborted(controller.signal);
-      // APIMart owns its polling deadline. Allow time for both stages of a DeepSeek run.
+      // APIMart owns its polling deadline.
       if (prepared.imageRequest?.provider !== 'apimart' && !prepared.seedreamRequest && !prepared.nanoBananaRequest) {
-        const deadline = isDescriberNode(this.graph.nodes.find(node => node.id === id)!) ? describerRunTimeoutMs : 310000;
+        const deadline = 310000;
         timeout = setTimeout(() => controller.abort(new ModelRequestTimeout('请求超时；不会自动重试。')), deadline);
       }
       const queued = this.store.getSnapshot().find(task => task.id === taskId)!;
-      const task = { ...prepared, id: taskId, label: queued.label, iteration: queued.iteration, notice: undefined, state: 'Running' as const, started: Date.now() };
+      const task = { ...prepared, id: taskId, label: queued.label, notice: undefined, state: 'Running' as const, started: Date.now() };
       // Retain the caller's batch identity and user-visible label.
       const { batchId: _batchId, createdAt: _createdAt, ...request } = task;
       void _batchId; void _createdAt;
       this.state(taskId, request);
       const pending = this.io.request(task, controller.signal).then(result => {
-        if (controller.signal.aborted && typeof result !== 'string') this.io.discard(Array.isArray(result) ? result : [result]);
+        if (controller.signal.aborted) this.io.discard(Array.isArray(result) ? result : [result]);
         return result;
       });
       const result = await withAbort(pending, controller.signal);
@@ -434,22 +349,15 @@ export class WorkflowExecution {
       if (!this.active(taskId)) throw new Error('运行已取消。');
       const node = this.graph.nodes.find(item => item.id === id);
       if (!node || isNodeLocked(node)) throw new Error('节点已删除或锁定。');
-      let output: Record<string, unknown>;
-      if (typeof result === 'string') {
-        if (!isDescriberNode(node) || !result.trim()) throw new Error('未返回有效描述。');
-        output = { text: result, outputMode: undefined, sourceSignature: undefined, generation: { version: 1, inputSignature: signature, outputSignature: stableSignature(result), iteration: task.iteration } };
-        this.commit(id, output);
-      } else {
-        assets = Array.isArray(result) ? result : [result];
-        if (!isImageGeneratorNode(node) || !assets.length || assets.some(asset => !asset?.url)) throw new Error('未返回有效图片。');
-        const generated = assets.map(asset => ({ ...asset, generation: { version: 1 as const, inputSignature: signature, outputSignature: asset.id, iteration: task.iteration } }));
-        output = { results: generated, activeResultId: generated[generated.length - 1].id, outputMode: undefined };
-        this.commit(id, { ...output, results: [...(node.data.results ?? []), ...generated] });
-        attached = true;
-      }
+      assets = Array.isArray(result) ? result : [result];
+      if (!isImageGeneratorNode(node) || !assets.length || assets.some(asset => !asset?.url)) throw new Error('未返回有效图片。');
+      const generated = assets.map(asset => ({ ...asset, generation: { version: 1 as const, inputSignature: signature, outputSignature: asset.id } }));
+      const output = { results: generated, activeResultId: generated[generated.length - 1].id, outputMode: undefined };
+      this.commit(id, { ...output, results: [...(node.data.results ?? []), ...generated] });
+      attached = true;
       this.state(taskId, { state: 'Done', progress: 100, notice: undefined });
       const prompt = (task.imageRequest ?? task.seedreamRequest ?? task.nanoBananaRequest)?.prompt;
-      if (attached && prompt?.trim() && this.io.onImageGenerated) {
+      if (prompt?.trim() && this.io.onImageGenerated) {
         // Project metadata is written independently of the completed image task.
         const notify = this.io.onImageGenerated;
         void Promise.resolve().then(() => notify(prompt)).catch(() => {});
@@ -470,7 +378,6 @@ export class WorkflowExecution {
     this.stopped = true;
     for (const root of this.roots) root.controller.abort('画布已关闭。');
     for (const flight of this.flights.values()) flight.controller.abort('画布已关闭。');
-    for (const flight of this.localFlights.values()) flight.controller.abort('画布已关闭。');
     this.unsubscribe();
   }
 }

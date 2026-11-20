@@ -26,29 +26,29 @@
   }
 
   &::before, &::after,
-  > :is(.node-image-top, .node-image-resolution, .file-media-top, .file-media-resolution, .compositor-download, .compositor-node-size) { transition: none; }
+  > :is(.node-image-top, .node-image-resolution, .file-media-top, .file-media-resolution) { transition: none; }
 
   .file-icon-button { pointer-events: auto; transition: none; }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  :is(.file-node-media, .sunburst-preview, .preview-image, .compositor-node-preview):not(:hover, :has(:focus-visible)) > :is(.node-image-overlay, .file-media-overlay) {
+  :is(.file-node-media, .sunburst-preview):not(:hover, :has(:focus-visible)) > :is(.node-image-overlay, .file-media-overlay) {
     &::before, &::after,
-    > :is(.node-image-top, .node-image-resolution, .file-media-top, .file-media-resolution, .compositor-download, .compositor-node-size) { opacity: 0; }
+    > :is(.node-image-top, .node-image-resolution, .file-media-top, .file-media-resolution) { opacity: 0; }
 
     .file-icon-button { pointer-events: none; }
   }
 }
 
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  :is(.file-node-media, .sunburst-preview, .preview-image, .compositor-node-preview):not(:has(:focus-visible)) {
+  :is(.file-node-media, .sunburst-preview):not(:has(:focus-visible)) {
     > :is(.node-image-overlay, .file-media-overlay) {
       --image-overlay-duration: 500ms;
       --image-overlay-shade-duration: var(--image-overlay-shade-enter, 80ms);
       --image-overlay-tool-delay: var(--image-overlay-tool-enter-delay, 80ms);
 
       &::before, &::after { transition: opacity var(--image-overlay-shade-duration) var(--image-overlay-ease); }
-      > :is(.node-image-top, .node-image-resolution, .file-media-top, .file-media-resolution, .compositor-download, .compositor-node-size) {
+      > :is(.node-image-top, .node-image-resolution, .file-media-top, .file-media-resolution) {
         transition:
           opacity calc(var(--image-overlay-duration) - var(--image-overlay-tool-delay)) var(--image-overlay-ease) var(--image-overlay-tool-delay),
           transform var(--image-overlay-duration) var(--image-overlay-ease);
@@ -61,8 +61,8 @@
       --image-overlay-duration: 400ms;
       --image-overlay-shade-duration: var(--image-overlay-duration);
       --image-overlay-tool-delay: 0ms;
-      > :is(.node-image-top, .file-media-top, .compositor-download) { transform: translateY(-2px); }
-      > :is(.node-image-resolution, .file-media-resolution, .compositor-node-size) { transform: translateY(2px); }
+      > :is(.node-image-top, .file-media-top) { transform: translateY(-2px); }
+      > :is(.node-image-resolution, .file-media-resolution) { transform: translateY(2px); }
     }
   }
 }

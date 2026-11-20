@@ -54,8 +54,8 @@ test('APIMart resolution and version changes invalidate reusable results', () =>
 test('removed APIMart controls ignore legacy values and do not schedule connected upstream models', () => {
   for (const channelModel of ['gpt-image-2.6-ext', 'gpt-image-2.6'] as const) {
     const node: SunburstNode = { ...generator, data: { ...generator.data, channelModel, moderation: 'auto', exposed: ['complexity', 'moderation'] } };
-    // This model has no image input and would fail preflight if still scheduled.
-    const legacy: AppNode = { id: 'legacy', type: 'image-describer', position: { x: 0, y: 0 }, data: { text: 'high', model: 'deepseek-flash', instructions: '', imageInputs: 1 } };
+    // This model would fail preflight if its obsolete connection scheduled it.
+    const legacy: AppNode = { ...generator, id: 'legacy' };
     const edges = [edge, ...['complexity', 'moderation'].map(field => ({ id: field, source: legacy.id, target: node.id, targetHandle: field }))];
     const nodes: AppNode[] = [node, prompt, legacy];
     const connected = { nodes, edges };

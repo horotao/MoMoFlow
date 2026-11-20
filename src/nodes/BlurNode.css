@@ -1,6 +1,0 @@
-/* Blur shares Color Correction's preview, range and numeric controls. */
-.blur-node-frame .blur-settings { flex-direction: row; align-items: center; gap: 16px; }
-.blur-type { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-.blur-type .describer-model-trigger { display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; width: 112px; height: 28px; min-height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: #2b2b2b; color: var(--node-primary); font: inherit; text-align: left; cursor: pointer; }
-.blur-type .describer-model-trigger:hover:not(:disabled) { background: #303030; }
-.blur-node-frame .color-setting { flex: 1; min-width: 0; grid-template-columns: auto minmax(0, 1fr) 56px; gap: 12px; }

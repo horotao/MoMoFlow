@@ -4,7 +4,7 @@ import { ArrowLeft, X } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Tick02Icon } from '@hugeicons/core-free-icons';
 import {
-  isNodeMenuCategory, nodeMenuCategories, nodeMenuGroups, searchableNodeMenuEntries, resolveMenuGroups, withImageModelCreationMenu,
+  nodeMenuGroups, searchableNodeMenuEntries, resolveMenuGroups, withImageModelCreationMenu,
   type NodeMenuEntry, type NodeMenuGroup, type NodeMenuChoice,
 } from './nodeMenuCatalog';
 import { useCascadeMenu } from './useCascadeMenu';
@@ -55,7 +55,7 @@ function MenuRow({ row, highlighted, child, expandedRow, menuId, onSelect }: {
     {hasSubmenu && <img className="node-add-menu-chevron" src="/canvas-menu/arrow-right01.svg" alt="" draggable={false} />}
   </button>;
 }
-const mainRowId = (entry: NodeMenuEntry, groupIndex: number) => isNodeMenuCategory(entry.id) ? entry.id : `${groupIndex}-${entry.id}`;
+const mainRowId = (entry: NodeMenuEntry, groupIndex: number) => `${groupIndex}-${entry.id}`;
 
 function MenuList({ groups, child, expandedRow, highlightedRow, keyboardInteraction, menuId, submenuFor, onSelect }: {
   groups: NodeMenuGroup[]; child: boolean; expandedRow: string | null; highlightedRow: string | null;
@@ -92,11 +92,7 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
   const [subPosition, setSubPosition] = useState<Placement>({ left: screen.x, top: screen.y });
   const { activeRow, highlightedRow, activate, cancelHover } = useCascadeMenu({ main, submenu, trigger, onDismiss });
   const term = query.trim().toLocaleLowerCase();
-  const categories = {
-    editing: resolveMenuGroups(nodeMenuCategories.editing, choices),
-    helpers: resolveMenuGroups(nodeMenuCategories.helpers, choices),
-  };
-  const submenuFor = (entry: NodeMenuEntry) => entry.submenu ?? (isNodeMenuCategory(entry.id) ? categories[entry.id] : undefined);
+  const submenuFor = (entry: NodeMenuEntry) => entry.submenu;
   const resolve = (groups: NodeMenuGroup[]) => resolveMenuGroups(groups, choices).map(group => mode === 'create'
     ? { ...group, entries: group.entries.map(withImageModelCreationMenu) } : group);
   const matches = resolve([{ entries: searchableNodeMenuEntries }]).flatMap(group => group.entries)

@@ -11,7 +11,6 @@ import { assetResources } from '../src/nodes/assetResources';
 import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
 import '../src/index.css';
 import '../src/nodes/SunburstNode.css';
-import '../src/nodes/PreviewNode.css';
 
 let api: ReactFlowInstance<AppNode>;
 function Probe() {
@@ -89,7 +88,6 @@ async function run() {
       { id: 'prompt', type: 'text', position: { x: 70, y: 80 }, data: { text: 'Create a violet landscape' } },
       { id: 'reference', type: 'file', position: { x: 70, y: 620 }, data: { assets: [{ id: 'source', kind: 'image', name: 'reference.png', url: sourceUrl, width: 640, height: 360 }] } },
       { ...node, id: 'banana', selected: true },
-      { id: 'preview', type: 'preview', position: { x: 1230, y: 80 }, data: {} },
     ],
     edges: [{ id: 'prompt', source: 'prompt', target: 'banana', targetHandle: 'prompt' }],
     colorMode: 'dark', viewport: { x: 0, y: 210, zoom: .6 },
@@ -122,7 +120,6 @@ async function run() {
   await chooseGptSetting('输出格式', 'JPEG', settle);
   api.setEdges(current => [...current,
     { id: 'reference', source: 'reference', sourceHandle: 'file', target: 'banana', targetHandle: 'image-0' },
-    { id: 'output', source: 'banana', sourceHandle: 'result', target: 'preview', targetHandle: 'file' },
   ]); await settle();
   runButton().click(); await until(() => read().data.results?.length === 2, 'Reference edit completes');
   check(uploads === 1 && JSON.stringify(requests[1].images) === JSON.stringify([referenceUrl]), 'Reference bytes are uploaded before generation and only the returned URL is submitted');
@@ -133,7 +130,6 @@ async function run() {
   check(jpeg.type === 'image/jpeg' && jpegBytes[0] === 255 && jpegBytes[1] === 216 && jpegAsset.name.endsWith('.jpeg') && jpegBitmap.width === 640 && jpegBitmap.height === 360, 'Local JPEG output has real JPEG bytes, extension and unchanged dimensions');
   context.clearRect(0, 0, 640, 360); context.drawImage(jpegBitmap, 0, 0); jpegBitmap.close();
   check([...context.getImageData(2, 2, 1, 1).data].every(value => value >= 250), 'JPEG conversion fills transparent pixels with white');
-  await until(() => Boolean(document.querySelector<HTMLImageElement>('.preview-image img')?.naturalWidth), 'Downstream preview resolves');
   find('.model-queue-toggle[aria-expanded="true"]').click(); await settle();
   find('[data-id="banana"] [aria-label="上一张"]').click(); await settle();
   check(imageOutput(read(), 'result')[0]?.id === read().data.activeResultId, 'Selected result is the downstream output');

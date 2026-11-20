@@ -9,7 +9,6 @@ import { createLibraryNode } from '../src/components/libraryCatalog';
 import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
 import '../src/index.css';
 import '../src/nodes/SunburstNode.css';
-import '../src/nodes/PreviewNode.css';
 
 let api: ReactFlowInstance<AppNode>;
 function Probe() {
@@ -74,7 +73,6 @@ async function run() {
       { id: 'prompt', type: 'text', position: { x: 70, y: 80 }, data: { text: 'A violet circle' } },
       { id: 'reference', type: 'file', position: { x: 70, y: 620 }, data: { assets: [{ id: 'source', kind: 'image', name: 'reference.png', url: image, width: 320, height: 320 }] } },
       { ...node, id: 'image', selected: true },
-      { id: 'preview', type: 'preview', position: { x: 1230, y: 80 }, data: {} },
     ],
     edges: [{ id: 'prompt', source: 'prompt', target: 'image', targetHandle: 'prompt' }],
     colorMode: 'dark', viewport: { x: 0, y: 210, zoom: .6 },
@@ -91,7 +89,7 @@ async function run() {
       transaction.onabort = () => { open.result.close(); reject(transaction.error); };
       const nodes = workflow.nodes.map(item => item.id === 'image'
         ? { ...item, data: { ...item.data, provider: 'zenmux', size: '2048x1152', exposed: ['quality'] } } : item);
-      nodes.push({ id: 'legacy-quality', type: 'model-input', position: { x: 300, y: 450 }, data: { model: 'high' } });
+      nodes.push({ id: 'legacy-quality', type: 'text', position: { x: 300, y: 450 }, data: { text: 'high' } });
       const edges = [...workflow.edges, { id: 'legacy-quality-edge', source: 'legacy-quality', target: 'image', targetHandle: 'quality' }];
       transaction.objectStore('workflows').put({ ...workflow, version: 1, nodes, edges }, 'current');
     };
@@ -169,13 +167,11 @@ async function run() {
   api.setEdges(current => [...current,
     { id: 'reference', source: 'reference', sourceHandle: 'file', target: 'image', targetHandle: 'image-0' },
     { id: 'mask', source: 'reference', sourceHandle: 'file', target: 'image', targetHandle: 'mask' },
-    { id: 'output', source: 'image', sourceHandle: 'result', target: 'preview', targetHandle: 'file' },
   ]); await settle();
   runButton().click(); await until(() => read().data.results?.length === 3, 'Official mock edit did not finish');
   check(requests[2].provider === 'openai' && (requests[2].images as string[])[0] === image && requests[2].mask === image, 'Official edits preserve ordered image and transparent mask bytes');
   check(requests[2].quality === 'xhigh', 'Extra-high quality reaches the masked edit request');
   check(requests[2].size === '3840x2160', '4K dimensions reach the masked edit request');
-  await until(() => Boolean(document.querySelector<HTMLImageElement>('.preview-image img')?.naturalWidth), 'Downstream preview did not render');
   check(read().data.results?.[0].width === 2048 && read().data.results?.[0].height === 2048 && read().data.results?.[2].width === 3840 && read().data.results?.[2].height === 2160, '2K and 4K returned pixels decode without downscaling and feed Preview');
   await closeTasks(); fail = true;
   runButton().click(); await until(() => Boolean(document.querySelector('.task-error')?.textContent?.includes('sunburst-provider-qa')), 'Official error did not appear');

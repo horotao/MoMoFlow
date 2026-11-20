@@ -1,9 +1,9 @@
-.react-flow :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana, .react-flow__node-seedream) { height: auto; gap: 16px; }
-.react-flow :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana, .react-flow__node-seedream).selected,
-.react-flow :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana, .react-flow__node-seedream):focus { border-color: var(--text-node-border-selected); box-shadow: none; }
-:is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana, .react-flow__node-seedream) .text-node-title { color: var(--text-node-primary); min-width: 0; }
-:is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana, .react-flow__node-seedream) .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-:is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana, .react-flow__node-seedream) .text-node-title > svg { flex-shrink: 0; }
+.react-flow :is(.react-flow__node-sunburst, .react-flow__node-nano-banana, .react-flow__node-seedream) { height: auto; gap: 16px; }
+.react-flow :is(.react-flow__node-sunburst, .react-flow__node-nano-banana, .react-flow__node-seedream).selected,
+.react-flow :is(.react-flow__node-sunburst, .react-flow__node-nano-banana, .react-flow__node-seedream):focus { border-color: var(--text-node-border-selected); box-shadow: none; }
+:is(.react-flow__node-sunburst, .react-flow__node-nano-banana, .react-flow__node-seedream) .text-node-title { color: var(--text-node-primary); min-width: 0; }
+:is(.react-flow__node-sunburst, .react-flow__node-nano-banana, .react-flow__node-seedream) .text-node-title > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:is(.react-flow__node-sunburst, .react-flow__node-nano-banana, .react-flow__node-seedream) .text-node-title > svg { flex-shrink: 0; }
 .sunburst-preview-area { width: 100%; flex: 1 0 auto; }
 .sunburst-preview.has-result { min-height: 0; border: 0; }
 .sunburst-preview { position: relative; width: 100%; aspect-ratio: 1; border: 1px solid var(--text-node-surface); overflow: hidden; border-radius: 3px; background-color: #eee; background-image: conic-gradient(#ddd 25%, transparent 0 50%, #ddd 0 75%, transparent 0); background-size: 30px 30px; }
@@ -16,12 +16,11 @@
 .sunburst-actions > .text-node-button:active { background: var(--text-node-border); }
 .sunburst-run { flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; height: 32px; border: 0; border-radius: 5px; padding: 0 10px; background: var(--text-node-primary); color: var(--text-node-surface); cursor: pointer; font: inherit; }
 .sunburst-run:hover { opacity: .85; }.sunburst-run:active { opacity: .7; }
-:is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana, .react-flow__node-seedream) button:disabled { opacity: .35; cursor: default; }
-:is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana, .react-flow__node-seedream) button:focus-visible { outline: 1px solid var(--text-node-secondary); outline-offset: 2px; }
-:is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana, .react-flow__node-seedream):hover .describer-port-label, :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana, .react-flow__node-seedream).selected .describer-port-label { visibility: visible; }
+:is(.react-flow__node-sunburst, .react-flow__node-nano-banana, .react-flow__node-seedream) button:disabled { opacity: .35; cursor: default; }
+:is(.react-flow__node-sunburst, .react-flow__node-nano-banana, .react-flow__node-seedream) button:focus-visible { outline: 1px solid var(--text-node-secondary); outline-offset: 2px; }
 .react-flow .sunburst-port-prompt { background: #e28cf8; border-color: #e28cf8; }
 .sunburst-prompt-asterisk { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--text-node-surface); pointer-events: none; }
-.react-flow :is(.react-flow__node-sunburst, .react-flow__node-ideogram, .react-flow__node-nano-banana, .react-flow__node-seedream) .sunburst-port-prompt.is-connected { background: var(--text-node-surface); }
+.react-flow :is(.react-flow__node-sunburst, .react-flow__node-nano-banana, .react-flow__node-seedream) .sunburst-port-prompt.is-connected { background: var(--text-node-surface); }
 .sunburst-port-prompt.is-connected .sunburst-prompt-asterisk { display: none; }
 .react-flow { --sunburst-image-port: #31885b; --sunburst-mask-port: #7c965a; }
 .react-flow.dark { --sunburst-image-port: #97ffcd; --sunburst-mask-port: #e4ff97; }
@@ -37,20 +36,13 @@
 .sunburst-settings h2 span { font-size: 11px; line-height: 16px; }
 .sunburst-settings .describer-field { margin-bottom: 8px; }
 .sunburst-field-row { padding-right: 32px; color: var(--panel-text); }
-.sunburst-field-row .describer-model-trigger { width: 100%; }
-.sunburst-field-row .describer-model-trigger:hover { background: var(--panel-input); }
-.sunburst-field-row .describer-model-trigger[aria-expanded="true"] { border-color: var(--panel-muted); }
 .sunburst-cost { display: flex; justify-content: space-between; gap: 8px; color: var(--panel-muted); margin: 12px 0; }
 .sunburst-cost span:last-child { color: var(--panel-text); }
 
 .sunburst-provider { height: 40px; flex-shrink: 0; padding: 0 16px; display: flex; align-items: center; gap: 6px; color: var(--panel-text); }
 .sunburst-provider > span:last-child { margin-left: auto; color: var(--panel-muted); font-size: 10px; }
 
-.sunburst-settings .describer-model-trigger:hover { background: var(--panel-input); }
-.sunburst-settings .describer-model-trigger[aria-expanded="true"] { border-color: var(--panel-muted); }
-
 .sunburst-size-control { flex: 1; min-width: 0; width: 100%; }
-.sunburst-size-control > .describer-model-trigger { width: 100%; }
 .sunburst-custom-size { display: flex; align-items: flex-end; gap: 6px; margin-top: 8px; }
 .sunburst-custom-size > label { flex: 1; min-width: 0; display: grid; gap: 4px; margin-bottom: 0; font-size: inherit; color: var(--panel-muted); }
 .sunburst-custom-size > span { display: flex; align-items: center; justify-content: center; height: 24px; font-size: 11px; line-height: 16px; }

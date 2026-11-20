@@ -1,9 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { AppNode, SunburstNode, FileAsset } from './types';
-import { prepareSunburstRun, imageOutput } from './sunburstRun.ts';
+import { prepareSunburstRun } from './sunburstRun.ts';
 import { defaultSunburstSettings, imageSizes, validateSunburstSize } from './sunburst.ts';
-import { prepareDescriberRun } from './describerRun.ts';
 const generator: SunburstNode = { id: 'g', type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, imageInputs: 2 } };
 const prompt: AppNode = { id: 'p', type: 'text', position: { x: 0, y: 0 }, data: { text: '一只猫' } };
 const asset: FileAsset = { id: 'asset', kind: 'image', name: 'image.png', url: 'blob:image' };
@@ -64,12 +63,7 @@ test('empty connected image, orphan mask and incompatible format fail before enq
   const incompatible: SunburstNode = { ...generator, data: { ...generator.data, background: 'transparent', outputFormat: 'jpeg' } };
   assert.match(prepareSunburstRun([incompatible, prompt], [promptEdge], ['g'], 1).error!, /PNG/);
 });
-test('active generated result feeds downstream Sunburst and Image Describer', () => {
-  const generated = { ...generator, data: { ...generator.data, results: [asset, { ...asset, id: 'two', url: 'blob:two' }], activeResultId: 'asset' } };
-  assert.equal(imageOutput(generated)[0].url, 'blob:image');
-  const describer: AppNode = { id: 'd', type: 'image-describer', position: { x: 0, y: 0 }, data: { text: '', model: 'deepseek-flash', instructions: '', imageInputs: 1 } };
-  assert.deepEqual(prepareDescriberRun([generated, describer], [{ id: 'gd', source: 'g', target: 'd', targetHandle: 'image-0' }], ['d'], 1).tasks[0].images, ['blob:image']);
-});
+
 test('custom size validates alignment, aspect ratio, pixel count and both edge limits', () => {
   for (const size of [...imageSizes, '2048x2048', '3840x2160', '2160x3840', '1280x512', '512x1280']) assert.equal(validateSunburstSize(size), size);
   for (const size of ['', 'custom', '1025x1024', '3841x2160', '3856x2160', '2160x3856', '1536x496', '496x1536', '512x512', '3072x3072', '0x1024', '-1024x1024', '1024xInfinity']) assert.throws(() => validateSunburstSize(size), size);

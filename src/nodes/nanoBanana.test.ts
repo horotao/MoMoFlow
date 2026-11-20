@@ -5,8 +5,6 @@ import type { AppNode, FileAsset, NanoBananaNode } from './types';
 import { defaultNanoBananaSettings, nanoBananaModel } from './nanoBanana.ts';
 import { prepareNanoBananaRun } from './nanoBananaRun.ts';
 import { imageOutput } from './sunburstRun.ts';
-import { canConnect } from './connectionRules.ts';
-import { connectionChoices, type PendingConnection } from './connectionRecommendations.ts';
 import { extractFileAsset } from './fileCollection.ts';
 import { nodeAssetUrls, taskAssetUrls } from './assetResources.ts';
 import { mapAssets, workflowSnapshot } from '../persistence/workflowStorage.ts';
@@ -42,26 +40,6 @@ test('invalid or missing input blocks the whole batch, locked nodes do not submi
   const tooMany = { ...file, data: { assets: Array(15).fill(asset) } };
   assert.ok(prepareNanoBananaRun([banana, prompt, tooMany], [...edges, imageEdge], [banana.id], 1).error);
   assert.equal(prepareNanoBananaRun([{ ...banana, data: { ...banana.data, locked: true } }, prompt], edges, [banana.id], 1).tasks.length, 0);
-});
-
-test('connection rules support prompt/image/results/Router and reject masks, nonexistent ports and cycles', () => {
-  assert.equal(canConnect(edges[0], nodes, []), true);
-  assert.equal(canConnect(imageEdge, nodes, edges), true);
-  for (const targetHandle of ['mask', 'image-2', 'quality']) assert.equal(canConnect({ ...imageEdge, targetHandle }, nodes, edges), false);
-  assert.equal(canConnect({ ...imageEdge, targetHandle: 'prompt' }, nodes, []), false);
-  assert.equal(canConnect(imageEdge, nodes, [imageEdge]), false);
-  const preview: AppNode = { id: 'preview', type: 'preview', position: { x: 0, y: 0 }, data: {} };
-  assert.equal(canConnect({ id: 'o', source: banana.id, sourceHandle: 'result', target: preview.id, targetHandle: 'file' }, [...nodes, preview], []), true);
-  assert.equal(canConnect({ id: 'o', source: banana.id, sourceHandle: 'bad', target: preview.id, targetHandle: 'file' }, [...nodes, preview], []), false);
-  const router: AppNode = { id: 'router', type: 'router', position: { x: 0, y: 0 }, data: {} };
-  const toRouter: Edge = { id: 'router', source: banana.id, sourceHandle: 'result', target: router.id, targetHandle: 'input' };
-  assert.equal(canConnect({ ...imageEdge, source: router.id, sourceHandle: 'output' }, [...nodes, router], [toRouter]), false);
-  const pending: PendingConnection = { nodeId: prompt.id, handleId: null, direction: 'source', screen: { x: 0, y: 0 }, position: { x: 0, y: 0 } };
-  assert.ok(connectionChoices(pending, nodes, []).some(choice => choice.itemId === 'nano-banana' && choice.handleId === 'prompt'));
-  const legacy = { ...banana, data: { ...banana.data, exposed: ['imageSize' as const] } };
-  const retired = { ...edges[0], targetHandle: 'imageSize' };
-  assert.equal(canConnect(retired, [legacy, prompt], []), false);
-  assert.deepEqual(connectionChoices({ ...pending, nodeId: legacy.id, direction: 'target', handleId: 'imageSize' }, [legacy, prompt], []), []);
 });
 
 test('selected result, extraction, clipboard, asset ownership and persisted data remain consistent', () => {

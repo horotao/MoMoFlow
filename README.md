@@ -93,39 +93,25 @@ React Flow CSS 通过 `src/index.css` 中的 `layer(base)` 在 Tailwind 之后�
 
 ## BYOK API 设置
 
-左侧 Dock 的“更多 → API 设置”支持 OpenAI、APIMart 与 DeepSeek，按渠道保存 Base URL 与 API Key。Seedream 和 Nano Banana 复用 APIMart 配置，图像描述使用 DeepSeek。清空当前渠道的 Key 后保存，本地开发服务会使用 `.env.local` 中的对应默认 Key。保存的配置在下一次模型请求开始时生效，密钥独立于画布与工作流数据保存。
+左侧 Dock 的“更多 → API 设置”支持 OpenAI、APIMart 与 DeepSeek，按渠道保存 Base URL 与 API Key。Seedream 和 Nano Banana 复用 APIMart 配置。清空当前渠道的 Key 后保存，本地开发服务会使用 `.env.local` 中的对应默认 Key。保存的配置在下一次模型请求开始时生效，密钥独立于画布与工作流数据保存。
 
 “测试连接”检查当前填写的配置。OpenAI / DeepSeek 读取模型列表，APIMart 读取令牌余额。连接检查不创建生成任务。取消弹窗或修改输入会中止本次检查。
 
 BYOK Base URL 支持公开 HTTPS 网关。服务端校验并固定 DNS 解析结果，阻止本机或内网目标及重定向。
 
-## DeepSeek 图片反推提示词
-
-在线上或本地的「更多 → API 设置」中保存 DeepSeek Key。默认地址为 `https://api.deepseek.com`。浏览器用 `purpose=user_data` 将原图直传到 [Files API](https://api-docs.deepseek.com/zh-cn/guides/files_api/)，设置上传后 1 小时过期。`/api/describer` 的请求体只包含按顺序排列的文件 ID 与系统指令。自定义 DeepSeek 地址需同时兼容 Files API、浏览器跨域上传和对话补全。
-
-添加 File 节点并上传 JPEG / PNG / GIF / WebP 图片，将输出连接到 Image Describer 的 Image 输入。模型选择 `deepseek-flash`，按需调整 System Instructions，然后点击 Run selected。提示词会写入节点并可传递到下游。多个输入按端口编号排列，一次最多 14 张，直传单张不超过 64 MiB、合计不超过 200 MiB。旧节点需手动切换 DeepSeek 模型。
-
-在本机通过 `npm run dev` 或 `npm run preview` 运行且浏览器未配置用户 Key 时，可使用 `.env.local` 中的 `DEEPSEEK_API_KEY` 走原有内联图片路径。该密钥仅在 Vite 服务端读取。单独部署 `dist/` 不包含 API 服务。
-
-Tasks 显示实际排队、运行、成功或失败状态。每次 Run 都可能计费，取消会中断等待但不能保证服务商停止计费；失败不会自动重试。Retry 使用当前节点输入，并沿用面板 Runs 数量。
-
-`npm test` 使用 Node.js 内置测试运行器，覆盖图像请求格式、输入校验、缺少密钥及跨域拒绝；这些测试不会调用真实模型。真实效果测试需要有效密钥和余额。
-
-接口依据：https://api-docs.deepseek.com/zh-cn/guides/vision/
-
 ### Vercel 部署（BYOK）
 
-仓库根目录的 `vercel.json` 同时构建 Vite 前端与 `api/[...path].ts` 模型接口。使用 `vercel deploy --environment preview` 发布预览；安装使用 `ONNXRUNTIME_NODE_INSTALL_CUDA=skip npm ci`，跳过未使用的 Node.js CUDA 二进制下载，不影响浏览器 WebGPU 蒙版推理；运行时使用 Node.js 24。接口复用本地请求校验、模型处理及 BYOK 网关校验。
+仓库根目录的 `vercel.json` 同时构建 Vite 前端与 `api/[...path].ts` 模型接口。使用 `vercel deploy --environment preview` 发布预览；安装使用 `npm ci`；运行时使用 Node.js 24。接口复用本地请求校验、模型处理及 BYOK 网关校验。
 
 线上仅使用用户在「更多 → API 设置」中填写的 API Key，不读取服务端默认密钥；连接测试同样需要填写 Key。`.vercelignore` 排除本地环境文件，部署时不要上传 `.env.local` 或配置共享模型密钥。接口仅接受 Vercel 提供的部署域名及对应 HTTPS Origin，用户配置仍保存在各自浏览器中。
 
-函数最长运行 300 秒，平台请求和响应大小限制为 4.5 MB（包括图片的 Base64 编码）。APIMart 图片由浏览器直传和直下，DeepSeek 图片由浏览器直传；仅传输 URL 或文件 ID 的函数请求可避开图片大小限制。仍以内联方式传输的其他渠道图片可能被平台拒绝。当前部署不包含账户系统、共享额度或云端工作流同步。自动检查不调用真实模型；部署后的路由检查也不能替代真实模型验收。
+函数最长运行 300 秒，平台请求和响应大小限制为 4.5 MB（包括图片的 Base64 编码）。APIMart 图片由浏览器直传和直下；仅传输 URL 的函数请求可避开图片大小限制。仍以内联方式传输的其他渠道图片可能被平台拒绝。当前部署不包含账户系统、共享额度或云端工作流同步。自动检查不调用真实模型；部署后的路由检查也不能替代真实模型验收。
 
 ## GPT Image 2.6（OpenAI / APIMart）
 
 在已忽略的 `.env.local` 配置所需渠道的密钥：OpenAI 官方使用 `OPENAI_API_KEY`，APIMart 使用 `APIMART_API_KEY`，然后重启 `npm run dev`。默认密钥由本地服务读取，OpenAI 图片接口为 `/api/sunburst`，APIMart 使用异步图片接口。两个渠道也支持 `npm run preview`，单独发布 `dist/` 不提供后端。
 
-左侧 Image → Image Models 中点击或拖入 **GPT Image 2.6 Sunburst**。将 Prompt 或 Image Describer 文本输出连接到 Prompt；可选连接 File 图片或其他 Sunburst 的 Result 到 Image。没有图片时使用所选渠道的 `/images/generations`，有图片时使用 `/images/edits`（服务端以 multipart/form-data 上传 `image[]` 文件，可选 `mask` 文件；文生图仍为 JSON）。参考图按 Image 端口顺序排列，最多 16 张；生成节点的输出是当前选中的结果。
+左侧 Image → Image Models 中点击或拖入 **GPT Image 2.6 Sunburst**。将 提示词节点的文本输出连接到 Prompt；可选连接 File 图片或其他 Sunburst 的 Result 到 Image。没有图片时使用所选渠道的 `/images/generations`，有图片时使用 `/images/edits`（服务端以 multipart/form-data 上传 `image[]` 文件，可选 `mask` 文件；文生图仍为 JSON）。参考图按 Image 端口顺序排列，最多 16 张；生成节点的输出是当前选中的结果。
 
 Mask 必须连接一张带透明区域的 PNG，并与第一张参考图尺寸一致；透明区域表示要编辑的部分。支持 PNG / JPEG / WebP 输入，每张不超过 32 MiB，全部输入合计不超过 46 MiB。浏览器会读取连接的图片后传给本地服务。
 
@@ -178,10 +164,9 @@ SVG 输出：GPT Image 2.6 的 Sunburst / Flare 可选择 SVG，使用 `/images/
 
 复用 API 设置中的 APIMart Key，或在本地开发和预览时使用 `APIMART_API_KEY`。固定模型为 `gemini-nano-banana-2.1`，支持自动比例及 14 种固定比例，分辨率可选 1K、2K、4K。应用按任务编号查询结果，拿到图片 URL 后下载并保存到工作流。PNG/JPEG 选择在浏览器处理，相同格式保留原始字节。[APIMart 模型文档](https://docs.apimart.ai/cn/api-reference/images/gemini-nano-banana-2.1/generation)
 
-旧工作流中的 Ideogram 节点仍可查看和使用已保存的图片。该模型已下线。
 
 ### 画布自动整理
 
 在主画布选中至少两个未锁定节点后按 `Shift + L`（Mac / Windows 相同）。按连通关系划分工作流，每组在原来的区域附近独立从左到右排列；单独的孤立节点保持原位，组间重叠时仅作最小必要避让；只调整选中节点的位置，不移动未选中或锁定的节点，也不改变连线、内容和视口。没有选中节点时不整理整张画布。开启网格对齐时，整理位置沿用当前网格。
 
-一次撤销可恢复整组位置，重复整理不会新增无意义的历史记录。输入文字、输入法组合、菜单/弹窗、合成器和拖动过程中不会触发。该功能只有快捷键，没有按钮或菜单入口。自动检查包含 `canvasLayout.test.ts`；浏览器验收页为 `/tests/canvas-layout.html`，使用独立存储且不调用模型。
+一次撤销可恢复整组位置，重复整理不会新增无意义的历史记录。输入文字、输入法组合、菜单/弹窗和拖动过程中不会触发。该功能只有快捷键，没有按钮或菜单入口。自动检查包含 `canvasLayout.test.ts`；浏览器验收页为 `/tests/canvas-layout.html`，使用独立存储且不调用模型。

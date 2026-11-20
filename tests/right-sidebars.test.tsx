@@ -8,11 +8,9 @@ import type { AppNode } from '../src/nodes/types';
 import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
 import '../src/index.css';
 import '../src/nodes/SunburstNode.css';
-import '../src/nodes/ColorPaletteNode.css';
-import '../src/nodes/PainterNode.css';
 
-const kinds = ['sunburst', 'nano-banana', 'image-describer', 'model-input', 'color-palette'] as const;
-const labels = ['GPT Image 2.6', 'Nano Banana', '图像描述', '模型选项', '调色板'];
+const kinds = ['sunburst', 'nano-banana', 'seedream'] as const;
+const labels = ['GPT Image 2.6', 'Nano Banana', 'Seedream'];
 function Probe() {
   const api = useReactFlow<AppNode>();
   const nodes = useNodes<AppNode>();
@@ -38,7 +36,7 @@ nodes.push({ id: 'prompt', type: 'text', position: { x: 60, y: 80 }, data: { tex
 const image = 'data:image/svg+xml,' + encodeURIComponent('<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg"><rect width="512" height="512" fill="#7760b7"/></svg>');
 nodes.push({ id: 'source', type: 'file', position: { x: 60, y: 620 }, data: { assets: [{ id: 'reference', kind: 'image', name: 'reference.svg', url: image, width: 512, height: 512 }] } });
 const workflow: Workflow = {
-  nodes, edges: kinds.filter(kind => kind !== 'model-input' && kind !== 'color-palette').map(kind => ({ id: `prompt-${kind}`, source: 'prompt', target: kind, targetHandle: 'prompt' })),
+  nodes, edges: kinds.map(kind => ({ id: `prompt-${kind}`, source: 'prompt', target: kind, targetHandle: 'prompt' })),
   colorMode: 'dark', viewport: { x: 0, y: 140, zoom: .7 },
 };
 const storage = new WorkflowStorage(`momoflow-right-sidebars-qa-${crypto.randomUUID()}`);

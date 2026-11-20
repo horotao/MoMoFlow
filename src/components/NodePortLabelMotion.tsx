@@ -9,7 +9,7 @@ const enter = createSpring({
   bounce: spring.moderate.bounce,
 }).toString();
 const leave = `${spring.moderate.exit.duration}s ease-out`;
-const labels = ':is(.text-node-port-label, .describer-port-label, .file-node-port-label, .router-port-label)';
+const labels = ':is(.text-node-port-label, .file-node-port-label)';
 
 export function NodePortLabelMotion() {
   return <style>{`

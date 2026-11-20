@@ -2,7 +2,7 @@ import type { Edge } from '@xyflow/react';
 import { annotationImage } from './annotationGraph.ts';
 import { fileAssets } from './fileCollection.ts';
 import { isAnnotationInput, withFileAnnotationHistory } from './interactiveEdit.ts';
-import { resolveOutputSource } from './router.ts';
+import { resolveOutputSource } from './outputPort.ts';
 import { isFileNode, isImageGeneratorNode, isInteractiveEditNode, type AppNode, type FileNode } from './types.ts';
 
 /** Retire the editor node while keeping old inline prompt references addressable. */
@@ -13,7 +13,7 @@ export function migrateFileAnnotations(nodes: AppNode[], edges: Edge[]) {
   for (const node of nodes) {
     if (!isInteractiveEditNode(node)) continue;
     const input = edges.find(edge => edge.target === node.id && edge.targetHandle === 'image');
-    const source = input && resolveOutputSource(nodes.find(item => item.id === input.source), input.sourceHandle, nodes, edges);
+    const source = input && resolveOutputSource(nodes.find(item => item.id === input.source), input.sourceHandle);
     const file = source?.handle === 'file' && isFileNode(source.node) ? files.get(source.node.id) ?? source.node : undefined;
     const history = node.data.history;
     const original = (file ? fileAssets(file.data) : source && isImageGeneratorNode(source.node) ? source.node.data.results ?? [] : [])

@@ -8,7 +8,6 @@ import { isNodeLocked } from './types';
 import { migrateSunburstProvider, sunburstName, sunburstPreviewAspectRatio, validateSunburstSize } from './sunburst';
 import { nanoBananaAspectRatios } from './nanoBanana';
 import { ModelRunButton } from '../components/ModelRunButton';
-import { IterationSummary } from '../components/IterationSummary';
 import { TextNodeMenu } from './TextNodeMenu';
 import { FileGallery, type FileGalleryTrigger } from './FileGallery';
 import { orderedAssets } from './fileCollection';
@@ -32,8 +31,8 @@ export function SunburstNode(props: NodeProps<Sunburst>) {
     previewAspectRatio={sunburstPreviewAspectRatio(provider, ratio)} />;
 }
 
-type GenerationProps = NodeProps<Generator> & { name: string; icon: ReactNode; fieldLabels?: Record<string, string>; maxImages: number; mask?: boolean; imageLabels?: string[]; addImageLabel?: string; previewAspectRatio?: string | null; hiddenParameters?: string[] };
-export function ImageGenerationNode({ id, type, data, isConnectable, name, icon, fieldLabels, maxImages, mask = false, imageLabels, addImageLabel = '添加图片输入', previewAspectRatio }: GenerationProps) {
+type GenerationProps = NodeProps<Generator> & { name: string; icon: ReactNode; maxImages: number; mask?: boolean; imageLabels?: string[]; addImageLabel?: string; previewAspectRatio?: string | null; hiddenParameters?: string[] };
+export function ImageGenerationNode({ id, type, data, isConnectable, name, icon, maxImages, mask = false, imageLabels, addImageLabel = '添加图片输入', previewAspectRatio }: GenerationProps) {
   const { getNode, updateNodeData } = useReactFlow<AppNode>();
   const edges = useEdges(); const internals = useUpdateNodeInternals();
   // Keep unsupported connected ports visible so their old edges can be removed.
@@ -62,13 +61,11 @@ export function ImageGenerationNode({ id, type, data, isConnectable, name, icon,
   } catch { /* Incomplete or invalid custom sizes use the result ratio or a square. */ }
   const preview = useImagePreviewHeight(aspectRatio, grid);
   const patch = (value: Partial<Generator['data']>) => { if (!isNodeLocked(getNode(id))) updateNodeData(id, value); };
-  const exposed = fieldLabels ? data.exposed : undefined;
-  useEffect(() => internals(id), [id, data.imageInputs, exposed, showMask, mask, aspectRatio, grid, internals]);
+  useEffect(() => internals(id), [id, data.imageInputs, showMask, mask, aspectRatio, grid, internals]);
   const ports = [
     { id: 'prompt', label: 'Prompt', kind: 'prompt', top: 89 },
     ...Array.from({ length: data.imageInputs }, (_, i) => ({ id: `image-${i}`, label: imageLabels?.[i] ?? (data.imageInputs === 1 ? 'Image' : `Image ${i + 1}`), kind: 'image', top: 149 + i * 60 })),
     ...(showMask ? [{ id: 'mask', label: 'Mask', kind: 'mask', top: 149 + data.imageInputs * 60 }] : []),
-    ...(exposed ?? []).map((field, index) => ({ id: field, label: fieldLabels?.[field] ?? field, kind: 'parameter', top: 149 + (data.imageInputs + index) * 60 })),
   ];
   // Fit the lowest handle, including its 16px radius, 15px padding and 1px border.
   const minHeight = ports[ports.length - 1].top + 32;
@@ -95,12 +92,11 @@ export function ImageGenerationNode({ id, type, data, isConnectable, name, icon,
         }} />} />}
     </motion.div>
     </div>
-    {type === 'ideogram' ? <div className="sunburst-actions">模型已下线</div> : <div className="sunburst-actions">{maxImages > 0 && <button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= maxImages} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />{addImageLabel}</button>}<ModelRunButton appearance="image-node" nodeId={id} className="sunburst-run nodrag nopan" disabled={data.locked} onRun={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('describer-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</ModelRunButton></div>}
-    {type !== 'ideogram' && <IterationSummary nodeId={id} />}
+    <div className="sunburst-actions">{maxImages > 0 && <button className="text-node-button nodrag nopan" disabled={data.locked || data.imageInputs >= maxImages} onClick={() => patch({ imageInputs: data.imageInputs + 1 })}><Plus size={16} strokeWidth={1} />{addImageLabel}</button>}<ModelRunButton appearance="image-node" nodeId={id} className="sunburst-run nodrag nopan" disabled={data.locked} onRun={() => { if (!isNodeLocked(getNode(id))) window.dispatchEvent(new CustomEvent('describer-run', { detail: id })); }}><ArrowRight size={16} strokeWidth={1} />运行模型</ModelRunButton></div>
     {ports.map(port => <div className={`media-port-${port.kind}`} key={port.id}>
       <NodePort label={port.label} id={port.id} type="target" position={Position.Left} top={port.top}
         title={(port.id === 'mask' && !mask) ? `${port.label} · 当前渠道不支持，可断开或切换渠道` : undefined}
-        isConnectable={type !== 'ideogram' && isConnectable && !data.locked && !(port.id === 'mask' && !mask)}>
+        isConnectable={isConnectable && !data.locked && !(port.id === 'mask' && !mask)}>
         <img width={32} height={32} alt="" src={port.kind === 'image' ? '/image-node/port-image.svg' : port.kind === 'mask' ? '/image-node/port-mask.svg' : `/node-style/port-text${edges.some(edge => edge.target === id && edge.targetHandle === port.id) ? '-connected' : ''}.svg`} />
         {(port.kind === 'image' || port.kind === 'mask') && edges.some(edge => edge.target === id && edge.targetHandle === port.id) && <span className="media-port-dot" />}
       </NodePort>

@@ -6,7 +6,7 @@ import { migrateFileAnnotations } from './annotationMigration.ts';
 import { editImageAnnotationsFromPrompt, isInlineAnnotationLink, syncImageAnnotationPrompts } from './imageAnnotationPrompts.ts';
 import { canConnect, withoutReplacedInput } from './connectionRules.ts';
 import { connectionChoices } from './connectionRecommendations.ts';
-import { executionInputs, executionSourceAssets, graphGuard, planExecution } from './executionGraph.ts';
+import { executionInputs, executionSourceAssets, graphGuard, preflight } from './executionGraph.ts';
 import { annotationHistory, annotationMarkup, commitAnnotations, emptyAnnotationHistory, restoreInteractiveEditData, resultAnnotationDraftHandle, type AnnotationMark } from './interactiveEdit.ts';
 import { defaultSeedreamSettings, seedreamMaxImages } from './seedream.ts';
 import { prepareSeedreamRun } from './seedreamRun.ts';
@@ -57,7 +57,7 @@ test('a generated result draft binds its chips and downstream execution to the o
   ) };
   assert.equal(graphGuard(switched, seedream.id, true), graphGuard(graph, seedream.id, true));
   assert.deepEqual(executionSourceAssets(switched, seedream.id), [asset]);
-  assert.equal(planExecution(switched, [seedream.id], 1).size, 1);
+  assert.equal(preflight(switched, [seedream.id], 1).size, 1);
   const prepared = prepareSeedreamRun(switched.nodes, switched.edges, [seedream.id], 1);
   assert.equal(prepared.error, undefined);
   assert.deepEqual(prepared.tasks[0].seedreamRequest?.images, [asset.url]);
@@ -148,14 +148,14 @@ test('File annotations follow the existing image connection and insert numbered 
   assert.equal(resolveTextValue(prompt.id, graph.nodes, graph.edges), '编辑选中区域 <point>240 510</point> <bbox>500 200 999 800</bbox>');
   assert.equal(syncImageAnnotationPrompts(graph.nodes, graph.edges).nodes, graph.nodes);
   assert.equal(syncImageAnnotationPrompts(graph.nodes, graph.edges).edges, graph.edges);
-  assert.doesNotThrow(() => planExecution(graph, [seedream.id], 1));
+  assert.doesNotThrow(() => preflight(graph, [seedream.id], 1));
   const prepared = prepareSeedreamRun(graph.nodes, graph.edges, [seedream.id], 1);
   assert.equal(prepared.error, undefined);
   assert.deepEqual(prepared.tasks[0].seedreamRequest?.images, [asset.url]);
   assert.equal(prepared.tasks[0].seedreamRequest?.prompt, resolveTextValue(prompt.id, graph.nodes, graph.edges));
   const gpt: SunburstNode = { id: 'gpt', type: 'sunburst', position, data: { ...defaultSunburstSettings, provider: 'openai', imageInputs: 1 } };
   const gptGraph = syncImageAnnotationPrompts([...graph.nodes, gpt], [...graph.edges, ...inputs.map(edge => ({ ...edge, id: `gpt-${edge.id}`, target: gpt.id }))]);
-  assert.doesNotThrow(() => planExecution(gptGraph, [gpt.id], 1));
+  assert.doesNotThrow(() => preflight(gptGraph, [gpt.id], 1));
   const request = prepareSunburstRun(gptGraph.nodes, gptGraph.edges, [gpt.id], 1).tasks[0].imageRequest;
   assert.deepEqual(request?.images, [asset.url]);
   assert.deepEqual(request?.markupMarks, [{ start: point.start, end: undefined }, { start: box.start, end: box.end }]);
@@ -242,46 +242,16 @@ test('APIMart EXT rejects connected annotations before execution and accepts a r
   const blocked = prepareSunburstRun(graph, annotated, [ext.id], 1);
   assert.match(blocked.error!, error);
   assert.deepEqual(blocked.tasks, []);
-  assert.throws(() => planExecution({ nodes: graph, edges: annotated }, [ext.id], 1), error);
+  assert.throws(() => preflight({ nodes: graph, edges: annotated }, [ext.id], 1), error);
   const regular = [
     { id: 'ordinary-prompt', source: words.id, target: ext.id, targetHandle: 'prompt' },
     { id: 'reference', source: file.id, sourceHandle: 'file', target: ext.id, targetHandle: 'image-0' },
   ];
-  assert.doesNotThrow(() => planExecution({ nodes: graph, edges: regular }, [ext.id], 1));
+  assert.doesNotThrow(() => preflight({ nodes: graph, edges: regular }, [ext.id], 1));
   const request = prepareSunburstRun(graph, regular, [ext.id], 1).tasks[0].imageRequest!;
   assert.equal(request.prompt, words.data.text);
   assert.deepEqual(request.images, [alternative.url, asset.url]);
   assert.equal(request.markupMarks, undefined);
-});
-
-test('Seedream groups annotations through nested prompts and routers using only each marked original', () => {
-  const secondImage = { ...asset, id: 'second', url: 'blob:second' };
-  const secondEditor: InteractiveEditNode = { ...editor, id: 'second-editor', data: {
-    baseImage: secondImage, history: commitAnnotations(emptyAnnotationHistory, secondImage.id, [box]),
-  } };
-  const unusedImage = { ...asset, id: 'unused', url: 'blob:unused' };
-  const unusedEditor: InteractiveEditNode = { ...editor, id: 'unused-editor', data: {
-    baseImage: unusedImage, history: commitAnnotations(emptyAnnotationHistory, unusedImage.id, [point]),
-  } };
-  const explicit: FileNode = { ...file, id: 'manual', data: { assets: [secondImage] } };
-  const content = initialTextDocument('改为篮球。\n保持背景', ['variable-1', 'annotation-1'], 'outer');
-  content.content![0].content![1].text = '。把 ';
-  const outer: TextNode = { ...text, id: 'outer', data: { text: '保持背景', content } };
-  const router: AppNode = { id: 'router', type: 'router', position, data: {} };
-  const result = prepareSeedreamRun([...nodes, secondEditor, unusedEditor, explicit, outer, router], [...edges,
-    { id: 'nested', source: text.id, target: outer.id, targetHandle: 'variable-1' },
-    { ...boxes, id: 'second-box', source: secondEditor.id, target: outer.id, targetHandle: 'annotation-1' },
-    { ...points, id: 'unused-point', source: unusedEditor.id, target: outer.id, targetHandle: 'annotation-2' },
-    { id: 'route', source: outer.id, target: router.id, targetHandle: 'input' },
-    { id: 'prompt', source: router.id, sourceHandle: 'output', target: seedream.id, targetHandle: 'prompt' },
-    { id: 'reference', source: explicit.id, sourceHandle: 'file', target: seedream.id, targetHandle: 'image-0' },
-  ], [seedream.id], 1);
-  assert.equal(result.error, undefined);
-  assert.deepEqual(result.tasks.map(task => task.seedreamRequest?.images), [[asset.url], [secondImage.url]]);
-  assert.deepEqual(result.tasks.map(task => task.seedreamRequest?.prompt), [
-    '<point>240 510</point> 和 <bbox>500 200 999 800</bbox> 编辑图像。\n保持背景',
-    '把 <bbox>500 200 999 800</bbox> 改为篮球。\n保持背景',
-  ]);
 });
 
 test('Seedream counts annotation originals against its image limit after reusing explicit matches', () => {

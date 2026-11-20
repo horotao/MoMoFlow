@@ -6,12 +6,6 @@
 
 运行前按下文核对当前模型的输入与渠道限制。模型之间共用的依赖解析、结果复用和取消规则见[工作流执行约定](workflow.md#按依赖自动执行与结果复用)，标注原图与 Mask 的限制见[交互编辑](painting-masks.md#交互编辑)。
 
-## 图像描述
-
-Image Describer 运行前需要至少一张有效的上游图片和非空模型值；当前实际接入的描述模型为 `deepseek-flash`。图片按输入端口编号排序，生成文本写回 `data.text`。
-
-使用 API 设置中的 DeepSeek Key 时，[describerClient.ts](../describerClient.ts) 先检查所有图片（JPEG、PNG、GIF、WebP，最多 14 张，单张 64 MiB，合计 200 MiB），再按顺序将原图直传到同一配置地址的 `/files`。文件在创建 1 小时后过期。上传完成后 `/api/describer` 只接收文件 ID 和系统指令，[deepseek.ts](../../../server/deepseek.ts) 用 `file` 内容块调用对话补全。上传失败或取消时不提交描述请求，也不回退内联图片。仅本机未配置用户 Key、使用 `.env.local` 默认 Key 时保留原内联路径。
-
 ## GPT Image 2.6
 
 Sunburst 运行前必须连接非空 Prompt，栅格输出时参考图片和 Mask 可选。SVG 输出仅支持 Prompt 文生图，连接参考图片或 Mask 会在执行任何上游模型前报错；每个请求 n=1，OpenAI SVG 请求显式使用 `svg.model: gpt-6.1-terra` 编写矢量 XML，顶层模型仍为所选 Flare / Sunburst；栅格格式省略此参数。`vectorSvg.ts` 使用 saxes 解析并验证纯矢量 XML，拒绝内嵌位图、脚本、动画及外部资源。服务端和客户端均校验，结果使用 image/svg+xml Blob 和 .svg 名称，预览、原文件下载、ZIP 与 IndexedDB 保留原始矢量字节，不经 Canvas 栅格化。SVG 不能直接作为模型图片参考输入。连接了 Image 时，执行器会先准备所需上游，提交图片模型请求前必须取得有效图片；使用 Mask 时还必须连接参考图片，且 Mask 只能提供一张图片。图片格式、尺寸及参数限制由 `sunburst.ts`、`sunburstClient.ts` 和服务端共同校验，不应只依赖界面限制。成功结果追加到 `results`，并更新 `activeResultId`。多张结果时，页码前的图标可切换单张预览与全部图片；全部视图与文件导入共用 [shared/NodeImagePreview.tsx](../shared/NodeImagePreview.tsx) 的两列瀑布流（8px 内边距、4px 列距），点击缩略图选择输出结果，双击打开全屏。视图切换仅影响当前预览，不改变已选结果。下载按钮同样复用 File Node：单张视图下载当前图片，全部图片视图按当前排序将所有结果打包为 `images.zip`。
@@ -34,10 +28,9 @@ Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排�
 ## 参数侧栏与旧画布
 
 - GPT Image 2.6 参数侧栏最多 300px 宽并撑满画布高度，标题与运行区固定，参数列表独立滚动。下拉框使用 beUI Select 的展开动效，模型版本、分辨率和输出格式用分段控件。所有生成参数都在侧栏本地编辑。渠道和版本继续在运行前校验。运行次数复用 `NodeRangeInput`，仍使用原有的共享次数状态与执行入口。
-- GPT Image 2.6 的输出格式不再提供 WebP，新节点若读到旧的 WebP 预设会改用 PNG。已有节点的 WebP 值仍能运行，侧栏标为旧设置，已有 WebP 图片仍能查看和下载。各渠道原有的 GIF、SVG、自定义尺寸和其它参数规则保留。Seedream 5.5 与 Nano Banana 复用同一套侧栏样式、下拉、分段控件和运行次数滑块。两者通过 APIMart 运行，侧栏标题下直接显示模型参数。图像描述和模型选项沿用原有侧栏样式。
-- `/tests/right-sidebars.html` 是五类共享参数侧栏及调色板无侧栏行为的独立浏览器验收入口（React / React Flow，`npm run dev` 后打开），使用隔离 IndexedDB 并拦截真实模型请求。可通过页面按钮切换节点，检查标题、滚动、32px 控件、下拉菜单、expose、模型选项和运行区域，以及选中调色板不打开侧栏；原有 Nano Banana 和调色板浏览器验收入口继续用于功能回归。
+- GPT Image 2.6 的输出格式不再提供 WebP，新节点若读到旧的 WebP 预设会改用 PNG。已有节点的 WebP 值仍能运行，侧栏标为旧设置，已有 WebP 图片仍能查看和下载。各渠道原有的 GIF、SVG、自定义尺寸和其它参数规则保留。Seedream 5.5 与 Nano Banana 复用同一套侧栏样式、下拉、分段控件和运行次数滑块。两者通过 APIMart 运行，侧栏标题下直接显示模型参数。
 - `/tests/sunburst-sidebar.html` 是这次侧栏的独立浏览器验收页（React 与现有浏览器测试入口），运行 `npm run dev` 后打开，可检查满高、等宽、键盘操作、本地参数、自定义尺寸和短窗口滚动；隔离 IndexedDB 且拦截真实模型请求。`sunburstRun.test.ts` 和 `connectionRecommendations.test.ts` 随 `npm test` 验证渠道和版本的运行校验及已退役参数端口的连接拒绝。
-- 旧画布加载时移除 GPT Image 2.6、Seedream 5.5 和 Nano Banana 的参数端口标记和参数连线。可解析且通过校验的参数组合会转为节点本地设置，校验失败时保留原本地设置。来源节点、提示词、参考图、蒙版和历史结果保留。
+- 旧画布加载时移除 GPT Image 2.6、Seedream 5.5 和 Nano Banana 的参数端口标记和参数连线。可解析且通过校验的参数组合会转为节点本地设置，校验失败时保留原本地设置。加载时先跳过已移除的节点及关联连线，再恢复其余节点的本地设置和素材。
 
 ## Seedream 5.5（APIMart）
 
@@ -58,10 +51,6 @@ Sunburst 的 Order by 菜单复用 File Node 的 Date added / Name 排序，排�
 [nanoBananaRun.ts](../nanoBananaRun.ts) 建立运行快照。[nanoBananaClient.ts](../nanoBananaClient.ts) 使用 APIMart 用户 Key 直传参考图并提交 URL；本地服务使用环境变量 Key 时，在服务端上传 multipart 文件。上传成功后以 `image_urls` 提交 `POST /v1/images/generations`，固定 `n: 1`。浏览器每 4 秒查询任务；完成后从 CDN 下载结果并保存为本地图片素材。选择的输出格式由浏览器处理。上传或生成失败时保留已有结果，取消停止本地等待。[生成接口](https://docs.apimart.ai/cn/api-reference/images/gemini-nano-banana-2.1/generation) · [上传接口](https://docs.apimart.ai/cn/api-reference/uploads/images)
 
 `/tests/nano-banana.html` 使用隔离数据库与模拟响应，覆盖文生图、参考图上传、结果查询、图片格式、取消、失败、撤销和保存恢复。
-
-## 旧工作流中的 Ideogram 4.5
-
-保留 `ideogram` 类型及原有输入端口用于恢复旧工作流。模型已下线，节点显示已保存的结果，支持预览、提取、下载及下游复用。节点库、搜索、拖线创建和运行入口已移除。
 
 ## API 设置
 

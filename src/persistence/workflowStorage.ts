@@ -1,14 +1,9 @@
-import { isInteractiveEditNode } from '../nodes/types.ts';
-import { isMasksExtractorNode } from '../nodes/types.ts';
-import { isImageGeneratorNode } from '../nodes/types.ts';
-import { isBlendNode } from '../nodes/types.ts';
-import { isCompareNode } from '../nodes/types.ts';
-import { isColorPaletteNode, isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isMatteGrowShrinkNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from '../nodes/types.ts';
+import { isFileNode, isImageGeneratorNode, isInteractiveEditNode } from '../nodes/types.ts';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources.ts';
 import { migrateImageModelGraph } from '../nodes/sunburstMigration.ts';
 import { migrateFileAnnotations } from '../nodes/annotationMigration.ts';
 import type { Edge, Viewport } from '@xyflow/react';
-import type { AppNode, FileAsset, FileNode, ImageGeneratorNode } from '../nodes/types';
+import type { AppNode, FileAsset } from '../nodes/types';
 
 export type Workflow = {
   nodes: AppNode[];
@@ -20,9 +15,17 @@ export type Workflow = {
 type StoredWorkflow = Workflow & { version: 1; revision?: string };
 const documentKey = 'current';
 
+function restoreGraph(nodes: AppNode[], edges: Edge[]) {
+  // Discard retired nodes before touching their potentially missing assets.
+  const supported = nodes.filter(node => isImageGeneratorNode(node) || node.type === 'text'
+    || node.type === 'file' || isInteractiveEditNode(node) || ['default', 'input', 'output', 'group'].includes(node.type ?? 'default'));
+  const kept = new Set(supported.map(node => node.id));
+  return migrateImageModelGraph(supported, edges.filter(edge => kept.has(edge.source) && kept.has(edge.target)));
+}
+
 // Drop React Flow's temporary interaction/measurement state, retain node content.
 export function workflowSnapshot(workflow: Workflow): StoredWorkflow {
-  const models = migrateImageModelGraph(workflow.nodes, workflow.edges);
+  const models = restoreGraph(workflow.nodes, workflow.edges);
   const graph = migrateFileAnnotations(models.nodes, models.edges);
   return {
     ...workflow, version: 1, colorMode: 'dark',
@@ -35,42 +38,22 @@ export function workflowSnapshot(workflow: Workflow): StoredWorkflow {
 
 export function mapAssets(nodes: AppNode[], map: (asset: FileAsset) => FileAsset): AppNode[] {
   return nodes.map(node => {
-    if (isBlendNode(node)) return { ...node, data: { ...node.data, back: node.data.back ? map(node.data.back) : undefined, front: node.data.front ? map(node.data.front) : undefined, result: node.data.result ? map(node.data.result) : undefined } };
-    if (isCompareNode(node)) return { ...node, data: { ...node.data, input1: node.data.input1 ? map(node.data.input1) : undefined, input2: node.data.input2 ? map(node.data.input2) : undefined } };
-    if (isCompositorNode(node)) return { ...node, data: { ...node.data,
-      result: node.data.result ? map(node.data.result) : undefined,
-      document: { ...node.data.document, layers: node.data.document.layers.map(layer => layer.source.kind === 'asset'
-        ? { ...layer, source: { kind: 'asset' as const, asset: map(layer.source.asset) } } : layer.source.kind === 'input' ? { ...layer, source: { ...layer.source, fallback: layer.source.fallback ? map(layer.source.fallback) : undefined } } : layer) },
-    } };
-    if (isColorPaletteNode(node)) return { ...node, data: { ...node.data, result: node.data.result ? map(node.data.result) : undefined } };
-    if ((node.type === 'file' || node.type === 'image-iterator')) {
-      const data = node.data as FileNode['data'];
+
+    if (isFileNode(node)) {
+      const { data } = node;
       return { ...node, data: {
         ...data,
         asset: data.asset ? map(data.asset) : undefined,
         assets: data.assets?.map(map),
       } } as AppNode;
     }
-    if (isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isMatteGrowShrinkNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) return { ...node, data: { ...node.data,
-      baseImage: node.data.baseImage ? map(node.data.baseImage) : undefined,
-      result: node.data.result ? map(node.data.result) : undefined,
-    } } as AppNode;
+
     if (isInteractiveEditNode(node)) return { ...node, data: { ...node.data,
       baseImage: node.data.baseImage ? map(node.data.baseImage) : undefined,
     } };
-    if (isMasksExtractorNode(node)) return { ...node, data: { ...node.data,
-      baseImage: node.data.baseImage ? map(node.data.baseImage) : undefined,
-      result: node.data.result ? map(node.data.result) : undefined,
-      mask: node.data.mask ? map(node.data.mask) : undefined,
-    } };
-    if (isPainterNode(node)) return { ...node, data: { ...node.data,
-      baseImage: node.data.baseImage ? map(node.data.baseImage) : undefined,
-      result: node.data.result ? map(node.data.result) : undefined,
-      mask: node.data.mask ? map(node.data.mask) : undefined,
-      alphaMask: node.data.alphaMask ? map(node.data.alphaMask) : undefined,
-    } };
+
     if (isImageGeneratorNode(node)) return { ...node, data: {
-      ...node.data, results: (node.data as ImageGeneratorNode['data']).results?.map(map),
+      ...node.data, results: node.data.results?.map(map),
     } } as AppNode;
     return node;
   });
@@ -129,7 +112,7 @@ export class WorkflowStorage {
     this.storedKeys = new Set(keys.result as string[]);
     const blobs = new Map(keys.result.map((key, index) => [key, assets.result[index] as Blob]));
     const urls = new Map<string, string>();
-    const graph = migrateImageModelGraph(saved.nodes, saved.edges);
+    const graph = restoreGraph(saved.nodes, saved.edges);
     const nodes = mapAssets(graph.nodes, asset => {
       if (!asset.url.startsWith('blob:')) return asset;
       const key = asset.url;

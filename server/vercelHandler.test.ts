@@ -23,7 +23,7 @@ test('hosted BYOK routes reject untrusted requests and never use server keys', a
     req.on('error', reject);
     req.end(body);
   });
-  for (const path of ['/api/sunburst', '/api/describer', '/api/nano-banana', '/api/apimart/images', '/api/apimart/seedream', '/api/apimart/task']) {
+  for (const path of ['/api/sunburst', '/api/nano-banana', '/api/apimart/images', '/api/apimart/seedream', '/api/apimart/task']) {
     const response = await request(path);
     assert.equal(response.status, 401, path);
     assert.match((await response.json()).error, /API Key/);
@@ -38,8 +38,8 @@ test('hosted BYOK routes reject untrusted requests and never use server keys', a
     'x-momoflow-provider': 'deepseek', 'x-momoflow-api-key': 'test-key', 'x-momoflow-base-url': 'https://api.deepseek.com',
   };
   const inlineDescription = (data: string) => JSON.stringify({ model: 'deepseek-flash', instructions: '', images: [`data:image/png;base64,${data}`] });
-  assert.equal((await request('/api/describer', inlineDescription('aGVsbG8='), deepseekHeaders)).status, 400);
-  assert.equal((await request('/api/describer', inlineDescription('a'.repeat(128 * 1024)), deepseekHeaders)).status, 413);
+  assert.equal((await request('/api/describer', inlineDescription('aGVsbG8='), deepseekHeaders)).status, 404);
+  assert.equal((await request('/api/describer', inlineDescription('a'.repeat(128 * 1024)), deepseekHeaders)).status, 404);
   process.env.VERCEL = '';
   assert.equal((await request('/api/settings/test')).status, 403);
 });

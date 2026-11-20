@@ -10,7 +10,6 @@ import { defaultSunburstSettings } from '../src/nodes/sunburst';
 import { defaultSeedreamSettings } from '../src/nodes/seedream';
 import type { FileAsset } from '../src/nodes/types';
 import '../src/index.css';
-import '../src/nodes/PreviewNode.css';
 
 const output = document.getElementById('results')!;
 let checks = 0;
@@ -48,9 +47,9 @@ async function run() {
   const url = URL.createObjectURL(blob);
   const workflow: Workflow = { ...empty, viewport: { x: 120, y: 140, zoom: 0.7 }, nodes: [
     { id: 'source', type: 'file', position: { x: 0, y: 0 }, data: { asset: { id: 'local', kind: 'image', name: '本地图片.png', url } } },
-    { id: 'router', type: 'router', position: { x: 650, y: 0 }, data: {} },
-    { id: 'preview', type: 'preview', position: { x: 1000, y: 0 }, data: {} },
-  ], edges: [{ id: 'edge', source: 'source', sourceHandle: 'file', target: 'router', targetHandle: 'input' }] };
+    { id: 'router', type: 'text', position: { x: 650, y: 0 }, data: { text: '' } },
+    { id: 'preview', type: 'text', position: { x: 1000, y: 0 }, data: { text: '' } },
+  ], edges: [{ id: 'edge', source: 'source', sourceHandle: 'file', target: 'router', targetHandle: 'variable-1' }] };
   await old.save(workflow);
   await library.rename('current', '无乳糖牛奶—移除产品与包装的长项目名称');
   await library.updatePreview('current', workflow);
@@ -119,6 +118,7 @@ async function run() {
   await until(() => document.querySelector('.canvas-project-count')?.textContent === '节点 3');
   const name = document.querySelector<HTMLElement>('.canvas-project-name')!;
   assert(name.scrollWidth > name.clientWidth && getComputedStyle(name).textOverflow === 'ellipsis', '长项目名在左上角截断');
+  await until(() => document.querySelector('.canvas-project-status')?.textContent === '已保存');
   assert(document.querySelector('.canvas-project-status')?.textContent === '已保存', '已保存状态与节点数量显示');
   button('.canvas-project-trigger').click();
   await until(() => document.querySelector('[role="menu"] [aria-checked="true"]'));

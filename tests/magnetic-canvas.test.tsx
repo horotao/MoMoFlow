@@ -9,20 +9,6 @@ import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStora
 import { canvasHistoryShortcut } from './canvasShortcuts';
 import '../src/index.css';
 import '../src/nodes/SunburstNode.css';
-import '../src/nodes/PainterNode.css';
-import '../src/nodes/PreviewNode.css';
-import '../src/nodes/CropNode.css';
-import '../src/nodes/ColorCorrectionNode.css';
-import '../src/nodes/BlurNode.css';
-import '../src/nodes/MatteGrowShrinkNode.css';
-import '../src/nodes/LevelsNode.css';
-import '../src/nodes/InvertNode.css';
-import '../src/nodes/RotateFlipNode.css';
-import '../src/nodes/ResizeNode.css';
-import '../src/nodes/CompareNode.css';
-import '../src/nodes/BlendNode.css';
-import '../src/nodes/ColorPaletteNode.css';
-import '../src/nodes/compositor/Compositor.css';
 
 let api: ReactFlowInstance<AppNode>;
 function Probe() { api = useReactFlow<AppNode>(); return null; }
@@ -295,7 +281,7 @@ run.onclick = async () => {
       for (const element of ports) {
         const image = element.querySelector('img');
         const isAnnotation = element.dataset.handleid === 'annotation-1';
-        const ring = element.querySelector(isAnnotation ? '.annotation-port-icon' : '.router-port-ring');
+        const ring = element.querySelector('.annotation-port-icon');
         const ringColor = ring && getComputedStyle(ring, '::before').borderTopColor;
         if (isAnnotation) check(ringColor === 'rgb(62, 162, 252)', `annotation-1 ring is #3EA2FC (${ringColor})`);
         const svg = image && new DOMParser().parseFromString(await (await fetch(image.src)).text(), 'image/svg+xml');

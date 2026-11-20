@@ -1,30 +1,7 @@
 import { isFileNode } from '../nodes/types';
-import { masksDocument } from '../nodes/masksExtractor';
-import { isImageIteratorNode, isTextIteratorNode, isMasksExtractorNode, isSeedreamNode } from '../nodes/types';
+import { isSeedreamNode } from '../nodes/types';
 import { isSeedreamExactSize } from '../nodes/seedream';
-import { blendDocument } from '../nodes/blend';
-import { isBlendNode } from '../nodes/types';
-import { resizeDocument } from '../nodes/resize';
-import { isResizeNode } from '../nodes/types';
-import { paletteDocument } from '../nodes/colorPalette';
-import { isColorPaletteNode } from '../nodes/types';
 import { createContext } from 'react';
-import { compositorDocument } from '../nodes/compositor';
-import { isCompositorNode } from '../nodes/types';
-import { rotateFlipDocument } from '../nodes/rotateFlip';
-import { isRotateFlipNode } from '../nodes/types';
-import { invertDocument } from '../nodes/invert';
-import { isInvertNode } from '../nodes/types';
-import { levelsDocument } from '../nodes/levels';
-import { isLevelsNode } from '../nodes/types';
-import { matteGrowShrinkDocument } from '../nodes/matteGrowShrink';
-import { isMatteGrowShrinkNode } from '../nodes/types';
-import { blurDocument } from '../nodes/blur';
-import { isBlurNode } from '../nodes/types';
-import { colorDocument } from '../nodes/colorCorrection';
-import { cropDocument } from '../nodes/crop';
-import { isColorCorrectionNode, isCropNode, isPainterNode } from '../nodes/types';
-import { painterDocument } from '../nodes/painter';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import type { Edge } from '@xyflow/react';
 import { initialTextDocument } from '../nodes/textDocument';
@@ -46,7 +23,7 @@ function snapshot(nodes: AppNode[], edges: Edge[]): Snapshot {
 
 function signature({ nodes, edges }: Snapshot) {
   return JSON.stringify({
-    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: isMasksExtractorNode(node) ? masksDocument(node.data) : isBlendNode(node) ? blendDocument(node.data) : isResizeNode(node) ? resizeDocument(node.data) : isColorPaletteNode(node) ? paletteDocument(node.data) : isCompositorNode(node) ? compositorDocument(node.data) : isRotateFlipNode(node) ? rotateFlipDocument(node.data) : isInvertNode(node) ? invertDocument(node.data) : isLevelsNode(node) ? levelsDocument(node.data) : isMatteGrowShrinkNode(node) ? matteGrowShrinkDocument(node.data) : isBlurNode(node) ? blurDocument(node.data) : isColorCorrectionNode(node) ? colorDocument(node.data) : isCropNode(node) ? cropDocument(node.data) : isPainterNode(node) ? painterDocument(node.data) : node.data })),
+    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: node.data })),
     edges: edges.map((edge) => ({ ...edge, selected: undefined })),
   }, (key, value) => key === 'content' && Array.isArray(value) && value.length === 0 ? undefined : value);
 }
@@ -74,68 +51,11 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
       const previous = state.present.nodes.find(item => item.id === node.id);
       return isFileNode(previous) && node.data.annotations !== previous.data.annotations;
     });
-    const maskChanged = nodes.some(node => isMasksExtractorNode(node) && (() => {
-      const previous = state.present.nodes.find(item => item.id === node.id);
-      return isMasksExtractorNode(previous) && previous.data.selection?.id !== node.data.selection?.id;
-    })());
-    const paintChanged = nodes.some(node => isPainterNode(node) && (() => {
-      const previous = state.present.nodes.find(item => item.id === node.id);
-      return isPainterNode(previous) && JSON.stringify(previous.data.strokes) !== JSON.stringify(node.data.strokes);
-    })());
-    const cropChanged = nodes.some(node => isCropNode(node) && (() => {
-      const previous = state.present.nodes.find(item => item.id === node.id);
-      return isCropNode(previous) && JSON.stringify(previous.data.rect) !== JSON.stringify(node.data.rect);
-    })());
-    const resizeChanged = nodes.some(node => isResizeNode(node) && (() => {
-      const previous = state.present.nodes.find(item => item.id === node.id);
-      return isResizeNode(previous) && JSON.stringify(previous.data.settings) !== JSON.stringify(node.data.settings);
-    })());
     const seedreamSizeChanged = nodes.some(node => isSeedreamNode(node) && isSeedreamExactSize(node.data.size) && (() => {
       const previous = state.present.nodes.find(item => item.id === node.id);
       return previous && isSeedreamNode(previous) && node.data.size !== previous.data.size;
     })());
-    const rotateFlipChanged = nodes.some(node => isRotateFlipNode(node) && (() => {
-      const previous = state.present.nodes.find(item => item.id === node.id);
-      return isRotateFlipNode(previous) && JSON.stringify(previous.data.settings) !== JSON.stringify(node.data.settings);
-    })());
-    const levelsChanged = nodes.some(node => isLevelsNode(node) && (() => {
-      const previous = state.present.nodes.find(item => item.id === node.id);
-      return isLevelsNode(previous) && JSON.stringify(previous.data.settings) !== JSON.stringify(node.data.settings);
-    })());
-    const matteChanged = nodes.some(node => isMatteGrowShrinkNode(node) && (() => {
-      const previous = state.present.nodes.find(item => item.id === node.id);
-      return isMatteGrowShrinkNode(previous) && JSON.stringify(previous.data.settings) !== JSON.stringify(node.data.settings);
-    })());
-    const blurChanged = nodes.some(node => isBlurNode(node) && (() => {
-      const previous = state.present.nodes.find(item => item.id === node.id);
-      return isBlurNode(previous) && JSON.stringify(previous.data.settings) !== JSON.stringify(node.data.settings);
-    })());
-    const colorChanged = nodes.some(node => isColorCorrectionNode(node) && (() => {
-      const previous = state.present.nodes.find(item => item.id === node.id);
-      return isColorCorrectionNode(previous) && JSON.stringify(previous.data.settings) !== JSON.stringify(node.data.settings);
-    })());
-    const compositorChanged = nodes.some(node => isCompositorNode(node) && (() => {
-      const previous = state.present.nodes.find(item => item.id === node.id);
-      return isCompositorNode(previous) && JSON.stringify(previous.data.document) !== JSON.stringify(node.data.document);
-    })());
-    const paletteChanged = nodes.some(node => isColorPaletteNode(node) && (() => {
-      const previous = state.present.nodes.find(item => item.id === node.id);
-      return isColorPaletteNode(previous) && JSON.stringify(previous.data.colors) !== JSON.stringify(node.data.colors);
-    })());
-    const blendChanged = nodes.some(node => isBlendNode(node) && (() => {
-      const previous = state.present.nodes.find(item => item.id === node.id);
-      return isBlendNode(previous) && JSON.stringify(previous.data.settings) !== JSON.stringify(node.data.settings);
-    })());
-    const iteratorChanged = nodes.some(node => isTextIteratorNode(node) && (() => {
-      const previous = state.present.nodes.find(item => item.id === node.id);
-      return isTextIteratorNode(previous) && JSON.stringify(node.data.items.map(item => item.id)) !== JSON.stringify(previous.data.items.map(item => item.id));
-    })());
-    const imageIteratorChanged = nodes.some(node => isImageIteratorNode(node) && (() => {
-      const previous = state.present.nodes.find(item => item.id === node.id);
-      return isImageIteratorNode(previous) && (node.data.orderBy !== previous.data.orderBy || JSON.stringify(node.data.assets?.map(asset => asset.id)) !== JSON.stringify(previous.data.assets?.map(asset => asset.id)));
-    })());
-    const compareChanged = nodes.some(node => node.type === 'compare' && JSON.stringify(node.data) !== JSON.stringify(state.present.nodes.find(item => item.id === node.id)?.data));
-    if (imageIteratorChanged || iteratorChanged || matteChanged || annotationsChanged || maskChanged || blendChanged || compareChanged || resizeChanged || seedreamSizeChanged || paletteChanged || compositorChanged || rotateFlipChanged || levelsChanged || blurChanged || colorChanged || cropChanged || paintChanged || !dataOnly || Date.now() - state.time > 750) {
+    if (annotationsChanged || seedreamSizeChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;

@@ -65,7 +65,7 @@ function Preview() {
       success: [image, banana],
       failure: [failed],
       timeout: [timeout],
-      mixed: [image, failed, timeout, makeRun('图像描述', 3500, 'done', 3400)],
+      mixed: [image, failed, timeout, makeRun('Seedream', 3500, 'done', 3400)],
     };
     setMode(scenario);
     setRuns(cases[scenario]);

@@ -1,13 +1,11 @@
 import type { SeedreamRequest } from './seedream';
 import type { NanoBananaRequest } from './nanoBanana';
 import type { SunburstRequest } from './sunburst';
-import type { WorkflowIteration } from './workflowIteration';
 export type TaskState = 'Queued' | 'Running' | 'Done' | 'Cancelled' | 'Failed' | 'TimedOut';
 export type PreviewTask = {
   id: string; batchId: string; nodeId: string; model: string; createdAt: number;
-  instructions?: string; images?: string[]; imageRequest?: SunburstRequest; nanoBananaRequest?: NanoBananaRequest; seedreamRequest?: SeedreamRequest;
+  imageRequest?: SunburstRequest; nanoBananaRequest?: NanoBananaRequest; seedreamRequest?: SeedreamRequest;
   progress: number; state: TaskState; started: number; error?: string; notice?: string; label?: string;
-  iteration?: WorkflowIteration;
   seedreamGroup?: { imageId: string; index: number; total: number };
 };
 export const isActiveTask = (task: PreviewTask) => task.state === 'Queued' || task.state === 'Running';
@@ -18,7 +16,7 @@ export function advanceEstimatedProgress(tasks: PreviewTask[], now: number): Pre
   let changed = false;
   const next = tasks.map(task => {
     if (task.state !== 'Running') return task;
-    const duration = (task.imageRequest || task.nanoBananaRequest || task.seedreamRequest) ? 90000 : 30000;
+    const duration = 90000;
     const elapsed = Math.max(0, now - task.started);
     const estimate = Math.min(95, Math.floor(96 * (1 - Math.exp(-elapsed / (duration / 2)))));
     const progress = Math.max(task.progress, estimate);
@@ -61,14 +59,4 @@ export function groupState(tasks: PreviewTask[]): TaskState {
 export function clearFinishedTasks(tasks: PreviewTask[]) {
   const activeBatches = new Set(tasks.filter(isActiveTask).map((task) => task.batchId));
   return tasks.filter((task) => activeBatches.has(task.batchId));
-}
-
-// Different nodes run concurrently; repeated runs of one node retain queue order.
-export function readyDescriberTasks(tasks: PreviewTask[], activeNodeIds: string[]): PreviewTask[] {
-  const busy = new Set([...activeNodeIds, ...tasks.filter((task) => task.state === 'Running').map((task) => task.nodeId)]);
-  return tasks.filter((task) => {
-    if (task.state !== 'Queued' || busy.has(task.nodeId)) return false;
-    busy.add(task.nodeId);
-    return true;
-  });
 }

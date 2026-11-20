@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { advanceEstimatedProgress, readyDescriberTasks, advanceTasks, clearFinishedTasks, groupState, isActiveTask, taskGroups, type PreviewTask } from './taskQueue.ts';
-import { defaultSunburstSettings } from './sunburst.ts';
+import { advanceEstimatedProgress, advanceTasks, clearFinishedTasks, groupState, isActiveTask, taskGroups, type PreviewTask } from './taskQueue.ts';
 const task = (id: string): PreviewTask => ({ id, batchId: 'batch', nodeId: 'node', model: 'preview', createdAt: 100, started: 0, progress: 0, state: 'Queued' });
 test('estimated progress advances monotonically but never completes a real request', () => {
   const initial: PreviewTask[] = [{ ...task('real'), state: 'Running', started: 1000 }];
@@ -17,17 +16,6 @@ test('estimated progress advances monotonically but never completes a real reque
 test('estimates preserve queued and terminal tasks, including completed 100 percent', () => {
   const tasks: PreviewTask[] = [task('queued'), { ...task('cancelled'), state: 'Cancelled', progress: 32 }, { ...task('failed'), state: 'Failed', progress: 48 }, { ...task('done'), state: 'Done', progress: 100 }];
   assert.equal(advanceEstimatedProgress(tasks, 100000), tasks);
-});
-test('image requests estimate more slowly and progress updates keep same-node scheduling ordered', () => {
-  const tasks: PreviewTask[] = [
-    { ...task('image'), state: 'Running', started: 1000, imageRequest: { ...defaultSunburstSettings, prompt: 'test', images: [] } },
-    { ...task('text'), nodeId: 'text', state: 'Running', started: 1000 },
-    task('next'),
-  ];
-  const advanced = advanceEstimatedProgress(tasks, 11000);
-  assert.ok(advanced[0].progress > 0 && advanced[0].progress < advanced[1].progress);
-  assert.deepEqual(readyDescriberTasks(advanced, []), []);
-  assert.equal(advanced[2], tasks[2]);
 });
 test('preview runs one job at a time and completes at 100 percent without mutating prior snapshots', () => {
   const initial = [task('a'), task('b')];
@@ -67,17 +55,4 @@ test('clearing history retains completed children of an active batch so totals r
   const old = { ...done, id: 'old', batchId: 'old' };
   assert.deepEqual(clearFinishedTasks([done, queued, old]), [done, queued]);
   assert.deepEqual(clearFinishedTasks([done, old]), []);
-});
-
-test('different nodes start together while repeated runs of a node stay ordered', () => {
-  const tasks = [{ ...task('a1'), nodeId: 'a' }, { ...task('a2'), nodeId: 'a' }, { ...task('b1'), nodeId: 'b' }];
-  assert.deepEqual(readyDescriberTasks(tasks, []).map((item) => item.id), ['a1', 'b1']);
-  assert.deepEqual(readyDescriberTasks(tasks, ['a']).map((item) => item.id), ['b1']);
-  assert.deepEqual(readyDescriberTasks([{ ...tasks[0], state: 'Running' }, ...tasks.slice(1)], []).map((item) => item.id), ['b1']);
-  assert.deepEqual(readyDescriberTasks([{ ...tasks[0], state: 'Done' }, ...tasks.slice(1)], []).map((item) => item.id), ['a2', 'b1']);
-});
-test('cancellation and failure cannot restart terminal tasks or block unrelated nodes', () => {
-  const tasks: PreviewTask[] = [{ ...task('a1'), nodeId: 'a', state: 'Cancelled' }, { ...task('a2'), nodeId: 'a' }, { ...task('b1'), nodeId: 'b', state: 'Failed' }, { ...task('c1'), nodeId: 'c' }];
-  assert.deepEqual(readyDescriberTasks(tasks, ['a']).map((item) => item.id), ['c1']);
-  assert.deepEqual(readyDescriberTasks(tasks, []).map((item) => item.id), ['a2', 'c1']);
 });

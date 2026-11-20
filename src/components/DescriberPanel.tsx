@@ -1,31 +1,21 @@
 import { useWorkflowExecution } from './useWorkflowExecution';
-import { IterationSummary } from './IterationSummary';
 import { ExecutionProblem, isModelNode } from '../nodes/executionGraph';
 import { SeedreamSettings } from './SeedreamSettings';
 import { seedreamName } from '../nodes/seedream';
 import { NanoBananaSettings } from './NanoBananaSettings';
 import { nanoBananaName } from '../nodes/nanoBanana';
-import { ModelOptionsSettings } from './ModelOptionsSettings';
 import { SunburstSettings } from './SunburstSettings';
 import { GptRunCount } from './GptRunCount';
 import { apimartExtMarkupError, sunburstName, sunburstProviderLabels } from '../nodes/sunburst';
 import { useEffect, type KeyboardEventHandler, type ReactNode } from 'react';
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react';
 import { useNodes, useReactFlow } from '@xyflow/react';
-import { useWorkflowEdges } from '../nodes/promptAnnotationEdits';
 import { TaskManager } from './TaskManager';
 import { isActiveTask } from '../nodes/taskQueue';
 import { useModelRuns, useModelTasks, useModelTaskStore } from './useModelTasks';
-import { isDescriberNode, isIdeogramNode, isNodeLocked, isImageGeneratorNode, isSunburstNode, isNanoBananaNode, isSeedreamNode } from '../nodes/types';
-import type { AppNode, ImageDescriberNode, ModelInputNode } from '../nodes/types';
-import { DescriberIcon } from './DescriberIcon';
-import { DescriberModelSelect } from './DescriberModelSelect';
-import { resolveTextValue } from '../nodes/textVariables';
+import { isImageGeneratorNode, isSunburstNode, isNanoBananaNode, isSeedreamNode } from '../nodes/types';
+import type { AppNode } from '../nodes/types';
 import { nodeSettingsSpring } from '../lib/springs';
-import { NodeIcon } from '../nodes/NodeIcon';
-import { NodeSettingsSection } from './NodeSettingsSection';
-import { ParameterField } from './ParameterField';
-import { ParameterExposeButton } from './ParameterExposeButton';
 import { AnimatedToastStack, type ToastInput } from './ui/AnimatedToastStack';
 import { useAnimatedToastStack } from './ui/useAnimatedToastStack';
 import './NodeSettingsSidebar.css';
@@ -68,28 +58,16 @@ function NodeSettingsSidebar({ children, label, onKeyDown, imageModel = false }:
 
 export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (prompt: string) => Promise<void> }) {
   const nodes = useNodes<AppNode>();
-  const edges = useWorkflowEdges();
-  const { setNodes, setEdges, updateNodeData: rawUpdateNodeData, getNodes, setCenter } = useReactFlow<AppNode>();
-  const updateNodeData: typeof rawUpdateNodeData = (id, data, options) => {
-    const node = getNodes().find((item) => item.id === id);
-    if (!node || isNodeLocked(node)) return;
-    rawUpdateNodeData(id, data, options);
-  };
+  const { setNodes, getNodes, setCenter } = useReactFlow<AppNode>();
   const runnable = nodes.filter((node) => isModelNode(node) && node.selected && !node.data.locked);
-  const selectedImage = nodes.find((node) => isImageGeneratorNode(node) && !isIdeogramNode(node) && node.selected);
+  const selectedImage = nodes.find((node) => isImageGeneratorNode(node) && node.selected);
   const providerName = selectedImage && isSunburstNode(selectedImage) ? sunburstProviderLabels[selectedImage.data.provider ?? 'openai'] : 'APIMart';
-  const selected = nodes.find((n): n is ImageDescriberNode => n.type === 'image-describer' && Boolean(n.selected));
-  const selectedModel = nodes.find((n): n is ModelInputNode => n.type === 'model-input' && Boolean(n.selected));
-  const panelOpen = Boolean(selected || selectedModel || selectedImage);
+  const panelOpen = Boolean(selectedImage);
   const tasks = useModelTasks();
   const taskStore = useModelTaskStore();
   const execution = useWorkflowExecution(onImageGenerated);
   const [runs, setRuns] = useModelRuns();
   const { toasts, showToast, dismissToast, clearToasts } = useAnimatedToastStack({ limit: 4 });
-  const effective = (node: ImageDescriberNode, field: 'model' | 'instructions') => {
-    const edge = edges.find((e) => e.target === node.id && e.targetHandle === field);
-    return edge ? resolveTextValue(edge.source, nodes, edges) : node.data[field];
-  };
   useEffect(() => {
     const run = (event: Event) => {
       const detail = (event as CustomEvent<string | string[]>).detail;
@@ -109,59 +87,21 @@ export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (promp
     window.addEventListener('sunburst-run', run);
     return () => { window.removeEventListener('describer-run', run); window.removeEventListener('sunburst-run', run); };
   }, [getNodes, taskStore, execution, setNodes, setCenter, showToast, clearToasts]);
-  const expose = (field: 'model' | 'instructions') => {
-    if (!selected || isNodeLocked(getNodes().find((node) => node.id === selected.id))) return;
-    const exposed = selected.data.exposed ?? [];
-    if (exposed.includes(field)) {
-      const value = effective(selected, field);
-      updateNodeData(selected.id, { [field]: value, exposed: exposed.filter((f) => f !== field) });
-      setEdges((all) => all.filter((e) => !(e.target === selected.id && e.targetHandle === field)));
-      return;
-    }
-    const id = `${field}-${crypto.randomUUID()}`;
-    const position = { x: selected.position.x - 540, y: selected.position.y + (field === 'model' ? -200 : 160) };
-    const input: AppNode = field === 'model' ? { id, type: 'model-input', position, data: { model: selected.data.model } } : { id, type: 'text', position, data: { label: 'System Instructions', text: selected.data.instructions } };
-    setNodes((all) => [...all.map((n) => n.id === selected.id && isDescriberNode(n) ? { ...n, data: { ...n.data, exposed: [...exposed, field] } } : n), input]);
-    setEdges((all) => [...all, { id: crypto.randomUUID(), source: id, target: selected.id, targetHandle: field }]);
-  };
   return <>
     {/* Presence retains the last settings and full-height shell until the exit finishes. */}
     <AnimatePresence initial={false}>
-      {panelOpen && <NodeSettingsSidebar key="node-settings" imageModel={Boolean(selectedImage)} label={selectedImage ? `${selectedImage.type === 'seedream' ? seedreamName : selectedImage.type === 'nano-banana' ? nanoBananaName : sunburstName} 设置` : selectedModel ? `${selectedModel.data.label || "Model Name"} settings` : "Image Describer settings"} onKeyDown={(e) => e.stopPropagation()}>
-        {selectedModel && !selectedImage && <ModelOptionsSettings key={selectedModel.id} node={selectedModel} onChange={data => updateNodeData(selectedModel.id, data)} />}
-        {selectedImage && isSunburstNode(selectedImage) && <SunburstSettings key={selectedImage.id} node={selectedImage} />}
-        {selectedImage && isSeedreamNode(selectedImage) && <SeedreamSettings key={selectedImage.id} node={selectedImage} />}
-        {selectedImage && isNanoBananaNode(selectedImage) && <NanoBananaSettings key={selectedImage.id} node={selectedImage} />}
-        {selected && !selectedImage && <>
-          <NodeSettingsSection title="Image Describer" icon={<NodeIcon nodeType="image-describer" size={20} />} key={selected.id}>
-            <ParameterField label="Model" exposeButton={<ParameterExposeButton label="Model" exposed={Boolean(selected.data.exposed?.includes('model'))} disabled={selected.data.locked}
-              ariaLabel="Set model as input" title={selected.data.exposed?.includes('model') ? 'Use local value' : 'Set as input'} onClick={() => expose('model')} />}>
-              <DescriberModelSelect appearance="settings" compact fluidHover label="Model" value={effective(selected, 'model')} disabled={selected.data.locked || selected.data.exposed?.includes('model')} onChange={(model) => updateNodeData(selected.id, { model })} />
-            </ParameterField>
-            <ParameterField label="System Instructions" controlId="describer-instructions" exposeButton={<ParameterExposeButton label="System Instructions" exposed={Boolean(selected.data.exposed?.includes('instructions'))} disabled={selected.data.locked}
-              ariaLabel="Set system instructions as input" title={selected.data.exposed?.includes('instructions') ? 'Use local value' : 'Set as input'} onClick={() => expose('instructions')} />}>
-              <textarea id="describer-instructions" value={effective(selected, 'instructions')} readOnly={selected.data.locked || selected.data.exposed?.includes('instructions')} onChange={(e) => updateNodeData(selected.id, { instructions: e.target.value })} />
-            </ParameterField>
-          </NodeSettingsSection>
-        </>}
-        {(selected || selectedImage) && <>
-          <div className="describer-panel-bottom">
-            {selectedImage ? <GptRunCount value={runs} disabled={!runnable.length} onChange={setRuns} /> : <>
-              <h3>运行选中节点</h3>
-              <div className="describer-runs"><span>运行次数</span><div>
-                <button aria-label="减少运行次数" disabled={!runnable.length || runs === 1} onClick={() => setRuns(runs - 1)}><DescriberIcon name="minus" /></button>
-                <span>{runs}</span>
-                <button aria-label="增加运行次数" disabled={!runnable.length || runs === 10} onClick={() => setRuns(runs + 1)}><DescriberIcon name="plus" /></button>
-              </div></div>
-            </>}
-            {(selectedImage || selected) && <IterationSummary nodeId={(selectedImage || selected)!.id} />}
-            {selectedImage && <div className="sunburst-cost"><span>总费用</span><span>按实际用量计费</span></div>}
-            <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={selectedImage ? `通过 ${providerName} 运行图片模型` : "调用 DeepSeek 生成提示词"} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => isModelNode(node) && node.selected && !node.data.locked).map((node) => node.id) }))}>
-              {selectedImage ? <img src="/gpt-sidebar/settings-run.svg" width={22} height={22} alt="" /> : <DescriberIcon name="run" />}
-              运行选中节点
-            </button>
-          </div>
-        </>}
+      {selectedImage && <NodeSettingsSidebar key="node-settings" imageModel label={`${selectedImage.type === 'seedream' ? seedreamName : selectedImage.type === 'nano-banana' ? nanoBananaName : sunburstName} 设置`} onKeyDown={(e) => e.stopPropagation()}>
+        {isSunburstNode(selectedImage) && <SunburstSettings key={selectedImage.id} node={selectedImage} />}
+        {isSeedreamNode(selectedImage) && <SeedreamSettings key={selectedImage.id} node={selectedImage} />}
+        {isNanoBananaNode(selectedImage) && <NanoBananaSettings key={selectedImage.id} node={selectedImage} />}
+        <div className="describer-panel-bottom">
+          <GptRunCount value={runs} disabled={!runnable.length} onChange={setRuns} />
+          <div className="sunburst-cost"><span>总费用</span><span>按实际用量计费</span></div>
+          <button disabled={!runnable.length || runnable.some(node => tasks.some(task => task.nodeId === node.id && isActiveTask(task)))} className="describer-primary" title={`通过 ${providerName} 运行图片模型`} onClick={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: getNodes().filter((node) => isModelNode(node) && node.selected && !node.data.locked).map((node) => node.id) }))}>
+            <img src="/gpt-sidebar/settings-run.svg" width={22} height={22} alt="" />
+            运行选中节点
+          </button>
+        </div>
       </NodeSettingsSidebar>}
     </AnimatePresence>
     <TaskManager sidebarOpen={panelOpen}
@@ -169,7 +109,7 @@ export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (promp
         const node = getNodes().find((item) => item.id === task.nodeId);
         if (!node || !isModelNode(node) || node.data.locked) return;
         try {
-          void execution.current?.run([task.nodeId], 1, task.iteration, task.seedreamGroup?.imageId);
+          void execution.current?.run([task.nodeId], 1, task.seedreamGroup?.imageId);
           clearToasts();
         } catch (error) { showToast(executionErrorToast(error, '无法重试任务')); }
       }}

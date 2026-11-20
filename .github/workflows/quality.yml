@@ -29,8 +29,6 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - run: npm ci
-        env:
-          ONNXRUNTIME_NODE_INSTALL_CUDA: skip
       - name: Lint, tests, types, build, node docs and diff
         run: npm run check
         env:

@@ -4,11 +4,8 @@ import { MotionConfig } from 'motion/react';
 import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, addEdge, useEdgesState, useNodesState, useReactFlow, type Edge, type ReactFlowInstance } from '@xyflow/react';
 import { SunburstNode } from '../src/nodes/SunburstNode';
 import { NanoBananaNode } from '../src/nodes/NanoBananaNode';
-import { IdeogramNode } from '../src/nodes/IdeogramNode';
 import { defaultNanoBananaSettings } from '../src/nodes/nanoBanana';
-import { defaultIdeogramSettings } from '../src/nodes/ideogram';
 import { FileNode } from '../src/nodes/FileNode';
-import { PreviewNode } from '../src/nodes/PreviewNode';
 import { defaultSunburstSettings } from '../src/nodes/sunburst';
 import { ModelTasksProvider } from '../src/components/ModelTasksProvider';
 import { useModelTaskStore } from '../src/components/useModelTasks';
@@ -16,23 +13,20 @@ import type { AppNode, FileAsset } from '../src/nodes/types';
 import '@xyflow/react/dist/style.css';
 import '../src/index.css';
 import '../src/nodes/SunburstNode.css';
-import '../src/nodes/PreviewNode.css';
 
 const assets: FileAsset[] = [
   { id: 'landscape', name: 'B landscape.png', kind: 'image', url: '/tests/fixtures/image-node-1.png', width: 1536, height: 1152 },
   { id: 'square', name: 'A square.png', kind: 'image', url: '/tests/fixtures/image-node-2.png', width: 1024, height: 1024 },
 ];
-const modelIds = ['gpt', 'nano', 'ideogram'];
+const modelIds = ['gpt', 'nano'];
 const allIds = [...modelIds, 'import'];
 const zoom = .6;
 const initial: AppNode[] = [
   { id: 'gpt', type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, imageInputs: 1 } },
   { id: 'nano', type: 'nano-banana', position: { x: 540, y: 0 }, data: { ...defaultNanoBananaSettings, imageInputs: 1 } },
-  { id: 'ideogram', type: 'ideogram', position: { x: 1080, y: 0 }, data: { ...defaultIdeogramSettings, imageInputs: 1 } },
   { id: 'import', type: 'file', position: { x: 1620, y: 0 }, data: {} },
-  { id: 'preview', type: 'preview', position: { x: 2160, y: 0 }, data: {} },
 ];
-const nodeTypes = { sunburst: SunburstNode, 'nano-banana': NanoBananaNode, ideogram: IdeogramNode, file: FileNode, preview: PreviewNode };
+const nodeTypes = { sunburst: SunburstNode, 'nano-banana': NanoBananaNode, file: FileNode };
 let api: ReactFlowInstance<AppNode>;
 let tasks: ReturnType<typeof useModelTaskStore>;
 function fill(count: number) {
@@ -49,7 +43,6 @@ function Graph() {
   api = useReactFlow<AppNode>(); tasks = useModelTaskStore();
   const [nodes, , onNodesChange] = useNodesState(initial);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([
-    { id: 'preview-link', source: 'import', sourceHandle: 'file', target: 'preview', targetHandle: 'file' },
   ]);
   return <>
     <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
@@ -250,11 +243,9 @@ async function run() {
       button(id, '取消运行').click(); await frame(); await frame();
       check(tasks.getSnapshot().find(task => task.nodeId === id)?.state === 'Cancelled', `${id}: progress cancel still cancels the actual task`);
     }
-    check(!node('nano').querySelector('[data-handleid="mask"]') && node('ideogram').querySelector('[data-handleid="mask"]'), 'Model-specific mask inputs are preserved');
-    check(node('ideogram').textContent?.includes('模型已下线') && !node('ideogram').querySelector('.sunburst-run'), 'Saved Ideogram nodes retain their gallery without a run action');
-    for (const id of ['nano', 'ideogram']) check(Boolean(node(id).querySelector('.node-title-icon svg')), `${id}: original model brand icon is preserved`);
+    for (const id of ['nano']) check(Boolean(node(id).querySelector('.node-title-icon svg')), `${id}: original model brand icon is preserved`);
     fill(1);
-    for (const id of [...allIds, 'preview']) await verifySingleImageFullscreen(id);
+    for (const id of [...allIds ]) await verifySingleImageFullscreen(id);
     fill(0); await frame(); await frame();
     const loadedImages = Array.from(document.querySelectorAll<HTMLImageElement>('.media-node-frame img'));
     await until(() => loadedImages.every(img => img.complete && img.naturalWidth > 0), 'All design SVG assets must load');

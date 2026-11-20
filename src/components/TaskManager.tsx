@@ -14,11 +14,8 @@ const queueStates: Record<TaskState, QueueTask['state']> = {
 };
 
 function queueTask(task: PreviewTask): QueueTask {
-  const label = task.label || (task.seedreamRequest ? seedreamName : task.nanoBananaRequest ? nanoBananaName : task.imageRequest ? sunburstName : '图像描述');
-  const iteration = task.iteration;
-  const detail = iteration
-    ? `${task.model} · 第 ${iteration.index + 1} ${iteration.kind === 'image' ? `张：${iteration.name}` : `条：${iteration.text}`}`
-    : task.model;
+  const label = task.label || (task.seedreamRequest ? seedreamName : task.nanoBananaRequest ? nanoBananaName : sunburstName);
+  const detail = task.model;
   return { id: task.id, label, detail, progress: task.progress, state: queueStates[task.state], notice: task.notice, error: task.error };
 }
 

@@ -4,9 +4,7 @@ import { useWorkflowEdges } from '../nodes/promptAnnotationEdits';
 import type { AppNode, FileAsset } from '../nodes/types';
 import { WorkflowExecution, aborted } from '../nodes/workflowExecution';
 import { readExecutionAsset } from '../nodes/executionAssets';
-import { renderExecutionOutput } from '../nodes/executionLocal';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources';
-import { requestDescription } from '../nodes/describerClient';
 import { requestSunburst } from '../nodes/sunburstClient';
 import { requestSeedream } from '../nodes/seedreamClient';
 import { requestNanoBanana } from '../nodes/nanoBananaClient';
@@ -24,7 +22,6 @@ export function useWorkflowExecution(onImageGenerated?: (prompt: string) => Prom
       patch: (id, data) => updateNodeData(id, data),
       retain: graph => assetResources.retain(nodeAssetUrls(graph.nodes)),
       discard: assets => assetResources.discard(assets.map(asset => asset.url)),
-      local: renderExecutionOutput,
       verify: async (assets, signal) => {
         for (const asset of assets) {
           await readExecutionAsset(asset.url, signal);
@@ -46,7 +43,7 @@ export function useWorkflowExecution(onImageGenerated?: (prompt: string) => Prom
           return { assets, release: () => { release(); assetResources.discard(urls); } };
         } catch (error) { assetResources.discard(urls); throw error; }
       },
-      request: (task, signal) => task.seedreamRequest ? requestSeedream(task.seedreamRequest, signal) : task.nanoBananaRequest ? requestNanoBanana(task.nanoBananaRequest, signal) : task.imageRequest ? requestSunburst(task.imageRequest, signal) : requestDescription(task, signal),
+      request: (task, signal) => task.seedreamRequest ? requestSeedream(task.seedreamRequest, signal) : task.nanoBananaRequest ? requestNanoBanana(task.nanoBananaRequest, signal) : task.imageRequest ? requestSunburst(task.imageRequest, signal) : Promise.reject(new Error('任务缺少图像请求。')),
     });
     engine.current = instance;
     return () => { instance.dispose(); engine.current = undefined; };

@@ -10,13 +10,11 @@ import { providerConnection } from './apiCredentials.ts';
 import { byokFetch, isPublicAddress } from './byokFetch.ts';
 import { sunburstPlugin } from './sunburst.ts';
 import { apimartPlugin } from './apimart.ts';
-import { deepseekPlugin } from './deepseek.ts';
 import { defaultSunburstSettings } from '../src/nodes/sunburst.ts';
 import { defaultNanoBananaSettings } from '../src/nodes/nanoBanana.ts';
 import type { ApiProvider } from '../src/components/apiSettings.ts';
 
 const keys = { openai: 'default-openai', deepseek: 'default-deepseek', apimart: 'default-apimart' };
-const png = 'data:image/png;base64,aGVsbG8=';
 const customHeaders = (provider: ApiProvider, key = `custom-${provider}`) => ({
   'x-momoflow-provider': provider, 'x-momoflow-api-key': key, 'x-momoflow-base-url': 'https://gateway.example/prefix/v1/',
 });
@@ -76,12 +74,6 @@ for (const hook of ['configureServer', 'configurePreviewServer'] as const) {
         return Response.json({ data: [{ task_id: 'task_banana' }] });
       }), '/api/nano-banana', { ...defaultNanoBananaSettings, prompt: 'test', images: [] }, custom ? customHeaders('apimart') : {}, hook);
       assert.equal(nano.status, 200);
-      const deepseek = await invoke(deepseekPlugin(keys.deepseek, async (url, init) => {
-        assert.equal(String(url), `${custom ? 'https://gateway.example/prefix/v1' : 'https://api.deepseek.com'}/chat/completions`);
-        assert.equal(new Headers(init?.headers).get('Authorization'), `Bearer ${custom ? 'custom-deepseek' : keys.deepseek}`);
-        return Response.json({ choices: [{ message: { content: 'test description' }, finish_reason: 'stop' }] });
-      }), '/api/describer', custom ? { instructions: '', fileIds: ['file-api-test'] } : { model: 'deepseek-flash', instructions: '', images: [png] }, custom ? customHeaders('deepseek') : {}, hook);
-      assert.equal(deepseek.status, 200);
     }
   });
 }
@@ -124,18 +116,18 @@ test('BYOK rejects private, loopback, metadata, mapped IPv6 and special-use dest
 
 test('concurrent BYOK requests retain their own keys and endpoints', async () => {
   const received: string[] = [];
-  const plugin = deepseekPlugin('unused-default', async (url, init) => {
+  const plugin = sunburstPlugin('unused-default', async (url, init) => {
     await new Promise(resolve => setTimeout(resolve, 5));
     received.push(`${url} ${new Headers(init?.headers).get('Authorization')}`);
-    return Response.json({ choices: [{ message: { content: 'description' }, finish_reason: 'stop' }] });
+    return Response.json({ data: [{ b64_json: 'aGVsbG8=' }] });
   });
-  const body = { instructions: '', fileIds: ['file-api-test'] };
-  const results = await Promise.all(['first', 'second'].map(id => invoke(plugin, '/api/describer', body, {
-    ...customHeaders('deepseek', `key-${id}`), 'x-momoflow-base-url': `https://${id}.example/v1`,
+  const body = { ...defaultSunburstSettings, provider: 'openai', prompt: 'test', images: [] };
+  const results = await Promise.all(['first', 'second'].map(id => invoke(plugin, '/api/sunburst', body, {
+    ...customHeaders('openai', `key-${id}`), 'x-momoflow-base-url': `https://${id}.example/v1`,
   })));
   assert.ok(results.every(result => result.status === 200));
   assert.deepEqual(received.sort(), [
-    'https://first.example/v1/chat/completions Bearer key-first',
-    'https://second.example/v1/chat/completions Bearer key-second',
+    'https://first.example/v1/images/generations Bearer key-first',
+    'https://second.example/v1/images/generations Bearer key-second',
   ]);
 });

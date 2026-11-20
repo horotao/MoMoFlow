@@ -65,7 +65,7 @@ test('reference collection covers legacy assets, all generated results and task 
   const file: FileNode = { id: 'f', type: 'file', position: { x: 0, y: 0 }, data: { asset, assets: [{ ...asset, url: 'blob:second' }] } };
   const generator: SunburstNode = { id: 'g', type: 'sunburst', position: { x: 0, y: 0 }, data: { imageInputs: 1, quality: 'medium', background: 'auto', size: 'auto', outputFormat: 'png', results: [asset, { ...asset, url: 'blob:third' }] } };
   assert.deepEqual([...nodeAssetUrls([file, generator])], ['blob:first', 'blob:second', 'blob:third']);
-  assert.deepEqual(taskAssetUrls({ id: 't', batchId: 'b', nodeId: 'g', model: 'm', createdAt: 0, progress: 0, started: 0, state: 'Queued', images: ['blob:first'], imageRequest: { quality: 'medium', background: 'auto', size: 'auto', outputFormat: 'png', prompt: '', images: ['blob:second'], mask: 'blob:mask' } }), ['blob:first', 'blob:second', 'blob:mask']);
+  assert.deepEqual(taskAssetUrls({ id: 't', batchId: 'b', nodeId: 'g', model: 'm', createdAt: 0, progress: 0, started: 0, state: 'Queued', imageRequest: { quality: 'medium', background: 'auto', size: 'auto', outputFormat: 'png', prompt: '', images: ['blob:first', 'blob:second'], mask: 'blob:mask' } }), ['blob:first', 'blob:second', 'blob:mask']);
 });
 
 test('cut clipboard survives history eviction; failed clipboard writes preserve previous entry', async () => {

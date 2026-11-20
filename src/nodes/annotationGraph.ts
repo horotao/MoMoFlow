@@ -1,7 +1,7 @@
 import type { Edge } from '@xyflow/react';
 import { annotationHistory, fileAnnotationHistory, resultAnnotationDraftHandle, type AnnotationHistory } from './interactiveEdit.ts';
 import { activeFileAsset, fileAssets } from './fileCollection.ts';
-import { resolveOutputSource } from './router.ts';
+import { resolveOutputSource } from './outputPort.ts';
 import { imageOutput } from './sunburstRun.ts';
 import { isFileNode, isImageGeneratorNode, isInteractiveEditNode, type AppNode, type FileAsset, type FileNode, type ImageGeneratorNode, type InteractiveEditNode } from './types.ts';
 
@@ -30,9 +30,9 @@ export const isPinnedResultHandle = (handle?: string | null): handle is `${typeo
 
 export function pinnedResultInput(edge: Edge, promptId: string | undefined, nodes: AppNode[], edges: Edge[]) {
   if (!promptId) return;
-  const origin = resolveOutputSource(nodes.find(node => node.id === edge.source), edge.sourceHandle, nodes, edges);
+  const origin = resolveOutputSource(nodes.find(node => node.id === edge.source), edge.sourceHandle);
   const promptNode = nodes.find(node => node.id === promptId);
-  const prompt = resolveOutputSource(promptNode, promptNode?.type === 'router' ? 'output' : null, nodes, edges);
+  const prompt = resolveOutputSource(promptNode, null);
   if (origin?.handle !== 'result' || !isImageGeneratorNode(origin.node) || !prompt) return;
   const draft = edges.find(item => item.source === origin.node.id && item.target === prompt.node.id && item.targetHandle === resultAnnotationDraftHandle);
   if (!draft || typeof draft.data?.assetId !== 'string') return;
@@ -58,12 +58,12 @@ export function sameAnnotationImage(first: FileAsset, second: FileAsset) {
 export function annotationImage(node: InteractiveEditNode, nodes: AppNode[], edges: Edge[]) {
   const input = edges.find(edge => edge.target === node.id && edge.targetHandle === 'image');
   if (!input) return node.data.baseImage;
-  const source = resolveOutputSource(nodes.find(item => item.id === input.source), input.sourceHandle, nodes, edges);
+  const source = resolveOutputSource(nodes.find(item => item.id === input.source), input.sourceHandle);
   if (source?.node.type === 'file' && source.handle === 'file') {
     const image = activeFileAsset(source.node.data);
     return image?.kind === 'image' ? image : undefined;
   }
-  return source ? imageOutput(source.node, source.handle, nodes, edges)[0] : undefined;
+  return source ? imageOutput(source.node, source.handle)[0] : undefined;
 }
 
 export function annotationOutput(node: AppNode | undefined, handle: string | null | undefined, nodes: AppNode[], edges: Edge[]) {

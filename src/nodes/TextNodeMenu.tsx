@@ -1,13 +1,3 @@
-import { isTextIteratorNode } from './types';
-import { iteratorItems } from './textVariables';
-import { isMasksExtractorNode } from './types';
-import { isBlendNode } from './types';
-import { blendInputs } from './sunburstRun';
-import { isCompareNode } from './types';
-import { snapshotCompositor } from './compositor';
-import { compositorInputs } from './sunburstRun';
-import { isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isMatteGrowShrinkNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from './types';
-import { imageOutput } from './sunburstRun';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useReactFlow, useViewport } from '@xyflow/react';
 import { nodeAssetUrls, writeAssetClipboard } from './assetResources';
@@ -21,7 +11,7 @@ export function TextNodeMenu({ id, locked, onRename, onClear, children, appearan
   id: string; locked: boolean; onRename: () => void; onClear?: () => void; children: ReactNode;
   appearance?: 'default' | 'shared';
 }) {
-  const { getNode, getNodes, getEdges, setNodes, updateNodeData, deleteElements } = useReactFlow<AppNode>();
+  const { getNode, getNodes, setNodes, updateNodeData, deleteElements } = useReactFlow<AppNode>();
   const [open, setOpen] = useState(false);
   const [placement, setPlacement] = useState({ above: false, left: false });
   const [error, setError] = useState('');
@@ -34,24 +24,20 @@ export function TextNodeMenu({ id, locked, onRename, onClear, children, appearan
 
   const act = async (action: string) => {
     const node = getNode(id);
-    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'seedream' && node.type !== 'nano-banana' && node.type !== 'ideogram' && node.type !== 'masks-extractor' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop' && node.type !== 'color-correction' && node.type !== 'matte-grow-shrink' && node.type !== 'blur' && node.type !== 'levels' && node.type !== 'invert' && node.type !== 'rotate-flip' && node.type !== 'blend' && node.type !== 'compare' && node.type !== 'resize' && node.type !== 'compositor' && node.type !== 'color-palette' && node.type !== 'router' && node.type !== 'text-iterator' && node.type !== 'image-iterator' && node.type !== 'position-logger')) return false;
+    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'sunburst' && node.type !== 'seedream' && node.type !== 'nano-banana')) return false;
     setError('');
     let writingClipboard = false;
     try {
-      const snapshot = (): AppNode => {
-        const edge = (isMasksExtractorNode(node) || isPainterNode(node) || isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isMatteGrowShrinkNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) ? getEdges().find(item => item.target === id && item.targetHandle === (isColorCorrectionNode(node) ? 'file' : 'image')) : undefined;
-        return isTextIteratorNode(node) ? { ...node, data: { ...node.data, items: iteratorItems(node, getNodes(), getEdges()).map(item => ({ ...item })) } } : isBlendNode(node) ? { ...node, data: { ...node.data, back: blendInputs(node, getNodes(), getEdges()).back, front: blendInputs(node, getNodes(), getEdges()).front } } : isCompareNode(node) ? { ...node, data: { ...node.data, input1: imageOutput(node, 'output-1', getNodes(), getEdges())[0], input2: imageOutput(node, 'output-2', getNodes(), getEdges())[0] } } : isCompositorNode(node) ? { ...node, data: { ...node.data, document: snapshotCompositor(node.data.document, compositorInputs(id, getNodes(), getEdges())), outputRevision: undefined } } : (isMasksExtractorNode(node) || isPainterNode(node) || isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isMatteGrowShrinkNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) && edge ? { ...node, data: { ...node.data, baseImage: imageOutput(getNode(edge.source), edge.sourceHandle, getNodes(), getEdges())[0] } } as AppNode : node;
-      };
       if (action === 'duplicate') {
-        const copied = snapshot();
+        const copied = node;
         const copy: AppNode = isTextNode(node) ? cloneTextNode(node) : {
           ...copied, id: `${node.type}-${crypto.randomUUID()}`, selected: true,
           position: { x: node.position.x + 40, y: node.position.y + 40 },
-          data: { ...copied.data, locked: false, ...(node.type === 'image-describer' || node.type === 'sunburst' || node.type === 'seedream' || node.type === 'nano-banana' || node.type === 'ideogram' ? { exposed: [] } : {}) },
+          data: { ...copied.data, locked: false, ...(node.type === 'sunburst' || node.type === 'seedream' || node.type === 'nano-banana' ? { exposed: [] } : {}) },
         } as AppNode;
         setNodes((nodes) => [...nodes.map((item) => ({ ...item, selected: false })), copy]);
       } else if (action === 'cut' && !locked) {
-        const copied = snapshot();
+        const copied = node;
         writingClipboard = true;
         await writeAssetClipboard(JSON.stringify({ format: `momoflow-${node.type}-node`, node: copied }), nodeAssetUrls([copied]));
         writingClipboard = false;
@@ -74,7 +60,7 @@ export function TextNodeMenu({ id, locked, onRename, onClear, children, appearan
   useEffect(() => {
     const shortcut = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.isComposing || !(event.metaKey || event.ctrlKey)
-        || event.shiftKey || event.altKey || (event.target as HTMLElement).closest('input, textarea, [contenteditable="true"], [data-compositor-editor]')) return;
+        || event.shiftKey || event.altKey || (event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return;
       const selected = getNodes().filter((node) => node.selected);
       if (selected.length !== 1 || selected[0].id !== id) return;
       const key = event.key.toLowerCase();

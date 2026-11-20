@@ -3,31 +3,11 @@ import { isAnnotationInput, restoreFileAnnotations, restoreInteractiveEditData, 
 import { annotationOutput, canAnnotateResult, isAnnotationSource, resultAnnotationDraft, selectedImageResult, withImageAnnotationHistories } from './nodes/annotationGraph';
 import { migrateFileAnnotations } from './nodes/annotationMigration';
 import { editImageAnnotationsFromPrompt, isInlineAnnotationLink, syncImageAnnotationPrompts } from './nodes/imageAnnotationPrompts';
-import { isImageIteratorNode } from './nodes/types';
-import { readImageIteratorData } from './nodes/imageIterator';
-import { readTextIteratorData } from './nodes/textIterator';
-import { restoreIdeogramData } from './nodes/ideogramClipboard';
-import { restoreMasksData } from './nodes/masksExtractor';
 import { restoreSeedreamData } from './nodes/seedreamClipboard';
 import { restoreNanoBananaData } from './nodes/nanoBananaClipboard';
-import { outputColor, outputKind, resolveOutputSource, routerFromOutput } from './nodes/router';
-import { restoreBlendData } from './nodes/blend';
-import { restoreCompareData } from './nodes/compare';
-import { restoreResizeData } from './nodes/resize';
-import { restorePaletteData } from './nodes/colorPalette';
-import { restoreCompositorData } from './nodes/compositor';
-import { restoreRotateFlipData } from './nodes/rotateFlip';
-import { restoreInvertData } from './nodes/invert';
-import { restoreLevelsData } from './nodes/levels';
-import { restoreMatteGrowShrinkData } from './nodes/matteGrowShrink';
-import { restoreBlurData } from './nodes/blur';
-import { restoreColorData } from './nodes/colorCorrection';
-import { restoreCropData } from './nodes/crop';
-import { isPainterNode, isNodeLocked } from './nodes/types';
-import { restorePainterData } from './nodes/painter';
+import { outputColor, outputKind, resolveOutputSource } from './nodes/outputPort';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { sunburstPreviewAspectRatio, sunburstProviderSettings, validateSunburstImageInputs } from './nodes/sunburst';
-import { migrateSunburstProviderInput } from './nodes/sunburstMigration';
 import { CanvasNavigation, canvasMinZoom, canvasMaxZoom, type ZoomTarget } from './components/CanvasNavigation';
 import { CanvasSidebar, type CanvasTool } from './components/CanvasSidebar';
 import { arrangeSelectedNodes, isArrangeShortcut } from './components/canvasLayout';
@@ -67,7 +47,7 @@ import { DescriberPanel } from './components/DescriberPanel';
 import { ModelTasksProvider } from './components/ModelTasksProvider';
 import { CanvasHistoryContext, useCanvasHistory } from './components/useCanvasHistory';
 import { initialNodes, nodeTypes } from './nodes';
-import { isDescriberNode, isImageGeneratorNode, isSunburstNode } from './nodes/types';
+import { isImageGeneratorNode, isNodeLocked, isSunburstNode } from './nodes/types';
 import type { AppNode } from './nodes/types';
 import { isTextNode, textVariableCount, variableIndex } from './nodes/textVariables';
 import { imagesFromDrop, isFileNode } from './nodes/fileAsset';
@@ -89,7 +69,6 @@ import { CanvasProjectHeader } from './components/CanvasProjectHeader';
 const defaultEdgeOptions = { type: 'default', pathOptions: curveOptions };
 type PendingNodeMenu = PendingConnection | (Pick<PendingConnection, 'screen' | 'position'> & { origin?: 'dock'; keyboard?: boolean });
 const creationChoices: NodeMenuChoice[] = items.filter(item => item.nodeType).map(item => ({ id: item.id, itemId: item.id }));
-const dockCreationChoices = creationChoices.filter(choice => !['position-logger', 'model-input'].includes(choice.itemId));
 
 function availableConnectionChoices(pending: PendingConnection, nodes: AppNode[], edges: Edge[]) {
   return connectionChoices(pending, nodes, edges).filter(choice => {
@@ -221,7 +200,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     const existingPrompt = current.find(node => node.id === draft?.target && isTextNode(node));
     if (existingPrompt) {
       const inputFrom = (edge: Edge, nodeId: string, handle: string | null) => {
-        const origin = resolveOutputSource(current.find(node => node.id === edge.source), edge.sourceHandle, current, existingEdges);
+        const origin = resolveOutputSource(current.find(node => node.id === edge.source), edge.sourceHandle);
         return origin?.node.id === nodeId && (origin.handle ?? null) === handle;
       };
       const connected = current.some(node => isSunburstNode(node)
@@ -337,31 +316,10 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   const pendingZoom = useRef<ZoomTarget | null>(null);
   useEffect(() => {
     const pasteNode = (event: ClipboardEvent) => {
-      if (event.defaultPrevented || (event.target as HTMLElement).closest('input, textarea, [contenteditable="true"], [data-compositor-editor]')) return;
+      if (event.defaultPrevented || (event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return;
       try {
         const saved = JSON.parse(event.clipboardData?.getData('text/plain') ?? '');
-        if (saved.format === 'momoflow-image-iterator-node' && saved.node?.type === 'image-iterator'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = readImageIteratorData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), {
-            id: crypto.randomUUID(), type: 'image-iterator', selected: true,
-            position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data: { ...data, locked: false },
-          }]);
-          return;
-        }
-        if (saved.format === 'momoflow-text-iterator-node' && saved.node?.type === 'text-iterator'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = readTextIteratorData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), {
-            id: crypto.randomUUID(), type: 'text-iterator', selected: true,
-            position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data: { ...data, locked: false },
-          }]);
-          return;
-        }
+
         if (saved.format === 'momoflow-file-node' && saved.node?.type === 'file'
           && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
           const assets = saved.node.data?.assets ?? (saved.node.data?.asset ? [saved.node.data.asset] : []);
@@ -378,64 +336,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
           }]);
           return;
         }
-        if ((saved.format === 'momoflow-preview-node' && saved.node?.type === 'preview' || saved.format === 'momoflow-router-node' && saved.node?.type === 'router')
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), {
-            id: crypto.randomUUID(), type: saved.node.type, selected: true,
-            position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 },
-            data: { label: typeof saved.node.data?.label === 'string' ? saved.node.data.label : undefined },
-          }]);
-          return;
-        }
-        if (saved.format === 'momoflow-color-palette-node' && saved.node?.type === 'color-palette'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restorePaletteData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'color-palette', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
-        if (saved.format === 'momoflow-compositor-node' && saved.node?.type === 'compositor'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restoreCompositorData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'compositor', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
-        if (saved.format === 'momoflow-blend-node' && saved.node?.type === 'blend'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restoreBlendData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'blend', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
-        if (saved.format === 'momoflow-compare-node' && saved.node?.type === 'compare'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restoreCompareData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'compare', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
-        if (saved.format === 'momoflow-resize-node' && saved.node?.type === 'resize'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restoreResizeData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'resize', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
-        if (saved.format === 'momoflow-rotate-flip-node' && saved.node?.type === 'rotate-flip'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restoreRotateFlipData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'rotate-flip', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
+
         if (saved.format === 'momoflow-interactive-edit-node' && saved.node?.type === 'interactive-edit'
           && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
           const data = restoreInteractiveEditData(saved.node.data);
@@ -447,78 +348,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
               annotations: data.history && assets[0]?.id === data.history.imageId ? [data.history] : undefined } }]);
           return;
         }
-        if (saved.format === 'momoflow-masks-extractor-node' && saved.node?.type === 'masks-extractor'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restoreMasksData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'masks-extractor', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
-        if (saved.format === 'momoflow-invert-node' && saved.node?.type === 'invert'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restoreInvertData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'invert', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
-        if (saved.format === 'momoflow-levels-node' && saved.node?.type === 'levels'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restoreLevelsData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'levels', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
-        if (saved.format === 'momoflow-matte-grow-shrink-node' && saved.node?.type === 'matte-grow-shrink'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restoreMatteGrowShrinkData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'matte-grow-shrink', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
-        if (saved.format === 'momoflow-blur-node' && saved.node?.type === 'blur'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restoreBlurData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'blur', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
-        if (saved.format === 'momoflow-color-correction-node' && saved.node?.type === 'color-correction'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restoreColorData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'color-correction', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
-        if (saved.format === 'momoflow-crop-node' && saved.node?.type === 'crop'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restoreCropData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'crop', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
-        if (saved.format === 'momoflow-painter-node' && saved.node?.type === 'painter'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restorePainterData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'painter', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
-        if (saved.format === 'momoflow-ideogram-node' && saved.node?.type === 'ideogram'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restoreIdeogramData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'ideogram', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
-          return;
-        }
+
         if (saved.format === 'momoflow-seedream-node' && saved.node?.type === 'seedream'
           && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
           const data = restoreSeedreamData(saved.node.data);
@@ -543,16 +373,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
           setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'sunburst', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
           return;
         }
-        if (['image-describer', 'model-input'].includes(saved.node?.type) && saved.format === `momoflow-${saved.node.type}-node`
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y) && typeof saved.node.data?.model === 'string') {
-          const { type, data, position } = saved.node;
-          if (type === 'image-describer' && (typeof data.text !== 'string' || typeof data.instructions !== 'string' || !Number.isInteger(data.imageInputs) || data.imageInputs < 1)) return;
-          const copy: AppNode = { id: crypto.randomUUID(), type, selected: true, position: { x: position.x + 40, y: position.y + 40 },
-            data: type === 'model-input' ? migrateSunburstProviderInput({ model: data.model, label: typeof data.label === 'string' ? data.label : undefined, parameter: ['provider', 'quality', 'background', 'size', 'outputFormat', 'aspectRatio', 'imageSize'].includes(data.parameter) ? data.parameter : undefined, options: Array.isArray(data.options) ? data.options.filter((v: unknown) => typeof v === 'string') : undefined }) : { model: data.model, text: data.text, instructions: data.instructions, imageInputs: data.imageInputs, exposed: [], ...(data.outputMode === 'manual' ? { outputMode: 'manual' as const } : {}) } } as AppNode;
-          event.preventDefault();
-          setNodes((current) => [...current.map((node) => ({ ...node, selected: false })), copy]);
-          return;
-        }
+
         if (saved.format !== 'momoflow-text-node' || saved.node?.type !== 'text'
           || typeof saved.node.data?.text !== 'string'
           || !Number.isFinite(saved.node.position?.x) || !Number.isFinite(saved.node.position?.y)) return;
@@ -568,8 +389,8 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     if (!/^image-\d+$/.test(connection.targetHandle ?? '')) return;
     const target = current.find(node => node.id === connection.target);
     const edges = currentPromptEdges.current;
-    if (!isImageGeneratorNode(target) || target.type === 'ideogram' || edges.some(edge => edge.target === target.id && edge.targetHandle === 'prompt')) return;
-    const origin = resolveOutputSource(current.find(node => node.id === connection.source), connection.sourceHandle, current, edges);
+    if (!isImageGeneratorNode(target) || edges.some(edge => edge.target === target.id && edge.targetHandle === 'prompt')) return;
+    const origin = resolveOutputSource(current.find(node => node.id === connection.source), connection.sourceHandle);
     if (origin?.handle !== 'result' || !isImageGeneratorNode(origin.node)) return;
     const image = selectedImageResult(origin.node);
     const draft = image && resultAnnotationDraft(origin.node.id, image.id, edges);
@@ -728,7 +549,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     const node = createLibraryNode(choice.itemId, pendingConnection.position);
     if (!node) return;
     if (isTextNode(node) && pendingConnection.direction === 'source' && !isAnnotationInput(choice.handleId)) node.data.variableCount = 2;
-    if (choice.exposed && isDescriberNode(node)) node.data.exposed = [choice.exposed];
+
     const connection = choiceConnection(pendingConnection, choice, node.id);
     if (!canConnect(connection, [...currentNodes, node], currentEdges, node.type === 'file' ? node.id : undefined)) return;
     // Initialize the editor's connected document in the same graph transaction;
@@ -739,12 +560,12 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     }
     // Place the new connecting port at the drop point, including reverse connections.
     node.position = {
-      x: pendingConnection.position.x - (pendingConnection.direction === 'target' ? node.type === 'model-input' || node.type === 'router' ? 250 : 460 : 0),
+      x: pendingConnection.position.x - (pendingConnection.direction === 'target' ? 460 : 0),
       y: pendingConnection.position.y - choice.portY,
     };
     const edge: Edge = { ...connection, id: `edge-${crypto.randomUUID()}` };
     const inputs = createModelInputs(node, { connection });
-    const color = isAnnotationInput(connection.targetHandle) ? 'var(--annotation-blue)' : outputColor(outputKind([...currentNodes, node].find(item => item.id === connection.source), connection.sourceHandle, [...currentNodes, node], currentEdges));
+    const color = isAnnotationInput(connection.targetHandle) ? 'var(--annotation-blue)' : outputColor(outputKind([...currentNodes, node].find(item => item.id === connection.source), connection.sourceHandle));
     playNodeEntrance(edge, node.id, pendingConnection.direction === 'source' ? 'target' : 'source', color);
     inputs?.nodes.forEach(item => playNodeEntrance(null, item.id));
     setNodes(current => [...current.map(item => {
@@ -757,30 +578,24 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     setPendingNodeMenu(null);
   }, [pendingNodeMenu, addNode, getNodes, getEdges, createModelInputs, setNodes, setEdges, playNodeEntrance]);
 
-  const canvasNodes = useMemo(() => nodes.map((node) => (isFileNode(node) || isImageIteratorNode(node)) ? {
-        ...node, draggable: !node.data.locked && tool === 'select',
-        deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select',
-      } : isTextNode(node) ? {
-        ...node,
-        draggable: !node.data.locked && tool === 'select',
-        deletable: !node.data.locked,
-        connectable: !node.data.locked && tool === 'select',
-        style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
-      } : (isImageGeneratorNode(node) || isPainterNode(node) || node.type === 'masks-extractor' || node.type === 'crop' || node.type === 'color-correction' || node.type === 'matte-grow-shrink' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'blend' || node.type === 'compare' || node.type === 'resize' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview' || node.type === 'router' || node.type === 'text-iterator' || node.type === 'position-logger') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node), [nodes, edges, tool]);
+  const canvasNodes = useMemo(() => nodes.map(node => {
+    if (!isTextNode(node) && !isFileNode(node) && !isImageGeneratorNode(node)) return node;
+    const unlocked = !isNodeLocked(node);
+    const editable = unlocked && tool === 'select';
+    const interactive = { ...node, draggable: editable, deletable: unlocked, connectable: editable };
+    if (!isTextNode(node)) return interactive;
+    return { ...interactive, style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) } };
+  }), [nodes, edges, tool]);
   const canvasEdges = useMemo(() => edges.flatMap((edge) => {
         const source = nodes.find((node) => node.id === edge.source);
         const target = nodes.find((node) => node.id === edge.target);
         if (isAnnotationInput(edge.targetHandle)) return [];
-        if (source?.type === 'router' || target?.type === 'router') return {
-          ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
-          style: { ...edge.style, stroke: outputColor(outputKind(source, edge.sourceHandle, nodes, edges)) },
-        };
+
         const fileSource = source && isFileNode(source) ? source : undefined;
-        const textConnection = (source?.type === 'color-palette' && edge.sourceHandle === 'text') || nodes.some((node) => (isTextNode(node) || node.type === 'text-iterator' || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
-        const generatedSource = source && (source.type === 'image-iterator' || isImageGeneratorNode(source) || source.type === 'masks-extractor' || source.type === 'painter' || source.type === 'crop' || source.type === 'color-correction' || source.type === 'matte-grow-shrink' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'rotate-flip' || source.type === 'blend' || source.type === 'compare' || source.type === 'resize' || source.type === 'compositor' || (source.type === 'color-palette' && edge.sourceHandle === 'image'));
+        const textConnection = (source && isTextNode(source)) || (target && isTextNode(target));
+        const generatedSource = isImageGeneratorNode(source);
         const sunburstTarget = target && isImageGeneratorNode(target);
-        const portColor = source?.type === 'matte-grow-shrink' || target?.type === 'matte-grow-shrink' || ((source?.type === 'painter' || source?.type === 'masks-extractor') && edge.sourceHandle === 'mask') || (sunburstTarget && edge.targetHandle === 'mask') ? 'var(--sunburst-mask-port)'
-          : target?.type === 'image-describer' && /^image-\d+$/.test(edge.targetHandle ?? '') ? filePortColors.image
+        const portColor = (sunburstTarget && edge.targetHandle === 'mask') ? 'var(--sunburst-mask-port)'
           : (sunburstTarget && /^image-\d+$/.test(edge.targetHandle ?? '')) || generatedSource ? 'var(--sunburst-image-port)'
           : fileSource ? filePortColors[fileOutputKind(fileSource.data)] : undefined;
         return fileSource || textConnection || generatedSource ? {
@@ -858,16 +673,6 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
           data: { assets, activeAssetId: assets[0].id },
         }]);
       }}
-      onDoubleClickCapture={event => {
-        const handle = (event.target as HTMLElement).closest<HTMLElement>('.react-flow__handle.source');
-        if (!handle || tool !== 'select') return;
-        event.preventDefault(); event.stopPropagation();
-        const bounds = handle.getBoundingClientRect();
-        const port = screenToFlowPosition({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 });
-        const graph = routerFromOutput(handle.dataset.nodeid ?? '', handle.dataset.handleid ?? null,
-          { x: port.x + 100, y: port.y - 31 }, getNodes(), getEdges(), crypto.randomUUID());
-        if (graph) { setNodes(graph.nodes); setEdges(graph.edges); setPendingNodeMenu(null); }
-      }}
       onPaneContextMenu={event => {
         if (!(event.target instanceof Element) || !event.target.classList.contains('react-flow__pane')) return;
         event.preventDefault();
@@ -883,13 +688,13 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       onConnect={onConnect}
       onConnectEnd={onConnectEnd}
       onKeyDown={(event) => {
-        if ((event.target as HTMLElement).closest('input, textarea, [contenteditable="true"], [data-compositor-editor]') || event.nativeEvent.isComposing) return;
+        if ((event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]') || event.nativeEvent.isComposing) return;
         if (isArrangeShortcut({ ...event, isComposing: event.nativeEvent.isComposing })) {
           const state = canvasStore.getState();
           const blockedTarget = (event.target as HTMLElement).closest('button, select, [role="menu"], [role="dialog"], [role="listbox"], [contenteditable], .react-flow__panel');
           if (blockedTarget || apiSettingsOpen || pendingNodeMenu || state.connection.inProgress
             || state.userSelectionActive || nodes.some(node => node.dragging)
-            || document.querySelector('[role="dialog"], [role="menu"], [data-compositor-editor]')) return;
+            || document.querySelector('[role="dialog"], [role="menu"]')) return;
           event.preventDefault();
           setNodes(current => arrangeSelectedNodes(current, getEdges(), gridSnap ? gridOrigin.current : undefined));
           return;
@@ -930,7 +735,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         trigger={'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock' ? addTrigger : undefined}
         mode={'nodeId' in pendingNodeMenu ? 'connect' : 'create'}
         choices={'nodeId' in pendingNodeMenu ? availableConnectionChoices(pendingNodeMenu, nodes, edges)
-          : pendingNodeMenu.origin === 'dock' ? dockCreationChoices : creationChoices}
+          : creationChoices}
         onChoose={choice => { chooseNode(choice); canvasRef.current?.focus({ preventScroll: true }); }}
         onDismiss={dismissNodeMenu}
       />}

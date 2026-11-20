@@ -14,16 +14,10 @@ const replace = (connection: Edge, nodes: AppNode[], edges: Edge[]) => canConnec
   ? addEdge(connection, withoutReplacedInput(connection, nodes, edges)) : edges;
 
 const imageInputs: [string, string, Record<string, unknown>?][] = [
-  ...['painter', 'masks-extractor', 'crop', 'blur', 'levels', 'invert', 'rotate-flip', 'resize'].map(type => [type, 'image'] as [string, string]),
-  ['color-correction', 'file'], ['preview', 'file'], ['blend', 'back'], ['blend', 'front'],
-  ['compare', 'input-1'], ['compare', 'input-2'], ['router', 'input'],
-  ['compositor', 'background', { document: { inputs: [{ id: 'background' }, { id: 'layer-1' }] } }],
-  ['compositor', 'layer-1', { document: { inputs: [{ id: 'background' }, { id: 'layer-1' }] } }],
   ['sunburst', 'image-0'], ['sunburst', 'mask'], ['nano-banana', 'image-0', { imageInputs: 2 }],
-  ['image-describer', 'image-0'],
 ];
 for (const [type, handle, data] of imageInputs) test(`${type} ${handle} replaces its occupied input and preserves other edges`, () => {
-  const nodes = [image('old'), image('new'), node(type, 'target', data), node('preview', 'other')];
+  const nodes = [image('old'), image('new'), node(type, 'target', data), node('sunburst', 'other')];
   const previous = edge('old', 'target', handle);
   const sibling = edge('old', 'target', 'unrelated-input');
   const branch = edge('old', 'other', 'file');
@@ -37,9 +31,8 @@ for (const [type, handle, data] of imageInputs) test(`${type} ${handle} replaces
 
 test('text, model and variable inputs replace per port, including legacy first-variable handles', () => {
   const cases: [string, string, Record<string, unknown>?][] = [
-    ['text', 'variable-1'], ['text', 'variable-2'], ['router', 'input'], ['sunburst', 'prompt'],
+    ['text', 'variable-1'], ['text', 'variable-2'], ['sunburst', 'prompt'],
     ['nano-banana', 'prompt'],
-    ['image-describer', 'model'], ['image-describer', 'instructions'],
   ];
   for (const [type, handle, data] of cases) {
     const nodes = [text('old'), text('new'), node(type, 'target', data)];
@@ -54,41 +47,24 @@ test('text, model and variable inputs replace per port, including legacy first-v
 });
 
 test('invalid replacements preserve the graph: types, locks, self-links, cycles and unknown handles', () => {
-  const nodes = [image('old'), image('new'), text('text'), node('resize', 'target'), node('resize', 'downstream')];
-  const previous = edge('old', 'target', 'image');
-  const next = edge('target', 'downstream', 'image', 'result');
+  const nodes = [image('old'), image('new'), text('text'), node('sunburst', 'target'), node('sunburst', 'downstream')];
+  const previous = edge('old', 'target', 'image-0');
+  const next = edge('target', 'downstream', 'image-0', 'result');
   const edges = [previous, next];
-  for (const connection of [edge('text', 'target', 'image', null), edge('target', 'target', 'image', 'result'),
-    edge('downstream', 'target', 'image', 'result'), edge('new', 'target', 'wrong')]) {
+  for (const connection of [edge('text', 'target', 'image-0', null), edge('target', 'target', 'image-0', 'result'),
+    edge('downstream', 'target', 'image-0', 'result'), edge('new', 'target', 'wrong')]) {
     assert.equal(replace(connection, nodes, edges), edges);
   }
   for (const id of ['new', 'target']) {
     const locked = nodes.map(item => item.id === id ? { ...item, data: { ...item.data, locked: true } } as AppNode : item);
-    assert.equal(replace(edge('new', 'target', 'image'), locked, edges), edges);
+    assert.equal(replace(edge('new', 'target', 'image-0'), locked, edges), edges);
   }
 });
 
-test('Router outputs replace occupied consumers and Router input replacement still validates downstream types', () => {
-  const nodes = [image('old'), image('new'), text('text'), node('router', 'router'), node('preview', 'preview'), text('consumer')];
-  const input = edge('new', 'router', 'input');
-  const previous = edge('old', 'preview', 'file');
-  const replacement = edge('router', 'preview', 'file', 'output');
-  assert.deepEqual(replace(replacement, nodes, [input, previous]), [input, replacement]);
-  assert.equal(canConnect(edge('text', 'router', 'input', null), nodes, [input, replacement]), false);
-  const branch = edge('router', 'consumer', 'variable-1', 'output');
-  assert.equal(canConnect(edge('new', 'router', 'input'), nodes, [edge('text', 'router', 'input', null), branch]), false);
-});
-
-test('changing output handles on the same source replaces instead of accumulating edges', () => {
-  const nodes = [node('painter', 'painter'), node('preview', 'preview')];
-  const previous = edge('painter', 'preview', 'file', 'result'), mask = edge('painter', 'preview', 'file', 'mask');
-  assert.deepEqual(replace(mask, nodes, [previous]), [mask]);
-});
-
 test('reverse creation on an occupied image input retains Import recommendations and pending-import validation', () => {
-  const nodes = [image('old'), node('preview', 'preview'), node('file', 'new')];
-  const previous = edge('old', 'preview', 'file');
-  const pending = { nodeId: 'preview', handleId: 'file', direction: 'target' as const, position, screen: position };
+  const nodes = [image('old'), node('sunburst', 'preview'), node('file', 'new')];
+  const previous = edge('old', 'preview', 'image-0');
+  const pending = { nodeId: 'preview', handleId: 'image-0', direction: 'target' as const, position, screen: position };
   const choice = connectionChoices(pending, nodes, [previous]).find(choice => choice.itemId === 'file')!;
   assert.ok(choice);
   const connection = choiceConnection(pending, choice, 'new');

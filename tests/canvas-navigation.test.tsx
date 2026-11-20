@@ -12,7 +12,6 @@ import { createLibraryNode, items } from '../src/components/libraryCatalog';
 import { TaskQueue, type QueueTask } from '../src/components/TaskQueue';
 import { edgeTypes } from '../src/edges';
 import { nodeTypes } from '../src/nodes';
-import { defaultPaletteColors } from '../src/nodes/colorPalette';
 import type { AppNode, FileAsset } from '../src/nodes/types';
 import '../src/index.css';
 import './canvas-navigation.css';
@@ -25,24 +24,24 @@ const asset: FileAsset = {
 };
 const sampleNodes: AppNode[] = [
   { id: 'source', type: 'file', position: { x: 0, y: 0 }, data: { label: '市集 · 原图', asset } },
-  { id: 'router', type: 'router', position: { x: 680, y: 62 }, data: { label: '图像分流' } },
-  { id: 'preview', type: 'preview', position: { x: 1160, y: 0 }, data: { label: '市集 · 预览' } },
-  { id: 'palette', type: 'color-palette', position: { x: 1160, y: 640 }, data: { colors: defaultPaletteColors() } },
+  { id: 'router', type: 'text', position: { x: 680, y: 62 }, data: { text: '说明', label: '说明' } },
+  { id: 'preview', type: 'text', position: { x: 1160, y: 0 }, data: { text: '市集', label: '市集' } },
+  { id: 'palette', type: 'file', position: { x: 1160, y: 640 }, data: {} },
   { id: 'prompt', type: 'text', position: { x: 390, y: 610 }, data: {
     label: '画面笔记', text: '保留市集的暖色和光影，突出摊位的层次。',
   } },
 ];
 const sampleEdges: Edge[] = [
-  { id: 'source-router', source: 'source', sourceHandle: 'file', target: 'router', targetHandle: 'input' },
-  { id: 'router-preview', source: 'router', sourceHandle: 'output', target: 'preview', targetHandle: 'file' },
+  { id: 'source-router', source: 'source', sourceHandle: 'file', target: 'router', targetHandle: 'variable-1' },
+  { id: 'router-preview', source: 'router', sourceHandle: null, target: 'preview', targetHandle: 'variable-1' },
 ];
-const previewNodeIds = new Set(['file', 'text', 'preview', 'router', 'color-palette', 'crop', 'levels', 'blur']);
+const previewNodeIds = new Set(['file', 'text']);
 const dockChoices: NodeMenuChoice[] = items.filter(item => previewNodeIds.has(item.id))
   .map(item => ({ id: item.id, itemId: item.id }));
 const sampleTasks: QueueTask[] = [
   { id: 'sample-image', label: 'GPT Image 2.5', state: 'running', progress: 65 },
   { id: 'sample-banana', label: 'Nano Banana', state: 'running', progress: 45 },
-  { id: 'sample-description', label: '图像描述', state: 'done', progress: 100 },
+  { id: 'sample-description', label: 'Seedream', state: 'done', progress: 100 },
 ];
 
 function PreviewTaskQueue() {

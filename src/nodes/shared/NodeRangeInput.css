@@ -2,8 +2,8 @@
 .node-range-input[data-tag], .node-range-input:focus-within { z-index: 5; }
 .node-range-control { position: relative; width: 100%; height: 100%; cursor: pointer; touch-action: none; -webkit-tap-highlight-color: transparent; }
 .node-range-rail { position: absolute; top: 50%; left: calc(var(--elastic-thumb) / 2); right: calc(var(--elastic-thumb) / 2); height: var(--elastic-track); margin-top: calc(var(--elastic-track) / -2); }
-.node-range-track { position: absolute; inset: 0; border-radius: 999px; background: var(--elastic-background, var(--painter-slider-track, #5b5b5b)); }
-.node-range-fill { position: absolute; inset: 0; border-radius: inherit; background: var(--elastic-fill, var(--painter-slider-fill, #dedede)); }
+.node-range-track { position: absolute; inset: 0; border-radius: 999px; background: var(--elastic-background, #5b5b5b); }
+.node-range-fill { position: absolute; inset: 0; border-radius: inherit; background: var(--elastic-fill, #dedede); }
 .node-range-tick { position: absolute; top: 50%; width: 3px; height: 3px; margin: -1.5px; border-radius: 50%; background: #fff6; pointer-events: none; }
 .node-range-layers { position: absolute; inset: 0 calc(var(--elastic-thumb) / 2); container-type: inline-size; pointer-events: none; }
 .node-range-layer { position: absolute; inset: 0; }
@@ -18,5 +18,4 @@
 @media (pointer: coarse) { .node-range-thumb::after { inset: -12px; } .node-range-tag-anchor { bottom: calc(50% + var(--elastic-thumb) / 2 + 20px); } }
 /* Keep picker gradients while sharing the elastic gesture. */
 .node-range-input.comp-color-hue { --elastic-background: linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00); --elastic-fill: transparent; background: transparent; }
-.color-setting:has(.node-range-input[data-tag]), .painter-field:has(.node-range-input[data-tag]), .comp-slider-row:has(.node-range-input[data-tag]) { position: relative; z-index: 5; }
 .comp-color-picker .node-range-input.comp-color-hue { --elastic-track: 12px; --elastic-thumb-border: 3px solid #fff; --elastic-thumb-background: transparent; background: transparent; }

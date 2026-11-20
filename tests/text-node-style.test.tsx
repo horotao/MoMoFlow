@@ -3,7 +3,6 @@ import { MotionConfig } from 'motion/react';
 import { ReactFlowProvider, useEdges, useNodes, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
 import { Flow } from '../src/App';
 import { ModelTasksProvider } from '../src/components/ModelTasksProvider';
-import { createLibraryNode } from '../src/components/libraryCatalog';
 import { suggestedTextNodeText } from '../src/nodes/defaults';
 import { isTextNode, resolveTextValue } from '../src/nodes/textVariables';
 import { initialTextDocument } from '../src/nodes/textDocument';
@@ -11,7 +10,6 @@ import type { AppNode } from '../src/nodes/types';
 import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
 import { canvasHistoryShortcut } from './canvasShortcuts';
 import '../src/index.css';
-import '../src/nodes/LevelsNode.css';
 
 let api: ReactFlowInstance<AppNode>;
 function Probe() {
@@ -22,13 +20,10 @@ function Probe() {
 }
 const storage = new WorkflowStorage(`momoflow-text-style-qa-${crypto.randomUUID()}`);
 const root = createRoot(document.getElementById('root')!);
-const legacy = createLibraryNode('color-correction', { x: 900, y: 90 })!;
-legacy.id = 'legacy'; legacy.selected = false;
 const workflow: Workflow = {
   nodes: [
     { id: 'prompt', type: 'text', position: { x: 280, y: 90 }, data: { text: '' } },
     { id: 'source', type: 'text', position: { x: -320, y: 90 }, data: { text: '上游中文内容' } },
-    legacy,
   ], edges: [], viewport: { x: 0, y: 0, zoom: 1 }, colorMode: 'dark',
 };
 const results = document.getElementById('results')!;
@@ -75,9 +70,7 @@ async function run() {
   check(getComputedStyle(frame).backgroundColor === 'rgb(34, 34, 34)', 'Dark node surface');
   check(getComputedStyle(within('.text-node-content')).backgroundColor === 'rgb(25, 25, 25)', 'Dark inset surface');
   check(Boolean(document.querySelector(`${scope} .node-port.target`)) && !frame.querySelector('.node-display'), 'Empty node reserves its first input without variable controls');
-  check(getComputedStyle(find('[data-id="legacy"]')).width === '460px'
-    && !document.querySelector('[data-id="legacy"] .node-frame'), 'Other nodes retain legacy styling');
-  pass('Figma 尺寸 454×395、424px 输入区、28/14px 圆角、1px 边框与深色变量；其他节点保留原样');
+  pass('Figma 尺寸 454×395、424px 输入区、28/14px 圆角、1px 边框与深色变量');
 
   for (const img of frame.querySelectorAll<HTMLImageElement>('img')) {
     await until(() => img.complete, `Asset loads: ${img.src}`);

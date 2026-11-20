@@ -1,11 +1,6 @@
-import { isInteractiveEditNode } from './types.ts';
-import { isMasksExtractorNode } from './types.ts';
-import { isImageGeneratorNode } from './types.ts';
-import { isBlendNode } from './types.ts';
-import { isCompareNode } from './types.ts';
-import { isColorPaletteNode, isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isMatteGrowShrinkNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from './types.ts';
+import { isFileNode, isImageGeneratorNode, isInteractiveEditNode } from './types.ts';
 import type { PreviewTask } from './taskQueue';
-import type { AppNode, FileNode, ImageGeneratorNode } from './types';
+import type { AppNode } from './types';
 
 // Only URLs created by this registry may be revoked. External links and URLs
 // received from another tab are never owned by this page's collector.
@@ -77,39 +72,21 @@ export class AssetResources {
 export function nodeAssetUrls(nodes: Iterable<AppNode>): Set<string> {
   const urls = new Set<string>();
   for (const node of nodes) {
-    if (isBlendNode(node)) {
-      for (const asset of [node.data.back, node.data.front, node.data.result]) if (asset) urls.add(asset.url);
-    } else if (isCompareNode(node)) {
-      for (const asset of [node.data.input1, node.data.input2]) if (asset) urls.add(asset.url);
-    } else if (isCompositorNode(node)) {
-      if (node.data.result) urls.add(node.data.result.url);
-      for (const layer of node.data.document.layers) {
-        const asset = layer.source.kind === 'asset' ? layer.source.asset : layer.source.kind === 'input' ? layer.source.fallback : undefined;
-        if (asset) urls.add(asset.url);
-      }
-    } else if (isColorPaletteNode(node)) {
-      if (node.data.result) urls.add(node.data.result.url);
-    } else if ((node.type === 'file' || node.type === 'image-iterator')) {
-      const data = node.data as FileNode['data'];
+    if (isFileNode(node)) {
+      const { data } = node;
       if (data.asset) urls.add(data.asset.url);
       for (const asset of data.assets ?? []) urls.add(asset.url);
-    } else if (isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isMatteGrowShrinkNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) {
-      for (const asset of [node.data.result, node.data.baseImage]) if (asset) urls.add(asset.url);
     } else if (isInteractiveEditNode(node)) {
       if (node.data.baseImage) urls.add(node.data.baseImage.url);
-    } else if (isMasksExtractorNode(node)) {
-      for (const asset of [node.data.result, node.data.mask, node.data.baseImage]) if (asset) urls.add(asset.url);
-    } else if (isPainterNode(node)) {
-      for (const asset of [node.data.result, node.data.mask, node.data.alphaMask, node.data.baseImage]) if (asset) urls.add(asset.url);
     } else if (isImageGeneratorNode(node)) {
-      for (const asset of (node.data as ImageGeneratorNode['data']).results ?? []) urls.add(asset.url);
+      for (const asset of node.data.results ?? []) urls.add(asset.url);
     }
   }
   return urls;
 }
 
 export function taskAssetUrls(task: PreviewTask): string[] {
-  return [...(task.nanoBananaRequest?.images ?? []), ...(task.seedreamRequest?.images ?? []), ...(task.images ?? []), ...(task.imageRequest?.images ?? []),
+  return [...(task.nanoBananaRequest?.images ?? []), ...(task.seedreamRequest?.images ?? []), ...(task.imageRequest?.images ?? []),
     ...(task.imageRequest?.mask ? [task.imageRequest.mask] : [])];
 }
 

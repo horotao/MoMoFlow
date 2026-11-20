@@ -6,20 +6,6 @@ import App from './App';
 
 import './index.css';
 import './nodes/SunburstNode.css';
-import './nodes/PainterNode.css';
-import './nodes/PreviewNode.css';
-import './nodes/CropNode.css';
-import './nodes/ColorCorrectionNode.css';
-import './nodes/BlurNode.css';
-import './nodes/MatteGrowShrinkNode.css';
-import './nodes/LevelsNode.css';
-import './nodes/InvertNode.css';
-import './nodes/RotateFlipNode.css';
-import './nodes/ResizeNode.css';
-import './nodes/CompareNode.css';
-import './nodes/BlendNode.css';
-import './nodes/ColorPaletteNode.css';
-import './nodes/compositor/Compositor.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

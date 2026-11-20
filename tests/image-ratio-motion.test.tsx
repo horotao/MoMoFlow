@@ -3,10 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { MotionConfig } from 'motion/react';
 import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, useNodesState, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
 import { SunburstNode } from '../src/nodes/SunburstNode';
-import { IdeogramNode } from '../src/nodes/IdeogramNode';
 import { NanoBananaNode } from '../src/nodes/NanoBananaNode';
 import { defaultSunburstSettings } from '../src/nodes/sunburst';
-import { defaultIdeogramSettings } from '../src/nodes/ideogram';
 import { defaultNanoBananaSettings } from '../src/nodes/nanoBanana';
 import type { AppNode } from '../src/nodes/types';
 import '@xyflow/react/dist/style.css';
@@ -28,11 +26,10 @@ function setReduced(value: boolean) {
   media.dispatchEvent(new MediaQueryListEvent('change', { matches: value, media: media.media }));
 }
 
-const ids = ['sunburst', 'ideogram', 'nano-banana'] as const;
-const nodeTypes = { sunburst: SunburstNode, ideogram: IdeogramNode, 'nano-banana': NanoBananaNode };
+const ids = ['sunburst', 'nano-banana'] as const;
+const nodeTypes = { sunburst: SunburstNode, 'nano-banana': NanoBananaNode };
 const initialNodes: AppNode[] = [
   { id: 'sunburst', type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, size: '1024x1024', imageInputs: 1 } },
-  { id: 'ideogram', type: 'ideogram', position: { x: 540, y: 0 }, data: { ...defaultIdeogramSettings, aspectRatio: '1:1', imageInputs: 1 } },
   { id: 'nano-banana', type: 'nano-banana', position: { x: 1080, y: 0 }, data: { ...defaultNanoBananaSettings, aspectRatio: '1:1', imageInputs: 1 } },
 ];
 let api: ReactFlowInstance<AppNode>;

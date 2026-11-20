@@ -15,7 +15,6 @@ import { commitAnnotations, emptyAnnotationHistory } from '../src/nodes/interact
 import { initialTextDocument } from '../src/nodes/textDocument';
 import '../src/index.css';
 import '../src/nodes/SunburstNode.css';
-import '../src/nodes/PreviewNode.css';
 
 let api: ReactFlowInstance<AppNode>;
 function Probe() {
@@ -110,7 +109,6 @@ async function run() {
       { id: 'prompt', type: 'text', position: { x: 70, y: 80 }, data: { text: 'Create a violet landscape' } },
       { id: 'reference', type: 'file', position: { x: 70, y: 620 }, data: { assets: [{ id: 'reference-image', kind: 'image', name: 'reference.png', url: assetResources.create(reference), width: 640, height: 360 }] } },
       { ...node, id: 'seedream', selected: true },
-      { id: 'preview', type: 'preview', position: { x: 1230, y: 80 }, data: {} },
     ], edges: [{ id: 'prompt', source: 'prompt', target: 'seedream', targetHandle: 'prompt' }],
     colorMode: 'dark', viewport: { x: 0, y: 180, zoom: .6 },
   };
@@ -204,12 +202,10 @@ async function run() {
   await choose('宽高比', '精确像素'); await dimension('宽度', '1537'); await dimension('高度', '1001'); await finishDimensions();
   api.setEdges(all => [...all,
     { id: 'reference', source: 'reference', sourceHandle: 'file', target: 'seedream', targetHandle: 'image-0' },
-    { id: 'output', source: 'seedream', sourceHandle: 'result', target: 'preview', targetHandle: 'file' },
   ]); await settle();
   runButton().click(); await until(() => read().data.results?.length === 2, 'Reference-image mock task completes');
   check((requests[1].images as string[])[0] === 'https://cdn.example/uploaded-reference.png' && requests[1].outputFormat === 'jpeg', 'Uploaded reference URL and JPEG format reach the task snapshot');
   check(requests[1].size === '1537x1001' && read().data.results?.[1].width === 640 && read().data.results?.[1].height === 360, 'Exact pixel requests retain their size and display provider results at actual dimensions');
-  await until(() => Boolean(document.querySelector<HTMLImageElement>('.preview-image img')?.naturalWidth), 'Downstream preview resolves');
   check(imageOutput(read(), 'result')[0].id === read().data.results?.[1].id, 'Active result is the downstream output');
   find('.model-queue-toggle[aria-expanded="true"]').click(); await settle();
   const count = api.getNodes().length;

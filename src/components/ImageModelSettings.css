@@ -26,9 +26,7 @@
   gap: 13px;
   padding: 12px 16px;
 }
-.image-model-settings .describer-panel-bottom .sunburst-cost,
-.image-model-settings .describer-panel-bottom .text-iteration-summary,
-.image-model-settings .describer-panel-bottom .iterator-warning { margin: 0; }
+.image-model-settings .describer-panel-bottom .sunburst-cost { margin: 0; }
 .describer-panel.node-settings-panel.image-model-settings .describer-primary {
   height: 34px;
   margin: 0;

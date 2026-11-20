@@ -84,7 +84,7 @@ function singleSeedreamPrompt(annotation: ReturnType<typeof collectAnnotationPro
     .flatMap(edge => {
       if (Number(edge.targetHandle?.slice(6)) >= imageInputs) throw new Error('参考图端口不存在。');
       const input = pinnedResultInput(edge, promptId, nodes, edges) ?? edge;
-      const assets = imageOutput(nodes.find(item => item.id === input.source), input.sourceHandle, nodes, edges);
+      const assets = imageOutput(nodes.find(item => item.id === input.source), input.sourceHandle);
       if (!assets.length) throw new Error('连接的 Image 尚无图片，上游未提供可用输出。');
       return assets;
     });

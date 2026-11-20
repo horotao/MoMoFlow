@@ -1,33 +1,25 @@
 import { NodeIcon } from './NodeIcon';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { assetResources } from './assetResources';
-import { Box, LockKeyhole, Music2 } from 'lucide-react';
+import { Box, Music2 } from 'lucide-react';
 import { Handle, Position, useEdges, useReactFlow, type NodeProps } from '@xyflow/react';
-import { assetFromFile, assetFromLink, fileAccept, fileKind, isFileNode } from './fileAsset';
-import { imageIteratorAccept, imageIteratorLimit } from './imageIterator';
-import { isImageIteratorNode } from './types';
-import { activeFileAsset, extractFileAsset, fileAssets, fileNodeTitle, fileOutputKind, filePortColors, orderedAssets } from './fileCollection';
-import { copyAssetImage, downloadAsset, downloadAssets, measureAsset } from './fileMedia';
-import { FileIcon } from './FileIcon';
-import { FileActionMenu } from './FileActionMenu';
+import { assetFromFile, assetFromLink, fileAccept, isFileNode } from './fileAsset';
+import { activeFileAsset, fileAssets, fileNodeTitle, fileOutputKind, filePortColors, orderedAssets } from './fileCollection';
+import { downloadAsset, downloadAssets, measureAsset } from './fileMedia';
 import { FileGallery, type FileGalleryTrigger } from './FileGallery';
 import { TextNodeMenu } from './TextNodeMenu';
 import { NodePort } from './shared/NodePort';
-import { NodeFrame, NodeHeader } from './shared/NodeFrame';
+import { NodeFrame } from './shared/NodeFrame';
 import { NodeImagePreview } from './shared/NodeImagePreview';
 import { InteractiveEditButton } from './shared/InteractiveEditButton';
 import { FileImageAnnotations } from './FileImageAnnotations';
 import { annotationLimit, annotationLimitMessage } from './interactiveEdit';
 import { useImageAnnotations } from './useImageAnnotations';
 import './shared/mediaNodeStyle.css';
-import './ImageIteratorNode.css';
-import type { AppNode, FileAsset, ImageIteratorNode as ImageIteratorNodeType, FileNode as FileNodeType } from './types';
+import type { AppNode, FileAsset, FileNode as FileNodeType } from './types';
 
-const isCollection = (node: AppNode | undefined): node is FileNodeType | ImageIteratorNodeType => Boolean(node && (isFileNode(node) || isImageIteratorNode(node)));
-
-export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeType | ImageIteratorNodeType>) {
-  const iterator = type === 'image-iterator';
-  const { updateNodeData, getNode, setNodes, screenToFlowPosition } = useReactFlow<AppNode>();
+export function FileNode({ id, data, isConnectable }: NodeProps<FileNodeType>) {
+  const { updateNodeData, setNodes } = useReactFlow<AppNode>();
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
@@ -41,7 +33,6 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
   const [failedAssets, setFailedAssets] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
   const [gallery, setGallery] = useState<{ assetId: string; transition?: FileGalleryTrigger }>();
-  const [contextAssetId, setContextAssetId] = useState<string>();
   const [renaming, setRenaming] = useState(false);
   const [title, setTitle] = useState('');
   const [dimensions, setDimensions] = useState<Record<string, { width: number; height: number }>>({});
@@ -50,21 +41,19 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
   const importVersion = useRef(0);
   const connected = useEdges().some((edge) => edge.source === id);
   const assets = orderedAssets(data).map((asset) => ({ ...asset, ...dimensions[asset.id] }));
-  const activeIndex = Math.max(0, assets.findIndex((asset) => asset.id === data.activeAssetId));
   const asset = activeFileAsset(data, assets);
-  const contextAsset = assets.find(item => item.id === contextAssetId) ?? asset;
   const multiple = assets.length > 1;
   const locked = Boolean(data.locked);
-  const canAnnotate = !iterator && asset?.kind === 'image';
+  const canAnnotate = asset?.kind === 'image';
   const canEdit = canAnnotate && isConnectable && !locked && !failedAssets.includes(asset.id);
   const annotations = useImageAnnotations(id, asset, 'annotations' in data ? data.annotations : undefined, canEdit);
   const { editing, toggle: toggleAnnotations, onKeyDown: annotationKeyDown, button: annotationToggle } = annotations;
   const { marks } = annotations.editor;
-  const grid = !editing && multiple && (iterator ? data.viewMode !== 'single' : data.viewMode === 'all');
-  const draggableImage = !iterator && !grid && !editing && asset?.kind === 'image' && !locked;
-  const nodeTitle = iterator ? data.label || '图片迭代' : fileNodeTitle(data);
-  const kind = iterator ? 'image' : fileOutputKind(data);
-  const select = (assetId: string) => { if (!iterator || !locked) updateNodeData(id, { activeAssetId: assetId }); };
+  const grid = !editing && multiple && (data.viewMode === 'all');
+  const draggableImage = !grid && !editing && asset?.kind === 'image' && !locked;
+  const nodeTitle = fileNodeTitle(data);
+  const kind = fileOutputKind(data);
+  const select = (assetId: string) => { updateNodeData(id, { activeAssetId: assetId }); };
   const canViewImage = (item: FileAsset) => item.kind === 'image' && !failedAssets.includes(item.id);
   const showGallery = (item: FileAsset, trigger: HTMLElement, keyboard: boolean) => {
     setGallery({ assetId: item.id, transition: canViewImage(item) ? { trigger, keyboard } : undefined });
@@ -77,16 +66,12 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
     // Read the latest node after asynchronous image decoding, so parallel edits are preserved.
     setNodes((nodes) => {
       const current = nodes.find(node => node.id === id);
-      if (!isCollection(current) || current.data.locked || version !== importVersion.current) {
+      if (!isFileNode(current) || current.data.locked || version !== importVersion.current) {
         assetResources.discard(imported.map(asset => asset.url));
         return nodes;
       }
-      if (iterator && fileAssets(current.data).length + imported.length > imageIteratorLimit) {
-        assetResources.discard(imported.map(asset => asset.url));
-        setError(`最多支持 ${imageIteratorLimit} 张图片，请减少本次添加的数量。`);
-        return nodes;
-      }
-      return nodes.map(node => node.id === id && isCollection(node) ? {
+
+      return nodes.map(node => node.id === id && isFileNode(node) ? {
         ...node, data: { ...node.data, asset: undefined, assets: [...fileAssets(node.data), ...imported], activeAssetId: imported[0].id },
       } : node);
     });
@@ -101,7 +86,7 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
     try {
       for (const file of Array.from(files)) {
         try {
-          if (iterator && fileKind(file.name, file.type) !== 'image') throw new Error(`${file.name}：请选择图片文件。`);
+
           imported.push(assetFromFile(file));
         }
         catch (error) { errors.push(error instanceof Error ? error.message : 'Could not read file.'); }
@@ -124,9 +109,9 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
     importPending.current = true; setBusy(true); setError('');
     try {
       const linked = assetFromLink(link);
-      if (iterator && linked.kind !== 'image') throw new Error('图片迭代只支持图片链接。');
+
       const measured = await measureAsset(linked);
-      if (iterator && (!measured.width || !measured.height)) throw new Error('无法读取图片，请检查链接后重试。');
+
       append([measured], version);
       if (mounted.current && version === importVersion.current) setLink('');
     } catch (error) {
@@ -160,20 +145,12 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
           if (event.key === 'Enter') event.currentTarget.blur();
           if (event.key === 'Escape') setRenaming(false);
         }} /> : <span className="file-node-title" title={nodeTitle}>{nodeTitle}</span>;
-  const nodeMenu = <TextNodeMenu appearance="shared" id={id} locked={locked} onRename={() => { setTitle(nodeTitle); setRenaming(true); }} onClear={iterator ? () => {
-        const current = getNode(id);
-        if (!isImageIteratorNode(current) || current.data.locked) return;
-        importVersion.current++; importPending.current = false; setBusy(false); setError('');
-        updateNodeData(id, { asset: undefined, assets: [], activeAssetId: undefined });
-      } : undefined}>
+  const nodeMenu = <TextNodeMenu appearance="shared" id={id} locked={locked} onRename={() => { setTitle(nodeTitle); setRenaming(true); }}>
         <img src="/node-style/more.svg" width={18} height={18} alt="" className="node-monochrome" />
       </TextNodeMenu>;
   const content = <>
-    {iterator ? <NodeHeader icon={<NodeIcon nodeType="image-iterator" size={16} />} title={titleField}
-      status={locked && <LockKeyhole size={12} aria-label="已锁定" />}
-      actions={<div className="image-iterator-heading-actions"><span className="image-iterator-count" aria-label={`${assets.length} / ${imageIteratorLimit} 张图片`}>{assets.length}/{imageIteratorLimit}</span>{nodeMenu}</div>} />
-      : <header className="file-node-header"><NodeIcon nodeType="file" />{titleField}{nodeMenu}</header>}
-    <div ref={media} tabIndex={iterator ? 0 : undefined} className={`file-node-media${draggableImage ? '' : ' nodrag'} nopan nowheel${asset ? ' has-assets' : ''}${grid ? ' is-grid' : ''}${dragging ? ' is-dragging' : ''}`}
+    {<header className="file-node-header"><NodeIcon nodeType="file" />{titleField}{nodeMenu}</header>}
+    <div ref={media} className={`file-node-media${draggableImage ? '' : ' nodrag'} nopan nowheel${asset ? ' has-assets' : ''}${grid ? ' is-grid' : ''}${dragging ? ' is-dragging' : ''}`}
       style={!grid && asset?.width && asset.height ? { aspectRatio: `${asset.width} / ${asset.height}` } : undefined}
       onKeyDown={annotationKeyDown}
       onDragEnter={(event) => { if (!event.dataTransfer.types.includes('Files')) return; event.preventDefault(); event.stopPropagation(); if (!locked) { dragDepth.current++; setDragging(true); } }}
@@ -181,79 +158,28 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
       onDragLeave={(event) => { if (!event.dataTransfer.types.includes('Files')) return; event.preventDefault(); event.stopPropagation(); if (--dragDepth.current <= 0) { dragDepth.current = 0; setDragging(false); } }}
       onDrop={(event) => { if (!event.dataTransfer.types.includes('Files')) return; event.preventDefault(); event.stopPropagation(); dragDepth.current = 0; setDragging(false); void importFiles(event.dataTransfer.files); }}>
       {!asset ? <button type="button" className="file-node-upload" disabled={locked || busy} onClick={() => input.current?.click()}>
-        <img src="/image-node/upload.svg" width={24} height={24} alt="" /><span>{iterator ? busy ? '正在读取图片…' : '拖放图片或点击上传' : busy ? '正在读取文件…' : '拖放文件或点击上传'}</span>{!iterator && <small>图片 · 视频 · 音频 · 3D</small>}
+        <img src="/image-node/upload.svg" width={24} height={24} alt="" /><span>{busy ? '正在读取文件…' : '拖放文件或点击上传'}</span>{<small>图片 · 视频 · 音频 · 3D</small>}
       </button> : editing ? <FileImageAnnotations key={`${asset.id}:${asset.url}`} name={asset.name} url={asset.url}
-        {...annotations.editor} /> : !iterator ? <NodeImagePreview nodeId={id} assets={assets} active={asset} grid={grid} orderBy={data.orderBy} locked={locked}
+        {...annotations.editor} /> : <NodeImagePreview nodeId={id} assets={assets} active={asset} grid={grid} orderBy={data.orderBy} locked={locked}
         onSelect={select} onGridChange={() => updateNodeData(id, { viewMode: grid ? 'single' : 'all' })}
         onOrderChange={orderBy => updateNodeData(id, { orderBy })} onFullscreen={(assetId, trigger, keyboard) => {
           const item = assets.find(value => value.id === assetId);
           // Start on the requested image before React Flow applies the output selection.
           if (item) showGallery(item, trigger, keyboard);
           select(assetId);
-        }} onDownload={runDownload} renderMedia={preview} opensOnKeyboard={canViewImage} /> : <>
-        {grid ? <div className="file-node-grid" aria-label="Images">
-          {[0, 1].map((column) => <div className="file-node-grid-column" key={column}>{assets.filter((_, index) => index % 2 === column).map((item) => <div key={item.id}
-            className={`file-node-tile${item.id === asset.id ? ' is-active' : ''}`} data-asset-id={item.id} role="button" tabIndex={0} aria-label={`Select ${item.name}`} aria-pressed={item.id === asset.id}
-            draggable={!locked} onClick={() => select(item.id)} onDoubleClick={event => {
-              select(item.id);
-              showGallery(locked ? asset : item, event.currentTarget, false);
-            }}
-            onKeyDown={(event) => { event.stopPropagation(); if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(item.id); } }}
-            onDragStart={(event) => { event.stopPropagation(); event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-momoflow-asset', item.id); }}
-            onDragEnd={(event) => {
-              event.stopPropagation();
-              // Escape cancellation reports no completed drop; a pane drop is the only extraction target.
-              if (event.dataTransfer.dropEffect !== 'move') return;
-              const target = document.elementFromPoint(event.clientX, event.clientY);
-              if (!target?.classList.contains('react-flow__pane') || !getNode(id)) return;
-              const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-              setNodes((nodes) => extractFileAsset(nodes, id, item.id, position, `file-${crypto.randomUUID()}`));
-            }}>
-            {preview(item)}
-          </div>)}</div>)}
-        </div> : <div className="file-node-single" data-asset-id={asset.id} onDoubleClick={event => showGallery(asset, event.currentTarget, false)}>{preview(asset)}</div>}
-        <div className="file-media-overlay">
-          <div className="file-media-top">
-            <div className="file-media-navigation">{multiple && <>
-              <button className="file-icon-button" aria-label={grid ? 'All' : 'Single'} title={grid ? 'All' : 'Single'} onClick={() => updateNodeData(id, { viewMode: grid ? 'single' : 'all' })}>{grid ? <FileIcon name="grid" /> : <FileIcon name="single" />}</button>
-              {grid ? <span>{assets.length} images</span> : <>
-                <button className="file-icon-button" aria-label="Previous item" title="Previous item" onClick={() => select(assets[(activeIndex - 1 + assets.length) % assets.length].id)}><FileIcon name="previous" /></button>
-                <span>{activeIndex + 1} / {assets.length}</span>
-                <button className="file-icon-button" aria-label="Next item" title="Next item" onClick={() => select(assets[(activeIndex + 1) % assets.length].id)}><FileIcon name="next" /></button>
-              </>}
-            </>}</div>
-            <div className="file-media-tools">
-              <FileActionMenu label="排序方式" heading="排序方式" items={[
-                { label: '添加时间', checked: data.orderBy !== 'name', action: () => updateNodeData(id, { orderBy: 'date' }) },
-                { label: '名称', checked: data.orderBy === 'name', action: () => updateNodeData(id, { orderBy: 'name' }) },
-              ]} disabled={iterator && locked}><FileIcon name="order" /></FileActionMenu>
-              {!iterator && <><button className="file-icon-button" aria-label={grid ? 'Download all' : 'Download current'} title={grid ? 'Download all' : 'Download current'} onClick={runDownload}><FileIcon name="download" /></button>
-              <button className="file-icon-button" aria-label="Full screen" title="Full screen" onClick={event => showGallery(asset, event.currentTarget, event.detail === 0)}><FileIcon name="fullscreen" /></button></>}
-            </div>
-          </div>
-          {!grid && asset.width && asset.height && <span className="file-media-resolution">{asset.width}x{asset.height}</span>}
-        </div>
-      </>}
+        }} onDownload={runDownload} renderMedia={preview} opensOnKeyboard={canViewImage} />}
       {dragging && <div className="file-node-drop-hint">Drop to import</div>}
     </div>
-    {iterator && asset && <FileActionMenu label="图片操作" contextTarget={media} onContextOpen={target => {
-      setContextAssetId(target instanceof Element ? target.closest<HTMLElement>('[data-asset-id]')?.dataset.assetId ?? asset.id : asset.id);
-    }} items={[
-      { label: '下载图片', action: () => { void downloadAsset(contextAsset).catch(error => setError(error instanceof Error ? error.message : '下载失败。')); } },
-      { label: '下载全部', action: () => { void downloadAssets(assets).catch(error => setError(error instanceof Error ? error.message : '下载失败。')); } },
-      { label: '设为封面', disabled: locked, action: () => select(contextAsset.id) },
-      { label: '复制图片', action: () => { void copyAssetImage(contextAsset).catch(error => setError(error instanceof Error ? error.message : '复制图片失败。')); } },
-    ]} />}
     {asset ? <div className="file-node-footer" onKeyDown={annotationKeyDown}>
-      <button type="button" className="file-node-add nodrag nopan" disabled={locked || busy || (iterator && assets.length >= imageIteratorLimit)} onClick={() => input.current?.click()}>{iterator ? busy ? '正在读取图片…' : '+ 添加更多图片' : busy ? '正在读取文件…' : `+ 添加更多${kind === 'image' ? '图片' : '文件'}`}</button>
+      <button type="button" className="file-node-add nodrag nopan" disabled={locked || busy} onClick={() => input.current?.click()}>{busy ? '正在读取文件…' : `+ 添加更多${kind === 'image' ? '图片' : '文件'}`}</button>
       {editing && <span className="edit-limit-status" role="status">{marks.length >= annotationLimit ? annotationLimitMessage : null}</span>}
       {canAnnotate && <InteractiveEditButton active={editing} disabled={!canEdit} buttonRef={annotationToggle} onToggle={toggleAnnotations} />}
     </div> : <form className="file-node-link nodrag nopan" onSubmit={(event) => { event.preventDefault(); void importLink(); }}>
-      <input aria-label={iterator ? '粘贴图片链接' : '粘贴文件链接'} placeholder={iterator ? '粘贴图片链接' : '粘贴文件链接'} value={link} disabled={locked || busy}
+      <input aria-label={'粘贴文件链接'} placeholder={'粘贴文件链接'} value={link} disabled={locked || busy}
         onChange={(event) => { setLink(event.target.value); setError(''); }} onKeyDown={(event) => event.stopPropagation()} />
     </form>}
     {error && <div className="file-node-error nodrag" role="alert">{error}</div>}
-    <input ref={input} type="file" className="file-node-input" accept={iterator ? imageIteratorAccept : fileAccept} multiple tabIndex={-1} aria-label={iterator ? '选择图片' : 'Choose files'} disabled={locked || busy}
+    <input ref={input} type="file" className="file-node-input" accept={fileAccept} multiple tabIndex={-1} aria-label={'Choose files'} disabled={locked || busy}
       onChange={(event) => { if (event.target.files) void importFiles(event.target.files); event.target.value = ''; }} />
     {(kind === 'image' || kind === 'file') ? <div className={`media-port-${kind}`}><NodePort id="file" label={kind === 'image' ? 'Image' : 'File'} type="source" position={Position.Right} isConnectable={isConnectable && !locked}>
       <img src={`/image-node/port-${kind}.svg`} width={32} height={32} alt="" />{connected && <span className="media-port-dot" />}
@@ -262,9 +188,9 @@ export function FileNode({ id, data, type, isConnectable }: NodeProps<FileNodeTy
       <span className="file-node-port-label">File</span>
     </Handle>}
     {gallery && asset && <FileGallery assets={assets} activeId={gallery.assetId} onSelect={assetId => {
-      if (iterator && locked) return;
+
       setGallery({ ...gallery, assetId }); select(assetId);
     }} imageTransition={gallery.transition} onClose={() => setGallery(undefined)} />}
   </>;
-  return <NodeFrame className={`media-node-frame ${iterator ? 'image-iterator-frame' : 'file-node-frame'}`}>{content}</NodeFrame>;
+  return <NodeFrame className="media-node-frame file-node-frame">{content}</NodeFrame>;
 }

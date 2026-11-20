@@ -1,7 +1,7 @@
 import type { Edge } from '@xyflow/react';
 import { annotationAssets, annotationOutput, isAnnotationSource, selectedImageResult, type AnnotationSource } from './annotationGraph.ts';
 import { annotationLimit, commitAnnotations, fileAnnotationHistory, fileAnnotationInputPrefix, isAnnotationInput, resultAnnotationDraftHandle, type AnnotationHistory } from './interactiveEdit.ts';
-import { resolveOutputSource } from './router.ts';
+import { resolveOutputSource } from './outputPort.ts';
 import { documentText, hasVariable, restoreVariables, textToDocument, variablePositions, withoutVariables, type VariablePosition } from './textDocument.ts';
 import { isTextNode } from './textVariables.ts';
 import { isFileNode, isImageGeneratorNode, type AppNode } from './types.ts';
@@ -50,14 +50,14 @@ function promptImages(nodes: AppNode[], edges: Edge[]) {
   for (const edge of edges) {
     if (edge.targetHandle !== 'prompt' && !/^image-\d+$/.test(edge.targetHandle ?? '')) continue;
     const target = lookup.get(edge.target);
-    if (!target || !isImageGeneratorNode(target) || target.type === 'ideogram') continue;
+    if (!target || !isImageGeneratorNode(target)) continue;
     const list = inputs.get(edge.target) ?? [];
     list.push(edge);
     inputs.set(edge.target, list);
   }
   const pairs = new Map<string, Map<string, { node: AnnotationSource; imageId?: string }>>();
   for (const modelInputs of inputs.values()) {
-    const origin = (edge: Edge) => resolveOutputSource(lookup.get(edge.source), edge.sourceHandle, nodes, edges);
+    const origin = (edge: Edge) => resolveOutputSource(lookup.get(edge.source), edge.sourceHandle);
     const promptEdge = modelInputs.find(edge => edge.targetHandle === 'prompt');
     const prompt = promptEdge && origin(promptEdge)?.node;
     if (!prompt || !isTextNode(prompt)) continue;

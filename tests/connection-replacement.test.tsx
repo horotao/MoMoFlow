@@ -1,3 +1,4 @@
+import { defaultSunburstSettings } from '../src/nodes/sunburst';
 import { canvasHistoryShortcut } from './canvasShortcuts';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useNodes, useEdges, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
@@ -7,7 +8,6 @@ import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStora
 import { resolveTextValue } from '../src/nodes/textVariables';
 import '../src/index.css';
 import '../src/nodes/SunburstNode.css';
-import '../src/nodes/PreviewNode.css';
 
 let api: ReactFlowInstance<AppNode>;
 function Probe() {
@@ -49,15 +49,15 @@ const workflow: Workflow = {
   nodes: [
     { id: 'old-image', type: 'file', position: { x: 20, y: 40 }, data: { label: '原图片 · 红色', assets: [asset('red', '#de6557')] } },
     { id: 'new-image', type: 'file', position: { x: 600, y: 40 }, data: { label: '新图片 · 蓝色', assets: [asset('blue', '#599cde')] } },
-    { id: 'preview', type: 'preview', position: { x: 1200, y: 40 }, data: { label: '替换后的预览' } },
-    { id: 'branch', type: 'router', position: { x: 1800, y: 40 }, data: { label: '保留原图分支' } },
+    { id: 'preview', type: 'sunburst', position: { x: 1200, y: 40 }, data: { ...defaultSunburstSettings, imageInputs: 1, label: '替换参考图' } },
+    { id: 'branch', type: 'sunburst', position: { x: 1800, y: 40 }, data: { ...defaultSunburstSettings, imageInputs: 1, label: '保留原图分支' } },
     { id: 'old-text', type: 'text', position: { x: 20, y: 700 }, data: { label: '原文本', text: 'Old value' } },
     { id: 'new-text', type: 'text', position: { x: 600, y: 700 }, data: { label: '新文本', text: 'New value' } },
     { id: 'consumer', type: 'text', position: { x: 1200, y: 700 }, data: { label: '变量接收端', text: '', variableCount: 2 } },
   ],
   edges: [
-    { id: 'old-preview', source: 'old-image', sourceHandle: 'file', target: 'preview', targetHandle: 'file' },
-    { id: 'keep-branch', source: 'old-image', sourceHandle: 'file', target: 'branch', targetHandle: 'input' },
+    { id: 'old-preview', source: 'old-image', sourceHandle: 'file', target: 'preview', targetHandle: 'image-0' },
+    { id: 'keep-branch', source: 'old-image', sourceHandle: 'file', target: 'branch', targetHandle: 'image-0' },
     { id: 'old-variable', source: 'old-text', target: 'consumer', targetHandle: 'variable-1' },
   ],
   colorMode: 'dark', viewport: { x: 80, y: 155, zoom: .45 },
@@ -79,19 +79,18 @@ find<HTMLButtonElement>('#run').onclick = async () => {
   find<HTMLButtonElement>('#run').disabled = true;
   results.textContent = 'Running';
   try {
-    check(handle('preview', 'target').classList.contains('connectableend'), 'Occupied image input accepts a new connection');
-    await drag(handle('new-image', 'source'), handle('preview', 'target'));
-    check(sourceOf('preview', 'file') === 'new-image' && api.getEdges().length === 3, 'New image replaces old edge');
-    check(sourceOf('branch', 'input') === 'old-image', 'Other branches survive');
-    await until(() => (document.querySelector<HTMLImageElement>('[data-id="preview"] img[alt="blue.png"]')?.naturalWidth ?? 0) > 0, 'Preview displays new image');
-    pass('Occupied image input replaced; preview updates; other branch preserved');
-    canvasHistoryShortcut('undo'); await settle(); check(sourceOf('preview', 'file') === 'old-image', 'One-step undo restores original edge');
-    canvasHistoryShortcut('redo'); await settle(); check(sourceOf('preview', 'file') === 'new-image', 'Redo restores replacement');
+    check(handle('preview', 'target', 'image-0').classList.contains('connectableend'), 'Occupied image input accepts a new connection');
+    await drag(handle('new-image', 'source'), handle('preview', 'target', 'image-0'));
+    check(sourceOf('preview', 'image-0') === 'new-image' && api.getEdges().length === 3, 'New image replaces old edge');
+    check(sourceOf('branch', 'image-0') === 'old-image', 'Other branches survive');
+    pass('Occupied image input replaced; other branch preserved');
+    canvasHistoryShortcut('undo'); await settle(); check(sourceOf('preview', 'image-0') === 'old-image', 'One-step undo restores original edge');
+    canvasHistoryShortcut('redo'); await settle(); check(sourceOf('preview', 'image-0') === 'new-image', 'Redo restores replacement');
     pass('One-step undo and redo');
-    await drag(handle('new-text', 'source'), handle('preview', 'target'));
-    check(sourceOf('preview', 'file') === 'new-image', 'Invalid media connection preserves existing edge');
-    await drag(handle('preview', 'target'), handle('old-image', 'source'));
-    check(sourceOf('preview', 'file') === 'old-image', 'Reverse drag replaces occupied input');
+    await drag(handle('new-text', 'source'), handle('preview', 'target', 'image-0'));
+    check(sourceOf('preview', 'image-0') === 'new-image', 'Invalid media connection preserves existing edge');
+    await drag(handle('preview', 'target', 'image-0'), handle('old-image', 'source'));
+    check(sourceOf('preview', 'image-0') === 'old-image', 'Reverse drag replaces occupied input');
     pass('Invalid drop preserves original; reverse drag replaces correctly');
     await drag(handle('new-text', 'source'), handle('consumer', 'target', 'variable-1'));
     check(sourceOf('consumer', 'variable-1') === 'new-text' && api.getEdges().length === 3, 'Text variable input replaced');
@@ -103,26 +102,25 @@ find<HTMLButtonElement>('#run').onclick = async () => {
     const previewBounds = find('[data-id="preview"]').getBoundingClientRect();
     const blank = { x: previewBounds.x + 100, y: previewBounds.bottom + 45 };
     check(document.elementFromPoint(blank.x, blank.y)?.classList.contains('react-flow__pane'), 'Creation drop point is blank canvas');
-    await drag(handle('preview', 'target'), blank);
+    await drag(handle('preview', 'target', 'image-0'), blank);
     await until(() => !!document.querySelector('[role="dialog"]'), 'Reverse creation menu');
     find('[role="dialog"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
     check(JSON.stringify(api.getEdges()) === before, 'Cancelling reverse creation preserves edges');
-    await drag(handle('preview', 'target'), blank);
+    await drag(handle('preview', 'target', 'image-0'), blank);
     await until(() => !!document.querySelector('[role="dialog"]'), 'Reverse creation menu again');
-    find('[data-main-row="helpers"]').click(); await settle();
-    const choice = document.querySelector<HTMLElement>('.node-add-menu-submenu [data-node-id="file"]');
+    const choice = document.querySelector<HTMLElement>('.node-add-menu [data-node-id="file"]');
     check(choice, 'Import remains available for an occupied port'); choice.click(); await settle();
-    const imported = sourceOf('preview', 'file');
+    const imported = sourceOf('preview', 'image-0');
     check(imported !== 'old-image' && api.getNode(imported!)?.type === 'file' && api.getEdges().length === 3, 'Created Import replaces old edge');
     canvasHistoryShortcut('undo'); await settle();
-    check(sourceOf('preview', 'file') === 'old-image' && !api.getNode(imported!), 'Undo restores edge and removes created node together');
+    check(sourceOf('preview', 'image-0') === 'old-image' && !api.getNode(imported!), 'Undo restores edge and removes created node together');
     pass('Reverse creation, cancel and atomic undo');
-    await drag(handle('new-image', 'source'), handle('preview', 'target'));
+    await drag(handle('new-image', 'source'), handle('preview', 'target', 'image-0'));
     const current: Workflow = { nodes: api.getNodes(), edges: api.getEdges(), colorMode: 'dark', viewport: api.getViewport() };
     await storage.save(current); const saved = await storage.load(); check(saved, 'Saved graph exists');
     check(saved.edges.filter(edge => edge.target === 'preview').length === 1 && saved.edges.find(edge => edge.target === 'preview')?.source === 'new-image', 'Persistence keeps only replacement');
     render(saved); await settle();
-    check(sourceOf('preview', 'file') === 'new-image' && sourceOf('consumer', 'variable-1') === 'new-text', 'Remount restores replaced connections');
+    check(sourceOf('preview', 'image-0') === 'new-image' && sourceOf('consumer', 'variable-1') === 'new-text', 'Remount restores replaced connections');
     pass('IndexedDB save/load and remount preserve replacements');
     for (const reverse of [false, true]) {
       render({
