@@ -1,5 +1,6 @@
 import { assetResources } from './assetResources';
-import type { AppNode, FileNode, FileAsset } from './types';
+import type { FileAsset } from './types';
+export { isFileNode } from './types';
 
 export const fileAccept = '.jpg,.jpeg,.png,.webp,.gif,.heic,.avif,.webm,.mp4,.mov,.mp3,.wav,.ogg,.m4a,.glb,.obj,.fbx,.ply';
 
@@ -29,7 +30,6 @@ export function assetFromFile(file: File): FileAsset {
   return { id: crypto.randomUUID(), name: file.name, kind, url: assetResources.create(file), size: file.size };
 }
 
-export const isFileNode = (node: AppNode): node is FileNode => node.type === 'file';
 
 // External file drops and browser image drags share the same File asset shape.
 export function imagesFromDrop(transfer: Pick<DataTransfer, 'files' | 'getData'>) {

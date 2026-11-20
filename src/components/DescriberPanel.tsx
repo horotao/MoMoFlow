@@ -11,7 +11,8 @@ import { GptRunCount } from './GptRunCount';
 import { apimartExtMarkupError, sunburstName, sunburstProviderLabels } from '../nodes/sunburst';
 import { useEffect, type KeyboardEventHandler, type ReactNode } from 'react';
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react';
-import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
+import { useNodes, useReactFlow } from '@xyflow/react';
+import { useWorkflowEdges } from '../nodes/promptAnnotationEdits';
 import { TaskManager } from './TaskManager';
 import { isActiveTask } from '../nodes/taskQueue';
 import { useModelRuns, useModelTasks, useModelTaskStore } from './useModelTasks';
@@ -67,7 +68,7 @@ function NodeSettingsSidebar({ children, label, onKeyDown, imageModel = false }:
 
 export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (prompt: string) => Promise<void> }) {
   const nodes = useNodes<AppNode>();
-  const edges = useEdges();
+  const edges = useWorkflowEdges();
   const { setNodes, setEdges, updateNodeData: rawUpdateNodeData, getNodes, setCenter } = useReactFlow<AppNode>();
   const updateNodeData: typeof rawUpdateNodeData = (id, data, options) => {
     const node = getNodes().find((item) => item.id === id);

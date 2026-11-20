@@ -30,7 +30,7 @@ import type { Edge } from '@xyflow/react';
 import type { AppNode, FileAsset, SunburstNode } from './types';
 import { isNodeLocked, isSunburstNode, isImageGeneratorNode } from './types.ts';
 import { fileAssets } from './fileCollection.ts';
-import { sameAnnotationImage } from './annotationGraph.ts';
+import { isPinnedResultHandle, pinnedResultAsset, pinnedResultInput, sameAnnotationImage } from './annotationGraph.ts';
 import type { AnnotationMark } from './interactiveEdit.ts';
 import { resolveTextValue } from './textVariables.ts';
 import { apimartExtMarkupError, apimartFixedSettings, migrateSunburstProvider, sunburstParameterDefaults, validateSunburstImageInputs, validateSunburstMarkup, validateSunburstVariant, sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
@@ -216,6 +216,10 @@ function imageResolution(nodes?: AppNode[], edges?: Edge[], visited = new Set<st
     }
     if (node?.type === 'file') return fileAssets(node.data).filter(asset => asset.kind === 'image');
     if (node && isImageGeneratorNode(node)) {
+      if (isPinnedResultHandle(handle)) {
+        const pinned = pinnedResultAsset(node, handle);
+        return pinned ? [pinned] : [];
+      }
       const results = node.data.results ?? [];
       const active = results.find(asset => asset.id === node.data.activeResultId) ?? results[results.length - 1];
       return active ? [active] : [];
@@ -273,7 +277,8 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
       if (edit?.markupMarks) validateSunburstMarkup(settings.outputFormat, true, Boolean(maskEdge));
       validateSunburstImageInputs(settings.outputFormat, Boolean(original || imageEdges.length), Boolean(maskEdge), provider, settings.channelModel);
       const references = imageEdges.flatMap(edge => {
-        const assets = imageOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges);
+        const input = pinnedResultInput(edge, promptEdge?.source, nodes, edges) ?? edge;
+        const assets = imageOutput(nodes.find(item => item.id === input.source), input.sourceHandle, nodes, edges);
         if (!assets.length) throw new Error('连接的 Image 尚无图片，上游未提供可用输出。');
         return assets;
       });

@@ -181,6 +181,16 @@ export function validateSunburstSize(size: unknown): string {
   return size;
 }
 
+export function sunburstPreviewAspectRatio(provider: SunburstProvider | undefined, size: string) {
+  if (provider === 'apimart') {
+    if (apimartStandardAspectRatios.some(ratio => ratio !== 'auto' && ratio === size)) return size.replace(':', ' / ');
+    return /^\d+x\d+$/.test(size) ? size.replace('x', ' / ') : '1';
+  }
+  try {
+    return validateSunburstSize(size) === 'auto' ? '1' : size.replace('x', ' / ');
+  } catch { return '1'; }
+}
+
 export const sunburstFrameCounts = Array.from({ length: 15 }, (_, i) => String(i + 2));
 export const apimartExtMarkupError = 'APIMart GPT Image 2.6 EXT 不支持交互编辑标注。请切换到 GPT Image 2.6 标准版或 OpenAI 官方渠道。';
 

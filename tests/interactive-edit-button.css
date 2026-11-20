@@ -1,0 +1,23 @@
+.interactive-edit-button-preview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  min-height: 100%;
+  padding: 24px 16px;
+  background: var(--canvas-background);
+}
+
+.interactive-edit-button-preview .node-frame {
+  max-width: 100%;
+}
+
+.interactive-edit-button-sample {
+  width: 100%;
+  height: auto;
+  border-radius: var(--node-inset-radius);
+}
+
+.interactive-edit-button-actions {
+  display: flex;
+  justify-content: flex-end;
+}

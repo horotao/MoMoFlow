@@ -246,43 +246,36 @@ async function run() {
   await api.setViewport({ x: 0, y: 180, zoom: .6 });
   mode = 'success';
   const annotation = { id: 'mark', start: { x: .25, y: .5 } };
-  api.setNodes(nodes => [...nodes, {
-    id: 'edit', type: 'interactive-edit', position: { x: 650, y: 620 }, data: {
-      history: commitAnnotations(emptyAnnotationHistory, 'reference-image', [annotation]),
-    },
-  }]);
-  api.updateNodeData('prompt', { content: initialTextDocument('改为橙色', ['annotation-1'], 'prompt'), text: '改为橙色' });
-  api.setEdges(edges => [...edges.filter(edge => edge.id !== 'reference'),
-    { id: 'annotation-image', source: 'reference', sourceHandle: 'file', target: 'edit', targetHandle: 'image' },
-    { id: 'annotation-text', source: 'edit', sourceHandle: annotation.id, target: 'prompt', targetHandle: 'annotation-1' },
-  ]);
-  await until(() => Boolean(document.querySelector('.annotation-chip-thumbnail')), 'Annotation connects to the prompt');
+  api.updateNodeData('prompt', { content: initialTextDocument('改为橙色', [], 'prompt'), text: '改为橙色' });
+  api.updateNodeData('reference', { annotations: [commitAnnotations(emptyAnnotationHistory, 'reference-image', [annotation])] });
+  await until(() => Boolean(document.querySelector('.annotation-chip-thumbnail')), 'The image connection adds the annotation chip to the paired prompt');
   const baselineUploads = uploads;
-  runButton().click(); await until(() => read().data.results?.length === 3, 'Annotation-only reference completes');
-  check(requests[4].prompt === '<point>250 500</point> 改为橙色'
+  runButton().click(); await until(() => read().data.results?.length === 3, 'Annotated image reference completes');
+  check(requests[4].prompt === '改为橙色 <point>250 500</point>'
     && JSON.stringify(requests[4].images) === JSON.stringify(['https://cdn.example/uploaded-reference.png'])
-    && uploads === baselineUploads + 1, 'Seedream uploads the annotation original without a manual image connection');
-  api.setEdges(edges => [...edges, { id: 'reference', source: 'reference', sourceHandle: 'file', target: 'seedream', targetHandle: 'image-0' }]);
-  await settle();
-  runButton().click(); await until(() => read().data.results?.length === 4, 'Same annotation and manual reference complete');
+    && uploads === baselineUploads + 1, 'Seedream submits the inline coordinate and uploads the connected image once');
+  runButton().click(); await until(() => read().data.results?.length === 4, 'Repeating the annotated reference completes');
   check(requests[5].prompt === requests[4].prompt && JSON.stringify(requests[5].images) === JSON.stringify(requests[4].images)
     && uploads === baselineUploads + 2, 'The manually connected annotation original is uploaded only once per run');
   const box = { id: 'box', start: { x: .1, y: .2 }, end: { x: .4, y: .5 } };
   context.fillRect(0, 0, 20, 20);
   const secondImage = await (await originalFetch(canvas.toDataURL('image/png'))).blob();
   api.setNodes(nodes => [...nodes, {
-    id: 'second-edit', type: 'interactive-edit', position: { x: 1120, y: 620 }, data: {
-      baseImage: { id: 'second-image', kind: 'image', name: 'second.png', url: assetResources.create(secondImage) },
-      history: commitAnnotations(emptyAnnotationHistory, 'second-image', [box]),
+    id: 'second-file', type: 'file', position: { x: 1120, y: 620 }, data: {
+      assets: [{ id: 'second-image', kind: 'image', name: 'second.png', url: assetResources.create(secondImage) }],
+      annotations: [commitAnnotations(emptyAnnotationHistory, 'second-image', [box])],
     },
   }]);
-  const splitPrompt = initialTextDocument('改为篮球。', ['annotation-1', 'annotation-2'], 'prompt');
-  splitPrompt.content![0].content![1].text = ' 改为足球，把 ';
-  api.updateNodeData('prompt', { content: splitPrompt });
+  api.updateNodeData('seedream', { imageInputs: 2 });
   api.setEdges(edges => [...edges, {
-    id: 'second-annotation', source: 'second-edit', sourceHandle: box.id, target: 'prompt', targetHandle: 'annotation-2',
+    id: 'second-reference', source: 'second-file', sourceHandle: 'file', target: 'seedream', targetHandle: 'image-1',
   }]);
   await until(() => document.querySelectorAll('.annotation-chip-thumbnail').length === 2, 'Second source contributes a box annotation');
+  const handles = [...document.querySelectorAll<HTMLElement>('.annotation-chip')].map(chip => chip.dataset.handleId!);
+  const splitPrompt = initialTextDocument('改为篮球。', handles, 'prompt');
+  splitPrompt.content![0].content![1].text = ' 改为足球，把 ';
+  api.updateNodeData('prompt', { content: splitPrompt });
+  await settle();
   distinguishUploads = true;
   const nextUpload = uploads + 1;
   runButton().click();

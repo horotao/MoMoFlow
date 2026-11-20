@@ -8,7 +8,7 @@ import { validateIteratorItems } from './textIterator.ts';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, FileAsset } from './types';
 import { isDescriberNode, isImageGeneratorNode, isNodeLocked, isCompositorNode, isMasksExtractorNode, isCompareNode, isBlendNode } from './types.ts';
-import { annotationOutput } from './annotationGraph.ts';
+import { annotationOutput, pinnedResultAsset, pinnedResultInput, selectedImageResult, storedAnnotationResult } from './annotationGraph.ts';
 import { isAnnotationInput } from './interactiveEdit.ts';
 import { hasVariable } from './textDocument.ts';
 import { fileAssets, orderedAssets } from './fileCollection.ts';
@@ -39,8 +39,7 @@ export const stableSignature = (value: unknown): string => JSON.stringify(value,
   return item;
 });
 export function selectedResult(node: AppNode) {
-  if (!isImageGeneratorNode(node)) return undefined;
-  return node.data.results?.find(asset => asset.id === node.data.activeResultId) ?? node.data.results?.[node.data.results.length - 1];
+  return isImageGeneratorNode(node) ? selectedImageResult(node) : undefined;
 }
 export function fixedOutput(node: AppNode, graph: ExecutionGraph) {
   return isDescriberNode(node) ? node.data.outputMode === 'manual' && Boolean(node.data.text.trim())
@@ -59,7 +58,11 @@ export function executionInputs(node: AppNode, handle: string | null | undefined
     const prompt = edges.find(edge => edge.targetHandle === 'prompt');
     if (prompt && hasSplitSeedreamPrompt(prompt.source, graph.nodes, graph.edges)) return [prompt];
   }
-  if (isImageGeneratorNode(node)) return edges.filter(edge => isImageGenerationInput(edge.targetHandle, node.type === 'sunburst'));
+  if (isImageGeneratorNode(node)) {
+    const prompt = edges.find(edge => edge.targetHandle === 'prompt');
+    return edges.filter(edge => isImageGenerationInput(edge.targetHandle, node.type === 'sunburst')).map(edge =>
+      /^image-\d+$/.test(edge.targetHandle ?? '') ? pinnedResultInput(edge, prompt?.source, graph.nodes, graph.edges) ?? edge : edge);
+  }
   if (isCompositorNode(node)) {
     const handles = new Set(node.data.document.layers.filter(layer => layer.visible || (node.data.document.canvas.autoSize && layer.source.kind === 'input' && layer.source.handle === 'background'))
       .flatMap(layer => layer.source.kind === 'input' ? [layer.source.handle] : []));
@@ -78,10 +81,15 @@ export function executionSourceAssets(graph: ExecutionGraph, target: string, tar
     visited.add(key);
     const node = graph.nodes.find(item => item.id === id);
     if (!node) return;
+    const annotation = storedAnnotationResult(node, handle, graph.nodes, graph.edges);
+    if (annotation) { add(annotation.image); return; }
     if (!targets.includes(id) && fixedOutput(node, graph)) { add(selectedResult(node)); return; }
     const inputs = executionInputs(node, handle, graph);
     const connected = (port: string) => inputs.some(edge => edge.targetHandle === port);
-    if (node.type === 'file') fileAssets(node.data).forEach(add);
+    if (node.type === 'file') {
+      if (handle && handle !== 'file') add(annotationOutput(node, handle, graph.nodes, graph.edges)?.image);
+      else fileAssets(node.data).forEach(add);
+    }
     else if (isCompareNode(node)) {
       const second = handle === 'output-2';
       if (!connected(second ? 'input-2' : 'input-1')) add(second ? node.data.input2 : node.data.input1);
@@ -120,9 +128,14 @@ function configuration(node: AppNode, graph: ExecutionGraph, handle?: string | n
   for (const key of ['label', 'exposed', 'imageInputs', 'variableCount', 'displayMode', 'orderBy', 'viewMode', 'generation', 'sourceSignature', 'outputRevision', 'executionSignature', 'result', 'mask', 'alphaMask']) delete data[key];
   if (node.type === 'sunburst') for (const field of Object.keys(apimartFixedSettings)) delete data[field];
   if (node.type === 'image-iterator') return { locked: data.locked, assets: orderedAssets(node.data).map(assetIdentity) };
-  if (node.type === 'file') return { locked: data.locked, assets: fileAssets(node.data).map(assetIdentity) };
+  if (node.type === 'file') {
+    if (!handle || handle === 'file') return { locked: data.locked, assets: fileAssets(node.data).map(assetIdentity) };
+    const annotation = annotationOutput(node, handle, graph.nodes, graph.edges);
+    return annotation && { asset: assetIdentity(annotation.image), mark: annotation.mark, index: annotation.index };
+  }
   if (isImageGeneratorNode(node)) {
     delete data.results;
+    delete data.annotations;
     const result = selectedResult(node);
     data.activeResult = result ? { resultId: result.id, ...assetIdentity(result) } : undefined;
   }
@@ -142,7 +155,10 @@ export function graphGuard(graph: ExecutionGraph, id: string, force = false, han
     const key = JSON.stringify([nodeId, port ?? null, forced]);
     if (path.has(key)) nodeProblem(node, '检测到循环依赖。');
     if (records.has(key)) return key;
-    if (!forced && fixedOutput(node, graph)) {
+    const annotation = storedAnnotationResult(node, port, graph.nodes, graph.edges);
+    if (annotation) {
+      records.set(key, [node.type, assetIdentity(annotation.image), 'mark' in annotation ? [annotation.mark, annotation.index] : undefined]);
+    } else if (!forced && fixedOutput(node, graph)) {
       records.set(key, [node.type, isDescriberNode(node) ? node.data.text : { resultId: selectedResult(node)!.id, ...assetIdentity(selectedResult(node)!) }, 'outputMode' in node.data ? node.data.outputMode : undefined]);
     } else {
       const inputs = executionInputs(node, port, graph).map(edge => [edge.targetHandle, edge.sourceHandle, visit(edge.source, edge.sourceHandle, false, new Set(path).add(key))]);
@@ -234,6 +250,7 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
     seen.add(key);
     const source = graph.nodes.find(item => item.id === id);
     if (!source) return false;
+    if (storedAnnotationResult(source, handle, graph.nodes, graph.edges)) return false;
     if (isModelNode(source)) return targets.includes(id) || !fixedOutput(source, graph);
     return executionInputs(source, handle, graph).some(edge => dynamic(edge.source, edge.sourceHandle, seen));
   };
@@ -293,6 +310,7 @@ function preflightSingle(graph: ExecutionGraph, targets: string[], runs: number)
       if (path.has(key)) nodeProblem(node, '检测到循环依赖。');
       if (all.has(key)) return;
       all.add(key);
+      if (storedAnnotationResult(node, handle, graph.nodes, graph.edges)) return;
       if (!targets.includes(id) && fixedOutput(node, graph)) return;
       if (node.type === 'ideogram') nodeProblem(node, 'Ideogram 已下线，请使用已保存的结果或更换节点。');
       if (id === target && (!isModelNode(node) || isNodeLocked(node))) nodeProblem(node, '节点已锁定或不能运行。');
@@ -310,7 +328,10 @@ function preflightSingle(graph: ExecutionGraph, targets: string[], runs: number)
       if (node.type === 'router' && !inputs.length) nodeProblem(node, '请连接输入。');
       for (const edge of inputs) {
         const source = graph.nodes.find(item => item.id === edge.source);
-        if (!outputKind(source, edge.sourceHandle, graph.nodes, graph.edges)) nodeProblem(node, '连接的输出端口无效。');
+        const valid = isAnnotationInput(edge.targetHandle)
+          ? annotationOutput(source, edge.sourceHandle, graph.nodes, graph.edges)
+          : pinnedResultAsset(source, edge.sourceHandle) || outputKind(source, edge.sourceHandle, graph.nodes, graph.edges);
+        if (!valid) nodeProblem(node, '连接的输出端口无效。');
         visit(edge.source, edge.sourceHandle, new Set(path).add(key));
       }
       if (isModelNode(node)) validateKnownModelInputs(node, graph, targets);
@@ -332,7 +353,7 @@ export function workflowIterations(graph: ExecutionGraph, target: string): (Work
     if (seen.has(key)) return;
     seen.add(key);
     const node = graph.nodes.find(item => item.id === id);
-    if (!node || (id !== target && fixedOutput(node, graph))) return;
+    if (!node || storedAnnotationResult(node, handle, graph.nodes, graph.edges) || (id !== target && fixedOutput(node, graph))) return;
     if (isTextIteratorNode(node) || isImageIteratorNode(node)) iterators.add(id);
     executionInputs(node, handle, graph).forEach(edge => visit(edge.source, edge.sourceHandle));
   };

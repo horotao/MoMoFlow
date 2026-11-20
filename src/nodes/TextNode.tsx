@@ -1,14 +1,13 @@
 import { Provider as TooltipProvider } from '@radix-ui/react-tooltip';
-import { AnnotationPort } from './shared/AnnotationPort';
-import { annotationInputs, isAnnotationInput } from './interactiveEdit';
-import { annotationOutput } from './annotationGraph';
+import { fileAnnotationInputPrefix, isAnnotationInput } from './interactiveEdit';
+import { useWorkflowEdges } from './promptAnnotationEdits';
 import { LockKeyhole } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { Position, useReactFlow, useNodes, useEdges, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
+import { Position, useReactFlow, useNodes, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 
 import { isFileNode } from './fileAsset';
 import { fileAssets } from './fileCollection';
-import { textAnnotationCount, textInputHandles, textVariableCount, variableHandleId, variableIndex } from './textVariables';
+import { textInputHandles, textVariableCount, variableHandleId, variableIndex } from './textVariables';
 import type { Editor } from '@tiptap/react';
 import { TextPromptEditor } from './TextPromptEditor';
 import { TextNodeMenu } from './TextNodeMenu';
@@ -32,7 +31,7 @@ export function TextNode({ id, data, isConnectable }: NodeProps<TextNodeType>) {
   const cancelRename = useRef(false);
   useEffect(() => { if (renaming) { renameRef.current?.focus(); renameRef.current?.select(); } }, [renaming]);
   const nodes = useNodes<AppNode>();
-  const edges = useEdges();
+  const edges = useWorkflowEdges();
   const updateNodeInternals = useUpdateNodeInternals();
   const node = nodes.find(item => item.id === id)! as TextNodeType;
   const variableCount = textVariableCount(node, edges);
@@ -41,20 +40,15 @@ export function TextNode({ id, data, isConnectable }: NodeProps<TextNodeType>) {
   const outputConnected = edges.some((edge) => edge.source === id);
   const editorRef = useRef<Editor | null>(null);
   const variablePorts = Math.max(1, variableCount);
-  const annotationCount = textAnnotationCount(node, edges);
-  const activeAnnotations = new Set(inputs.filter(edge => isAnnotationInput(edge.targetHandle)
-    && annotationOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges)).map(edge => edge.targetHandle));
-
-  const measuredPorts = useRef(`${variablePorts}:${annotationCount}`);
+  const measuredPorts = useRef(variablePorts);
   useEffect(() => {
-    const ports = `${variablePorts}:${annotationCount}`;
-    if (measuredPorts.current === ports) return;
-    measuredPorts.current = ports;
+    if (measuredPorts.current === variablePorts) return;
+    measuredPorts.current = variablePorts;
     updateNodeInternals(id);
-  }, [id, variablePorts, annotationCount, updateNodeInternals]);
+  }, [id, variablePorts, updateNodeInternals]);
 
   return (
-    <NodeFrame className="text-node-frame" style={{ minHeight: Math.max(395, 121 + (variablePorts + annotationCount - 1) * 60) }}>
+    <NodeFrame className="text-node-frame" style={{ minHeight: Math.max(395, 121 + (variablePorts - 1) * 60) }}>
       <NodeHeader icon={<TextNodeIcon name="text" />} title={
           renaming ? <input ref={renameRef} className="text-node-rename nodrag nopan" aria-label="节点名称"
             value={title} maxLength={100} onChange={(event) => setTitle(event.target.value)}
@@ -73,7 +67,7 @@ export function TextNode({ id, data, isConnectable }: NodeProps<TextNodeType>) {
         }}><TextNodeIcon name="more" /></TextNodeMenu>} />
       <div className="text-node-content">
         <TooltipProvider delayDuration={150} skipDelayDuration={300}>
-          <TextPromptEditor id={id} data={data} editorRef={editorRef} handles={textInputHandles(id, edges)} />
+          <TextPromptEditor id={id} data={data} editorRef={editorRef} handles={textInputHandles(id, edges).filter(handle => !handle.startsWith(fileAnnotationInputPrefix))} />
         </TooltipProvider>
       </div>
       <footer className="text-node-footer">
@@ -106,9 +100,6 @@ export function TextNode({ id, data, isConnectable }: NodeProps<TextNodeType>) {
           </NodePort>
         );
       })}
-      {annotationInputs.slice(0, annotationCount).map((handleId, index) =>
-        <AnnotationPort key={handleId} id={handleId} label={`标注 ${index + 1}`} top={89 + (variablePorts + index) * 60}
-          type="target" position={Position.Left} isConnectable={isConnectable} connected={activeAnnotations.has(handleId)} />)}
       <NodePort label="Prompt" type="source" position={Position.Right} isConnectable={isConnectable}>
         <TextNodeIcon name={outputConnected ? 'port-text-connected' : 'port-text'} />
       </NodePort>

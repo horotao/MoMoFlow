@@ -1,14 +1,12 @@
-.edit-body {
-  display: grid;
-  flex: 1;
-  grid-template-rows: auto minmax(32px, 1fr);
-  gap: 10px;
-}
+.file-node-media:has(> .edit-image) { overflow: visible; }
+.sunburst-preview.is-editing { overflow: visible; }
+.sunburst-preview.is-editing > .node-image-overlay,
+.sunburst-preview.is-editing > .node-image-overlay::before,
+.sunburst-preview.is-editing > .node-image-overlay::after { border-radius: inherit; }
 
 .edit-image {
   position: relative;
   border-radius: var(--node-inset-radius);
-  background: var(--node-inset) url('/masks-node/checkerboard.svg') 0 0 / 424px 424px;
   user-select: none;
 }
 
@@ -32,7 +30,6 @@
   corner-shape: superellipse(1.25);
 }
 
-.edit-image-empty { aspect-ratio: 4 / 3; }
 .edit-image.is-failed { min-height: 100px; }
 
 .edit-empty {
@@ -168,44 +165,5 @@
 .edit-box.edit-mark-movable > :is([data-corner='nw'], [data-corner='se']) { cursor: nwse-resize; }
 .edit-box.edit-mark-movable > :is([data-corner='ne'], [data-corner='sw']) { cursor: nesw-resize; }
 
-.edit-controls {
-  display: flex;
-  align-self: end;
-  align-items: center;
-  gap: 4px;
-  min-height: 32px;
-}
-
-.edit-controls button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-width: 32px;
-  height: 32px;
-  padding: 0 8px;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--node-secondary);
-  cursor: pointer;
-  font: 400 12px/16px var(--font-ui);
-}
-
-.edit-controls button:hover:not(:disabled) { background: var(--node-hover); color: var(--node-primary); }
-.edit-controls button[aria-pressed='true'] { background: color-mix(in srgb, var(--annotation-blue) 14.5%, transparent); color: #8ac7ff; }
-.edit-controls button:disabled { color: var(--node-disabled); cursor: default; }
-.edit-controls button:focus-visible { outline: 1px solid var(--annotation-blue); outline-offset: 1px; }
-.edit-limit-status { margin-left: 8px; color: var(--node-secondary); font-size: 11px; }
-.edit-controls .edit-reset { margin-left: auto; }
-
-.react-flow .interactive-edit-frame .node-port-label {
-  visibility: visible;
-  opacity: 1;
-  pointer-events: none;
-  transform: translateY(-12px);
-}
-
-.react-flow .interactive-edit-frame .node-port.react-flow__handle-left { left: -4px; }
-.react-flow .interactive-edit-frame .node-port.react-flow__handle-right { right: 0; }
-.interactive-edit-frame .node-port-label-input { right: calc(100% + 29px); }
-.interactive-edit-frame .node-port-label-output { left: calc(100% + 29px); }
+.edit-limit-status { margin-inline-start: auto; color: var(--node-secondary); font-size: 11px; white-space: nowrap; }
+.edit-limit-status:empty { position: absolute; }

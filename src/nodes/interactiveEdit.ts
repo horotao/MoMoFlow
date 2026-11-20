@@ -6,15 +6,25 @@ export type AnnotationHistory = { imageId?: string; frames: AnnotationMark[][]; 
 export type InteractiveEditData = { label?: string; locked?: boolean; baseImage?: FileAsset; history?: AnnotationHistory };
 
 export const annotationLimit = 6;
+export const annotationLimitMessage = `已达 ${annotationLimit} 个标注上限`;
 export const annotationInputs = Array.from({ length: annotationLimit }, (_, index) => `annotation-${index + 1}`);
 export const annotationInputIndex = (handle?: string | null) => annotationInputs.indexOf(handle ?? '');
-export const isAnnotationInput = (handle?: string | null) => annotationInputIndex(handle) >= 0;
-export const annotationPortTop = (index: number) => 87 + index * 60;
-export const annotationLabel = (index: number) => `标注点 ${index + 1}`;
+export const fileAnnotationInputPrefix = 'annotation-file:';
+export const resultAnnotationDraftHandle = fileAnnotationInputPrefix + 'draft';
+export const isAnnotationInput = (handle?: string | null) => annotationInputIndex(handle) >= 0 || Boolean(handle?.startsWith(fileAnnotationInputPrefix));
+export const annotationLabel = (index: number) => `标注 ${index + 1}`;
 
 export const emptyAnnotationHistory: AnnotationHistory = { frames: [[]], index: 0 };
 export function annotationHistory(data: InteractiveEditData, imageId?: string) {
   return imageId && data.history?.imageId === imageId ? data.history : emptyAnnotationHistory;
+}
+
+export function fileAnnotationHistory(histories: AnnotationHistory[] | undefined, imageId?: string) {
+  return (imageId && histories?.find(history => history.imageId === imageId)) || emptyAnnotationHistory;
+}
+
+export function withFileAnnotationHistory(histories: AnnotationHistory[] | undefined, next: AnnotationHistory) {
+  return [...(histories ?? []).filter(history => history.imageId !== next.imageId), next];
 }
 
 export function commitAnnotations(history: AnnotationHistory, imageId: string, marks: AnnotationMark[]): AnnotationHistory {
@@ -43,4 +53,14 @@ export function restoreInteractiveEditData(value: unknown): InteractiveEditData 
   return { label: typeof label === 'string' ? label : undefined, history: valid ? history : undefined,
     baseImage: baseImage && baseImage.kind === 'image' && typeof baseImage.id === 'string' && typeof baseImage.name === 'string'
       && typeof baseImage.url === 'string' && /^(blob:|https?:)/.test(baseImage.url) ? baseImage : undefined };
+}
+
+export function restoreFileAnnotations(value: unknown, assets: FileAsset[]) {
+  if (!Array.isArray(value)) return;
+  const histories = assets.flatMap(asset => {
+    if (asset.kind !== 'image') return [];
+    const history = restoreInteractiveEditData({ history: value.find(item => item?.imageId === asset.id) })?.history;
+    return history ? [history] : [];
+  });
+  return histories.length ? histories : undefined;
 }

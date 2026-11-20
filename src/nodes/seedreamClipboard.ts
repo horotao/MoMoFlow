@@ -1,4 +1,5 @@
 import { isFileAsset } from './fileCollection.ts';
+import { restoreFileAnnotations } from './interactiveEdit.ts';
 import { seedreamMaxImages, validateSeedreamSettings } from './seedream.ts';
 import type { SeedreamNode } from './types';
 
@@ -12,6 +13,7 @@ export function restoreSeedreamData(value: unknown): SeedreamNode['data'] | unde
   return {
     ...settings, imageInputs: data.imageInputs, results,
     ...(data.outputMode === 'fixed' ? { outputMode: 'fixed' as const } : {}),
+    ...(data.annotations !== undefined ? { annotations: restoreFileAnnotations(data.annotations, results) } : {}),
     label: typeof data.label === 'string' ? data.label : undefined,
     ...(data.orderBy === 'date' || data.orderBy === 'name' ? { orderBy: data.orderBy } : {}),
     activeResultId: typeof data.activeResultId === 'string' && results.some(asset => asset.id === data.activeResultId) ? data.activeResultId : undefined,

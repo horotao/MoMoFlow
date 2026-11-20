@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
+import { useNodes, useReactFlow } from '@xyflow/react';
+import { useWorkflowEdges } from '../nodes/promptAnnotationEdits';
 import type { AppNode, FileAsset } from '../nodes/types';
 import { WorkflowExecution, aborted } from '../nodes/workflowExecution';
 import { readExecutionAsset } from '../nodes/executionAssets';
@@ -13,7 +14,7 @@ import { advanceEstimatedProgress } from '../nodes/taskQueue';
 import { useModelTaskStore } from './useModelTasks';
 
 export function useWorkflowExecution(onImageGenerated?: (prompt: string) => Promise<void>) {
-  const nodes = useNodes<AppNode>(), edges = useEdges();
+  const nodes = useNodes<AppNode>(), edges = useWorkflowEdges();
   const { getNodes, getEdges, updateNodeData } = useReactFlow<AppNode>();
   const store = useModelTaskStore();
   const engine = useRef<WorkflowExecution>();

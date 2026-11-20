@@ -1,4 +1,4 @@
-import { isInteractiveEditNode } from '../nodes/types';
+import { isFileNode } from '../nodes/types';
 import { masksDocument } from '../nodes/masksExtractor';
 import { isImageIteratorNode, isTextIteratorNode, isMasksExtractorNode, isSeedreamNode } from '../nodes/types';
 import { isSeedreamExactSize } from '../nodes/seedream';
@@ -70,9 +70,9 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
         && JSON.stringify(node.position) === JSON.stringify(state.present.nodes[i].position))
       && JSON.stringify(edges) === JSON.stringify(state.present.edges);
     const annotationsChanged = nodes.some(node => {
-      if (!isInteractiveEditNode(node)) return false;
+      if (!isFileNode(node)) return false;
       const previous = state.present.nodes.find(item => item.id === node.id);
-      return isInteractiveEditNode(previous) && node.data.history !== previous.data.history;
+      return isFileNode(previous) && node.data.annotations !== previous.data.annotations;
     });
     const maskChanged = nodes.some(node => isMasksExtractorNode(node) && (() => {
       const previous = state.present.nodes.find(item => item.id === node.id);

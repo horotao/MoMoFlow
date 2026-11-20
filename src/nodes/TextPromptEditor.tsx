@@ -5,8 +5,8 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { isHistoryTransaction } from '@tiptap/pm/history';
 import { Slice } from '@tiptap/pm/model';
 import { useReactFlow, type Edge } from '@xyflow/react';
-import { PromptAnnotationEdits } from './promptAnnotationEdits';
-import { annotationInputs } from './interactiveEdit';
+import { PromptAnnotationEdits, PromptAnnotationLinks } from './promptAnnotationEdits';
+import { isAnnotationInput } from './interactiveEdit';
 import { PromptVariable } from './promptVariable';
 import { documentText, hasVariable, initialTextDocument, textToDocument } from './textDocument';
 import { resolveTextInput, textInputHandle } from './textVariables';
@@ -22,6 +22,9 @@ export function TextPromptEditor({ id, data, handles, editorRef }: {
   const { getNodes, getEdges, updateNodeData, updateNode } = useReactFlow<AppNode>();
   const previousHandles = useRef(new Set(handles));
   const applyAnnotationEdit = useContext(PromptAnnotationEdits);
+  const annotationLinks = useContext(PromptAnnotationLinks);
+  const links = useRef(annotationLinks);
+  links.current = annotationLinks;
   const removedEdges = useRef(new Map<string, Edge>());
   const editor = useEditor({
     extensions: [
@@ -33,8 +36,9 @@ export function TextPromptEditor({ id, data, handles, editorRef }: {
       Placeholder.configure({ placeholder: suggestedTextNodeText, showOnlyWhenEditable: true }),
       PromptVariable.configure({
         resolve: (handleId) => {
-          const input = getEdges().find((edge) => edge.target === id && textInputHandle(edge.targetHandle) === textInputHandle(handleId));
-          return input ? resolveTextInput(input, getNodes(), getEdges()) : '';
+          const edges = [...getEdges(), ...links.current];
+          const input = edges.find(edge => edge.target === id && textInputHandle(edge.targetHandle) === textInputHandle(handleId));
+          return input ? resolveTextInput(input, getNodes(), edges) : '';
         },
       }),
     ],
@@ -77,11 +81,15 @@ export function TextPromptEditor({ id, data, handles, editorRef }: {
       const content = current.getJSON();
       if (applyAnnotationEdit) {
         const before = transaction.before.toJSON();
-        const removedHandles = new Set(annotationInputs.filter(handle => hasVariable(before, handle) && !hasVariable(content, handle)));
+        const removedHandles = new Set<string>();
+        documentText(before, handle => {
+          if (isAnnotationInput(handle) && !hasVariable(content, handle)) removedHandles.add(handle);
+          return '';
+        });
         const restoreEdges = isHistoryTransaction(transaction) ? [...removedEdges.current].flatMap(([handle, edge]) =>
           !hasVariable(before, handle) && hasVariable(content, handle) ? [edge] : []) : [];
         if (removedHandles.size || restoreEdges.length) {
-          const disconnected = applyAnnotationEdit({ nodeId: id, content, removedHandles, restoreEdges });
+          const disconnected = applyAnnotationEdit({ nodeId: id, content, previousContent: before, removedHandles, restoreEdges });
           for (const handle of removedHandles) removedEdges.current.delete(handle);
           for (const edge of disconnected) if (edge.targetHandle) removedEdges.current.set(edge.targetHandle, edge);
           return;
@@ -100,7 +108,11 @@ export function TextPromptEditor({ id, data, handles, editorRef }: {
 
   useEffect(() => {
     if (!editor || !data.content || JSON.stringify(data.content) === JSON.stringify(editor.getJSON())) return;
-    editor.commands.setContent(data.content, { emitUpdate: false });
+    // The canvas tracks incoming changes. Keep them out of the Prompt's local undo history.
+    editor.chain().command(({ tr }) => {
+      tr.setMeta('addToHistory', false);
+      return true;
+    }).setContent(data.content, { emitUpdate: false }).run();
   }, [editor, data.content]);
 
   useEffect(() => {

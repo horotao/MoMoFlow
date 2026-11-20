@@ -3,6 +3,7 @@ import type { AppNode } from './types';
 import { isNanoBananaNode, isNodeLocked } from './types.ts';
 import { nanoBananaMaxImages, nanoBananaModel, validateNanoBananaSettings } from './nanoBanana.ts';
 import { imageOutput } from './sunburstRun.ts';
+import { pinnedResultInput } from './annotationGraph.ts';
 import { resolveTextValue } from './textVariables.ts';
 import type { PreviewTask } from './taskQueue';
 
@@ -22,7 +23,8 @@ export function prepareNanoBananaRun(nodes: AppNode[], edges: Edge[], ids: strin
         .sort((a, b) => Number(a.targetHandle?.slice(6)) - Number(b.targetHandle?.slice(6)))
         .flatMap(edge => {
           if (Number(edge.targetHandle?.slice(6)) >= node.data.imageInputs) throw new Error('参考图端口不存在。');
-          const assets = imageOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges);
+          const input = pinnedResultInput(edge, promptEdge?.source, nodes, edges) ?? edge;
+          const assets = imageOutput(nodes.find(item => item.id === input.source), input.sourceHandle, nodes, edges);
           if (!assets.length) throw new Error('连接的 Image 尚无图片，上游未提供可用输出。');
           return assets.map(asset => asset.url);
         });

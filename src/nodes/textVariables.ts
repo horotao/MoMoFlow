@@ -6,7 +6,7 @@ import type { AppNode, TextNode } from './types';
 import { documentText } from './textDocument.ts';
 import { parseIteratorText } from './textIterator.ts';
 import { isTextIteratorNode, type TextIteratorNode } from './types.ts';
-import { annotationInputs, annotationInputIndex, annotationMarkup, isAnnotationInput } from './interactiveEdit.ts';
+import { annotationInputs, annotationInputIndex, annotationMarkup, isAnnotationInput, resultAnnotationDraftHandle } from './interactiveEdit.ts';
 import { annotationOutput } from './annotationGraph.ts';
 import { hasVariable } from './textDocument.ts';
 
@@ -29,7 +29,7 @@ export const variableIndex = (handle?: string | null) => {
 export const textInputHandle = (handle?: string | null) => handle && isAnnotationInput(handle) ? handle : variableHandleId(variableIndex(handle));
 
 function textInputs(id: string, edges: Edge[]) {
-  return edges.filter(edge => edge.target === id).sort((a, b) => {
+  return edges.filter(edge => edge.target === id && edge.targetHandle !== resultAnnotationDraftHandle).sort((a, b) => {
     const first = annotationInputIndex(a.targetHandle), second = annotationInputIndex(b.targetHandle);
     return first < 0 && second < 0 ? variableIndex(a.targetHandle) - variableIndex(b.targetHandle) : first - second;
   });

@@ -5,7 +5,7 @@ import { seedreamMaxImages, seedreamModel, validateSeedreamSettings } from './se
 import { imageOutput } from './sunburstRun.ts';
 import { resolveTextValue } from './textVariables.ts';
 import { annotationMarkup } from './interactiveEdit.ts';
-import { sameAnnotationImage } from './annotationGraph.ts';
+import { pinnedResultInput, sameAnnotationImage } from './annotationGraph.ts';
 import type { PreviewTask } from './taskQueue';
 
 function collectAnnotationPrompt(id: string, nodes: AppNode[], edges: Edge[]) {
@@ -78,12 +78,13 @@ function splitAnnotationPrompt({ originals, marks, prompt, marker }: ReturnType<
   }));
 }
 
-function singleSeedreamPrompt(annotation: ReturnType<typeof collectAnnotationPrompt>, inputs: Edge[], imageInputs: number, nodes: AppNode[], edges: Edge[]) {
+function singleSeedreamPrompt(annotation: ReturnType<typeof collectAnnotationPrompt>, inputs: Edge[], imageInputs: number, nodes: AppNode[], edges: Edge[], promptId: string) {
   const references = inputs.filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''))
     .sort((a, b) => Number(a.targetHandle?.slice(6)) - Number(b.targetHandle?.slice(6)))
     .flatMap(edge => {
       if (Number(edge.targetHandle?.slice(6)) >= imageInputs) throw new Error('参考图端口不存在。');
-      const assets = imageOutput(nodes.find(item => item.id === edge.source), edge.sourceHandle, nodes, edges);
+      const input = pinnedResultInput(edge, promptId, nodes, edges) ?? edge;
+      const assets = imageOutput(nodes.find(item => item.id === input.source), input.sourceHandle, nodes, edges);
       if (!assets.length) throw new Error('连接的 Image 尚无图片，上游未提供可用输出。');
       return assets;
     });
@@ -115,7 +116,7 @@ export function prepareSeedreamRun(nodes: AppNode[], edges: Edge[], ids: string[
       const annotation = collectAnnotationPrompt(promptEdge.source, nodes, edges);
       const groups = annotation.originals.length > 1
         ? splitAnnotationPrompt(annotation)
-        : [singleSeedreamPrompt(annotation, inputs, node.data.imageInputs, nodes, edges)];
+        : [singleSeedreamPrompt(annotation, inputs, node.data.imageInputs, nodes, edges, promptEdge.source)];
       for (const { prompt } of groups) {
         if (!prompt || prompt.length > 32000) throw new Error('请为 Seedream 连接非空提示词，最多 32000 个字符。');
       }

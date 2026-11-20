@@ -11,44 +11,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.annotation-port {
-  display: contents;
-  --node-port-color: var(--annotation-blue);
-}
-
-.annotation-port-icon {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: #2f2f2f;
-  pointer-events: none;
-}
-
-.annotation-port-icon::before {
-  content: '';
-  grid-area: 1 / 1;
-  width: 16px;
-  height: 16px;
-  border: 3px solid var(--node-port-color);
-  border-radius: 50%;
-  background: #2c2c2c;
-}
-
-.annotation-port-icon[data-connected='true']::after {
-  content: '';
-  grid-area: 1 / 1;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--node-port-color);
-}
-
-.annotation-edge .react-flow__edge-path { opacity: 0.64; }
-.annotation-edge:is(:hover, .selected) .react-flow__edge-path { opacity: 1; }
-
 .text-node-frame .text-node-editor p:has(.annotation-chip) { line-height: 25px; }
 
 .annotation-chip {

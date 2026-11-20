@@ -22,7 +22,7 @@
 | <a name="text-iterator-文本迭代约定"></a>[文本迭代（Text Iterator）](guides/workflow.md#text-iterator-文本迭代约定) | `text-iterator` | [TextIteratorNode.tsx](./TextIteratorNode.tsx) | `input` 接收文本或 JSON 文本数组；`text` 为逐项文本输出，后续模型按条目分别运行 |
 | <a name="image-iterator-图片迭代约定"></a>[图片迭代（Image Iterator）](guides/workflow.md#image-iterator-图片迭代约定) | `image-iterator` | [ImageIteratorNode.tsx](./ImageIteratorNode.tsx) | 无输入端口；`file` 为逐张图片输出，后续模型按图片分别运行 |
 | [提示词（Prompt）](guides/connections.md#输入解析与锁定) | `text` | [TextNode.tsx](./TextNode.tsx) | 变量输入 `variable-1` 起；输出解析后的文本 |
-| [导入 / 文件（Import / File）](guides/shared-ui.md#文件导入与图片查看器) | `file` | [FileNode.tsx](./FileNode.tsx) | 无输入端口；通过 `file` 端口输出文件，端口类型随集合内容变化 |
+| <a name="交互编辑"></a>[导入 / 文件（Import / File）](guides/shared-ui.md#文件导入与图片查看器) | `file` | [FileNode.tsx](./FileNode.tsx) | 无输入端口；通过 `file` 端口输出文件，支持在当前图片上[交互编辑](guides/painting-masks.md#交互编辑) |
 | [图像描述（Image Describer）](guides/models.md#图像描述) | `image-describer` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) | 图片输入 `image-0` 起；可暴露 `model`、`instructions` 文本输入；输出 `data.text` |
 | [模型名称 / 参数选项（Model Name）](guides/connections.md#输入解析与锁定) | `model-input` | [ImageDescriberNode.tsx](./ImageDescriberNode.tsx) 中的 `ModelInputNode` | 输出当前 `data.model`；`options` 输入仅展示，不能连接 |
 | [GPT Image 2.6](guides/models.md#gpt-image-26) | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`（OpenAI 官方和 APIMart 标准版支持交互编辑标注）、`image-0` 起及受渠道和格式限制的 `mask`；`result` 输出当前选中的结果图片 |
@@ -42,7 +42,6 @@
 | <a name="crop-裁剪约定"></a>[裁剪（Crop）](guides/image-tools.md#crop-裁剪约定) | `crop` | [CropNode.tsx](./CropNode.tsx) | 单图片输入 `image`（Input）；`result`（Output）输出裁剪后的 PNG |
 | <a name="painter-绘制约定"></a>[绘图（Painter）](guides/painting-masks.md#painter-绘制约定) | `painter` | [PainterNode.tsx](./PainterNode.tsx) | 单图片输入 `image`；`result` 输出合成图片，`mask` 输出黑底白色绘制区域 |
 | <a name="matte-grow--shrink-蒙版扩张与收缩约定"></a>[蒙版扩张 / 收缩（Matte Grow / Shrink）](guides/painting-masks.md#matte-grow--shrink-蒙版扩张与收缩约定) | `matte-grow-shrink` | [MatteGrowShrinkNode.tsx](./MatteGrowShrinkNode.tsx) | `image`（Input）接收图片或黑白蒙版；`result`（Output）输出原尺寸灰度蒙版 PNG |
-| <a name="交互编辑"></a>[交互编辑（Interactive Edit）](guides/painting-masks.md#交互编辑) | `interactive-edit` | [InteractiveEditNode.tsx](./InteractiveEditNode.tsx) | 单图片输入 `image`，最多六个独立标注输出，连接提示词的「标注」端口 |
 | <a name="masks-extractor"></a>[蒙版提取（Masks Extractor）](guides/painting-masks.md#masks-extractor) | `masks-extractor` | [MasksExtractorNode.tsx](./MasksExtractorNode.tsx) | 单图片输入 `image`；`result`（Image With Alpha）输出透明抠图，`mask`（Mask）输出黑白蒙版 |
 | <a name="preview-预览约定"></a>[预览（Preview）](guides/image-tools.md#preview-预览约定) | `preview` | [PreviewNode.tsx](./PreviewNode.tsx) | 单图片输入 `file`，无输出；实时显示上游图片 |
 | [坐标记录（Position Logger）](guides/connections.md#创建菜单) | `position-logger` | [PositionLoggerNode.tsx](./PositionLoggerNode.tsx) | 左侧输入、右侧输出；不执行模型任务 |

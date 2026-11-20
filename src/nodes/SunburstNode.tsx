@@ -1,11 +1,11 @@
 import { NodeIcon } from './NodeIcon';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useContext, useEffect, useState, type ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { Position, useEdges, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { ArrowRight, Plus } from 'lucide-react';
 import type { AppNode, ImageGeneratorNode as Generator, SunburstNode as Sunburst } from './types';
 import { isNodeLocked } from './types';
-import { apimartStandardAspectRatios, migrateSunburstProvider, sunburstName, validateSunburstSize } from './sunburst';
+import { migrateSunburstProvider, sunburstName, sunburstPreviewAspectRatio, validateSunburstSize } from './sunburst';
 import { nanoBananaAspectRatios } from './nanoBanana';
 import { ModelRunButton } from '../components/ModelRunButton';
 import { IterationSummary } from '../components/IterationSummary';
@@ -17,6 +17,11 @@ import { useImagePreviewHeight } from './useImagePreviewHeight';
 import { NodeFrame, NodeHeader } from './shared/NodeFrame';
 import { NodePort } from './shared/NodePort';
 import { NodeImagePreview } from './shared/NodeImagePreview';
+import { ResultEditButton } from './shared/ResultEditButton';
+import { FileImageAnnotations } from './FileImageAnnotations';
+import { useImageAnnotations } from './useImageAnnotations';
+import { canAnnotateResult } from './annotationGraph';
+import { EnsureResultAnnotationWorkflow } from './promptAnnotationEdits';
 import './shared/mediaNodeStyle.css';
 
 export function SunburstNode(props: NodeProps<Sunburst>) {
@@ -24,7 +29,7 @@ export function SunburstNode(props: NodeProps<Sunburst>) {
   const { provider, channelModel, outputFormat } = { ...settings, ...migrateSunburstProvider(settings.provider) };
   const apimart = provider === 'apimart';
   return <ImageGenerationNode {...props} name={sunburstName} icon={<NodeIcon nodeType="sunburst" />} maxImages={16} mask={!apimart || channelModel === 'gpt-image-2.6' && !['gif', 'svg'].includes(outputFormat)}
-    previewAspectRatio={apimart ? apimartStandardAspectRatios.some(item => item === ratio) && ratio !== 'auto' ? ratio.replace(':', ' / ') : /^\d+x\d+$/.test(ratio) ? ratio.replace('x', ' / ') : null : undefined} />;
+    previewAspectRatio={sunburstPreviewAspectRatio(provider, ratio)} />;
 }
 
 type GenerationProps = NodeProps<Generator> & { name: string; icon: ReactNode; fieldLabels?: Record<string, string>; maxImages: number; mask?: boolean; imageLabels?: string[]; addImageLabel?: string; previewAspectRatio?: string | null; hiddenParameters?: string[] };
@@ -41,6 +46,10 @@ export function ImageGenerationNode({ id, type, data, isConnectable, name, icon,
   const results = orderedAssets({ assets: data.results ?? [], orderBy: data.orderBy });
   const grid = showAll && results.length > 1;
   const active = results.find(asset => asset.id === data.activeResultId) ?? data.results?.[data.results.length - 1];
+  const ensureAnnotationWorkflow = useContext(EnsureResultAnnotationWorkflow);
+  const canAnnotate = canAnnotateResult(active);
+  const canEdit = canAnnotate && !grid && !data.locked && isConnectable;
+  const annotations = useImageAnnotations(id, active, data.annotations, canEdit);
   const [dimensions, setDimensions] = useState<Record<string, { width: number; height: number }>>({});
   const size = active ? dimensions[active.url] ?? active : undefined;
   let aspectRatio = size?.width && size.height ? `${size.width} / ${size.height}` : '1';
@@ -68,12 +77,19 @@ export function ImageGenerationNode({ id, type, data, isConnectable, name, icon,
     <NodeHeader icon={type === 'sunburst' ? <img src="/image-node/brand.svg" width={16} height={16} alt="" className="node-monochrome" /> : icon} title={renameTitle}
       actions={<TextNodeMenu appearance="shared" id={id} locked={Boolean(data.locked)} onRename={() => { setDraft(data.label || name); setRenaming(true); }}><img src="/node-style/more.svg" width={18} height={18} alt="" className="node-monochrome" /></TextNodeMenu>} />
     <div className="sunburst-preview-area">
-    <motion.div ref={preview.ref} className={`sunburst-preview${active ? ' has-result' : ''}${grid ? ' is-grid nodrag nopan nowheel' : ''}`} style={{ aspectRatio: grid ? undefined : aspectRatio, height: preview.height }}>
+    <motion.div ref={preview.ref} className={`sunburst-preview${active ? ' has-result' : ''}${grid ? ' is-grid nodrag nopan nowheel' : ''}${annotations.editing ? ' is-editing nodrag nopan' : ''}`}
+      style={{ aspectRatio: grid ? undefined : aspectRatio, height: preview.height }} onKeyDown={annotations.onKeyDown}>
       {active && <NodeImagePreview nodeId={id} assets={results} active={{ ...active, ...size }} grid={grid} orderBy={data.orderBy} locked={Boolean(data.locked)}
+        editing={annotations.editing} resultAction={canAnnotate && <ResultEditButton active={annotations.editing} disabled={!canEdit}
+          buttonRef={annotations.button} onToggle={pointer => {
+            if (!annotations.editing) ensureAnnotationWorkflow?.(id, active.id, pointer);
+            annotations.toggle();
+          }} />}
         onSelect={activeResultId => patch({ activeResultId })} onGridChange={() => setShowAll(value => !value)} onOrderChange={orderBy => patch({ orderBy })}
         onFullscreen={(assetId, trigger, keyboard) => setGallery({ assetId, trigger, keyboard })}
         onDownload={() => { setError(''); void (grid ? downloadAssets(results) : downloadAsset(active)).catch(() => setError('下载失败，请重试。')); }}
-        renderMedia={item => <img src={item.url} alt={item.name} draggable={false} onLoad={event => {
+        renderMedia={item => annotations.editing ? <FileImageAnnotations key={`${item.id}:${item.url}`} url={item.url} name={item.name}
+          {...annotations.editor} /> : <img src={item.url} alt={item.name} draggable={false} onLoad={event => {
           const { naturalWidth: width, naturalHeight: height } = event.currentTarget;
           if (width && height && (dimensions[item.url]?.width !== width || dimensions[item.url]?.height !== height)) setDimensions(current => ({ ...current, [item.url]: { width, height } }));
         }} />} />}

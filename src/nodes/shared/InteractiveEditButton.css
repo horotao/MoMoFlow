@@ -1,0 +1,63 @@
+.interactive-edit-button {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 98px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #707070;
+  border-radius: 13px;
+  corner-shape: superellipse(1.25);
+  background: var(--node-surface);
+  color: var(--node-primary);
+  font: 400 12px/22px var(--font-ui);
+  cursor: pointer;
+  transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.interactive-edit-button::before {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  corner-shape: inherit;
+  background: rgb(255 255 255 / 5%);
+  opacity: 0;
+  pointer-events: none;
+  content: '';
+  transition: opacity 140ms ease;
+}
+
+.interactive-edit-button[aria-pressed='true']::before {
+  background: rgb(255 255 255 / 7%);
+  opacity: 1;
+  transition: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .interactive-edit-button:enabled:hover::before {
+    opacity: 1;
+  }
+}
+
+.interactive-edit-button:enabled:active:not(:focus-visible) {
+  transform: scale(0.97);
+}
+
+.interactive-edit-button:focus-visible {
+  outline: 1px solid var(--node-primary);
+  outline-offset: 2px;
+}
+
+.interactive-edit-button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive-edit-button:enabled:active:not(:focus-visible) {
+    transform: none;
+  }
+}

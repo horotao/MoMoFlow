@@ -1,4 +1,5 @@
 import { isFileAsset } from './fileCollection.ts';
+import { restoreFileAnnotations } from './interactiveEdit.ts';
 import { apimartChannelModels, apimartSvgModels, apimartSvgEfforts, imageModerations, migrateSunburstProvider, validateSunburstVariant, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
 import type { SunburstNode } from './types';
 
@@ -26,6 +27,7 @@ export function restoreSunburstData(value: unknown): SunburstNode['data'] | unde
     ...(data.variant !== undefined ? { variant: validateSunburstVariant(data.variant) } : {}),
     ...(data.orderBy === 'date' || data.orderBy === 'name' ? { orderBy: data.orderBy } : {}),
     ...(data.outputMode === 'fixed' ? { outputMode: 'fixed' as const } : {}),
+    ...(data.annotations !== undefined ? { annotations: restoreFileAnnotations(data.annotations, results) } : {}),
     label: typeof data.label === 'string' ? data.label : undefined,
     activeResultId: typeof data.activeResultId === 'string' && results.some(result => result.id === data.activeResultId)
       ? data.activeResultId : undefined,

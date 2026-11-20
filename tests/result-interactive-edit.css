@@ -1,0 +1,16 @@
+.result-edit-study {
+  width: min(760px, calc(100% - 32px));
+  margin: 0 auto;
+  padding-block: 28px;
+  color: #f2f2f2;
+}
+
+.result-edit-study h1 { margin: 0; font-size: 24px; font-weight: 650; }
+.result-edit-study p { margin: 6px 0 16px; color: #b3b3b3; font-size: 14px; }
+
+.result-edit-stage {
+  height: clamp(350px, 78dvh, 660px);
+  overflow: hidden;
+  border: 1px solid #383838;
+  border-radius: 16px;
+}

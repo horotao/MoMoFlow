@@ -1,3 +1,4 @@
+import { annotationOutput, storedAnnotationResult } from './annotationGraph.ts';
 import { seedreamName } from './seedream.ts';
 import { describerRunTimeoutMs } from './describer.ts';
 import type { Edge } from '@xyflow/react';
@@ -103,7 +104,16 @@ export class WorkflowExecution {
   }
   private graphFor(root: Root): ExecutionGraph {
     // Project the batch item before applying the snapshots for this run.
-    const graph = iterationGraph({ ...this.graph, refreshImages: root.refreshImages, nodes: this.graph.nodes.map(node => root.outputs.has(node.id) ? { ...node, data: { ...node.data, ...root.outputs.get(node.id) } } as AppNode : node) }, root.iteration);
+    const graph = iterationGraph({ ...this.graph, refreshImages: root.refreshImages, nodes: this.graph.nodes.map(node => {
+      const output = root.outputs.get(node.id);
+      if (!output) return node;
+      const results = output.results as FileAsset[] | undefined;
+      const data: Record<string, unknown> = { ...node.data, ...output };
+      if (isImageGeneratorNode(node) && results) {
+        data.results = [...(node.data.results ?? []).filter(asset => !results.some(result => result.id === asset.id)), ...results];
+      }
+      return { ...node, data } as AppNode;
+    }) }, root.iteration);
     if (!root.remote.size) return graph;
     // Snapshots may identify two different remote URLs as the same image.
     // Keep reference ports already excluded during dependency preparation out
@@ -220,6 +230,8 @@ export class WorkflowExecution {
     aborted(signal);
     let graph = this.graphFor(root);
     let node = graph.nodes.find(item => item.id === id)!;
+    const annotation = storedAnnotationResult(node, handle, graph.nodes, graph.edges);
+    if (annotation) { await this.verifyOutput(root, [annotation.image]); return; }
     // A running iterator target has one root per item. Shared, non-iterated
     // upstreams can serve every item; iterated upstreams must match its identity.
     const selected = [...this.roots].find(other => other !== root && other.id === id && (!other.iteration || sameIteration(other.iteration, root.iteration)));
@@ -239,6 +251,12 @@ export class WorkflowExecution {
     await Promise.all(executionInputs(node, handle, graph).map(edge => this.ensureInput(root, node, edge)));
     aborted(signal);
     graph = this.graphFor(root); node = graph.nodes.find(item => item.id === id)!;
+    if (node.type === 'file' && handle && handle !== 'file') {
+      const annotation = annotationOutput(node, handle, graph.nodes, graph.edges);
+      if (!annotation) nodeProblem(node, '标注或原图已变化，请重新运行。');
+      await this.verifyOutput(root, [annotation.image]);
+      return;
+    }
     if (isModelNode(node)) {
       // Locked nodes may supply a proven result, but may never be executed.
       const unlocked = { ...graph, nodes: graph.nodes.map(item => item.id === id ? { ...item, data: { ...item.data, locked: false } } as AppNode : item) };

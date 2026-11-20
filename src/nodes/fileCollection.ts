@@ -6,6 +6,7 @@ export function orderedAssets(data: FileNode['data']) {
   const assets = fileAssets(data);
   return data.orderBy === 'name' ? [...assets].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true })) : assets;
 }
+export const activeFileAsset = (data: FileNode['data'], assets = orderedAssets(data)) => assets.find(asset => asset.id === data.activeAssetId) ?? assets[0];
 export function fileOutputKind(data: FileNode['data']) {
   const assets = fileAssets(data);
   return assets.length && assets.every((asset) => asset.kind === assets[0].kind) ? assets[0].kind : 'file';
@@ -27,14 +28,17 @@ export function extractFileAsset(nodes: AppNode[], sourceId: string, assetId: st
   const asset = assets.find((item) => item.id === assetId);
   if (!asset || assets.length < 2) return nodes;
   const remaining = assets.filter((item) => item.id !== assetId);
+  const annotations = 'annotations' in source.data ? source.data.annotations?.filter(history => history.imageId === assetId) : undefined;
   return [...nodes.map((node) => node.id === sourceId ? isImageGeneratorNode(source) ? {
     ...source, selected: false, data: { ...source.data, results: remaining,
+      ...(annotations?.length ? { annotations: source.data.annotations?.filter(history => history.imageId !== assetId) } : {}),
       activeResultId: remaining.some(item => item.id === source.data.activeResultId) ? source.data.activeResultId : remaining[remaining.length - 1].id },
   } as ImageGeneratorNode : {
     ...source, selected: false, data: { ...source.data, asset: undefined, assets: remaining,
+      ...(annotations?.length && source.type === 'file' ? { annotations: source.data.annotations?.filter(history => history.imageId !== assetId) } : {}),
       activeAssetId: source.data.activeAssetId === assetId ? remaining[0].id : source.data.activeAssetId },
   } : { ...node, selected: false }), {
-    id: newId, type: 'file', position, selected: true, data: { assets: [asset] },
+    id: newId, type: 'file', position, selected: true, data: { assets: [asset], ...(annotations?.length ? { annotations } : {}) },
   }];
 }
 export function isFileAsset(value: unknown): value is FileAsset {

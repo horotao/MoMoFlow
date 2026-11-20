@@ -1,5 +1,3 @@
-import { isInteractiveEditNode } from './types';
-import { annotationImage } from './annotationGraph';
 import { isTextIteratorNode } from './types';
 import { iteratorItems } from './textVariables';
 import { isMasksExtractorNode } from './types';
@@ -36,12 +34,11 @@ export function TextNodeMenu({ id, locked, onRename, onClear, children, appearan
 
   const act = async (action: string) => {
     const node = getNode(id);
-    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'seedream' && node.type !== 'nano-banana' && node.type !== 'ideogram' && node.type !== 'masks-extractor' && node.type !== 'interactive-edit' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop' && node.type !== 'color-correction' && node.type !== 'matte-grow-shrink' && node.type !== 'blur' && node.type !== 'levels' && node.type !== 'invert' && node.type !== 'rotate-flip' && node.type !== 'blend' && node.type !== 'compare' && node.type !== 'resize' && node.type !== 'compositor' && node.type !== 'color-palette' && node.type !== 'router' && node.type !== 'text-iterator' && node.type !== 'image-iterator' && node.type !== 'position-logger')) return false;
+    if (!node || (!isTextNode(node) && !isFileNode(node) && node.type !== 'image-describer' && node.type !== 'model-input' && node.type !== 'sunburst' && node.type !== 'seedream' && node.type !== 'nano-banana' && node.type !== 'ideogram' && node.type !== 'masks-extractor' && node.type !== 'painter' && node.type !== 'preview' && node.type !== 'crop' && node.type !== 'color-correction' && node.type !== 'matte-grow-shrink' && node.type !== 'blur' && node.type !== 'levels' && node.type !== 'invert' && node.type !== 'rotate-flip' && node.type !== 'blend' && node.type !== 'compare' && node.type !== 'resize' && node.type !== 'compositor' && node.type !== 'color-palette' && node.type !== 'router' && node.type !== 'text-iterator' && node.type !== 'image-iterator' && node.type !== 'position-logger')) return false;
     setError('');
     let writingClipboard = false;
     try {
       const snapshot = (): AppNode => {
-        if (isInteractiveEditNode(node)) return { ...node, data: { ...node.data, baseImage: annotationImage(node, getNodes(), getEdges()) } };
         const edge = (isMasksExtractorNode(node) || isPainterNode(node) || isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isMatteGrowShrinkNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) ? getEdges().find(item => item.target === id && item.targetHandle === (isColorCorrectionNode(node) ? 'file' : 'image')) : undefined;
         return isTextIteratorNode(node) ? { ...node, data: { ...node.data, items: iteratorItems(node, getNodes(), getEdges()).map(item => ({ ...item })) } } : isBlendNode(node) ? { ...node, data: { ...node.data, back: blendInputs(node, getNodes(), getEdges()).back, front: blendInputs(node, getNodes(), getEdges()).front } } : isCompareNode(node) ? { ...node, data: { ...node.data, input1: imageOutput(node, 'output-1', getNodes(), getEdges())[0], input2: imageOutput(node, 'output-2', getNodes(), getEdges())[0] } } : isCompositorNode(node) ? { ...node, data: { ...node.data, document: snapshotCompositor(node.data.document, compositorInputs(id, getNodes(), getEdges())), outputRevision: undefined } } : (isMasksExtractorNode(node) || isPainterNode(node) || isResizeNode(node) || isRotateFlipNode(node) || isInvertNode(node) || isLevelsNode(node) || isMatteGrowShrinkNode(node) || isBlurNode(node) || isCropNode(node) || isColorCorrectionNode(node)) && edge ? { ...node, data: { ...node.data, baseImage: imageOutput(getNode(edge.source), edge.sourceHandle, getNodes(), getEdges())[0] } } as AppNode : node;
       };

@@ -1,19 +1,9 @@
 import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from 'react';
-import { Position, useEdges, useNodes, useReactFlow, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
-import { Location01Icon, MinusSignIcon, Redo02Icon, RotateCcwIcon, Undo02Icon } from '@hugeicons/core-free-icons';
+import { MinusSignIcon } from '@hugeicons/core-free-icons';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { annotationImage } from './annotationGraph';
-import { annotationCoordinate, annotationHistory, annotationLabel, annotationLimit, annotationMarkup, annotationPortTop, commitAnnotations, type AnnotationMark as Mark, type AnnotationPoint as Point } from './interactiveEdit';
-import { isInteractiveEditNode, type AppNode, type InteractiveEditNode as InteractiveEditNodeType } from './types';
-import { NodeIcon } from './NodeIcon';
-import { TextNodeMenu } from './TextNodeMenu';
-import { AnnotationPort } from './shared/AnnotationPort';
-import { NodeFrame, NodeHeader } from './shared/NodeFrame';
-import { NodePort } from './shared/NodePort';
-import './shared/mediaNodeStyle.css';
-import './InteractiveEditNode.css';
-
-const annotationLimitMessage = `已达 ${annotationLimit} 个标注上限`;
+import { annotationCoordinate, annotationLimit, annotationLimitMessage, type AnnotationMark as Mark, type AnnotationPoint as Point } from './interactiveEdit';
+import './shared/annotationStyle.css';
+import './FileImageAnnotations.css';
 
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 const positionStyle = ({ x, y }: Point) => ({ left: `${x * 100}%`, top: `${y * 100}%` });
@@ -46,15 +36,14 @@ function boxCorners(onResize?: (event: ReactPointerEvent<HTMLElement>, corner: B
     onPointerDown={onResize ? event => onResize(event, corner) : undefined} />);
 }
 
-function ImageAnnotations({ url, marks, enabled, surface, onMark, onMove, onRemove, onReady }: {
+export function FileImageAnnotations({ url, name, marks, surface, onMark, onMove, onRemove }: {
   url: string;
   marks: Mark[];
-  enabled: boolean;
+  name: string;
   surface: RefObject<HTMLDivElement>;
   onMark: (start: Point, end?: Point) => void;
   onMove?: (mark: Mark) => void;
   onRemove?: (id: string) => void;
-  onReady: (ready: boolean) => void;
 }) {
   const draft = useRef<HTMLDivElement>(null);
   const commit = useRef({ onMark, onMove });
@@ -63,7 +52,8 @@ function ImageAnnotations({ url, marks, enabled, surface, onMark, onMove, onRemo
   currentMarks.current = marks;
   const gesture = useRef<() => void>();
   const [keyboardPoint, setKeyboardPoint] = useState<Point>();
-  const [failed, setFailed] = useState(false);
+  const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const enabled = state === 'ready';
   const atLimit = marks.length >= annotationLimit;
   const canMove = Boolean(onMove);
 
@@ -83,7 +73,7 @@ function ImageAnnotations({ url, marks, enabled, surface, onMark, onMove, onRemo
     const image = surface.current;
     const { pointerId, clientX, clientY, currentTarget: handle } = event;
     const target = corner ? handle.parentElement : handle;
-    if (!image || !target || event.button !== 0 || gesture.current) return;
+    if (!enabled || !image || !target || event.button !== 0 || gesture.current) return;
     event.preventDefault();
     event.stopPropagation();
     image.focus({ preventScroll: true });
@@ -154,7 +144,7 @@ function ImageAnnotations({ url, marks, enabled, surface, onMark, onMove, onRemo
       } else if (!dragged) commit.current.onMark(start);
       else if (changedX && changedY) commit.current.onMark(start, position);
     }, listenerOptions);
-    if (mark) window.addEventListener('keydown', key => {
+    window.addEventListener('keydown', key => {
       if (key.key !== 'Escape') return;
       key.preventDefault();
       key.stopPropagation();
@@ -184,18 +174,18 @@ function ImageAnnotations({ url, marks, enabled, surface, onMark, onMove, onRemo
     }
   };
 
-  return <div ref={surface} className={`edit-image${failed ? ' is-failed' : ''}${enabled ? ' is-annotating nodrag nopan' : ''}`}
+  return <div ref={surface} className={`edit-image${state === 'failed' ? ' is-failed' : ''} is-annotating nodrag nopan`}
     data-at-limit={atLimit} role={enabled ? 'group' : undefined}
     aria-label={enabled ? atLimit ? annotationLimitMessage : '图片标注，单击标点，拖动框选，方向键移动，回车标点' : undefined}
     tabIndex={enabled ? 0 : canMove ? -1 : undefined} onKeyDown={onKeyDown} onBlur={() => setKeyboardPoint(undefined)}
     onPointerDown={event => {
       if (enabled && !atLimit) startGesture(event);
     }}>
-    <img className="edit-source-image" src={url} alt="待标注图片" draggable={false}
-      onLoad={() => { setFailed(false); onReady(true); }} onError={() => { setFailed(true); onReady(false); }} />
-    {failed && <div className="edit-empty" role="status">图片加载失败</div>}
+    <img className="edit-source-image" src={url} alt={name} draggable={false}
+      onLoad={() => setState('ready')} onError={() => setState('failed')} />
+    {state === 'failed' && <div className="edit-empty" role="status">图片加载失败</div>}
     <div className="edit-overlay">
-      {marks.map((mark, index) => {
+      {enabled && marks.map((mark, index) => {
         const { id, start, end } = mark;
         const moveClass = canMove ? ' edit-mark-movable nodrag nopan' : '';
         const move = canMove ? (event: ReactPointerEvent<HTMLElement>) => startGesture(event, mark) : undefined;
@@ -215,119 +205,4 @@ function ImageAnnotations({ url, marks, enabled, surface, onMark, onMove, onRemo
       {enabled && !atLimit && keyboardPoint && <span className="edit-pin edit-keyboard-pin" style={positionStyle(keyboardPoint)} />}
     </div>
   </div>;
-}
-
-export function InteractiveEditNode({ id, data, isConnectable }: NodeProps<InteractiveEditNodeType>) {
-  const nodes = useNodes<AppNode>();
-  const edges = useEdges();
-  const node = nodes.find(item => item.id === id);
-  const image = isInteractiveEditNode(node) ? annotationImage(node, nodes, edges) : undefined;
-  const history = annotationHistory(data, image?.id);
-  const marks = history.frames[history.index];
-  const atLimit = marks.length >= annotationLimit;
-  const [mode, setMode] = useState(false);
-  const [loadedUrl, setLoadedUrl] = useState<string>();
-  const toolbarToggle = useRef<HTMLButtonElement>(null);
-  const surface = useRef<HTMLDivElement>(null);
-  const { getNode, getNodes, getEdges, updateNodeData } = useReactFlow<AppNode>();
-  const updateInternals = useUpdateNodeInternals();
-  const ready = Boolean(image && loadedUrl === image.url);
-  const enabled = ready && mode && isConnectable && !data.locked;
-  const [name, setName] = useState<string>();
-
-  const measuredMarks = useRef(marks);
-  useLayoutEffect(() => {
-    if (measuredMarks.current === marks) return;
-    measuredMarks.current = marks;
-    updateInternals(id);
-  }, [id, marks, updateInternals]);
-
-  const go = (offset: number) => {
-    const index = history.index + offset;
-    if (data.locked || index < 0 || index >= history.frames.length) return;
-    updateNodeData(id, { history: { ...history, index } });
-  };
-  const commit = (updateMarks: (marks: Mark[]) => Mark[]) => {
-    const current = getNode(id);
-    if (!isInteractiveEditNode(current) || current.data.locked || !image) return;
-    const actual = annotationImage(current, getNodes(), getEdges());
-    if (actual?.id !== image.id || actual.url !== image.url) return;
-    const state = annotationHistory(current.data, actual.id);
-    const marks = state.frames[state.index];
-    const updatedMarks = updateMarks(marks);
-    if (updatedMarks === marks) return;
-    const next = commitAnnotations(state, actual.id, updatedMarks);
-    updateNodeData(id, { history: next });
-  };
-  const focusAfterHistoryAction = () => {
-    const next = enabled ? surface.current : toolbarToggle.current;
-    next?.focus({ preventScroll: true });
-  };
-  const cancel = () => {
-    const element = surface.current;
-    // Leaving the focused annotation surface also dismisses its keyboard cursor.
-    if (document.activeElement === element) toolbarToggle.current?.focus();
-    setMode(false);
-  };
-
-  return <NodeFrame className="media-node-frame interactive-edit-frame" style={{ minHeight: annotationPortTop(Math.max(0, marks.length - 1)) + 32 }}>
-    <NodeHeader icon={<NodeIcon nodeType="interactive-edit" size={16} />} title={
-      name === undefined ? <span>{data.label || '交互编辑'}</span>
-        : <input className="text-node-rename nodrag nopan" autoFocus aria-label="节点名称" value={name}
-          onChange={event => setName(event.target.value)} onBlur={() => {
-            if (name.trim()) updateNodeData(id, { label: name.trim() });
-            setName(undefined);
-          }} onKeyDown={event => {
-            event.stopPropagation();
-            if (event.nativeEvent.isComposing) return;
-            if (event.key === 'Escape') setName(undefined);
-            if (event.key === 'Enter') event.currentTarget.blur();
-          }} />}
-      actions={<TextNodeMenu id={id} locked={Boolean(data.locked)} appearance="shared"
-        onRename={() => setName(data.label || '交互编辑')}>
-        <img src="/node-style/more.svg" width={18} height={18} alt="" />
-      </TextNodeMenu>} />
-    <div className="edit-body" onKeyDown={event => {
-      if (event.nativeEvent.isComposing) return;
-      if (event.key === 'Escape' && enabled) {
-        event.stopPropagation();
-        cancel();
-      } else if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'z') {
-        event.preventDefault();
-        event.stopPropagation();
-        go(event.shiftKey ? 1 : -1);
-      }
-    }}>
-      {image
-        ? <ImageAnnotations key={`${image.id}:${image.url}`} url={image.url} marks={marks} enabled={enabled} surface={surface}
-          onMark={(start, end) => commit(currentMarks => currentMarks.length >= annotationLimit
-            ? currentMarks : [...currentMarks, { id: crypto.randomUUID(), start, end }])}
-          onMove={ready && isConnectable && !data.locked ? moved => commit(currentMarks =>
-            currentMarks.map(mark => mark.id === moved.id ? moved : mark)) : undefined}
-          onRemove={isConnectable && !data.locked ? markId => {
-            commit(currentMarks => currentMarks.filter(mark => mark.id !== markId));
-            focusAfterHistoryAction();
-          } : undefined}
-          onReady={value => setLoadedUrl(value ? image.url : undefined)} />
-        : <div className="edit-image edit-image-empty"><span className="edit-empty">连接图片后开始标注</span></div>}
-      <div className="edit-controls nodrag nopan" role="group" aria-label="标注工具">
-        <button type="button" ref={toolbarToggle} aria-pressed={enabled} disabled={!ready || !isConnectable || data.locked || (atLimit && !mode)}
-          title={atLimit ? annotationLimitMessage : '单击标点，拖动框选'} onClick={() => setMode(!mode)}><HugeiconsIcon icon={Location01Icon} size={15} aria-hidden="true" />标注</button>
-        <button type="button" aria-label="撤销" title="撤销" disabled={!history.index || data.locked} onClick={() => { go(-1); if (history.index === 1) focusAfterHistoryAction(); }}><HugeiconsIcon icon={Undo02Icon} size={16} aria-hidden="true" /></button>
-        <button type="button" aria-label="重做" title="重做" disabled={history.index === history.frames.length - 1 || data.locked} onClick={() => { go(1); if (history.index === history.frames.length - 2) focusAfterHistoryAction(); }}><HugeiconsIcon icon={Redo02Icon} size={16} aria-hidden="true" /></button>
-        <span className="edit-limit-status" role="status">{atLimit ? annotationLimitMessage : null}</span>
-        <button type="button" className="edit-reset" disabled={!marks.length || data.locked} onClick={() => { commit(() => []); focusAfterHistoryAction(); }}>
-          <HugeiconsIcon icon={RotateCcwIcon} size={14} aria-hidden="true" />重置</button>
-      </div>
-    </div>
-    <div className="media-port-image">
-      <NodePort id="image" label="图片" top={annotationPortTop(0)} type="target" position={Position.Left} isConnectable={isConnectable && !data.locked}>
-        <img src="/image-node/port-image.svg" width={32} height={32} alt="" />
-        {image && <span className="media-port-dot" />}
-      </NodePort>
-    </div>
-    {marks.map((mark, index) => <AnnotationPort key={mark.id} id={mark.id} label={annotationLabel(index)} title={annotationMarkup(mark)} top={annotationPortTop(index)}
-      type="source" position={Position.Right} isConnectable={isConnectable}
-      connected={edges.some(edge => edge.source === id && edge.sourceHandle === mark.id)} />)}
-  </NodeFrame>;
 }

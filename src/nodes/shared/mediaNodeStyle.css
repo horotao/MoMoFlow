@@ -38,6 +38,7 @@
 .media-node-frame .file-node-link { margin: 0; height: 32px; }
 .media-node-frame .file-node-link input { padding: 0 10px; border-radius: 6px; background: var(--node-inset); font: 400 12px/18px var(--font-ui); }
 .media-node-frame .file-node-link input { background: #2b2b2b; }
+.media-node-frame .file-node-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .media-node-frame .file-node-add { margin: 0; padding: 0; height: 32px; color: var(--node-secondary); font: 400 12px/22px var(--font-ui); }
 .media-node-frame .file-node-add:hover:not(:disabled) { background: transparent; color: var(--node-primary); }
 .media-node-frame .sunburst-actions { color: var(--node-secondary); font: 400 12px/22px var(--font-ui); }

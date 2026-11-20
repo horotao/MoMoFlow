@@ -1,6 +1,8 @@
-import { PromptAnnotationEdits } from './nodes/promptAnnotationEdits';
-import { isAnnotationInput, restoreInteractiveEditData } from './nodes/interactiveEdit';
-import { annotationOutput } from './nodes/annotationGraph';
+import { EnsureResultAnnotationWorkflow, PromptAnnotationEdits, PromptAnnotationLinks } from './nodes/promptAnnotationEdits';
+import { isAnnotationInput, restoreFileAnnotations, restoreInteractiveEditData, resultAnnotationDraftHandle } from './nodes/interactiveEdit';
+import { annotationOutput, canAnnotateResult, isAnnotationSource, resultAnnotationDraft, selectedImageResult, withImageAnnotationHistories } from './nodes/annotationGraph';
+import { migrateFileAnnotations } from './nodes/annotationMigration';
+import { editImageAnnotationsFromPrompt, isInlineAnnotationLink, syncImageAnnotationPrompts } from './nodes/imageAnnotationPrompts';
 import { isImageIteratorNode } from './nodes/types';
 import { readImageIteratorData } from './nodes/imageIterator';
 import { readTextIteratorData } from './nodes/textIterator';
@@ -8,7 +10,7 @@ import { restoreIdeogramData } from './nodes/ideogramClipboard';
 import { restoreMasksData } from './nodes/masksExtractor';
 import { restoreSeedreamData } from './nodes/seedreamClipboard';
 import { restoreNanoBananaData } from './nodes/nanoBananaClipboard';
-import { outputColor, outputKind, routerFromOutput } from './nodes/router';
+import { outputColor, outputKind, resolveOutputSource, routerFromOutput } from './nodes/router';
 import { restoreBlendData } from './nodes/blend';
 import { restoreCompareData } from './nodes/compare';
 import { restoreResizeData } from './nodes/resize';
@@ -24,11 +26,13 @@ import { restoreCropData } from './nodes/crop';
 import { isPainterNode, isNodeLocked } from './nodes/types';
 import { restorePainterData } from './nodes/painter';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
-import { validateSunburstImageInputs } from './nodes/sunburst';
+import { sunburstPreviewAspectRatio, sunburstProviderSettings, validateSunburstImageInputs } from './nodes/sunburst';
 import { migrateSunburstProviderInput } from './nodes/sunburstMigration';
 import { CanvasNavigation, canvasMinZoom, canvasMaxZoom, type ZoomTarget } from './components/CanvasNavigation';
 import { CanvasSidebar, type CanvasTool } from './components/CanvasSidebar';
 import { arrangeSelectedNodes, isArrangeShortcut } from './components/canvasLayout';
+import { makeRoomForNodes } from './components/canvasInsertion';
+import { useCanvasPlacementMotion } from './components/useCanvasPlacementMotion';
 import { CanvasBackground } from './components/CanvasBackground';
 import { canvasGridOrigin, readGridSnap, saveGridSnap, snapDragChanges, type GridDragAnchor } from './components/canvasGrid';
 import { ApiSettingsDialog } from './components/ApiSettingsDialog';
@@ -46,7 +50,6 @@ import {
   SelectionMode,
   useReactFlow,
   useStoreApi,
-  useStore,
   Panel,
   addEdge,
   useNodesState,
@@ -70,7 +73,7 @@ import { isTextNode, textVariableCount, variableIndex } from './nodes/textVariab
 import { imagesFromDrop, isFileNode } from './nodes/fileAsset';
 import { fileOutputKind, filePortColors, isFileAsset } from './nodes/fileCollection';
 import { cloneTextNode } from './nodes/cloneTextNode';
-import { documentText, initialTextDocument, withoutVariables } from './nodes/textDocument';
+import { documentText, initialTextDocument, variablePositions, withoutVariables } from './nodes/textDocument';
 import { initialEdges, edgeTypes } from './edges';
 import { ConnectionLine } from './edges/ConnectionLine';
 import { curveOptions } from './edges/curve';
@@ -116,16 +119,22 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     document.documentElement.classList.add('dark');
   }, []);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(saved?.nodes ?? initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(saved?.edges ?? initialEdges);
+  const [initialGraph] = useState(() => {
+    const graph = migrateFileAnnotations(saved?.nodes ?? initialNodes, saved?.edges ?? initialEdges);
+    return syncImageAnnotationPrompts(graph.nodes, graph.edges);
+  });
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialGraph.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialGraph.edges);
+  const { project: displayPlacement, play: playPlacement, stop: stopPlacement } = useCanvasPlacementMotion();
+  const annotationGraph = useMemo(() => syncImageAnnotationPrompts(nodes, edges), [nodes, edges]);
+  useLayoutEffect(() => {
+    if (annotationGraph.nodes !== nodes) setNodes(annotationGraph.nodes);
+    if (annotationGraph.edges !== edges) setEdges(annotationGraph.edges);
+  }, [annotationGraph, nodes, edges, setNodes, setEdges]);
   const currentPromptEdges = useRef(edges);
   currentPromptEdges.current = edges;
-  const measuredAnnotationEdges = useStore(state => JSON.stringify(edges.filter(edge => isAnnotationInput(edge.targetHandle)
-    && state.nodeLookup.get(edge.source)?.internals.handleBounds?.source?.some(port => port.id === edge.sourceHandle)
-    && state.nodeLookup.get(edge.target)?.internals.handleBounds?.target?.some(port => port.id === edge.targetHandle))
-    .map(edge => edge.id)));
-  const annotationEdgeIds = useMemo(() => new Set<string>(JSON.parse(measuredAnnotationEdges)), [measuredAnnotationEdges]);
-  const workflow = useMemo(() => ({ nodes, edges, viewport, colorMode }), [nodes, edges, viewport, colorMode]);
+  const annotationLinks = useMemo(() => annotationGraph.edges.filter(edge => isAnnotationInput(edge.targetHandle) && !edge.data?.annotationDismissed), [annotationGraph.edges]);
+  const workflow = useMemo(() => ({ ...annotationGraph, viewport, colorMode }), [annotationGraph, viewport, colorMode]);
   const persistence = useWorkflowPersistence(storage, workflow);
   const withSavedWorkflow = async (action: (snapshot: Workflow) => Promise<void>) => {
     // Keep edits from arriving after the final flush while the destination loads.
@@ -139,20 +148,36 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   const { screenToFlowPosition, flowToScreenPosition, getNodes, getEdges, getIntersectingNodes, getNodesBounds, fitView, getZoom } = useReactFlow<AppNode>();
   const pendingCreationFit = useRef<string[] | null>(null);
   const applyPromptAnnotationEdit = useCallback<NonNullable<ContextType<typeof PromptAnnotationEdits>>>(
-    ({ nodeId, content, removedHandles, restoreEdges }) => {
+    ({ nodeId, content, previousContent, removedHandles, restoreEdges }) => {
       const remove = (edge: Edge) => edge.target === nodeId && removedHandles.has(edge.targetHandle ?? '');
-      const removed = currentPromptEdges.current.filter(remove);
+      const removed = currentPromptEdges.current.filter(edge => remove(edge) && !edge.data?.annotationDismissed);
+      const currentNodes = getNodes();
+      const { annotationsByNode, synced } = editImageAnnotationsFromPrompt(currentNodes, removed, restoreEdges);
+      const positions = variablePositions(previousContent, removedHandles);
       const data = { content, text: documentText(content) };
-      const update = (node: AppNode): AppNode => node.id === nodeId && isTextNode(node)
-        ? { ...node, data: { ...node.data, ...data } } : node;
-      const graphNodes = getNodes().map(update);
-      // The prompt edit and its edges share the same canvas undo snapshot.
+      const update = (node: AppNode): AppNode => {
+        if (node.id === nodeId && isTextNode(node)) return { ...node, data: { ...node.data, ...data } };
+        const annotations = annotationsByNode.get(node.id);
+        return annotations && isAnnotationSource(node) ? withImageAnnotationHistories(node, annotations) : node;
+      };
+      const graphNodes = currentNodes.map(update);
+      // Commit the prompt and original image edit in one canvas undo snapshot.
       setNodes(nodes => nodes.map(update));
       setEdges(edges => {
-        const retained = edges.filter(edge => !remove(edge));
+        const retained = edges.flatMap(edge => {
+          if (!remove(edge)) return [edge];
+          // Keep the reference available for undo from the image or prompt.
+          if (synced.has(edge.id)) return [{ ...edge, data: { ...edge.data, annotationDeletedFromPrompt: true,
+            annotationPromptPositions: positions.get(edge.targetHandle ?? '') } }];
+          return isInlineAnnotationLink(edge) ? [{ ...edge, data: { ...edge.data, annotationDismissed: true } }] : [];
+        });
         for (const edge of restoreEdges) {
-          if (!retained.some(item => item.target === nodeId && item.targetHandle === edge.targetHandle)
-            && canConnect(edge, graphNodes, retained)) retained.push(edge);
+          const existing = retained.findIndex(item => item.target === nodeId && item.targetHandle === edge.targetHandle);
+          const source = graphNodes.find(node => node.id === edge.source);
+          if (annotationOutput(source, edge.sourceHandle, graphNodes, retained)) {
+            if (existing < 0) retained.push(edge);
+            else if (retained[existing].id === edge.id) retained[existing] = edge;
+          }
         }
         return retained;
       });
@@ -183,6 +208,72 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   const { value: connectionEffects, start: startConnectionEffects, clear: clearConnectionEffects,
     connected: playConnectionEffects, created: playNodeEntrance, cancelled: connectionCancelled, connectionRadius,
     startClick: startClickConnection, end: endConnectionGesture, withinRadius: withinConnectionRadius } = useConnectionEffects();
+  const ensureResultAnnotationWorkflow = useCallback((id: string, imageId: string, animate: boolean) => {
+    const visible = getNodes();
+    const positions = new Map(nodes.map(node => [node.id, node.position]));
+    const current = visible.map(node => ({ ...node, position: positions.get(node.id) ?? node.position }));
+    const source = current.find(node => node.id === id);
+    if (!isImageGeneratorNode(source) || source.data.locked) return;
+    const asset = selectedImageResult(source);
+    if (!canAnnotateResult(asset) || asset.id !== imageId) return;
+    const existingEdges = currentPromptEdges.current;
+    const draft = resultAnnotationDraft(id, imageId, existingEdges);
+    const existingPrompt = current.find(node => node.id === draft?.target && isTextNode(node));
+    if (existingPrompt) {
+      const inputFrom = (edge: Edge, nodeId: string, handle: string | null) => {
+        const origin = resolveOutputSource(current.find(node => node.id === edge.source), edge.sourceHandle, current, existingEdges);
+        return origin?.node.id === nodeId && (origin.handle ?? null) === handle;
+      };
+      const connected = current.some(node => isSunburstNode(node)
+        && existingEdges.some(edge => edge.target === node.id && edge.targetHandle === 'prompt' && inputFrom(edge, existingPrompt.id, null))
+        && existingEdges.some(edge => edge.target === node.id && /^image-\d+$/.test(edge.targetHandle ?? '') && inputFrom(edge, id, 'result')));
+      if (connected) return;
+    }
+
+    const promptWidth = 454, promptHeight = 405, modelWidth = 456;
+    const prompt = existingPrompt ?? createLibraryNode('text', { x: source.position.x, y: source.position.y - promptHeight - 48 });
+    if (!prompt || !isTextNode(prompt)) return;
+    const right = (node: AppNode, width: number) => node.position.x + (node.measured?.width ?? width);
+    const model = createLibraryNode('sunburst', { x: Math.max(right(source, modelWidth), right(prompt, promptWidth)) + 100, y: source.position.y });
+    if (!model || !isSunburstNode(model)) return;
+    model.selected = false;
+    if (model.data.provider === 'apimart') {
+      Object.assign(model.data, sunburstProviderSettings(model.data, 'apimart', 'gpt-image-2.6'), { channelModel: 'gpt-image-2.6' });
+    }
+    if (model.data.outputFormat === 'gif' || model.data.outputFormat === 'svg') model.data.outputFormat = 'png';
+
+    const imageEdge: Edge = { id: `edge-${crypto.randomUUID()}`, source: id, sourceHandle: 'result', target: model.id, targetHandle: 'image-0' };
+    const promptEdge: Edge = { id: `edge-${crypto.randomUUID()}`, source: prompt.id, sourceHandle: null, target: model.id, targetHandle: 'prompt' };
+    const addedNodes = existingPrompt ? [model] : [prompt, model];
+    const graphNodes = [...current, ...addedNodes];
+    if (!canConnect(imageEdge, graphNodes, existingEdges) || !canConnect(promptEdge, graphNodes, [...existingEdges, imageEdge])) return;
+    const addedEdges = [imageEdge, promptEdge];
+    if (!existingPrompt) {
+      prompt.selected = false;
+      prompt.data.content = initialTextDocument(prompt.data.text, [], prompt.id);
+      addedEdges.push({ id: `edge-${crypto.randomUUID()}`, source: id, sourceHandle: 'result',
+        target: prompt.id, targetHandle: resultAnnotationDraftHandle, data: { assetId: imageId } });
+    }
+    const [ratioWidth, ratioHeight = 1] = sunburstPreviewAspectRatio(model.data.provider, model.data.size).split('/').map(Number);
+    const modelHeight = 120 + (modelWidth - 32) * ratioHeight / ratioWidth;
+    const { positions: placement, pushes } = makeRoomForNodes(current, [
+      ...(!existingPrompt ? [{ id: prompt.id, rect: { ...prompt.position, width: promptWidth, height: promptHeight }, direction: 'up' as const }] : []),
+      { id: model.id, rect: { ...model.position, width: modelWidth, height: modelHeight }, direction: 'right' },
+    ], new Set([source.id, prompt.id]));
+    const place = (node: AppNode): AppNode => {
+      const position = placement.get(node.id);
+      return position ? { ...node, position } : node;
+    };
+    pendingCreationFit.current = [source.id, prompt.id, model.id];
+    addedNodes.forEach(node => playNodeEntrance(null, node.id));
+    if (animate) {
+      for (const [nodeId, position] of placement) positions.set(nodeId, position);
+      playPlacement(visible, positions, pushes);
+    }
+    else stopPlacement();
+    setNodes(nodes => [...nodes, ...addedNodes].map(place));
+    setEdges(edges => [...edges, ...addedEdges]);
+  }, [getNodes, nodes, playNodeEntrance, playPlacement, stopPlacement, setNodes, setEdges]);
   const [tool, setTool] = useState<CanvasTool>('select');
   const [importError, setImportError] = useState('');
   const [pendingNodeMenu, setPendingNodeMenu] = useState<PendingNodeMenu | null>(null);
@@ -201,10 +292,11 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   }, [pendingNodeMenu]);
   const restore = useCallback((snapshot: { nodes: AppNode[]; edges: typeof edges }) => {
     clearConnectionEffects();
+    stopPlacement();
     setNodes(snapshot.nodes);
     setEdges(snapshot.edges);
-  }, [setNodes, setEdges, clearConnectionEffects]);
-  const history = useCanvasHistory(nodes, edges, restore);
+  }, [setNodes, setEdges, clearConnectionEffects, stopPlacement]);
+  const history = useCanvasHistory(annotationGraph.nodes, annotationGraph.edges, restore);
   useLayoutEffect(() => { storage.releaseRestoredAssets(); }, [storage]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const canvasStore = useStoreApi();
@@ -220,13 +312,14 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   }, [canvasStore, gridSnap]);
   const endGridDrag = useCallback(() => { gridDragAnchor.current = null; }, []);
   const changeCanvasNodes = useCallback((changes: NodeChange<AppNode>[]) => {
+    if (changes.some(change => change.type === 'position' && change.position)) stopPlacement();
     const anchor = gridDragAnchor.current;
     onNodesChange(anchor ? snapDragChanges(changes, anchor, gridOrigin.current) : changes);
     // React Flow can send a final position batch without a stop callback when a drag is aborted.
     if (anchor && changes.some(change => change.type === 'position' && change.id === anchor.id && change.dragging === false)) {
       gridDragAnchor.current = null;
     }
-  }, [onNodesChange]);
+  }, [onNodesChange, stopPlacement]);
   const toggleGridSnap = () => {
     const enabled = !gridSnap;
     setGridSnap(enabled);
@@ -278,6 +371,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
             id: `file-${crypto.randomUUID()}`, type: 'file', selected: true,
             position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 },
             data: { label: typeof saved.node.data?.label === 'string' ? saved.node.data.label : undefined, assets,
+              annotations: restoreFileAnnotations(saved.node.data?.annotations, assets),
               activeAssetId: typeof saved.node.data?.activeAssetId === 'string' ? saved.node.data.activeAssetId : undefined,
               viewMode: saved.node.data?.viewMode === 'all' ? 'all' : 'single',
               orderBy: saved.node.data?.orderBy === 'name' ? 'name' : 'date' },
@@ -347,7 +441,10 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
           const data = restoreInteractiveEditData(saved.node.data);
           if (!data) return;
           event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'interactive-edit', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
+          const assets = data.baseImage ? [data.baseImage] : [];
+          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: `file-${crypto.randomUUID()}`, type: 'file', selected: true,
+            position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data: { label: data.label, assets,
+              annotations: data.history && assets[0]?.id === data.history.imageId ? [data.history] : undefined } }]);
           return;
         }
         if (saved.format === 'momoflow-masks-extractor-node' && saved.node?.type === 'masks-extractor'
@@ -467,19 +564,37 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     window.addEventListener('paste', pasteNode);
     return () => window.removeEventListener('paste', pasteNode);
   }, [setNodes]);
+  const resultPromptConnection = useCallback((connection: Connection, current: AppNode[]) => {
+    if (!/^image-\d+$/.test(connection.targetHandle ?? '')) return;
+    const target = current.find(node => node.id === connection.target);
+    const edges = currentPromptEdges.current;
+    if (!isImageGeneratorNode(target) || target.type === 'ideogram' || edges.some(edge => edge.target === target.id && edge.targetHandle === 'prompt')) return;
+    const origin = resolveOutputSource(current.find(node => node.id === connection.source), connection.sourceHandle, current, edges);
+    if (origin?.handle !== 'result' || !isImageGeneratorNode(origin.node)) return;
+    const image = selectedImageResult(origin.node);
+    const draft = image && resultAnnotationDraft(origin.node.id, image.id, edges);
+    if (!draft) return;
+    const edge: Edge = { id: `edge-${crypto.randomUUID()}`, source: draft.target, sourceHandle: null, target: target.id, targetHandle: 'prompt' };
+    return canConnect(edge, current, edges) ? edge : undefined;
+  }, []);
+
   const onConnect: OnConnect = useCallback(
     (connection) => {
       if (connectionCancelled.current || !withinConnectionRadius(connection) || !canConnect(connection, getNodes(), getEdges())) return;
       const edge = addEdge(connection, [])[0];
+      const prompt = resultPromptConnection(connection, getNodes());
       playConnectionEffects(edge, withoutReplacedInput(connection, getNodes(), getEdges()));
-      setEdges((edges) => addEdge(edge, withoutReplacedInput(connection, getNodes(), edges)));
+      setEdges((edges) => {
+        const next = addEdge(edge, withoutReplacedInput(connection, getNodes(), edges));
+        return prompt ? addEdge(prompt, next) : next;
+      });
       setNodes((currentNodes) => currentNodes.map((node) =>
         node.id === connection.target && isTextNode(node) && !isAnnotationInput(connection.targetHandle)
           ? { ...node, data: { ...node.data, variableCount: Math.max(node.data.variableCount ?? 0, variableIndex(connection.targetHandle) + 2) } }
           : node,
       ));
     },
-    [setEdges, setNodes, getNodes, getEdges, playConnectionEffects, connectionCancelled, withinConnectionRadius]
+    [setEdges, setNodes, getNodes, getEdges, playConnectionEffects, connectionCancelled, withinConnectionRadius, resultPromptConnection]
   );
 
   const onConnectEnd: OnConnectEnd = useCallback(
@@ -509,6 +624,13 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   const createModelInputs = useCallback((model: AppNode, { connection, imageToImage = false }: { connection?: Connection; imageToImage?: boolean } = {}) => {
     if (!model.type || !hasImageModelCreationMenu(model.type)) return;
     if (connection?.target === model.id && connection.targetHandle === 'prompt') return;
+    if (connection?.target === model.id) {
+      const prompt = resultPromptConnection(connection, [...getNodes(), model]);
+      if (prompt) {
+        pendingCreationFit.current = [prompt.source, model.id];
+        return { nodes: [], edges: [prompt] };
+      }
+    }
 
     const promptHeight = 405;
     const fileOffset = promptHeight + 48;
@@ -551,7 +673,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     }
     pendingCreationFit.current = [...inputs, model].map(node => node.id);
     return { nodes: inputs, edges: inputEdges };
-  }, [getIntersectingNodes, getNodes]);
+  }, [getIntersectingNodes, getNodes, resultPromptConnection]);
 
   useEffect(() => {
     const pending = pendingCreationFit.current;
@@ -635,8 +757,40 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     setPendingNodeMenu(null);
   }, [pendingNodeMenu, addNode, getNodes, getEdges, createModelInputs, setNodes, setEdges, playNodeEntrance]);
 
+  const canvasNodes = useMemo(() => nodes.map((node) => (isFileNode(node) || isImageIteratorNode(node)) ? {
+        ...node, draggable: !node.data.locked && tool === 'select',
+        deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select',
+      } : isTextNode(node) ? {
+        ...node,
+        draggable: !node.data.locked && tool === 'select',
+        deletable: !node.data.locked,
+        connectable: !node.data.locked && tool === 'select',
+        style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
+      } : (isImageGeneratorNode(node) || isPainterNode(node) || node.type === 'masks-extractor' || node.type === 'crop' || node.type === 'color-correction' || node.type === 'matte-grow-shrink' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'blend' || node.type === 'compare' || node.type === 'resize' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview' || node.type === 'router' || node.type === 'text-iterator' || node.type === 'position-logger') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node), [nodes, edges, tool]);
+  const canvasEdges = useMemo(() => edges.flatMap((edge) => {
+        const source = nodes.find((node) => node.id === edge.source);
+        const target = nodes.find((node) => node.id === edge.target);
+        if (isAnnotationInput(edge.targetHandle)) return [];
+        if (source?.type === 'router' || target?.type === 'router') return {
+          ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
+          style: { ...edge.style, stroke: outputColor(outputKind(source, edge.sourceHandle, nodes, edges)) },
+        };
+        const fileSource = source && isFileNode(source) ? source : undefined;
+        const textConnection = (source?.type === 'color-palette' && edge.sourceHandle === 'text') || nodes.some((node) => (isTextNode(node) || node.type === 'text-iterator' || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
+        const generatedSource = source && (source.type === 'image-iterator' || isImageGeneratorNode(source) || source.type === 'masks-extractor' || source.type === 'painter' || source.type === 'crop' || source.type === 'color-correction' || source.type === 'matte-grow-shrink' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'rotate-flip' || source.type === 'blend' || source.type === 'compare' || source.type === 'resize' || source.type === 'compositor' || (source.type === 'color-palette' && edge.sourceHandle === 'image'));
+        const sunburstTarget = target && isImageGeneratorNode(target);
+        const portColor = source?.type === 'matte-grow-shrink' || target?.type === 'matte-grow-shrink' || ((source?.type === 'painter' || source?.type === 'masks-extractor') && edge.sourceHandle === 'mask') || (sunburstTarget && edge.targetHandle === 'mask') ? 'var(--sunburst-mask-port)'
+          : target?.type === 'image-describer' && /^image-\d+$/.test(edge.targetHandle ?? '') ? filePortColors.image
+          : (sunburstTarget && /^image-\d+$/.test(edge.targetHandle ?? '')) || generatedSource ? 'var(--sunburst-image-port)'
+          : fileSource ? filePortColors[fileOutputKind(fileSource.data)] : undefined;
+        return fileSource || textConnection || generatedSource ? {
+          ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
+          style: { ...edge.style, ...(portColor ? { stroke: portColor } : {}) },
+        } : edge;
+      }), [nodes, edges]);
+
   return (
-    <PromptAnnotationEdits.Provider value={applyPromptAnnotationEdit}><CanvasHistoryContext.Provider value={history}><ConnectionEffectsContext.Provider value={connectionEffects}><ReactFlow
+    <EnsureResultAnnotationWorkflow.Provider value={ensureResultAnnotationWorkflow}><PromptAnnotationLinks.Provider value={annotationLinks}><PromptAnnotationEdits.Provider value={applyPromptAnnotationEdit}><CanvasHistoryContext.Provider value={history}><ConnectionEffectsContext.Provider value={connectionEffects}><ReactFlow
       ref={canvasRef}
       tabIndex={0}
       onPointerDownCapture={event => {
@@ -656,49 +810,17 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       nodesDraggable={tool === 'select'}
       nodesConnectable={tool === 'select'}
       elementsSelectable={tool === 'select'}
-      nodes={nodes.map((node) => (isFileNode(node) || isImageIteratorNode(node)) ? {
-        ...node, draggable: !node.data.locked && tool === 'select',
-        deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select',
-      } : isTextNode(node) ? {
-        ...node,
-        draggable: !node.data.locked && tool === 'select',
-        deletable: !node.data.locked,
-        connectable: !node.data.locked && tool === 'select',
-        style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
-      } : (isImageGeneratorNode(node) || isPainterNode(node) || node.type === 'interactive-edit' || node.type === 'masks-extractor' || node.type === 'crop' || node.type === 'color-correction' || node.type === 'matte-grow-shrink' || node.type === 'blur' || node.type === 'levels' || node.type === 'invert' || node.type === 'rotate-flip' || node.type === 'blend' || node.type === 'compare' || node.type === 'resize' || node.type === 'compositor' || node.type === 'color-palette' || node.type === 'preview' || node.type === 'router' || node.type === 'text-iterator' || node.type === 'position-logger') ? { ...node, draggable: !isNodeLocked(node) && tool === 'select', deletable: !isNodeLocked(node), connectable: !isNodeLocked(node) && tool === 'select' } : node.type === 'model-input' && 'model' in node.data ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select' } : isDescriberNode(node) ? { ...node, draggable: !node.data.locked && tool === 'select', deletable: !node.data.locked, connectable: !node.data.locked && tool === 'select', style: { ...node.style, minHeight: Math.max(380, 140 + (node.data.imageInputs + (node.data.exposed?.length ?? 0)) * 50) } } : node)}
+      nodes={displayPlacement(canvasNodes)}
       nodeTypes={nodeTypes}
       onNodesChange={changeCanvasNodes}
       onNodeDragStart={startGridDrag}
       onNodeDragStop={endGridDrag}
       onNodesDelete={deleted => {
         const ids = new Set(deleted.map(node => node.id));
-        setEdges(current => current.filter(edge => !ids.has(edge.source) && !ids.has(edge.target)));
+        changeCanvasEdges(currentPromptEdges.current.filter(edge => ids.has(edge.source) || ids.has(edge.target))
+          .map(edge => ({ type: 'remove', id: edge.id })));
       }}
-      edges={edges.flatMap((edge) => {
-        const source = nodes.find((node) => node.id === edge.source);
-        const target = nodes.find((node) => node.id === edge.target);
-        // An undone or stale mark retains its wire for redo, while React Flow only sees measured, live handles.
-        if (isAnnotationInput(edge.targetHandle)) {
-          return annotationEdgeIds.has(edge.id) && annotationOutput(source, edge.sourceHandle, nodes, edges)
-            ? [{ ...edge, className: 'annotation-edge', style: { ...edge.style, stroke: 'var(--annotation-blue)' } }] : [];
-        }
-        if (source?.type === 'router' || target?.type === 'router') return {
-          ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
-          style: { ...edge.style, stroke: outputColor(outputKind(source, edge.sourceHandle, nodes, edges)) },
-        };
-        const fileSource = source && isFileNode(source) ? source : undefined;
-        const textConnection = (source?.type === 'color-palette' && edge.sourceHandle === 'text') || nodes.some((node) => (isTextNode(node) || node.type === 'text-iterator' || node.type === 'image-describer' || node.type === 'model-input') && (node.id === edge.source || node.id === edge.target));
-        const generatedSource = source && (source.type === 'image-iterator' || isImageGeneratorNode(source) || source.type === 'masks-extractor' || source.type === 'painter' || source.type === 'crop' || source.type === 'color-correction' || source.type === 'matte-grow-shrink' || source.type === 'blur' || source.type === 'levels' || source.type === 'invert' || source.type === 'rotate-flip' || source.type === 'blend' || source.type === 'compare' || source.type === 'resize' || source.type === 'compositor' || (source.type === 'color-palette' && edge.sourceHandle === 'image'));
-        const sunburstTarget = target && isImageGeneratorNode(target);
-        const portColor = source?.type === 'matte-grow-shrink' || target?.type === 'matte-grow-shrink' || ((source?.type === 'painter' || source?.type === 'masks-extractor') && edge.sourceHandle === 'mask') || (sunburstTarget && edge.targetHandle === 'mask') ? 'var(--sunburst-mask-port)'
-          : target?.type === 'image-describer' && /^image-\d+$/.test(edge.targetHandle ?? '') ? filePortColors.image
-          : (sunburstTarget && /^image-\d+$/.test(edge.targetHandle ?? '')) || generatedSource ? 'var(--sunburst-image-port)'
-          : fileSource ? filePortColors[fileOutputKind(fileSource.data)] : undefined;
-        return fileSource || textConnection || generatedSource ? {
-          ...edge, className: [edge.className, 'text-variable-edge'].filter(Boolean).join(' '),
-          style: { ...edge.style, ...(portColor ? { stroke: portColor } : {}) },
-        } : edge;
-      })}
+      edges={canvasEdges}
       edgeTypes={edgeTypes}
       defaultEdgeOptions={defaultEdgeOptions}
       connectionLineComponent={ConnectionLine}
@@ -839,7 +961,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       <NodePortLabelMotion />
       <ApiSettingsDialog open={apiSettingsOpen} onClose={() => setApiSettingsOpen(false)} onTestConnection={testApiConnection} />
       <ConnectionEffectsLayer />
-    </ReactFlow></ConnectionEffectsContext.Provider></CanvasHistoryContext.Provider></PromptAnnotationEdits.Provider>
+    </ReactFlow></ConnectionEffectsContext.Provider></CanvasHistoryContext.Provider></PromptAnnotationEdits.Provider></PromptAnnotationLinks.Provider></EnsureResultAnnotationWorkflow.Provider>
   );
 }
 

@@ -5,6 +5,7 @@ import { MotionConfig } from 'motion/react';
 import { Flow } from '../src/App';
 import { ModelTasksProvider } from '../src/components/ModelTasksProvider';
 import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
+import { defaultSeedreamSettings } from '../src/nodes/seedream';
 import sampleUrl from './fixtures/image-node-1.png';
 import '../src/index.css';
 
@@ -17,10 +18,13 @@ const initial: Workflow = {
     { id: 'source', type: 'file', position: { x: 0, y: 0 }, data: { label: '参考图片', assets: [
       { id: 'sample', name: '示例图片.png', url: sampleUrl, kind: 'image', width: 1536, height: 1152 },
     ] } },
-    { id: 'editor', type: 'interactive-edit', position: { x: 610, y: 0 }, data: {} },
-    { id: 'prompt', type: 'text', position: { x: 1280, y: 0 }, data: { text: '' } },
+    { id: 'prompt', type: 'text', position: { x: 610, y: 0 }, data: { text: '编辑标注处。' } },
+    { id: 'model', type: 'seedream', position: { x: 1280, y: 0 }, data: { ...defaultSeedreamSettings, imageInputs: 1 } },
   ],
-  edges: [{ id: 'input-image', source: 'source', sourceHandle: 'file', target: 'editor', targetHandle: 'image' }],
+  edges: [
+    { id: 'input-image', source: 'source', sourceHandle: 'file', target: 'model', targetHandle: 'image-0' },
+    { id: 'input-prompt', source: 'prompt', target: 'model', targetHandle: 'prompt' },
+  ],
 };
 
 const root = createRoot(document.getElementById('root')!);

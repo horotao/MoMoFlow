@@ -5,7 +5,7 @@ import { extractFileAsset } from '../fileCollection';
 import type { AppNode, FileAsset, FileNode } from '../types';
 
 /** Shared imported/generated image surface; selection stays in the owning node. */
-export function NodeImagePreview({ nodeId, assets, active, grid, orderBy, locked, onSelect, onGridChange, onOrderChange, onFullscreen, onDownload, renderMedia, opensOnKeyboard }: {
+export function NodeImagePreview({ nodeId, assets, active, grid, orderBy, locked, onSelect, onGridChange, onOrderChange, onFullscreen, onDownload, renderMedia, opensOnKeyboard, resultAction, editing }: {
   nodeId: string;
   assets: FileAsset[];
   active: FileAsset;
@@ -19,6 +19,8 @@ export function NodeImagePreview({ nodeId, assets, active, grid, orderBy, locked
   onDownload: () => void;
   renderMedia: (asset: FileAsset) => ReactNode;
   opensOnKeyboard?: (asset: FileAsset) => boolean;
+  resultAction?: ReactNode;
+  editing?: boolean;
 }) {
   const { getNode, setNodes, screenToFlowPosition } = useReactFlow<AppNode>();
   const index = Math.max(0, assets.findIndex(item => item.id === active.id));
@@ -64,7 +66,7 @@ export function NodeImagePreview({ nodeId, assets, active, grid, orderBy, locked
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault(); event.stopPropagation(); onFullscreen(active.id, event.currentTarget, true);
       } : undefined}
-      onDoubleClick={event => {
+      onDoubleClick={editing ? undefined : event => {
         if (!(event.target as HTMLElement).closest('video,audio')) onFullscreen(active.id, event.currentTarget, false);
       }}>{renderMedia(active)}</div>}
     <div className="node-image-overlay nodrag nopan">
@@ -78,6 +80,7 @@ export function NodeImagePreview({ nodeId, assets, active, grid, orderBy, locked
           </>}
         </>}</div>
         <div className="node-image-tools">
+          {!grid && resultAction}
           <FileActionMenu label="排序方式" heading="排序方式" disabled={locked} items={[
             { label: '添加时间', checked: orderBy !== 'name', action: () => onOrderChange('date') },
             { label: '名称', checked: orderBy === 'name', action: () => onOrderChange('name') },

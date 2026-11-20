@@ -6,6 +6,7 @@ import { isCompareNode } from '../nodes/types.ts';
 import { isColorPaletteNode, isCompositorNode, isResizeNode, isRotateFlipNode, isInvertNode, isLevelsNode, isMatteGrowShrinkNode, isBlurNode, isColorCorrectionNode, isCropNode, isPainterNode } from '../nodes/types.ts';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources.ts';
 import { migrateImageModelGraph } from '../nodes/sunburstMigration.ts';
+import { migrateFileAnnotations } from '../nodes/annotationMigration.ts';
 import type { Edge, Viewport } from '@xyflow/react';
 import type { AppNode, FileAsset, FileNode, ImageGeneratorNode } from '../nodes/types';
 
@@ -21,7 +22,8 @@ const documentKey = 'current';
 
 // Drop React Flow's temporary interaction/measurement state, retain node content.
 export function workflowSnapshot(workflow: Workflow): StoredWorkflow {
-  const graph = migrateImageModelGraph(workflow.nodes, workflow.edges);
+  const models = migrateImageModelGraph(workflow.nodes, workflow.edges);
+  const graph = migrateFileAnnotations(models.nodes, models.edges);
   return {
     ...workflow, version: 1, colorMode: 'dark',
     nodes: graph.nodes.map(node => ({
@@ -143,7 +145,7 @@ export class WorkflowStorage {
       }
       return { ...asset, url };
     });
-    return { ...saved, nodes, edges: graph.edges, colorMode: 'dark' };
+    return { ...saved, ...migrateFileAnnotations(nodes, graph.edges), colorMode: 'dark' };
   }
 
   // The caller serializes saves. Assets and graph commit in the same transaction.
