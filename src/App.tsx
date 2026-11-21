@@ -15,6 +15,7 @@ import { createLibraryNode } from './components/libraryCatalog';
 import { createImportedCanvasImage, readCanvasImage } from './nodes/importCanvasImage';
 import { assetResources } from './nodes/assetResources';
 import { canvasImageSize } from './nodes/canvasImageGeometry';
+import { connectImageReferenceRatio } from './nodes/imageReferenceRatio';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
@@ -180,8 +181,11 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   }, [setNodes]);
   const onConnect: OnConnect = useCallback(connection => {
     if (connectionCancelled.current || !withinConnectionRadius(connection) || !canConnect(connection, getNodes(), getEdges())) return;
-    setEdges(current => addEdge(connection, withoutReplacedInput(connection, current)));
-  }, [connectionCancelled, withinConnectionRadius, getNodes, getEdges, setEdges]);
+    const previous = getEdges();
+    const next = addEdge(connection, withoutReplacedInput(connection, previous));
+    setNodes(current => connectImageReferenceRatio(current, previous, next, connection.target));
+    setEdges(next);
+  }, [connectionCancelled, withinConnectionRadius, getNodes, getEdges, setNodes, setEdges]);
 
   const onConnectEnd: OnConnectEnd = useCallback(
     (event, connectionState) => {
@@ -228,8 +232,13 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       }
       created.push(node);
     }
-    setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...created]);
-    if (connections.length) setEdges(current => [...withoutReplacedInput(connections[0], current), ...connections]);
+    const nextEdges = connections.length ? [...withoutReplacedInput(connections[0], currentEdges), ...connections] : currentEdges;
+    setNodes(current => {
+      let next = [...current.map(node => ({ ...node, selected: false })), ...created];
+      for (const connection of connections) next = connectImageReferenceRatio(next, currentEdges, nextEdges, connection.target);
+      return next;
+    });
+    if (connections.length) setEdges(nextEdges);
   }
 
   async function addImageFiles(files: File[], position: XYPosition, canvas: HTMLDivElement) {

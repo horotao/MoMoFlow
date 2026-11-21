@@ -68,7 +68,12 @@ export const sunburstPreset = {
   },
   remember(data: SunburstNode['data']) {
     try {
-      globalThis.localStorage?.setItem(storageKey, JSON.stringify(normalizePreset(data)));
+      // Editing quality/resolution on a following node should not turn its
+      // inferred ratio into the user's default for unrelated new nodes.
+      const preferences = data.composer?.followReferenceRatio ? {
+        ...data, composer: { ...data.composer, ratio: sunburstPreset.newNodeData().composer.ratio },
+      } : data;
+      globalThis.localStorage?.setItem(storageKey, JSON.stringify(normalizePreset(preferences)));
     } catch { /* Keep editing when storage is unavailable; retain the last valid preference. */ }
   },
 };

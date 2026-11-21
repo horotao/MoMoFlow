@@ -22,6 +22,7 @@ export interface ImageComposerData {
   prompt: string;
   quantity: number;
   ratio: string;
+  followReferenceRatio?: boolean;
   selection?: import('../components/image-prompt-node/imagePromptModels').ImagePromptModelSelection;
   modelSettings?: Record<string, Record<string, string>>;
 }

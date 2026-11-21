@@ -25,6 +25,7 @@ export function composerSettings(data: SunburstNode['data']) {
 // Toolbar and generation options write the same ratio and API size in one edit.
 export function changeComposerSettings(data: SunburstNode['data'], change: Partial<ImageComposerData>, settings: Record<string, string> = {}) {
   const composer = { ...data.composer!, ...change };
+  if (change.ratio !== undefined) delete composer.followReferenceRatio;
   if (change.selection && !composerAspectRatios({ ...data, composer }).includes(composer.ratio)) composer.ratio = 'auto';
   const model = composer.selection?.modelIds[0] ?? 'gpt-image-2-6';
   if (model !== 'gpt-image-2-6') return { composer: { ...composer, modelSettings: {
@@ -49,7 +50,9 @@ export function changeComposerProvider(data: SunburstNode['data'], provider: Sun
   const next = { ...data, ...converted, provider, channelModel };
   const ratio = provider === 'apimart' && channelModel === 'gpt-image-2.6-ext'
     && !apimartAspectRatios.some(value => value === data.composer!.ratio) ? 'auto' : data.composer!.ratio;
-  return { ...converted, provider, channelModel, ...changeComposerSettings(next, { ratio }) };
+  const patch = changeComposerSettings(next, { ratio });
+  if (data.composer?.followReferenceRatio) patch.composer.followReferenceRatio = true;
+  return { ...converted, provider, channelModel, ...patch };
 }
 
 // Keep the canvas node stable while adapting its settings to existing clients.

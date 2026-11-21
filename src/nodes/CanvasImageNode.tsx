@@ -11,6 +11,7 @@ import { imageInputHandles, isImageInputHandle } from './connectionRules';
 import { changeComposerSettings, composerAspectRatios } from './imageComposerSettings';
 import { canvasImageSize, hasImageDimensions } from './canvasImageGeometry';
 import { reorderImageReferences } from './imageReferenceOrder';
+import { referenceRatioSettings } from './imageReferenceRatio';
 import { ImportedCanvasImage, type CanvasImageChrome } from './ImportedCanvasImage';
 import { selectedImageResult } from './annotationGraph';
 import { usePublishVisibleImage } from './visibleCanvasImage';
@@ -94,6 +95,12 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   const [loadedSizes, setLoadedSizes] = useState<Record<string, { width: number; height: number }>>({});
   const dimensions = (asset?: FileAsset) => asset && (hasImageDimensions(asset) ? asset : loadedSizes[asset.url] ?? asset);
   const firstReference = inputs.find(input => input.asset)?.asset;
+  const referenceWidth = dimensions(firstReference)?.width;
+  const referenceHeight = dimensions(firstReference)?.height;
+  useLayoutEffect(() => {
+    const patch = referenceRatioSettings(data, { width: referenceWidth, height: referenceHeight });
+    if (patch) updateNodeData(id, patch);
+  }, [id, data, referenceWidth, referenceHeight, updateNodeData]);
   const { width, height } = canvasImageSize(composer.ratio, dimensions(active), dimensions(firstReference));
   useLayoutEffect(() => { internals(id); }, [id, internals, available, edges, width, height]);
   function rememberSize(asset?: FileAsset) {

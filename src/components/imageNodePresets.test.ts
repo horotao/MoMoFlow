@@ -4,6 +4,7 @@ import { createLibraryNode } from './libraryCatalog.ts';
 import { sunburstPreset } from './imageNodePresets.ts';
 import { changeComposerProvider, changeComposerSettings } from '../nodes/imageComposerSettings.ts';
 import { prepareModel } from '../nodes/executionGraph.ts';
+import { referenceRatioSettings } from '../nodes/imageReferenceRatio.ts';
 
 function storage(t: TestContext) {
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
@@ -70,6 +71,24 @@ test('OpenAI channel and transparent background survive creating another node', 
   assert.equal(node.data.quality, 'max');
   assert.equal(node.data.size, '1632x3808');
   assert.equal(node.data.composer!.ratio, '9:21');
+});
+
+test('advanced edits on reference-following nodes preserve the last manually chosen default ratio', t => {
+  storage(t);
+  const source = image();
+  source.data.composer!.followReferenceRatio = true;
+  Object.assign(source.data, referenceRatioSettings(source.data, { width: 1600, height: 900 }));
+  Object.assign(source.data, changeComposerSettings(source.data, {}, { resolution: '2K', quality: 'high' }));
+  sunburstPreset.remember(source.data);
+  assert.equal(source.data.composer!.ratio, '16:9');
+  const next = image();
+  assert.equal(next.data.composer!.ratio, '1:1');
+  assert.equal(next.data.size, '1:1');
+  assert.equal(next.data.resolution, '2K');
+  assert.equal(next.data.quality, 'high');
+  Object.assign(source.data, changeComposerSettings(source.data, { ratio: '4:3' }));
+  sunburstPreset.remember(source.data);
+  assert.equal(image().data.composer!.ratio, '4:3');
 });
 
 test('model choice and model-specific options are retained across subsequent edits', t => {
