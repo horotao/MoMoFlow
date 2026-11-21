@@ -374,3 +374,27 @@ test('Image composer batches use the inline prompt, with a connected Prompt taki
   image.data.composer.selection = { modelIds: ['nano-banana-pro'], multiple: false, autoSelect: false };
   assert.throws(() => preflight(graph, ['image'], 1), /请选择其中一个模型/);
 });
+
+test('Seedream Image composer executes a batch and commits both results to the existing canvas node', async () => {
+  const image = generator('image');
+  assert.ok(isImageGeneratorNode(image) && image.type === 'sunburst');
+  image.data.composer = { prompt: 'a leaf', ratio: '1:1', quantity: 2,
+    selection: { modelIds: ['seedream-5-5'], autoSelect: false, multiple: false },
+    modelSettings: { 'seedream-5-5': { resolution: '2K', background: 'transparent', outputFormat: 'png' } } };
+  const h = harness({ nodes: [image], edges: [] });
+  await h.engine.run([image.id], image.data.composer.quantity);
+  assert.equal(h.requests.length, 2);
+  for (const { seedreamRequest } of h.requests) {
+    assert.deepEqual(seedreamRequest, {
+      ...defaultSeedreamSettings, prompt: 'a leaf', size: '1:1', resolution: '2K',
+      background: 'transparent', outputFormat: 'png', images: [],
+    });
+  }
+  const finished = h.store.getSnapshot();
+  assert.deepEqual(finished.map(task => task.state), ['Done', 'Done']);
+  const saved = h.node(image.id);
+  assert.ok(isImageGeneratorNode(saved) && saved.type === 'sunburst');
+  assert.deepEqual(saved.data.results?.map(asset => asset.generation?.taskId).sort(), finished.map(task => task.id).sort());
+  assert.ok(selectedResult(saved)?.generation?.taskId);
+  h.engine.dispose();
+});
