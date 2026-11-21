@@ -5,7 +5,7 @@ import { prepareModel } from '../nodes/executionGraph.ts';
 import { isCanvasImageNode } from '../nodes/types.ts';
 import type { FileAsset, FileNode, SunburstNode, TextNode } from '../nodes/types';
 
-const asset: FileAsset = { id: 'image', kind: 'image', name: 'local.png', url: 'blob:old' };
+const asset: FileAsset = { id: 'image', kind: 'image', name: 'local.png', url: 'blob:old', mimeType: 'image/png', createdAt: 1795246260000 };
 const file: FileNode = { id: 'file', type: 'file', position: { x: 10, y: 20 }, data: { asset, assets: [asset], activeAssetId: asset.id, locked: true } };
 const result: SunburstNode = { id: 'result', type: 'sunburst', position: { x: 30, y: 40 }, data: { composer: { prompt: '中文', quantity: 1, ratio: '1:1' }, quality: 'high', background: 'auto', size: '1024x1536', outputFormat: 'png', imageInputs: 2, results: [asset], activeResultId: asset.id, exposed: ['quality'] } };
 
@@ -29,6 +29,8 @@ test('asset restoration covers legacy uploads, collections and generated results
   assert.equal(restored.data.asset?.url, 'blob:restored');
   assert.equal(restored.data.assets?.[0].url, 'blob:restored');
   assert.equal((nodes[1] as SunburstNode).data.results?.[0].url, 'blob:restored');
+  assert.equal((nodes[1] as SunburstNode).data.results?.[0].createdAt, asset.createdAt);
+  assert.equal(restored.data.asset?.mimeType, 'image/png');
   assert.equal(restored.data.activeAssetId, asset.id);
   assert.equal((nodes[1] as SunburstNode).data.activeResultId, asset.id);
   assert.equal(file.data.asset?.url, 'blob:old');

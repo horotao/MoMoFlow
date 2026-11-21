@@ -12,6 +12,7 @@ import { canvasImageSize, hasImageDimensions } from './canvasImageGeometry';
 import { reorderImageReferences } from './imageReferenceOrder';
 import { ImportedCanvasImage, type CanvasImageChrome } from './ImportedCanvasImage';
 import { selectedImageResult } from './annotationGraph';
+import { usePublishVisibleImage } from './visibleCanvasImage';
 import type { AppNode, CanvasImage, FileAsset, ImageComposerData } from './types';
 import './CanvasImageNode.css';
 
@@ -88,6 +89,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
 
   const available = imageInputHandles.find(handle => !occupied.has(handle));
   const active = results.find(asset => chosen && (asset.generation?.taskId ?? asset.id) === chosen) ?? results.find(asset => asset.id === data.activeResultId) ?? results[results.length - 1];
+  usePublishVisibleImage(id, active);
   const [loadedSizes, setLoadedSizes] = useState<Record<string, { width: number; height: number }>>({});
   const dimensions = (asset?: FileAsset) => asset && (hasImageDimensions(asset) ? asset : loadedSizes[asset.url] ?? asset);
   const firstReference = inputs.find(input => input.asset)?.asset;

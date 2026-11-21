@@ -1,5 +1,5 @@
 import { preventCanvasImageDrag, withCanvasImageDrag } from './components/canvasImageDrag';
-import { ImageGenerationOptions } from './components/image-prompt-node/ImageGenerationOptions';
+import { ImageInspector } from './components/image-prompt-node/ImageInspector';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasNavigation, canvasMinZoom, canvasMaxZoom, type ZoomTarget } from './components/CanvasNavigation';
 import { CanvasSidebar, type CanvasTool } from './components/CanvasSidebar';
@@ -401,7 +401,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
             position: screenToFlowPosition({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }) });
         }} />
       <DescriberPanel onImageGenerated={projectSession?.autoName} />
-      <ImageGenerationOptions />
+      <ImageInspector />
       <CanvasNavigation pendingZoom={pendingZoom} />
       <ApiSettingsDialog open={apiSettingsOpen} onClose={() => setApiSettingsOpen(false)} onTestConnection={testApiConnection} />
     </ReactFlow></CanvasHistoryContext.Provider>

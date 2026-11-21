@@ -423,5 +423,6 @@ test('Seedream Image composer executes a batch and commits both results to the e
   assert.ok(isImageGeneratorNode(saved) && saved.type === 'sunburst');
   assert.deepEqual(saved.data.results?.map(asset => asset.generation?.taskId).sort(), finished.map(task => task.id).sort());
   assert.ok(selectedResult(saved)?.generation?.taskId);
+  assert.ok(saved.data.results?.every(asset => typeof asset.createdAt === 'number' && asset.createdAt > 0));
   h.engine.dispose();
 });

@@ -1,9 +1,8 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import { useReactFlow } from '@xyflow/react';
 import { ImagePromptNode, type ImagePromptNodeProps } from '../components/image-prompt-node/ImagePromptNode';
 import { ImagePromptToolbar } from '../components/image-prompt-node/ImagePromptToolbar';
-import { ImagePromptIcon } from '../components/image-prompt-node/ImagePromptIcon';
+import { ImageAssetPreview } from '../components/image-prompt-node/ImageAssetPreview';
 import { assetResources } from './assetResources';
 import { canvasImageSize } from './canvasImageGeometry';
 import { downloadAsset } from './fileMedia';
@@ -19,7 +18,6 @@ export type CanvasImageChrome = Pick<ImagePromptNodeProps, 'selected' | 'locked'
 export function ImportedCanvasImage({ id, asset, chrome }: { id: string; asset?: FileAsset; chrome: CanvasImageChrome }) {
   const { getNode, updateNodeData } = useReactFlow<AppNode>();
   const input = useRef<HTMLInputElement>(null);
-  const preview = useRef<HTMLDialogElement>(null);
   const pendingUrl = useRef<string>();
   const [replacing, setReplacing] = useState(false);
   const [error, setError] = useState('');
@@ -29,9 +27,6 @@ export function ImportedCanvasImage({ id, asset, chrome }: { id: string; asset?:
   useLayoutEffect(() => {
     if (pendingUrl.current === asset?.url) pendingUrl.current = undefined;
   }, [asset?.url]);
-  useLayoutEffect(() => {
-    if (previewOpen && preview.current && !preview.current.open) preview.current.showModal();
-  }, [previewOpen]);
   useLayoutEffect(() => () => {
     if (pendingUrl.current) assetResources.discard([pendingUrl.current]);
   }, []);
@@ -71,14 +66,7 @@ export function ImportedCanvasImage({ id, asset, chrome }: { id: string; asset?:
         picker.value = '';
         if (file && !replacing) void replace(file, picker);
       }} />
-    {previewOpen && asset && createPortal(<dialog ref={preview} className="canvas-image-preview" aria-label="图片预览"
-      onClose={() => setPreviewOpen(false)} onKeyDown={event => event.stopPropagation()}
-      onClick={event => { if (event.target === event.currentTarget) preview.current?.close(); }}>
-      <img src={asset.url} alt={asset.name} />
-      <button type="button" aria-label="关闭图片预览" onClick={() => preview.current?.close()}>
-        <ImagePromptIcon name="close" />
-      </button>
-    </dialog>, document.body)}
+    {previewOpen && asset && <ImageAssetPreview asset={asset} onClose={() => setPreviewOpen(false)} />}
     {error && <button type="button" className="nodrag" role="alert" onClick={() => setError('')}>{error}</button>}
   </div>;
 }

@@ -11,7 +11,8 @@ export async function readCanvasImage(file: File): Promise<FileAsset> {
   }
   const url = assetResources.create(file);
   try {
-    const asset = await measureAsset({ id: crypto.randomUUID(), kind: 'image', name: file.name, size: file.size, url });
+    const asset = await measureAsset({ id: crypto.randomUUID(), kind: 'image', name: file.name,
+      size: file.size, mimeType: file.type, createdAt: Date.now(), url });
     if (!hasImageDimensions(asset)) throw new Error(`无法读取「${file.name}」。`);
     return asset;
   } catch (error) {

@@ -1,6 +1,15 @@
 import './image-prompt-shared.css';
 
 const icons = {
+  'metadata-info': new URL('./assets/metadata-info.svg', import.meta.url).href,
+  'metadata-extend': new URL('./assets/metadata-extend.svg', import.meta.url).href,
+  'metadata-edit': new URL('./assets/metadata-edit.svg', import.meta.url).href,
+  'metadata-crop': new URL('./assets/metadata-crop.svg', import.meta.url).href,
+  'metadata-upscale': new URL('./assets/metadata-upscale.svg', import.meta.url).href,
+  'metadata-remove-background': new URL('./assets/metadata-remove-background.svg', import.meta.url).href,
+  'metadata-more': new URL('./assets/metadata-more.svg', import.meta.url).href,
+  'metadata-fullscreen': new URL('./assets/metadata-fullscreen.svg', import.meta.url).href,
+  'metadata-save': new URL('./assets/metadata-save.svg', import.meta.url).href,
   'ratio-auto': new URL('./assets/ratio-auto.svg', import.meta.url).href,
   'model-openai': new URL('./assets/model-openai.svg', import.meta.url).href,
   'search': new URL('./assets/search.svg', import.meta.url).href,

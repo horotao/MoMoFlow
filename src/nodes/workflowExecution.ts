@@ -351,7 +351,7 @@ export class WorkflowExecution {
       if (!node || isNodeLocked(node)) throw new Error('节点已删除或锁定。');
       assets = Array.isArray(result) ? result : [result];
       if (!isImageGeneratorNode(node) || !assets.length || assets.some(asset => !asset?.url)) throw new Error('未返回有效图片。');
-      const generated = assets.map(asset => ({ ...asset, generation: { version: 1 as const, ...(node.type === 'sunburst' && node.data.composer ? { taskId } : {}), inputSignature: signature, outputSignature: asset.id } }));
+      const generated = assets.map(asset => ({ ...asset, createdAt: asset.createdAt ?? Date.now(), generation: { version: 1 as const, ...(node.type === 'sunburst' && node.data.composer ? { taskId } : {}), inputSignature: signature, outputSignature: asset.id } }));
       const output = { results: generated, activeResultId: generated[generated.length - 1].id, outputMode: undefined };
       this.commit(id, { ...output, results: [...(node.data.results ?? []), ...generated] });
       attached = true;
