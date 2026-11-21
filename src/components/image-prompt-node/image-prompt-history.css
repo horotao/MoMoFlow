@@ -1,0 +1,39 @@
+.image-node-variants {
+  position: absolute;
+  z-index: 3;
+  inset: 100% 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--node-muted);
+  font-size: 12px;
+  line-height: 13.5px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms cubic-bezier(0, 0, .58, 1), visibility 200ms;
+}
+.image-node:is(:hover, .is-selected, :focus-within) .image-node-variants { opacity: 1; visibility: visible; }
+.image-node-variant-carousel { position: relative; width: 100%; height: 48px; opacity: .6; outline: none; transition: opacity 150ms cubic-bezier(0, 0, .2, 1); }
+.image-node-variants[data-expanded=true] .image-node-variant-carousel { opacity: 1; }
+.image-node-variant-row { display: flex; width: 100%; height: 56px; align-items: center; justify-content: center; }
+.image-node-variant-row > button { position: relative; z-index: 20; flex: none; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 12px; opacity: 0; pointer-events: none; transition: opacity 150ms cubic-bezier(0, 0, .2, 1); }
+.image-node-variant-row > button:first-child .image-node-icon { transform: rotate(90deg); }
+.image-node-variant-row > button:last-child .image-node-icon { transform: rotate(-90deg); }
+.image-node-variants[data-expanded=true] .image-node-variant-row > button { opacity: 1; pointer-events: auto; }
+.image-node-variants[data-expanded=true] .image-node-variant-row > button:disabled { opacity: .5; }
+.image-node-variant-row > button:hover:enabled { background: var(--node-fill); }
+.image-node-variant-viewport { position: relative; max-width: calc(100% - 40px); min-width: 0; height: 56px; display: flex; align-items: center; overflow: hidden; scrollbar-width: none; }
+.image-node-variant-viewport::-webkit-scrollbar { display: none; }
+.image-node-variants[data-expanded=true] .image-node-variant-viewport { overflow-x: auto; overflow-y: hidden; }
+.image-node-variant-thumbnails { display: flex; align-items: center; width: max-content; flex: none; }
+.image-node-variant-thumbnails > button { position: relative; flex: none; width: 32px; height: 32px; overflow: hidden; border-radius: 12px; background: #090908; box-shadow: 0 0 0 2px #090908; }
+.image-node-variant-thumbnails > button + button { margin-left: -12px; }
+.image-node-variants[data-expanded=true] .image-node-variant-thumbnails > button { margin-left: 2px; box-shadow: none; }
+.image-node-variants[data-expanded=true] .image-node-variant-thumbnails > button[aria-pressed=true] { width: 40px; height: 40px; }
+.image-node-variant-thumbnails > button::after { content: ''; position: absolute; inset: 0; border: 1px solid var(--node-fill); border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity 150ms cubic-bezier(0, 0, .2, 1); }
+.image-node-variant-thumbnails > button[aria-pressed=true]::after,
+.image-node-variants[data-expanded=true] .image-node-variant-thumbnails > button::after { opacity: 1; }
+.image-node-variant-thumbnails img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.image-node-variants > span { min-width: 60px; text-align: center; opacity: 0; transition: opacity 150ms cubic-bezier(0, 0, .2, 1); }
+.image-node-variants[data-expanded=true] > span { opacity: 1; }

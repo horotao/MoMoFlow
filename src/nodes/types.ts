@@ -17,8 +17,15 @@ export type FileAsset = {
 export type FileNode = Node<{ label?: string; locked?: boolean; asset?: FileAsset; assets?: FileAsset[]; activeAssetId?: string; viewMode?: 'single' | 'all'; orderBy?: 'date' | 'name'; annotations?: AnnotationHistory[] }, 'file'>;
 export const isFileNode = (node: AppNode | undefined): node is FileNode => node?.type === 'file';
 type ImageResults = { results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name'; annotations?: AnnotationHistory[] };
-export type SunburstNode = Node<SunburstSettings & OutputPolicy & ImageResults & { provider?: SunburstProvider; variant?: 'Sunburst' | 'Flare'; label?: string; locked?: boolean; imageInputs: number; exposed?: SunburstParameter[] }, 'sunburst'>;
+export interface ImageComposerData {
+  prompt: string;
+  quantity: number;
+  ratio: string;
+  selection?: import('../components/image-prompt-node/imagePromptModels').ImagePromptModelSelection;
+}
+export type SunburstNode = Node<SunburstSettings & OutputPolicy & ImageResults & { composer?: ImageComposerData; provider?: SunburstProvider; variant?: 'Sunburst' | 'Flare'; label?: string; locked?: boolean; imageInputs: number; exposed?: SunburstParameter[] }, 'sunburst'>;
 export const isSunburstNode = (node: AppNode): node is SunburstNode => node.type === 'sunburst';
+export const isCanvasImageNode = (node: AppNode): boolean => isSunburstNode(node) && Boolean(node.data.composer);
 export type NanoBananaNode = Node<NanoBananaSettings & OutputPolicy & ImageResults & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof NanoBananaSettings)[] }, 'nano-banana'>;
 export type SeedreamNode = Node<SeedreamSettings & OutputPolicy & ImageResults & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof SeedreamSettings)[] }, 'seedream'>;
 export const isSeedreamNode = (node: AppNode): node is SeedreamNode => node.type === 'seedream';

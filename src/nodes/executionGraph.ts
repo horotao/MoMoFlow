@@ -24,7 +24,7 @@ export type ExecutionGraph = {
   // Keep the execution boundary stable while a batch creates its first results.
   refreshImages?: ReadonlySet<string>;
 };
-export type GenerationRecord = { version: 1; inputSignature: string; outputSignature: string };
+export type GenerationRecord = { version: 1; taskId?: string; inputSignature: string; outputSignature: string };
 export type OutputPolicy = { outputMode?: 'manual' | 'fixed'; sourceSignature?: string };
 const modelInputSignatureVersion = 'model-input-v1';
 export const isModelNode = isImageGeneratorNode;
@@ -166,7 +166,7 @@ export function requestSignature(task: PreviewTask, graph: ExecutionGraph) {
   return stableSignature([modelInputSignatureVersion, task.model, replace(task.seedreamRequest ?? task.imageRequest ?? task.nanoBananaRequest)]);
 }
 
-function savedImagePrompt(asset: FileAsset): string | undefined {
+export function savedImagePrompt(asset: FileAsset): string | undefined {
   const generation = asset.generation;
   if (asset.kind !== 'image' || generation?.version !== 1 || generation.outputSignature !== asset.id) return;
   try {
@@ -220,6 +220,11 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
   try {
 
     if (!isImageGeneratorNode(node)) return;
+    const composer = node.type === 'sunburst' ? node.data.composer : undefined;
+    const selection = composer?.selection;
+    if (selection && (selection.autoSelect || selection.modelIds.length !== 1 || selection.modelIds[0] !== 'gpt-image-2-6')) {
+      throw new Error('此 Image 节点目前支持运行 GPT Image 2.6 Sunburst。');
+    }
     const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
     const sunburst = node.type === 'sunburst' ? effectiveSunburstSettings(node) : undefined;
     const edit = sunburst && promptEdge && !unknown.has('prompt')
@@ -231,7 +236,7 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
         if (prepared.error) throw new Error(prepared.error);
         return;
       }
-      const prompt = edit?.prompt ?? (promptEdge ? resolveTextValue(promptEdge.source, graph.nodes, graph.edges).trim() : '');
+      const prompt = edit?.prompt ?? (promptEdge ? resolveTextValue(promptEdge.source, graph.nodes, graph.edges).trim() : composer?.prompt.trim() ?? '');
       if (!prompt || prompt.length > 32000) throw new Error('请连接非空提示词，最多 32000 个字符。');
     }
     const masked = inputs.some(edge => edge.targetHandle === 'mask');
@@ -254,7 +259,8 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
 }
 
 export function preflight(graph: ExecutionGraph, targets: string[], runs: number) {
-  if (!Number.isInteger(runs) || runs < 1 || runs > 10) throw new Error('运行次数必须为 1–10。');
+  const maxRuns = targets.length === 1 && graph.nodes.some(node => node.id === targets[0] && node.type === 'sunburst' && 'composer' in node.data && node.data.composer) ? 20 : 10;
+  if (!Number.isInteger(runs) || runs < 1 || runs > maxRuns) throw new Error(`运行次数必须为 1–${maxRuns}。`);
   const dependencies = new Map<string, Set<string>>();
   for (const target of targets) {
     const all = new Set<string>();
@@ -273,7 +279,7 @@ export function preflight(graph: ExecutionGraph, targets: string[], runs: number
       if (node.type === 'file' && !fileAssets(node.data).some(asset => asset.kind === 'image')) nodeProblem(node, '请先上传图片。');
       const inputs = executionInputs(node, handle, graph);
 
-      if (isImageGeneratorNode(node) && !inputs.some(edge => edge.targetHandle === 'prompt')) nodeProblem(node, '请连接提示词。');
+      if (isImageGeneratorNode(node) && !(node.type === 'sunburst' && node.data.composer?.prompt.trim()) && !inputs.some(edge => edge.targetHandle === 'prompt')) nodeProblem(node, '请连接提示词。');
 
       for (const edge of inputs) {
         const source = graph.nodes.find(item => item.id === edge.source);

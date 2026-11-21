@@ -5,7 +5,6 @@ import { MotionConfig } from 'motion/react';
 import App from './App';
 
 import './index.css';
-import './nodes/SunburstNode.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

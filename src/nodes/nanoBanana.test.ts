@@ -55,8 +55,5 @@ test('selected result, extraction, clipboard, asset ownership and persisted data
   assert.equal((extracted[0] as NanoBananaNode).data.activeResultId, second.id);
   assert.deepEqual(imageOutput(extracted[1], 'file'), [asset]);
   const snapshot = workflowSnapshot({ nodes: [{ ...generated, selected: true }], edges: [], viewport: { x: 1, y: 2, zoom: .5 }, colorMode: 'dark' });
-  const localData = { ...generated.data };
-  delete localData.exposed;
-  assert.equal(snapshot.nodes[0].selected, undefined);
-  assert.deepEqual(snapshot.nodes[0].data, localData);
+  assert.deepEqual(snapshot.nodes, []);
 });

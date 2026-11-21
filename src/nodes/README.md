@@ -1,43 +1,17 @@
 # 节点索引与开发约定
 
-新增或扩展节点从[接入步骤](#新增或扩展节点)开始。修改已有节点可按任务选文档，或在[节点表](#现有节点)中按名称查找组件、端口和约定。
-
-| 开发任务 | 阅读入口 |
-| --- | --- |
-| 添加节点、改菜单或连线 | [节点创建、端口与连接](guides/connections.md) · <a name="输入输出与交互约定"></a>[输入输出与交互约定](guides/connections.md#输入输出与交互约定) · <a name="代码入口与职责"></a>[代码入口与职责](guides/connections.md#代码入口与职责) |
-| 改节点外观与交互 | [节点外观与共享控件](guides/shared-ui.md) |
-| 改批处理或任务调度 | [工作流执行](guides/workflow.md) · <a name="按依赖自动执行与结果复用"></a>[按依赖自动执行与结果复用](guides/workflow.md#按依赖自动执行与结果复用) |
-| 接入或调整模型 | [模型节点与渠道](guides/models.md) · <a name="模型运行约定"></a>[模型运行约定](guides/models.md#模型运行约定) |
-| 改图片标注 | [图片标注与交互编辑](guides/painting-masks.md) |
-
 ## 现有节点
 
-以下节点类型已在 [index.ts](./index.ts) 的 `nodeTypes` 中注册。`initialNodes` 当前为空，默认不预置节点。
-
-| 节点 / 开发约定 | 类型标识 | 组件文件 | 输入与输出 |
+| 节点 | 存储类型 | 组件 | 输入与输出 |
 | --- | --- | --- | --- |
-| [提示词（Prompt）](guides/connections.md#输入解析与锁定) | `text` | [TextNode.tsx](./TextNode.tsx) | 变量输入 `variable-1` 起；输出解析后的文本 |
-| <a name="交互编辑"></a>[导入 / 文件（Import / File）](guides/shared-ui.md#文件导入与图片查看器) | `file` | [FileNode.tsx](./FileNode.tsx) | 无输入端口；通过 `file` 端口输出文件，支持在当前图片上[交互编辑](guides/painting-masks.md#交互编辑) |
-| [GPT Image 2.6](guides/models.md#gpt-image-26) | `sunburst` | [SunburstNode.tsx](./SunburstNode.tsx) | `prompt`（OpenAI 官方和 APIMart 标准版支持交互编辑标注）、`image-0` 起及受渠道和格式限制的 `mask`；`result` 输出当前选中的结果图片 |
-| <a name="nano-banana"></a>[Nano Banana](guides/models.md#nano-banana) | `nano-banana` | [NanoBananaNode.tsx](./NanoBananaNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起的参考图输入；`result` 输出选中图片 |
-| <a name="seedream-55apimart"></a>[Seedream 5.5](guides/models.md#seedream-55apimart) | `seedream` | [SeedreamNode.tsx](./SeedreamNode.tsx) | 必需的 `prompt`、可选的 `image-0` 起的参考图输入；`result` 输出选中图片 |
+| Image | `sunburst` | [CanvasImageNode](CanvasImageNode.tsx) | 节点内填写提示词，最多接入 16 张参考图。`result` 输出当前选中的结果。 |
+
+新版 Image 使用 `data.composer` 保存提示词、生成数量、比例和模型选择。打开项目时只恢复带有这组数据的 Image 及其之间的连线。注册表见 [index.ts](index.ts)，恢复逻辑见 [workflowStorage.ts](../persistence/workflowStorage.ts)。
 
 ## 新增或扩展节点
 
-1. 在 `types.ts` 定义明确的数据类型，并扩展 `AppNode`；组件使用对应的 `NodeProps` 类型。组件名采用 PascalCase，节点类型标识采用 kebab-case，遵循现有 TypeScript 风格。
-2. 在本目录创建组件，并在 `index.ts` 的 `nodeTypes` 注册。明确默认值来源；注册节点不代表需要加入 `initialNodes`。
-3. 需要出现在节点库时，在 `src/components/libraryCatalog.ts` 添加条目及 `createLibraryNode()` 创建数据，在 `src/components/nodeMenuCatalog.ts` 维护分组和搜索入口；检查 Dock、空白右键及拖线推荐菜单。拖线推荐还需核对 `connectionRecommendations.ts` 的兼容端口，不能假定注册后自动支持新类型。
-4. 定义稳定的输入输出端口 ID、允许连接的类型和单端口连接数量。按需扩展 `connectionRules.ts` 的统一校验和文本或图片解析逻辑，并验证动态端口布局。
-5. 需要设置面板或模型运行时，接入对应面板、运行前校验、任务状态、取消与结果写回流程。复用现有任务机制，避免在组件中另建一套请求和状态管理。
-6. 核对复制粘贴、克隆、删除、锁定与撤销重做。复用 `TextNodeMenu` 时，还需扩展其允许操作的节点类型判断，不能只挂载组件；菜单中的“保存节点”目前仍禁用，与画布自动保存是独立功能。需要持久化的数据放入节点数据；临时 UI 状态和请求控制器留在运行时。涉及新素材字段时，同时扩展素材引用收集与 `workflowStorage.ts` 的 `mapAssets`，验证保存恢复及资源释放。任务和撤销历史目前不跨刷新恢复，恢复画布也不会自动重发模型任务。
-7. 同步更新本页索引及受影响的专题。删除节点或改变类型标识、端口 ID、持久化数据时，核对旧画布和剪贴板的兼容性。
+在 [types.ts](types.ts) 定义数据并在注册表接入组件。同步更新 [创建工厂](../components/libraryCatalog.ts)、[菜单](../components/add-node-menu/AddNodeMenu.tsx)、[连接规则](connectionRules.ts)、[端口推荐](connectionRecommendations.ts) 和工作流恢复条件。涉及运行输入或素材时，同时检查任务调度、资源引用与持久化。
 
 ## 验证与文档维护
 
-自动检查和正式画布验收按[项目约定](../../AGENTS.md)执行。新增测试接入实际运行入口，浏览器测试页须单独打开，详见[质量检查](../../docs/code-quality.md#按修改范围补充浏览器验收)。
-
-编辑器改动需验证 Tab 建议、中文输入、撤销、粘贴和内联变量。模型流程改动需检查缺少输入、重复运行、取消、失败和结果写回。
-
-新增、删除或更改节点接口时，同步更新节点表和对应专题。表中每个注册类型保留一行。只改实现或样式且现有描述仍准确时，无需改文档。
-
-项目启动、环境变量与服务接入见[项目 README](../../README.md)。
+创建与连接见[连接约定](guides/connections.md)，外观见[节点和工具栏](guides/shared-ui.md)，模型与运行见[图片生成](guides/models.md)和[工作流](guides/workflow.md)。自动检查运行 `npm run check`。在独立浏览器存储中的实际主画布核对创建、拖动、正反向连接、锁定、缩放、撤销及刷新恢复，详细说明见[代码质量检查](../../docs/code-quality.md)。

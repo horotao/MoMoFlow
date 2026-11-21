@@ -397,22 +397,6 @@
   overflow-wrap: anywhere;
 }
 .text-node-variable-name { color: var(--text-node-port); flex-shrink: 0; }
-.react-flow .text-variable-edge { --xy-edge-stroke: #b34bd1; --xy-edge-stroke-selected: #b34bd1; }
-.react-flow.dark .text-variable-edge { --xy-edge-stroke: #e28cf8; --xy-edge-stroke-selected: #e28cf8; }
-
-/* Weavy uses a quieter 2px completed edge and a 3px live preview. */
-.react-flow {
-  --xy-edge-stroke-width: 2;
-  --xy-connectionline-stroke-width: 3;
-}
-.react-flow .text-variable-edge .react-flow__edge-path { opacity: 0.64; }
-.react-flow .text-variable-edge:hover .react-flow__edge-path,
-.react-flow .text-variable-edge.selected .react-flow__edge-path { opacity: 1; }
-.text-variable-connection { --xy-connectionline-stroke: #b34bd1; }
-.dark .text-variable-connection { --xy-connectionline-stroke: #e28cf8; }
-.connection-endpoint {
-  fill: var(--xy-connectionline-stroke, var(--xy-connectionline-stroke-default));
-}
 
 .canvas-tool-select .react-flow__pane { cursor: default; }
 .canvas-tool-hand .react-flow__pane, .canvas-tool-hand .react-flow__node { cursor: grab; }

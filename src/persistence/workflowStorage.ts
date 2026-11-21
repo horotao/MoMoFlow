@@ -1,7 +1,6 @@
-import { isFileNode, isImageGeneratorNode, isInteractiveEditNode } from '../nodes/types.ts';
+import { isCanvasImageNode, isFileNode, isImageGeneratorNode, isInteractiveEditNode } from '../nodes/types.ts';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources.ts';
 import { migrateImageModelGraph } from '../nodes/sunburstMigration.ts';
-import { migrateFileAnnotations } from '../nodes/annotationMigration.ts';
 import type { Edge, Viewport } from '@xyflow/react';
 import type { AppNode, FileAsset } from '../nodes/types';
 
@@ -15,18 +14,16 @@ export type Workflow = {
 type StoredWorkflow = Workflow & { version: 1; revision?: string };
 const documentKey = 'current';
 
-function restoreGraph(nodes: AppNode[], edges: Edge[]) {
+export function restoreGraph(nodes: AppNode[], edges: Edge[]) {
   // Discard retired nodes before touching their potentially missing assets.
-  const supported = nodes.filter(node => isImageGeneratorNode(node) || node.type === 'text'
-    || node.type === 'file' || isInteractiveEditNode(node) || ['default', 'input', 'output', 'group'].includes(node.type ?? 'default'));
+  const supported = nodes.filter(isCanvasImageNode);
   const kept = new Set(supported.map(node => node.id));
   return migrateImageModelGraph(supported, edges.filter(edge => kept.has(edge.source) && kept.has(edge.target)));
 }
 
 // Drop React Flow's temporary interaction/measurement state, retain node content.
 export function workflowSnapshot(workflow: Workflow): StoredWorkflow {
-  const models = restoreGraph(workflow.nodes, workflow.edges);
-  const graph = migrateFileAnnotations(models.nodes, models.edges);
+  const graph = restoreGraph(workflow.nodes, workflow.edges);
   return {
     ...workflow, version: 1, colorMode: 'dark',
     nodes: graph.nodes.map(node => ({
@@ -128,7 +125,7 @@ export class WorkflowStorage {
       }
       return { ...asset, url };
     });
-    return { ...saved, ...migrateFileAnnotations(nodes, graph.edges), colorMode: 'dark' };
+    return { ...saved, nodes, edges: graph.edges, colorMode: 'dark' };
   }
 
   // The caller serializes saves. Assets and graph commit in the same transaction.

@@ -1,0 +1,350 @@
+.image-node {
+  --node-muted: #b5b3ad;
+  --node-subtle: #7c7b74;
+  --node-fill: #fafaf223;
+  position: relative;
+  width: 384px;
+  height: 384px;
+}
+
+
+.image-node-heading {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 16.48px;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 15px;
+  letter-spacing: -.32px;
+  color: var(--node-muted);
+  user-select: none;
+}
+
+.image-node-heading h1, .image-node-model { display: flex; align-items: center; margin: 0; min-width: 0; }
+.image-node-heading h1 { gap: 6px; font-size: inherit; line-height: inherit; font-weight: 400; }
+.image-node-heading .image-node-icon { width: 12px; height: 12px; }
+.image-node-model { gap: 4px; color: var(--node-subtle); }
+.image-node-model > span:last-child { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.image-node.is-selected h1 { color: #eeeeec; }
+
+.image-node-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  background: #111110;
+  overflow: hidden;
+  cursor: text;
+}
+/* Keep the card outline above its clipped content and footer gradient. */
+.image-node-card::after {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1.5px var(--node-fill);
+  pointer-events: none;
+  transition: box-shadow 150ms cubic-bezier(.4, 0, .2, 1);
+}
+.image-node.is-selected .image-node-card::after { box-shadow: inset 0 0 0 2px #b5b3ad; }
+.image-node.is-locked .image-node-card { cursor: default; }
+.image-node-surface {
+  position: absolute;
+  inset: 0;
+  /* The reference clips every content layer inside the 2px outline. */
+  clip-path: inset(2px round 22px);
+}
+.image-node-surface-body { position: absolute; inset: 0; }
+
+/* Running and completed images use FLORA's compact control surface, inside the outline.
+   The controls follow the capped text viewport instead of covering its tail. */
+.image-node.has-compact-composer .image-node-surface {
+  z-index: 4;
+  inset: auto 8px 8px;
+  clip-path: none;
+  overflow: hidden;
+  border: 1px solid var(--node-fill);
+  border-radius: 16px;
+  background: #0000004d;
+  box-shadow: 0 4px 6px -1px #00000059, 0 2px 4px -2px #0000004d;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity 150ms cubic-bezier(.42, 0, .58, 1), transform 150ms cubic-bezier(.42, 0, .58, 1), visibility 150ms, backdrop-filter 150ms cubic-bezier(0, 0, .2, 1);
+}
+.image-node.has-compact-composer:is(:hover, :focus-within, .is-selected) .image-node-surface { opacity: 1; visibility: visible; transform: none; }
+.image-node.has-compact-composer .image-node-surface:is(:hover, :focus-within) { backdrop-filter: blur(24px); }
+.image-node.has-compact-composer .image-node-surface-body { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 8px; background: #0000004d; opacity: .5; }
+.image-node.has-compact-composer .image-node-surface:is(:hover, :focus-within) .image-node-surface-body { opacity: 1; }
+.image-node.has-compact-composer .image-node-composer { position: relative; inset: auto; flex: none; max-height: 72px; padding: 0 0 0 4px; }
+.image-node.has-compact-composer .image-node-composer::-webkit-scrollbar-thumb { background-color: var(--node-muted); }
+.image-node.has-compact-composer .image-node-actions { position: relative; inset: auto; flex: none; opacity: 1; visibility: visible; transform: none; }
+.image-node.has-compact-composer .image-node-actions::before { display: none; }
+
+
+.image-node-composer {
+  position: absolute;
+  inset: 16px 16px 0;
+  padding: 0 0 144px 4px;
+  border-radius: 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: auto;
+  cursor: default;
+}
+.image-node-composer:active { cursor: grabbing; }
+.image-node-composer::-webkit-scrollbar { width: 15px; height: 15px; background: transparent; }
+.image-node-composer::-webkit-scrollbar-track { background: transparent; }
+.image-node-composer::-webkit-scrollbar-thumb {
+  border: 6px solid transparent;
+  border-radius: 8px;
+  background: var(--node-subtle);
+  background-clip: padding-box;
+}
+.image-node-composer::-webkit-scrollbar-thumb:active { cursor: grabbing; }
+.image-node-composer textarea {
+  display: block;
+  width: 100%;
+  height: 17.5px;
+  min-height: 17.5px;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  cursor: text;
+  font-size: 14px;
+  line-height: 17.5px;
+  caret-color: #eeeeec;
+}
+.image-node-suggestion { position: absolute; top: 0; left: 4px; pointer-events: none; font-size: 14px; line-height: 17.5px; color: var(--node-muted); }
+/* Match FLORA's placeholder shader: a triangular highlight with a .45-text-
+   width falloff, spaced every 3 text widths, traveling 1.5 widths per second.
+   Its 4s clock contains two identical sweeps; 60 steps per 2s matches 30fps. */
+.image-node-suggestion-label {
+  display: inline-block;
+  background-image: linear-gradient(90deg, #b5b3ad 35%, #eeeeec 50%, #b5b3ad 65%);
+  background-image: linear-gradient(90deg in srgb-linear, #b5b3ad 35%, #eeeeec 50%, #b5b3ad 65%);
+  background-size: 300% 100%;
+  background-repeat: repeat-x;
+  background-position: 150% 0;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: image-node-suggestion-shimmer 2s steps(60, end) infinite;
+}
+@keyframes image-node-suggestion-shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: 0% 0; }
+}
+.image-node-suggestion kbd { display: inline-flex; align-items: center; justify-content: center; margin-left: 4px; height: 16px; min-width: 16px; padding: 0 4px; border-radius: 6px; background: var(--node-fill); font: 12px/12px GeistSans, sans-serif; vertical-align: baseline; }
+
+.image-node-actions {
+  position: absolute;
+  z-index: 1;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity 150ms cubic-bezier(.42, 0, .58, 1), transform 150ms cubic-bezier(.42, 0, .58, 1), visibility 150ms;
+}
+.image-node-actions::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -16px;
+  right: -16px;
+  bottom: -16px;
+  height: 144px;
+  background: linear-gradient(transparent, rgb(25 25 24 / 90%) 65%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms cubic-bezier(.42, 0, .58, 1);
+}
+.image-node.is-overflowing .image-node-actions::before { opacity: 1; }
+.image-node-actions button { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 32px; height: 32px; border-radius: 8px; color: var(--node-muted); }
+.image-node-actions button:hover:enabled { background: #fbfbef2a; }
+.image-node-actions button:active:enabled { filter: brightness(.9); }
+.image-node-actions button:disabled { opacity: .5; }
+.image-node-actions-right { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.image-node-generate-group { display: flex; align-items: center; justify-content: flex-end; flex: none; width: 40px; height: 40px; padding: 1px; border: 1px solid var(--node-fill); border-radius: 24px; background: var(--node-fill); overflow: hidden; transition: width 150ms cubic-bezier(.4, 0, .2, 1); }
+.image-node-generate-group.is-expanded,
+.image-node-generate-group:not(.is-disabled):is(:hover, :focus-within) { width: 114px; }
+.image-node-generate-group.is-disabled { opacity: .5; }
+.image-node-quantity { display: flex; flex: none; align-items: center; gap: 4px; padding: 0 6px; opacity: 0; visibility: hidden; transition: opacity 150ms ease-out, visibility 150ms; }
+.image-node-generate-group.is-expanded .image-node-quantity,
+.image-node-generate-group:not(.is-disabled):is(:hover, :focus-within) .image-node-quantity { opacity: 1; visibility: visible; }
+.image-node-quantity button, .image-node-quantity .image-node-icon { width: 14px; height: 14px; }
+.image-node-quantity input { width: 20px; height: 14px; border: 0; outline: none; border-radius: 4px; padding: 0; text-align: center; background: transparent; font-size: 14px; line-height: 14px; }
+.image-node-actions .image-node-generate { width: 36px; height: 36px; border-radius: 50%; color: #eeeeec; }
+.image-node-generate .image-node-icon { width: 36px; height: 36px; }
+.image-node-actions .image-node-generate:hover:enabled { background: transparent; }
+.image-node-actions .image-node-generate:disabled { color: var(--node-subtle); }
+
+.image-node-tooltip-position {
+  position: fixed;
+  z-index: 700;
+  width: max-content;
+  max-width: 320px;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+}
+.image-node-tooltip {
+  padding: 4px 8px;
+  border: 1px solid #fafaf223;
+  border-radius: 12px;
+  background: #0000004d;
+  color: #eeeeec;
+  font: 500 12px/13.5px GeistSans, sans-serif;
+  box-shadow: 0 4px 6px -1px #00000059, 0 2px 4px -2px #0000004d;
+  backdrop-filter: blur(16px);
+  transform-origin: center calc(100% + 4px);
+  animation: image-node-tooltip-in 150ms cubic-bezier(0, 0, .2, 1) both;
+}
+.image-node-tooltip[data-state=closed] { animation: image-node-tooltip-out 80ms cubic-bezier(0, 0, .2, 1) both; }
+@keyframes image-node-tooltip-in {
+  from { opacity: 0; scale: .98; }
+  to { opacity: 1; scale: 1; }
+}
+@keyframes image-node-tooltip-out {
+  from { opacity: 1; scale: 1; }
+  to { opacity: 0; scale: .98; }
+}
+
+/* Keep the resting geometry, and bridge the whole gap while moving to the
+   toolbar. FLORA's top chrome fades upward by 4px using the shared 150ms curve. */
+.image-node-toolbar-bridge {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 100%;
+  padding-bottom: 40px;
+  transform: translate(-50%, 4px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 150ms cubic-bezier(.42, 0, .58, 1), transform 150ms cubic-bezier(.42, 0, .58, 1), visibility 150ms;
+}
+
+/* Match the reference renderer: ports emerging from beneath the card are
+   occluded by their owner. The cutout stays fixed while the handles move. */
+.image-node-ports {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  clip-path: polygon(evenodd, -2000px -2000px, 2000px -2000px, 2000px 2000px, -2000px 2000px, -2000px -2000px, 0 0, 100% 0, 100% 100%, 0 100%, 0 0);
+}
+.image-node-inputs, .image-node-output { pointer-events: auto; }
+.image-node-inputs {
+  position: absolute;
+  top: calc(50% - 36px);
+  right: calc(100% + 8px);
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(28px);
+  transition: opacity 150ms cubic-bezier(.42, 0, .58, 1), transform 150ms cubic-bezier(.42, 0, .58, 1), visibility 150ms;
+}
+/* Keep the 8px gap to the card inside the node's hover surface. */
+.image-node-inputs::after { content: ''; position: absolute; top: 0; bottom: 0; right: -8px; width: 8px; }
+.image-node-input {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  height: 32px;
+  padding: 4px 4px 4px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  color: #eeeeec;
+  cursor: crosshair;
+}
+.image-node-port-label { display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 12px; font-weight: 500; }
+/* The reference atlas has six 64px cells, rendered as 14px icon boxes.
+   Preserve the original transparent padding and glyph proportions. */
+.image-node-port-icon {
+  display: block;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background: currentColor;
+  mask-image: url('./assets/handle-icon-atlas.png');
+  mask-size: 84px 14px;
+  mask-repeat: no-repeat;
+  mask-position: 0 0;
+}
+.image-node-port-icon-text { mask-position: -28px 0; }
+.image-node-port-count { color: #eeeeec99; margin-left: -1px; }
+.image-node-port { display: block; flex: none; width: 24px; height: 24px; pointer-events: none; }
+.image-node-output {
+  position: absolute;
+  left: calc(100% - 4px);
+  top: calc(50% - 48px);
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 96px;
+  visibility: hidden;
+  color: var(--node-muted);
+  cursor: crosshair;
+  transition: visibility 150ms;
+}
+.image-node-output-visual {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  opacity: 0;
+  transform: translateX(-28px);
+  transition: opacity 150ms cubic-bezier(.42, 0, .58, 1), transform 150ms cubic-bezier(.42, 0, .58, 1);
+  pointer-events: none;
+}
+.image-node-output-icon { display: block; width: 24px; height: 24px; }
+.image-node-output:focus-visible { outline: none !important; }
+.image-node-output:focus-visible .image-node-output-visual { outline: 1px solid #b5b3ad; outline-offset: 3px; border-radius: 50%; }
+@media (hover: hover) and (pointer: fine) {
+  .image-node-input:hover { background: var(--node-fill); }
+  .image-node-output:hover { color: #eeeeec; }
+}
+.image-node-input:focus-visible { background: var(--node-fill); }
+
+.image-node:is(:hover, :focus-within, .is-selected) .image-node-actions { opacity: 1; visibility: visible; transform: none; }
+.image-node:is([data-toolbar-hovered=true], :focus-within, .is-selected) .image-node-toolbar-bridge {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+.image-node:hover .image-node-inputs { opacity: 1; visibility: visible; transform: none; }
+.image-node:hover .image-node-output { visibility: visible; }
+.image-node:hover .image-node-output-visual { opacity: 1; transform: none; }
+.image-node button:focus-visible, .image-node input:focus-visible { outline: 1px solid #b5b3ad; outline-offset: -1px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .image-node-tooltip { animation: none !important; }
+  .image-node-tooltip[data-state=closed] { opacity: 0; }
+  .image-node *, .image-node *::before, .image-node *::after { transition: none !important; }
+  .image-node-suggestion-label {
+    animation: none;
+    background: none;
+    color: var(--node-muted);
+    -webkit-text-fill-color: var(--node-muted);
+  }
+}

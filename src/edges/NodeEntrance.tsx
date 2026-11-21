@@ -11,7 +11,6 @@ function Entrance({ event }: { event: NodeEntranceEvent }) {
   const connected = useStore(state => event.edgeId === null || state.edgeLookup.has(event.edgeId));
   const store = useStoreApi();
   const updateNodeInternals = useUpdateNodeInternals();
-  const { reveal } = useContext(ConnectionEffectsContext);
   const reduced = useReducedMotion();
   const ready = Boolean(node?.measured.width && (event.edgeId === null || node.internals.handleBounds?.[event.direction]?.some(handle => (handle.id ?? null) === event.handleId)));
   useLayoutEffect(() => {
@@ -25,7 +24,6 @@ function Entrance({ event }: { event: NodeEntranceEvent }) {
     if (!event.played) {
       event.scale.jump(reduced ? 1 : 0.94);
       event.played = true;
-      reveal(event);
     }
     frame?.setAttribute('data-node-entrance', 'playing');
     const finish = () => {
@@ -48,7 +46,7 @@ function Entrance({ event }: { event: NodeEntranceEvent }) {
       // for that setup; history/removal clears the event through its provider.
       frame?.removeAttribute('data-node-entrance');
     };
-  }, [event, ready, connected, reduced, reveal, store, updateNodeInternals]);
+  }, [event, ready, connected, reduced, store, updateNodeInternals]);
   return null;
 }
 

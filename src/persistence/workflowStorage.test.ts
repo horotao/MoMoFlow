@@ -5,31 +5,18 @@ import type { FileAsset, FileNode, SunburstNode } from '../nodes/types';
 
 const asset: FileAsset = { id: 'image', kind: 'image', name: 'local.png', url: 'blob:old' };
 const file: FileNode = { id: 'file', type: 'file', position: { x: 10, y: 20 }, data: { asset, assets: [asset], activeAssetId: asset.id, locked: true } };
-const result: SunburstNode = { id: 'result', type: 'sunburst', position: { x: 30, y: 40 }, data: { quality: 'high', background: 'auto', size: '1024x1536', outputFormat: 'png', imageInputs: 2, results: [asset], activeResultId: asset.id, exposed: ['quality'] } };
+const result: SunburstNode = { id: 'result', type: 'sunburst', position: { x: 30, y: 40 }, data: { composer: { prompt: '中文', quantity: 1, ratio: '1:1' }, quality: 'high', background: 'auto', size: '1024x1536', outputFormat: 'png', imageInputs: 2, results: [asset], activeResultId: asset.id, exposed: ['quality'] } };
 
-test('snapshot retains rich text, locked nodes, geometry and parameters without transient selection state', () => {
-  const workflow: Workflow = {
-    nodes: [{ ...file, selected: true, dragging: true, measured: { width: 300, height: 500 } }, result,
-      { id: 'text', type: 'text', position: { x: 0, y: 0 }, origin: [1, 0.5], data: { text: '中文', content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'promptVariable', attrs: { handleId: 'variable-0', ownerId: 'text' } }] }] }, variableCount: 2, displayMode: 'value' } }],
-    edges: [{ id: 'edge', source: 'text', target: 'result', targetHandle: 'prompt', selected: true }],
-    viewport: { x: -120, y: 300, zoom: 0.65 }, colorMode: 'light',
-  };
-  const saved = workflowSnapshot(workflow);
-  assert.deepEqual(saved.nodes[0].data, file.data);
-  assert.deepEqual(saved.nodes[1], { ...result, selected: undefined, dragging: undefined, measured: undefined, resizing: undefined,
-    data: Object.fromEntries(Object.entries(result.data).filter(([key]) => key !== 'exposed')),
-  });
-  assert.deepEqual(saved.nodes[2].data, workflow.nodes[2].data);
-  assert.deepEqual(saved.nodes[2].origin, [1, 0.5]);
-  assert.equal(saved.nodes[0].selected, undefined);
-  assert.equal(saved.nodes[0].dragging, undefined);
+test('snapshot retains Image data, position and lock without transient state', () => {
+  const node = { ...result, selected: true, dragging: true, measured: { width: 384, height: 384 }, data: { ...result.data, locked: true } };
+  const saved = workflowSnapshot({ nodes: [node], edges: [], viewport: { x: 3, y: 4, zoom: .8 }, colorMode: 'light' });
+  assert.equal(saved.nodes.length, 1);
+  assert.deepEqual((saved.nodes[0] as SunburstNode).data.composer, node.data.composer);
+  assert.equal((saved.nodes[0] as SunburstNode).data.locked, true);
   assert.equal(saved.nodes[0].measured, undefined);
-  assert.equal(workflow.nodes[0].selected, true);
-  assert.deepEqual(saved.viewport, workflow.viewport);
+  assert.equal(saved.nodes[0].selected, undefined);
+  assert.equal(node.selected, true);
   assert.equal(saved.colorMode, 'dark');
-  assert.equal(workflow.colorMode, 'light');
-  assert.equal(saved.edges[0].targetHandle, 'prompt');
-  assert.equal(saved.edges[0].selected, undefined);
 });
 
 test('asset restoration covers legacy uploads, collections and generated results without mutating input', () => {
@@ -59,12 +46,13 @@ test('unavailable IndexedDB rejects restoration and remains retryable', async ()
 
 test('mixed legacy graphs discard retired nodes and dangling edges while preserving surviving assets and geometry', () => {
   const retired = { id: 'obsolete', type: 'ideogram', position: file.position, data: { results: [{ ...asset, url: 'blob:missing' }] } };
-  const kept = { id: 'reference', source: file.id, sourceHandle: 'file', target: result.id, targetHandle: 'image-0' };
+  const source = { ...result, id: 'upstream' };
+  const kept = { id: 'reference', source: source.id, sourceHandle: 'result', target: result.id, targetHandle: 'image-0' };
   const saved = workflowSnapshot({
-    nodes: [file, retired as unknown as Workflow['nodes'][number], result],
+    nodes: [source, file, { ...result, id: 'old-gpt', data: { ...result.data, composer: undefined } }, retired as unknown as Workflow['nodes'][number], result],
     edges: [kept, { ...kept, id: 'dangling', source: retired.id }], colorMode: 'dark', viewport: { x: 3, y: 4, zoom: 0.8 },
   });
-  assert.deepEqual(saved.nodes.map(node => node.id), [file.id, result.id]);
+  assert.deepEqual(saved.nodes.map(node => node.id), [source.id, result.id]);
   assert.deepEqual(saved.edges.map(edge => edge.id), [kept.id]);
   assert.deepEqual(saved.nodes[1].position, result.position);
   assert.deepEqual((saved.nodes[1] as SunburstNode).data.results, [asset]);

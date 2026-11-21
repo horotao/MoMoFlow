@@ -4,11 +4,8 @@ import App from '../src/App';
 import { ProjectLibrary } from '../src/persistence/projectLibrary';
 import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
 import { useWorkflowPersistence } from '../src/persistence/useWorkflowPersistence';
-import { isFileNode } from '../src/nodes/fileAsset';
-import { extractFileAsset } from '../src/nodes/fileCollection';
-import { defaultSunburstSettings } from '../src/nodes/sunburst';
-import { defaultSeedreamSettings } from '../src/nodes/seedream';
-import type { FileAsset } from '../src/nodes/types';
+import { canvasImage } from './fixtures/canvasImage';
+import { isSunburstNode, type FileAsset } from '../src/nodes/types';
 import '../src/index.css';
 
 const output = document.getElementById('results')!;
@@ -46,10 +43,9 @@ async function run() {
   const blob = await new Promise<Blob>(resolve => canvas.toBlob(value => resolve(value!)));
   const url = URL.createObjectURL(blob);
   const workflow: Workflow = { ...empty, viewport: { x: 120, y: 140, zoom: 0.7 }, nodes: [
-    { id: 'source', type: 'file', position: { x: 0, y: 0 }, data: { asset: { id: 'local', kind: 'image', name: '本地图片.png', url } } },
-    { id: 'router', type: 'text', position: { x: 650, y: 0 }, data: { text: '' } },
-    { id: 'preview', type: 'text', position: { x: 1000, y: 0 }, data: { text: '' } },
-  ], edges: [{ id: 'edge', source: 'source', sourceHandle: 'file', target: 'router', targetHandle: 'variable-1' }] };
+    canvasImage('source', 0, 0, { results: [{ id: 'local', kind: 'image', name: '本地图片.png', url }] }),
+    canvasImage('router', 650, 0), canvasImage('preview', 1100, 0),
+  ], edges: [{ id: 'edge', source: 'source', sourceHandle: 'result', target: 'router', targetHandle: 'image-0' }] };
   await old.save(workflow);
   await library.rename('current', '无乳糖牛奶—移除产品与包装的长项目名称');
   await library.updatePreview('current', workflow);
@@ -66,7 +62,7 @@ async function run() {
   const original = await reloaded.load();
   assert(original?.nodes.length === 3 && original.edges.length === 1 && original.viewport.zoom === 0.7, '其他项目清空不影响旧项目节点、连线与视图');
   const file = original.nodes[0];
-  assert(isFileNode(file) && file.data.asset && (await (await fetch(file.data.asset.url)).blob()).size === blob.size,
+  assert(isSunburstNode(file) && file.data.results?.[0] && (await (await fetch(file.data.results[0].url)).blob()).size === blob.size,
     '其他项目的素材清理不删除旧项目图片');
   reloaded.dispose();
   await library.select(second.id);
@@ -217,33 +213,27 @@ async function run() {
   const corrupt = result('corrupt', 1790000000150, '损坏记录', 'Sunburst');
   corrupt.generation!.inputSignature = '{broken';
   const firstStorage = archive.storage(firstArchive);
-  const archivedNodes = extractFileAsset([
-    { id: 'newest-model', type: 'seedream', position: { x: 20, y: 120 }, data: { ...defaultSeedreamSettings, imageInputs: 1, results: [newest] } },
-    { id: 'earliest-model', type: 'sunburst', position: { x: 500, y: 120 }, data: {
-      ...defaultSunburstSettings, imageInputs: 1, results: [olderWithoutPrompt, corrupt, earliest], activeResultId: 'unreadable',
-    } },
-    { id: 'current-prompt', type: 'text', position: { x: 20, y: 560 }, data: { text: '后来编辑的画布提示词' } },
-  ], 'earliest-model', earliest.id, { x: 910, y: 120 }, 'detached-result');
-  await firstStorage.save({ ...empty, nodes: archivedNodes });
+  await firstStorage.save({ ...empty, nodes: [
+    canvasImage('newest-model', 20, 120, { results: [newest] }),
+    canvasImage('earliest-model', 500, 120, { results: [olderWithoutPrompt, corrupt, earliest], activeResultId: 'unreadable' }),
+  ] });
   firstStorage.dispose();
   const secondStorage = archive.storage(secondArchive);
   await secondStorage.load();
-  await secondStorage.save({ ...empty, nodes: [
-    { id: 'another-file', type: 'file', position: { x: 20, y: 120 }, data: {
-      assets: [result('another', 1790000000500, '项目切换补名', 'Sunburst')],
-    } },
-  ] });
+  await secondStorage.save({ ...empty, nodes: [canvasImage('another', 20, 120, {
+    results: [result('another', 1790000000500, '项目切换补名', 'Sunburst')],
+  })] });
   secondStorage.dispose();
 
   const reopened = createRoot(document.getElementById('root')!);
   reopened.render(<StrictMode><App projectLibrary={archive} /></StrictMode>);
   await until(() => document.querySelector('.canvas-project-name')?.textContent === `${prefixText}…`);
-  assert((await archive.restore()).active.name === `${prefixText}…`, '启动时恢复拆到 File 节点的最早生图提示词并截断保存');
+  assert((await archive.restore()).active.name === `${prefixText}…`, '启动时恢复 Image 节点中的最早生图提示词并截断保存');
   button('.canvas-project-trigger').click();
   await until(() => document.querySelector('.canvas-project-row[aria-checked="false"]'));
   button('.canvas-project-row[aria-checked="false"]').click();
   await until(() => document.querySelector('.canvas-project-name')?.textContent === '项目切换补名');
-  assert((await archive.restore()).active.name === '项目切换补名', '从菜单打开只保留独立 File 生图的旧项目也能补名');
+  assert((await archive.restore()).active.name === '项目切换补名', '从菜单打开只保留 Image 生图的旧项目也能补名');
   await archivePeer.rename(secondArchive.id, '另一个标签页手动改名');
   await until(() => document.querySelector('.canvas-project-name')?.textContent === '另一个标签页手动改名');
   assert((await archive.restore()).active.name === '另一个标签页手动改名', '其他会话保存手动标题后同步更新当前项目');
@@ -252,7 +242,7 @@ async function run() {
   button('.canvas-project-trigger').click();
   await until(() => document.querySelector('.canvas-project-row[aria-checked="false"][title="未命名项目"]'));
   button('.canvas-project-row[aria-checked="false"][title="未命名项目"]').click();
-  await until(() => document.querySelector('.canvas-project-count')?.textContent === '节点 4');
+  await until(() => document.querySelector('.canvas-project-count')?.textContent === '节点 2');
   assert((await archive.restore()).active.name === '未命名项目' && document.querySelector('.canvas-project-name')?.textContent === '未命名项目', '重新打开旧项目时保留手动设定的默认名称');
   output.textContent += `\n${checks} checks passed`;
   output.dataset.result = 'passed';

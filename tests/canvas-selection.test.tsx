@@ -1,3 +1,4 @@
+import { canvasImage } from './fixtures/canvasImage';
 import {
   addEdge, Panel, ReactFlow, ReactFlowProvider, SelectionMode,
   useEdgesState, useNodesInitialized, useNodesState, useReactFlow, useStore,
@@ -13,15 +14,8 @@ import '../src/index.css';
 import './canvas-selection.css';
 
 const sampleNodes: AppNode[] = [
-  { id: 'source', type: 'file', position: { x: 0, y: 0 }, data: {
-    label: '市集参考图',
-    asset: { id: 'market', name: '市集参考图', kind: 'image', url: '/describer-qa/market.jpg' },
-  } },
-  { id: 'router', type: 'text', position: { x: 626, y: 144 }, data: { label: '场景', text: '市集' } },
-  { id: 'preview', type: 'text', position: { x: 1050, y: 0 }, data: { label: '描述', text: '画面描述' } },
-  { id: 'prompt', type: 'text', position: { x: 525, y: 435 }, data: {
-    label: '画面笔记', text: '保留市集的暖色和光影，突出摊位的层次。',
-  } },
+  canvasImage('source', 0, 0), canvasImage('router', 680, 62), canvasImage('preview', 1160, 0),
+  canvasImage('palette', 1160, 640), canvasImage('prompt', 390, 610),
 ];
 const sampleEdges: Edge[] = [
   { id: 'source-router', source: 'source', sourceHandle: 'file', target: 'router', targetHandle: 'variable-1' },

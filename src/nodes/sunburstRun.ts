@@ -53,7 +53,7 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
       const inputs = edges.filter(edge => edge.target === id);
       const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
       const edit = promptEdge ? resolveSunburstEditPrompt(promptEdge.source, nodes, edges, settings.channelModel === 'gpt-image-2.6-ext') : undefined;
-      const prompt = edit?.prompt ?? '';
+      const prompt = edit?.prompt ?? node.data.composer?.prompt.trim() ?? '';
       if (!prompt || prompt.length > 32000) throw new Error('请为每个选中节点连接非空 Prompt，最多 32000 个字符。');
       const imageEdges = inputs.filter(edge => edge.targetHandle?.startsWith('image-')).sort((a, b) => Number(a.targetHandle?.slice(6)) - Number(b.targetHandle?.slice(6)));
       const maskEdge = inputs.find(edge => edge.targetHandle === 'mask');

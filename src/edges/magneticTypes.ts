@@ -20,6 +20,6 @@ export type PortFeedbackEvent = {
 };
 export type NodeEntranceEvent = {
   id: string; nodeId: string; edgeId: string | null; direction: 'source' | 'target'; handleId: string | null;
-  color: string; scale: MotionValue<number>; opacity: MotionValue<number>; origin: MotionValue<string>;
+  scale: MotionValue<number>; opacity: MotionValue<number>; origin: MotionValue<string>;
   played: boolean; finished: boolean; expiresAt: number;
 };

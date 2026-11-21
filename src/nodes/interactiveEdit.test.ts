@@ -4,8 +4,6 @@ import type { Edge } from '@xyflow/react';
 import { annotationOutput } from './annotationGraph.ts';
 import { migrateFileAnnotations } from './annotationMigration.ts';
 import { editImageAnnotationsFromPrompt, isInlineAnnotationLink, syncImageAnnotationPrompts } from './imageAnnotationPrompts.ts';
-import { canConnect, withoutReplacedInput } from './connectionRules.ts';
-import { connectionChoices } from './connectionRecommendations.ts';
 import { executionInputs, executionSourceAssets, graphGuard, preflight } from './executionGraph.ts';
 import { annotationHistory, annotationMarkup, commitAnnotations, emptyAnnotationHistory, restoreInteractiveEditData, resultAnnotationDraftHandle, type AnnotationMark } from './interactiveEdit.ts';
 import { defaultSeedreamSettings, seedreamMaxImages } from './seedream.ts';
@@ -13,7 +11,7 @@ import { prepareSeedreamRun } from './seedreamRun.ts';
 import { defaultSunburstSettings } from './sunburst.ts';
 import { prepareSunburstRun } from './sunburstRun.ts';
 import { hasVariable, initialTextDocument, withoutVariables } from './textDocument.ts';
-import { resolveTextValue, textAnnotationCount, textVariableCount } from './textVariables.ts';
+import { resolveTextValue } from './textVariables.ts';
 import type { AppNode, FileNode, InteractiveEditNode, SeedreamNode, SunburstNode, TextNode } from './types.ts';
 
 const position = { x: 0, y: 0 };
@@ -179,19 +177,6 @@ test('legacy annotation nodes migrate to File without losing prompt references o
   assert.equal(annotationOutput(detached.nodes[0], point.id, detached.nodes, detached.edges)?.image.id, asset.id);
 });
 
-test('annotation inputs are separate from normal variables and only accept live annotation handles', () => {
-  assert.equal(canConnect(image, nodes, []), true);
-  assert.equal(canConnect({ ...image, source: 'words', sourceHandle: null }, nodes, []), false);
-  assert.equal(canConnect(points, nodes, [image, normal]), true);
-  assert.equal(canConnect({ ...points, targetHandle: 'variable-1' }, nodes, [image]), false);
-  assert.equal(canConnect({ ...normal, targetHandle: 'annotation-1' }, nodes, [image]), false);
-  assert.equal(canConnect({ ...points, sourceHandle: 'stale' }, nodes, [image]), false);
-  assert.equal(canConnect({ ...points, target: 'seedream', targetHandle: 'prompt' }, nodes, [image]), false);
-  assert.deepEqual(withoutReplacedInput(points, nodes, edges), [image, normal, boxes]);
-  assert.equal(textVariableCount(text, edges), 2);
-  assert.equal(textAnnotationCount(text, edges), 3);
-  assert.equal(connectionChoices({ nodeId: editor.id, handleId: point.id, direction: 'source', screen: position, position }, nodes, edges)[0]?.handleId, 'annotation-1');
-});
 
 test('prompt serializes point and box markup into the Seedream request alongside normal text', () => {
   const prompt = '<point>240 510</point> 和 <bbox>500 200 999 800</bbox> 编辑图像';

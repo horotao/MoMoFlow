@@ -1,0 +1,18 @@
+.workflow-wire, .workflow-wire-hit, .workflow-preview { fill: none; }
+.workflow-wire { stroke: #eeeeec2e; stroke-width: 3; }
+.workflow-wire-hit { stroke: transparent; stroke-width: calc(18px / var(--canvas-zoom, 1)); pointer-events: stroke; cursor: pointer; }
+.react-flow__edge:is(.selected, :focus-visible) .workflow-wire { stroke: #eeeeec8c; }
+.react-flow__edge:has(.workflow-wire):focus { outline: none; }
+.workflow-preview { stroke: #eeeeec; stroke-width: 2; pointer-events: none; }
+.react-flow[data-wire-drag] .react-flow__connectionline { z-index: 0; pointer-events: none; overflow: visible; }
+.react-flow[data-wire-drag] .workflow-wire-hit { pointer-events: none; }
+:is([data-wire-hover], [data-wire-drag]) .image-node-inputs,
+:is([data-wire-hover], [data-wire-drag]) .image-node-output-visual { opacity: 1; visibility: visible; transform: none; }
+:is([data-wire-hover], [data-wire-drag]) .image-node-output { visibility: visible; }
+.image-node [data-connection-port][data-connection-snapped=true] { color: #eeeeec; }
+.image-node .image-node-input[data-connection-snapped=true],
+.image-node-output[data-connection-snapped=true] .image-node-output-visual { background: #fafaf223; }
+.image-node-output[data-connection-snapped=true] .image-node-output-visual { border-radius: 50%; }
+.image-node [data-connection-eligible=false] { color: #eeeeec66; cursor: default; background: transparent; }
+.image-node [data-connection-eligible=false]:hover { background: transparent; }
+.image-node [data-connection-port]:disabled { cursor: not-allowed; }

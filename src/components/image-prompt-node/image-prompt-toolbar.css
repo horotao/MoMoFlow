@@ -1,0 +1,17 @@
+.image-node-toolbar { display: flex; align-items: center; gap: 1px; width: max-content; height: 42px; padding: 4px; border: 1px solid var(--node-fill); border-radius: 16px; background: #0000004d; backdrop-filter: blur(16px); }
+.image-node-toolbar button { display: flex; align-items: center; justify-content: center; flex: none; gap: 4px; height: 32px; min-width: 32px; padding: 6px; border-radius: 12px; font-size: 12px; line-height: 16px; white-space: nowrap; }
+.image-node-toolbar button:hover:enabled, .image-node-toolbar button[aria-pressed=true] { background: var(--node-fill); }
+.image-node-toolbar button:disabled { opacity: .5; }
+.image-node-toolbar .image-node-toolbar-label { padding-left: 8px; padding-right: 4px; }
+.image-node-toolbar-label .image-node-icon:last-child { width: 12px; height: 12px; color: var(--node-muted); }
+.image-node-toolbar button > .image-node-icon { width: 16px; height: 16px; }
+.image-node-toolbar-label .image-node-icon:first-child { width: 14px; height: 14px; }
+.image-node-toolbar-label .image-node-icon:last-child { width: 12px; height: 12px; }
+.image-node-tag { width: 16px; height: 16px; border: 1px solid var(--node-muted); border-radius: 50%; }
+.image-node-separator { width: 1px; height: 16px; margin: 0 4px; background: var(--node-fill); }
+
+.image-node-toolbar .image-node-tools-label .image-node-icon:first-child { width: 16px; height: 16px; margin-right: 4px; }
+
+.image-node-toolbar button[aria-expanded=true] { background: var(--node-fill); }
+.image-node:has(.image-node-toolbar [aria-expanded=true]) .image-node-toolbar-bridge { opacity: 1; visibility: visible; transform: translate(-50%, 0); pointer-events: auto; }
+.image-node-toolbar-label > .image-model-google { width: 14px; height: 14px; }
