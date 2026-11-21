@@ -15,6 +15,7 @@ function selectMap(state: ReactFlowState) {
       width: node.measured.width ?? node.width ?? 0,
       height: node.measured.height ?? node.height ?? 0,
     })),
+    edges: state.edges.filter(edge => !edge.hidden).map(({ id, source, target }) => ({ id, source, target })),
   };
 }
 const equalMap = (a: ReturnType<typeof selectMap>, b: ReturnType<typeof selectMap>) =>
@@ -24,6 +25,9 @@ const equalMap = (a: ReturnType<typeof selectMap>, b: ReturnType<typeof selectMa
     const other = b.nodes[index];
     return node.id === other.id && node.type === other.type && node.selected === other.selected
       && node.x === other.x && node.y === other.y && node.width === other.width && node.height === other.height;
+  }) && a.edges.length === b.edges.length && a.edges.every((edge, index) => {
+    const other = b.edges[index];
+    return edge.id === other.id && edge.source === other.source && edge.target === other.target;
   });
 
 type MapMotion = { duration: number; ease: (value: number) => number };
@@ -33,7 +37,7 @@ export function CanvasMinimap({ motion, minZoom, maxZoom }: {
   minZoom: number;
   maxZoom: number;
 }) {
-  const { viewport, nodes } = useStore(selectMap, equalMap);
+  const { viewport, nodes, edges } = useStore(selectMap, equalMap);
   const { getViewport, setViewport, setCenter, zoomTo } = useReactFlow();
   const target = fitMapCamera(viewport, nodes);
   const [camera, setCamera] = useState(target);
@@ -114,10 +118,23 @@ export function CanvasMinimap({ motion, minZoom, maxZoom }: {
     }
   };
   const frame = projectMapRect(viewport, camera);
+  const mapNodes = new Map(nodes.map(node => [node.id, projectMapRect(node, camera)]));
 
   return <svg ref={svg} className="navigation-map-svg" width={minimapSize.width} height={minimapSize.height}
     viewBox={`0 0 ${minimapSize.width} ${minimapSize.height}`} role="img" aria-label="画布小地图"
-    data-dragging={dragging}
+    tabIndex={0} data-dragging={dragging}
+    onKeyDown={event => {
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      const directions: Record<string, [number, number]> = {
+        ArrowLeft: [80, 0], ArrowRight: [-80, 0], ArrowUp: [0, 80], ArrowDown: [0, -80],
+      };
+      const delta = directions[event.key];
+      if (!delta) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const current = getViewport();
+      void setViewport({ ...current, x: current.x + delta[0], y: current.y + delta[1] });
+    }}
     onPointerDown={event => {
       if (event.button !== 0 || drag.current) return;
       event.preventDefault();
@@ -142,6 +159,13 @@ export function CanvasMinimap({ motion, minZoom, maxZoom }: {
     }}
     onPointerUp={event => endDrag(event)} onPointerCancel={event => endDrag(event, true)}
     onLostPointerCapture={event => endDrag(event, true)}>
+    {edges.map(edge => {
+      const source = mapNodes.get(edge.source);
+      const target = mapNodes.get(edge.target);
+      return source && target ? <line key={edge.id} className="navigation-map-edge"
+        x1={source.x + source.width / 2} y1={source.y + source.height / 2}
+        x2={target.x + target.width / 2} y2={target.y + target.height / 2} /> : null;
+    })}
     {[...nodes].sort((a, b) => Number(a.id === focusedId) - Number(b.id === focusedId)).map(node => {
       const rect = projectMapRect(node, camera);
       const side = rect.width * 0.735;
@@ -151,14 +175,14 @@ export function CanvasMinimap({ motion, minZoom, maxZoom }: {
       const iconSize = Math.min(10, side * 0.7);
       return <g key={node.id} className="navigation-map-node" data-selected={node.selected}
         data-focused={node.id === focusedId} style={{ transform: `scale(${1 + 0.2 * (focusWeights[node.id] ?? 0)})` }}>
-        <rect x={cx - side / 2} y={cy - side / 2} width={side} height={side} rx={side * 0.22} />
+        <rect x={cx - side / 2} y={cy - side / 2} width={side} height={side} rx={1} />
         <g transform={`translate(${cx - iconSize / 2} ${cy - iconSize / 2}) scale(${iconSize / 24})`}>
           <NodeIcon nodeType={type} />
         </g>
       </g>;
     })}
     <path className="navigation-map-shade" fillRule="evenodd"
-      d={`M0 0H200V106H0Z M${frame.x} ${frame.y}h${frame.width}v${frame.height}h${-frame.width}Z`} />
+      d={`M0 0H${minimapSize.width}V${minimapSize.height}H0Z M${frame.x} ${frame.y}h${frame.width}v${frame.height}h${-frame.width}Z`} />
     <rect className="navigation-map-viewport" {...frame} />
   </svg>;
 }

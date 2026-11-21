@@ -1,12 +1,15 @@
 .canvas-navigation {
-  --navigation-border: #3b3b3b;
-  --navigation-hover: #333333;
-  --navigation-mono: 'DM Mono', ui-monospace, monospace;
-  --navigation-map-gap: 7px;
+  --navigation-border: #fafaf223;
+  --navigation-hover: #fafaf223;
+  --navigation-selected: #fbfbef2a;
+  --navigation-content: #eeeeec;
+  --navigation-muted: #b5b3ad;
+  --navigation-background: rgb(0 0 0 / 30%);
+  --navigation-map-gap: 8px;
   --navigation-drawer-duration: 240ms;
   --navigation-drawer-ease: cubic-bezier(0.32, 0.72, 0, 1);
-  margin: 10px;
-  color: #dfdfdf;
+  margin: 8px;
+  color: var(--navigation-content);
 }
 
 .navigation-toolbar {
@@ -14,36 +17,79 @@
   z-index: 1;
   display: flex;
   align-items: center;
-  padding: 3px;
-  border: 1px solid var(--canvas-overlay-border);
-  border-radius: 14px;
-  background: var(--canvas-overlay-background);
-  backdrop-filter: blur(20px);
-  transition: transform var(--navigation-drawer-duration) var(--navigation-drawer-ease);
+  padding: 4px;
+  border: 1px solid var(--navigation-border);
+  border-radius: 16px;
+  background: var(--navigation-background);
+  backdrop-filter: blur(24px);
+}
+
+.canvas-navigation[data-map-open='true'] {
+  width: var(--navigation-map-width);
+  height: var(--navigation-map-height);
+}
+
+/* Keep the map, the gap and its floating controls in one hover region. */
+.canvas-navigation[data-map-open='true']::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 100%;
+  height: calc(42px + var(--navigation-map-gap));
 }
 
 .canvas-navigation[data-map-open='true'] .navigation-toolbar {
-  transform: translateY(calc(-1 * (var(--navigation-map-height) + var(--navigation-map-gap))));
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + var(--navigation-map-gap));
+  width: max-content;
+  transform: translateX(-50%);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.canvas-navigation[data-map-open='true']:focus-within .navigation-toolbar {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .canvas-navigation[data-map-open='true']:hover .navigation-toolbar {
+    visibility: visible;
+    pointer-events: auto;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .canvas-navigation[data-map-open='true'] .navigation-toolbar {
+    visibility: visible;
+    pointer-events: auto;
+  }
 }
 
 .navigation-toolbar button {
   display: grid;
   place-items: center;
-  width: 33px;
+  width: 32px;
   height: 32px;
   padding: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
 }
 
 .navigation-toolbar button:disabled { opacity: 0.35; cursor: default; }
-.navigation-toolbar button:not(:disabled):hover,
-.navigation-toolbar button[aria-expanded='true'] { background: var(--navigation-hover); }
-.navigation-toolbar button:focus-visible { outline: 1px solid #dedede; outline-offset: -2px; }
+.navigation-toolbar button:not(:disabled):hover { background: var(--navigation-hover); }
+.navigation-toolbar button[aria-expanded='true'] { background: var(--navigation-selected); color: var(--navigation-content); }
+.navigation-toolbar button[aria-controls] { color: var(--navigation-muted); }
+.navigation-toolbar button[aria-controls][aria-expanded='true'],
+.navigation-toolbar button[aria-controls]:hover { color: var(--navigation-content); }
+.navigation-toolbar button:focus-visible { outline: 1px solid var(--navigation-content); outline-offset: -2px; }
 
 .navigation-toolbar .navigation-percentage {
-  width: 52px;
-  font: 400 14px/1 var(--navigation-mono);
+  width: 44px;
+  color: var(--navigation-muted);
+  font: 500 14px/1 var(--font-ui);
   font-variant-numeric: tabular-nums;
   user-select: none;
 }
@@ -59,7 +105,7 @@
   justify-content: center;
   gap: 3px;
   height: 32px;
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--navigation-hover);
 }
 
@@ -98,7 +144,7 @@
 .navigation-divider {
   width: 1px;
   height: 16px;
-  margin: 0 3px;
+  margin: 0 4px;
   background: var(--navigation-border);
 }
 
@@ -106,8 +152,8 @@
   position: relative;
   overflow: hidden;
   border: 1px solid var(--navigation-border);
-  border-radius: 14px;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 25%);
+  border-radius: 16px;
+  backdrop-filter: blur(24px);
 }
 
 .navigation-map-reveal {
@@ -122,7 +168,7 @@
 }
 
 .navigation-map {
-  background: var(--canvas-background);
+  background: var(--navigation-background);
   touch-action: none;
   transform: translateY(100%);
   transition: transform var(--navigation-drawer-duration) var(--navigation-drawer-ease);
@@ -136,36 +182,38 @@
 
 .canvas-navigation[data-map-open='true'] .navigation-map { transform: translateY(0); }
 
-.navigation-map { width: 202px; height: var(--navigation-map-height); }
+.navigation-map { width: var(--navigation-map-width); height: var(--navigation-map-height); }
 .navigation-map-svg { display: block; cursor: grab; touch-action: none; }
+.navigation-map-svg:focus-visible { outline: 1px solid var(--navigation-content); outline-offset: -3px; border-radius: 14px; }
 .navigation-map-svg[data-dragging='true'] { cursor: grabbing; }
+.navigation-map-edge { stroke: rgb(181 179 173 / 25%); stroke-width: 0.75px; pointer-events: none; }
 .navigation-map-shade {
   fill: color-mix(in srgb, var(--canvas-background) 60%, transparent);
   pointer-events: none;
 }
 .navigation-map-viewport {
   fill: none;
-  stroke: #a6a6a6;
+  stroke: var(--navigation-muted);
   stroke-width: 1px;
   pointer-events: none;
 }
 
 .navigation-map-node {
-  color: #858585;
+  color: rgb(181 179 173 / 60%);
   pointer-events: none;
   transform-box: fill-box;
   transform-origin: center;
 }
-.navigation-map-node > rect { fill: #1b1b1b; stroke: #464646; stroke-width: 0.75px; vector-effect: non-scaling-stroke; }
-.navigation-map-node[data-selected='true'] { color: #b5b5b5; }
-.navigation-map-node[data-selected='true'] > rect { fill: #242424; stroke: #777777; }
+.navigation-map-node > rect { fill: transparent; stroke: currentColor; stroke-width: 0.75px; vector-effect: non-scaling-stroke; }
+.navigation-map-node[data-selected='true'] { color: var(--navigation-content); }
+.navigation-map-node[data-selected='true'] > rect { fill: transparent; stroke: var(--navigation-muted); }
 
 @media (max-width: 520px) {
   .react-flow:has(> .canvas-navigation) > .canvas-task-queue {
     max-width: calc(100% - 190px);
   }
 
-  .react-flow:has(> .canvas-navigation[data-map-open='true']) > .canvas-task-queue { bottom: 172px; }
+  .react-flow:has(> .canvas-navigation[data-map-open='true']) > .canvas-task-queue { bottom: 171px; }
 }
 
 @media (max-width: 800px) {

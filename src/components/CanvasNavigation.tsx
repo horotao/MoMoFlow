@@ -17,7 +17,10 @@ const zoomEase = cubicBezier(0.23, 1, 0.32, 1);
 const digitPlaces = [100, 10, 1];
 const minPercent = Math.round(canvasMinZoom * 100);
 const maxPercent = Math.round(canvasMaxZoom * 100);
-const minimapLayout = { '--navigation-map-height': `${minimapSize.height + 2}px` } as CSSProperties;
+const minimapLayout = {
+  '--navigation-map-width': `${minimapSize.width + 2}px`,
+  '--navigation-map-height': `${minimapSize.height + 2}px`,
+} as CSSProperties;
 const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 const getReducedMotion = () => reducedMotionQuery.matches;
 function subscribeReducedMotion(onChange: () => void) {
@@ -74,6 +77,7 @@ function ZoomPercentage({ percent, reducedMotion, onChange }: {
   const restoreFocus = useRef(false);
   const input = useRef<HTMLInputElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const focusBridge = useRef<HTMLDivElement>(null);
   const editing = draft !== null;
 
   useLayoutEffect(() => {
@@ -95,27 +99,33 @@ function ZoomPercentage({ percent, reducedMotion, onChange }: {
     if (Number.isFinite(number)) onChange(number / 100);
   };
 
-  if (draft === null) return <button type="button" className="navigation-percentage" ref={trigger}
-    aria-label={`编辑缩放比例，当前 ${percent}%`} title="编辑缩放比例" onClick={() => {
-      initialValue.current = String(percent);
-      setDraft(initialValue.current);
-    }}>
-    <ZoomReadout percent={percent} reducedMotion={reducedMotion} />
-  </button>;
-
-  return <div className="navigation-percentage navigation-percentage-editor">
-    <input ref={input} type="text" inputMode="numeric" enterKeyHint="done" autoComplete="off" aria-label="缩放比例（1% 至 200%）"
-      value={draft} style={{ width: `${Math.max(1, Math.min(4, draft.length))}ch` }}
-      onChange={event => setDraft(event.currentTarget.value)}
-      onBlur={event => finishEditing(event.currentTarget.value)}
-      onKeyDown={event => {
-        event.stopPropagation();
-        if (event.nativeEvent.isComposing || (event.key !== 'Enter' && event.key !== 'Escape')) return;
-        event.preventDefault();
-        restoreFocus.current = true;
-        finishEditing(event.currentTarget.value, event.key === 'Escape');
-      }} />
-    {!/[%％]\s*$/.test(draft) && <span aria-hidden="true">%</span>}
+  return <div ref={focusBridge} className="navigation-zoom-control" tabIndex={-1}>
+    {draft === null ? <button type="button" className="navigation-percentage" ref={trigger}
+      aria-label={`编辑缩放比例，当前 ${percent}%`} title="编辑缩放比例" onClick={() => {
+        focusBridge.current?.focus({ preventScroll: true });
+        initialValue.current = String(percent);
+        setDraft(initialValue.current);
+      }}>
+      <ZoomReadout percent={percent} reducedMotion={reducedMotion} />
+    </button> : <div className="navigation-percentage navigation-percentage-editor">
+      <input ref={input} type="text" inputMode="numeric" enterKeyHint="done" autoComplete="off" aria-label="缩放比例（1% 至 200%）"
+        value={draft} style={{ width: `${Math.max(1, Math.min(4, draft.length))}ch` }}
+        onChange={event => setDraft(event.currentTarget.value)}
+        onBlur={event => {
+          if (!restoreFocus.current) finishEditing(event.currentTarget.value);
+        }}
+        onKeyDown={event => {
+          event.stopPropagation();
+          if (event.nativeEvent.isComposing || (event.key !== 'Enter' && event.key !== 'Escape')) return;
+          event.preventDefault();
+          restoreFocus.current = true;
+          // Keep focus inside the floating controls while input becomes a button.
+          // Otherwise :focus-within can hide the new trigger before it can focus.
+          focusBridge.current?.focus({ preventScroll: true });
+          finishEditing(event.currentTarget.value, event.key === 'Escape');
+        }} />
+      {!/[%％]\s*$/.test(draft) && <span aria-hidden="true">%</span>}
+    </div>}
   </div>;
 }
 
@@ -157,7 +167,12 @@ export function CanvasNavigation({ pendingZoom }: { pendingZoom: MutableRefObjec
       <span className="navigation-divider" aria-hidden="true" />
       <button type="button" ref={mapTrigger} title={mapOpen ? '收起小地图' : '展开小地图'}
         aria-label={mapOpen ? '收起小地图' : '展开小地图'} aria-expanded={mapOpen} aria-controls={mapId}
-        onClick={() => setMapOpen(open => !open)}>
+        onClick={event => {
+          setMapOpen(open => !open);
+          // Pointer users reveal the floating toolbar by hovering the map;
+          // keyboard users retain focus so its controls remain reachable.
+          if (event.detail > 0) event.currentTarget.blur();
+        }}>
         <HugeiconsIcon icon={MapIcon} size={17} aria-hidden="true" />
       </button>
     </div>

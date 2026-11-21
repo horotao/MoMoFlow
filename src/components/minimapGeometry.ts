@@ -1,6 +1,6 @@
 export type MapRect = { x: number; y: number; width: number; height: number };
 export type MapCamera = { x: number; y: number; scale: number };
-export const minimapSize = { width: 200, height: 106 };
+export const minimapSize = { width: 186, height: 105 };
 
 // Use canvas coordinates, independent of the animated minimap camera.
 // A small preference for the current target prevents flicker between neighbors.

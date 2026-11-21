@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useLayoutEffect, useRef, useState } from 'react';
-import type { RefObject } from 'react';
+import type { CSSProperties, RefObject } from 'react';
 import { spring } from '../lib/springs';
 import { Tooltip, TooltipProvider } from './ui/tooltip';
 import { GridViewIcon, Settings02Icon } from '@hugeicons/core-free-icons';
@@ -81,8 +81,10 @@ export function CanvasSidebar({ tool, onToolChange, addTrigger, menuOpen, onAddM
                   onToolChange(id);
                 }
               }}>
-              <img src={`/canvas-menu/${asset}.svg`} alt="" draggable={false}
-                style={id === 'add' ? { transitionDuration: `${menuOpen ? spring.moderate.duration : spring.moderate.exit.duration}s` } : undefined} />
+              <span className="canvas-sidebar-icon" aria-hidden="true" style={{
+                '--dock-icon': `url("/canvas-menu/${asset}.svg")`,
+                ...(id === 'add' ? { transitionDuration: `${menuOpen ? spring.moderate.duration : spring.moderate.exit.duration}s` } : {}),
+              } as CSSProperties} />
             </button>
           </Tooltip>
         </Fragment>)}

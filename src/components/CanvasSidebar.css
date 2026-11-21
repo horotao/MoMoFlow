@@ -6,11 +6,15 @@
   --dock-menu-space-12: 12px;
   --dock-menu-space-16: 16px;
   --dock-menu-space-20: 20px;
-  --dock-menu-surface-dock: #222;
-  --dock-menu-surface-dock-border: rgb(145 145 145 / 11%);
+  --dock-menu-surface-dock: rgb(25 25 24 / 90%);
+  --dock-menu-surface-dock-border: #fafaf223;
+  --dock-surface-hover: #fafaf223;
+  --dock-surface-selected: #fbfbef2a;
+  --dock-content-primary: #eeeeec;
+  --dock-content-muted: #b5b3ad;
   --dock-menu-surface-menu: rgb(35 35 35 / 90%);
   --dock-menu-surface-subtle: rgb(255 255 255 / 5%);
-  --dock-menu-surface-divider: rgb(255 255 255 / 10%);
+  --dock-menu-surface-divider: #fafaf223;
   --dock-menu-border-search: rgb(217 217 217 / 4%);
   --dock-menu-content-primary: #e4e4e4;
   --dock-menu-content-secondary: rgb(228 228 228 / 40%);
@@ -36,8 +40,8 @@
   border: 1px solid var(--dock-menu-surface-dock-border);
   border-radius: var(--dock-menu-space-20);
   background: var(--dock-menu-surface-dock);
-  backdrop-filter: blur(8px);
-  color: var(--dock-menu-content-primary);
+  backdrop-filter: blur(40px);
+  color: var(--dock-content-muted);
   pointer-events: auto;
 }
 .canvas-sidebar-button {
@@ -61,7 +65,7 @@
   width: 40px;
   height: 40px;
   border-radius: var(--dock-menu-space-16);
-  background: #383838;
+  background: var(--dock-surface-selected);
   pointer-events: none;
   transition-property: none;
   transition-timing-function: var(--dock-menu-ease-out);
@@ -70,15 +74,17 @@
   .canvas-sidebar-tool-indicator[data-animate='true'] { transition-property: transform; }
 }
 @media (hover: hover) {
-  .canvas-sidebar-button[aria-pressed='false']:hover { background: #363636; }
+  .canvas-sidebar-button:not(.canvas-sidebar-add):hover { color: var(--dock-content-primary); }
+  .canvas-sidebar-button:not(.canvas-sidebar-add):not([aria-pressed='true']):hover { background: var(--dock-surface-hover); }
 }
-.canvas-sidebar-add { background: var(--dock-menu-content-white); }
+.canvas-sidebar-button[aria-pressed='true'] { color: var(--dock-content-primary); }
+.canvas-sidebar-add { background: var(--dock-content-primary); color: #111110; }
 .canvas-sidebar-button:focus-visible { outline: 1px solid var(--dock-menu-content-primary); outline-offset: 2px; }
-.canvas-sidebar-button img { display: block; max-width: none; pointer-events: none; }
-.canvas-sidebar-add > img { transition-property: transform; transition-timing-function: var(--dock-menu-ease-out); }
-.canvas-sidebar-add[aria-expanded='true'] > img { transform: rotate(45deg); }
+.canvas-sidebar-icon { display: block; width: 18px; height: 18px; background: currentColor; mask: var(--dock-icon) center / contain no-repeat; pointer-events: none; }
+.canvas-sidebar-add > .canvas-sidebar-icon { width: 24px; height: 24px; transition-property: transform; transition-timing-function: var(--dock-menu-ease-out); }
+.canvas-sidebar-add[aria-expanded='true'] > .canvas-sidebar-icon { transform: rotate(45deg); }
 @media (prefers-reduced-motion: reduce) {
-  .canvas-sidebar-add > img { transition-property: none; }
+  .canvas-sidebar-add > .canvas-sidebar-icon { transition-property: none; }
 }
 .canvas-sidebar-divider { display: grid; place-items: center; flex: 0 0 9px; width: 40px; }
 .canvas-sidebar-divider::after { content: ''; width: 20px; height: 1px; background: var(--dock-menu-surface-divider); }
