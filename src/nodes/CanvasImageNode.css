@@ -8,7 +8,48 @@
   box-shadow: none;
   font-optical-sizing: auto;
 }
-.canvas-image-node .image-node-heading { cursor: grab; touch-action: none; }
+.canvas-image-node .image-node-heading {
+  --heading-px: calc(1px / var(--canvas-zoom, 1));
+  bottom: calc(100% + 4 * var(--heading-px));
+  height: calc(16.48 * var(--heading-px));
+  gap: calc(8 * var(--heading-px));
+  font-size: calc(12 * var(--heading-px));
+  line-height: calc(15 * var(--heading-px));
+  letter-spacing: calc(-.32 * var(--heading-px));
+  cursor: grab;
+  touch-action: none;
+}
+.canvas-image-node .image-node-heading h1 { gap: calc(6 * var(--heading-px)); }
+.canvas-image-node .image-node-heading h1 > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.canvas-image-node .image-node-heading :is(.image-node-icon, .image-model-google) {
+  width: 1em;
+  height: 1em;
+  pointer-events: none;
+}
+.canvas-image-node .image-node-model {
+  flex: none;
+  /* Leave room for the node type icon and the gap between the two labels. */
+  max-width: calc(100% - 20 * var(--heading-px));
+  gap: calc(4 * var(--heading-px));
+}
+.canvas-image-node .image-node-model > span:last-child { max-width: none; }
+
+[data-node-heading=icon] .canvas-image-node .image-node-heading :is(h1 > span:last-child, .image-node-model),
+[data-node-heading=hidden] .canvas-image-node .image-node-heading > *,
+[data-node-heading=hidden] .canvas-image-node .has-result .image-node-heading { display: none; }
+
+/* Empty cards still need a drag target where the title row was the only one. */
+[data-node-heading=hidden] .canvas-image-node .image-node:not(.has-result) .image-node-heading {
+  top: 0;
+  bottom: auto;
+  z-index: 1;
+  height: min(25%, 6 * var(--heading-px));
+}
+
 .canvas-image-node.dragging .image-node-heading { cursor: grabbing; }
 .canvas-image-node .image-node-input { position: relative; }
 .canvas-image-node .image-node-ports .react-flow__handle {
@@ -26,7 +67,6 @@
 }
 .canvas-image-mount { position: relative; transform: scale(1); }
 .canvas-image-mount > .image-node { width: 100%; height: 100%; }
-.canvas-imported-image .image-node-heading h1 span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .canvas-image-node .image-node-result-layer > img { object-fit: contain; }
 .canvas-image-node textarea { user-select: text; }
 

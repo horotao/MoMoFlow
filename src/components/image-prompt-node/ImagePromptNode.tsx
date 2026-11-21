@@ -213,7 +213,7 @@ export function ImagePromptNode({
       <section
         ref={ports.node}
         className={`image-node${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}${contentOverflows ? ' is-overflowing' : ''}${hasResult ? ' has-result' : ''}${compactComposer ? ' has-compact-composer' : ''} ${className}`}
-        aria-label={assetOnly ? '导入的图片' : 'Image node'}
+        aria-label={title}
         aria-busy={busy}
         data-toolbar-hovered={toolbarHovered || undefined}
         onPointerEnter={enterToolbarHover}
@@ -233,10 +233,10 @@ export function ImagePromptNode({
         </div>}
 
         <header className="image-node-heading">
-          <h1><ImagePromptIcon name="image" /><span>{title}</span></h1>
+          <h1 title={title}><ImagePromptIcon name="image" /><span>{title}</span></h1>
           {!assetOnly && <span className="image-node-model">{busy && Number.isFinite(generation.estimatedSeconds) && (generation.estimatedSeconds ?? 0) > 0
             ? <span className="image-node-estimate">~{Math.round(generation.estimatedSeconds!)}s</span>
-            : <><ImagePromptModelBrand brand={activeModel?.brand ?? 'openai'} /><span>{displayModelLabel}</span></>}</span>}
+            : <><ImagePromptModelBrand brand={activeModel?.brand ?? 'openai'} /><span title={displayModelLabel}>{displayModelLabel}</span></>}</span>}
         </header>
 
         <div className="image-node-card" onClick={() => { if (!locked && !busy && !hasResult) editor.current?.focus(); }}>
