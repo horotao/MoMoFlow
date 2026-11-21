@@ -1,0 +1,277 @@
+{
+  "model": "GPT-6.2 Sol",
+  "calls": [
+    {
+      "label": "upstream-A",
+      "requestId": "4414.1817",
+      "input": {
+        "model": "gpt-6.2-sol",
+        "prompt": "仅输出下面这句指令，不要解释或添加其他文字：请用中文客观描述参考图片，只写一句话，并以「版本甲：」开头。",
+        "images": [],
+        "reasoningEffort": "medium",
+        "webSearch": false
+      },
+      "output": "请用中文客观描述参考图片，只写一句话，并以「版本甲：」开头。",
+      "httpStatus": 200,
+      "information": "模型\nGPT-6.2 Sol\n字符数\n30\n创建时间\n2026/11/22 00:22\n本次花费\n$0.000346\n创建者\n—"
+    },
+    {
+      "label": "upstream-B",
+      "requestId": "4414.1819",
+      "input": {
+        "model": "gpt-6.2-sol",
+        "prompt": "仅输出下面这句指令，不要解释或添加其他文字：请根据参考图片写三条简短中文观察，分别描述主体、动作和场景，并以「版本乙：」开头。",
+        "images": [],
+        "reasoningEffort": "medium",
+        "webSearch": false
+      },
+      "output": "请根据参考图片写三条简短中文观察，分别描述主体、动作和场景，并以「版本乙：」开头。",
+      "information": "模型\nGPT-6.2 Sol\n字符数\n41\n创建时间\n2026/11/22 00:23\n本次花费\n$0.000442\n创建者\n—",
+      "httpStatus": 200
+    },
+    {
+      "label": "downstream-A",
+      "requestId": "4414.1821",
+      "input": {
+        "model": "gpt-6.2-sol",
+        "prompt": "请用中文客观描述参考图片，只写一句话，并以「版本甲：」开头。\n\n严格执行上游指令；只描述所附图片，不要猜测画外信息。",
+        "images": [
+          {
+            "mime": "data:image/png",
+            "length": 3632074,
+            "sha256": "dfac26403be321ab0589190600cec05ea6dad4498df5db170e994a32a7bc16ee"
+          }
+        ],
+        "reasoningEffort": "medium",
+        "webSearch": false
+      },
+      "output": "版本甲：蓝天下，一名戴橙色针织帽和黑框眼镜、穿浅黄色连体服的男子在斜坡上前倾，用双手推着一个巨大的绿纹西瓜。",
+      "information": "模型\nGPT-6.2 Sol\n字符数\n54\n创建时间\n2026/11/22 00:24\n本次花费\n$0.005824\n创建者\n—",
+      "httpStatus": 200,
+      "streamChunks": 13
+    },
+    {
+      "label": "downstream-B",
+      "requestId": "4414.1823",
+      "input": {
+        "model": "gpt-6.2-sol",
+        "prompt": "请根据参考图片写三条简短中文观察，分别描述主体、动作和场景，并以「版本乙：」开头。\n\n严格执行上游指令；只描述所附图片，不要猜测画外信息。",
+        "images": [
+          {
+            "mime": "data:image/png",
+            "length": 3632074,
+            "sha256": "dfac26403be321ab0589190600cec05ea6dad4498df5db170e994a32a7bc16ee"
+          }
+        ],
+        "reasoningEffort": "medium",
+        "webSearch": false
+      },
+      "output": "版本乙：\n1. 主体：一名戴橙色针织帽的男子和一个巨大的绿皮西瓜。\n2. 动作：男子身体前倾，双手抵住西瓜，做出向坡上推的姿势。\n3. 场景：蓝天下是一片浅色斜坡，坡面上有清晰的影子。",
+      "information": "模型\nGPT-6.2 Sol\n字符数\n92\n创建时间\n2026/11/22 00:24\n本次花费\n$0.006174\n创建者\n—",
+      "httpStatus": 200
+    }
+  ],
+  "totalReportedUsd": 0.012786,
+  "validation": {
+    "selectedA": {
+      "upstream": "请用中文客观描述参考图片，只写一句话，并以「版本甲：」开头。",
+      "references": [
+        {
+          "kind": "text",
+          "label": "参考文本：上游历史 · 真实模型",
+          "svg": "<svg class=\"image-node-reference-text-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 4v16M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2M9 20h6\"></path></svg>"
+        },
+        {
+          "image": "blob:http://localhost:5173/70b2261c-2944-445a-9eda-0eeb14a4430b",
+          "kind": "image",
+          "label": "参考图：image-node-1.png"
+        }
+      ],
+      "requestMatches": true
+    },
+    "afterA": {
+      "cursor": 0,
+      "running": 0
+    },
+    "selectedB": {
+      "upstream": "请根据参考图片写三条简短中文观察，分别描述主体、动作和场景，并以「版本乙：」开头。",
+      "references": [
+        {
+          "kind": "text",
+          "label": "参考文本：上游历史 · 真实模型",
+          "tIcon": true
+        },
+        {
+          "image": "blob:http://localhost:5173/70b2261c-2944-445a-9eda-0eeb14a4430b",
+          "kind": "image",
+          "label": "参考图：image-node-1.png",
+          "tIcon": false
+        }
+      ],
+      "requestMatches": true
+    },
+    "sameImage": true,
+    "afterB": {
+      "cursor": 0,
+      "running": 0
+    },
+    "reverseA": {
+      "text": "请用中文客观描述参考图片，只写一句话，并以「版本甲：」开头。",
+      "downstream": "版本乙：\n1. 主体：一名戴橙色针织帽的男子和一个巨大的绿皮西瓜。\n2. 动作：男子身体前倾，双手抵住西瓜，做出向坡上推的姿势。\n3. 场景：蓝天下是一片浅色斜坡，坡面上有清晰的影子。"
+    },
+    "reverseB": {
+      "text": "请根据参考图片写三条简短中文观察，分别描述主体、动作和场景，并以「版本乙：」开头。",
+      "icon": {
+        "bg": "rgba(0, 0, 0, 0)",
+        "h": "16px",
+        "w": "16px"
+      },
+      "thumb": "blob:http://localhost:5173/70b2261c-2944-445a-9eda-0eeb14a4430b"
+    },
+    "historySwitchRequests": 0,
+    "afterReload": {
+      "edges": 2,
+      "nodes": 3,
+      "references": [
+        {
+          "ancestorOpacity": "1",
+          "icon": "image-node-reference-text-icon",
+          "kind": "text"
+        },
+        {
+          "ancestorOpacity": "1",
+          "icon": null,
+          "imageLoaded": true,
+          "kind": "image"
+        }
+      ],
+      "running": 0,
+      "texts": [
+        "请根据参考图片写三条简短中文观察，分别描述主体、动作和场景，并以「版本乙：」开头。",
+        "版本乙：\n1. 主体：一名戴橙色针织帽的男子和一个巨大的绿皮西瓜。\n2. 动作：男子身体前倾，双手抵住西瓜，做出向坡上推的姿势。\n3. 场景：蓝天下是一片浅色斜坡，坡面上有清晰的影子。"
+      ]
+    }
+  },
+  "motionA": [
+    {
+      "cursor": true,
+      "generating": true,
+      "time": 1795278240409,
+      "wires": [
+        {
+          "cx": "237.99109400319378",
+          "cy": "221.50688108059242",
+          "id": "xy-edge__836a1beb-08a4-41a3-b57e-86d982de8f36text-4c317a0e-b932-4b55-b0af-e95f10e6d981text",
+          "running": true
+        },
+        {
+          "cx": "265.4433680390734",
+          "cy": "675.5042833388184",
+          "id": "xy-edge__9d304e2d-5a1c-4bff-8c67-b5bdf1f0a10fresult-4c317a0e-b932-4b55-b0af-e95f10e6d981image-0",
+          "running": true
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "generating": true,
+      "time": 1795278240428,
+      "wires": [
+        {
+          "cx": "245.48892127090147",
+          "cy": "221.571676477596",
+          "id": "xy-edge__836a1beb-08a4-41a3-b57e-86d982de8f36text-4c317a0e-b932-4b55-b0af-e95f10e6d981text",
+          "running": true
+        },
+        {
+          "cx": "266.8494582899278",
+          "cy": "665.5123795400932",
+          "id": "xy-edge__9d304e2d-5a1c-4bff-8c67-b5bdf1f0a10fresult-4c317a0e-b932-4b55-b0af-e95f10e6d981image-0",
+          "running": true
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "generating": true,
+      "time": 1795278240444,
+      "wires": [
+        {
+          "cx": "254.14375145251523",
+          "cy": "221.63830746420942",
+          "id": "xy-edge__836a1beb-08a4-41a3-b57e-86d982de8f36text-4c317a0e-b932-4b55-b0af-e95f10e6d981text",
+          "running": true
+        },
+        {
+          "cx": "268.33826472001505",
+          "cy": "653.9372012975183",
+          "id": "xy-edge__9d304e2d-5a1c-4bff-8c67-b5bdf1f0a10fresult-4c317a0e-b932-4b55-b0af-e95f10e6d981image-0",
+          "running": true
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "generating": true,
+      "time": 1795278240461,
+      "wires": [
+        {
+          "cx": "263.0655745789762",
+          "cy": "221.69640632702226",
+          "id": "xy-edge__836a1beb-08a4-41a3-b57e-86d982de8f36text-4c317a0e-b932-4b55-b0af-e95f10e6d981text",
+          "running": true
+        },
+        {
+          "cx": "269.7219665304267",
+          "cy": "642.2476538005101",
+          "id": "xy-edge__9d304e2d-5a1c-4bff-8c67-b5bdf1f0a10fresult-4c317a0e-b932-4b55-b0af-e95f10e6d981image-0",
+          "running": true
+        }
+      ]
+    }
+  ],
+  "streamSamples": [
+    {
+      "cursor": true,
+      "fadingWords": 0,
+      "text": "",
+      "time": 1795278275682,
+      "wires": 2
+    },
+    {
+      "cursor": true,
+      "fadingWords": 3,
+      "text": "版本乙：\n1. 主",
+      "time": 1795278276300,
+      "wires": 2
+    },
+    {
+      "cursor": true,
+      "fadingWords": 3,
+      "text": "版本乙：\n1. 主",
+      "time": 1795278276336,
+      "wires": 2
+    },
+    {
+      "cursor": true,
+      "fadingWords": 3,
+      "text": "版本乙：\n1. 主体：一名戴橙色",
+      "time": 1795278276431,
+      "wires": 2
+    },
+    {
+      "cursor": true,
+      "fadingWords": 3,
+      "text": "版本乙：\n1. 主体：一名戴橙色针织帽的男子和一个巨大的绿",
+      "time": 1795278276558,
+      "wires": 2
+    },
+    {
+      "cursor": true,
+      "fadingWords": 3,
+      "text": "版本乙：\n1. 主体：一名戴橙色针织帽的男子和一个巨大的绿皮",
+      "time": 1795278276591,
+      "wires": 2
+    }
+  ]
+}

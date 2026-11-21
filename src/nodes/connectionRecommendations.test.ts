@@ -12,7 +12,7 @@ function pending(nodeId: string, direction: 'source' | 'target' = 'source', hand
   return { nodeId, direction, handleId, screen: { x: 400, y: 300 }, position: { x: 200, y: 150 } };
 }
 
-test('empty Image composers can wire together and only recommend other composers', () => {
+test('empty Image composers wire together and recommend compatible Image or Text targets', () => {
   const first: SunburstNode = { ...generator, id: 'first', data: { ...generator.data, composer: { prompt: '', ratio: '1:1', quantity: 1 } } };
   const second = { ...first, id: 'second' };
   const nodes = [first, second, generator, text, image];
@@ -26,7 +26,7 @@ test('empty Image composers can wire together and only recommend other composers
   for (const [origin, direction, handle] of [[first.id, 'source', 'result'], [second.id, 'target', 'image-0']] as const) {
     const start = pending(origin, direction, handle);
     const choices = connectionChoices(start, nodes);
-    assert.deepEqual(choices.map(choice => choice.itemId), ['image']);
+    assert.deepEqual(choices.map(choice => choice.itemId), direction === 'source' ? ['image', 'text'] : ['image']);
     assert.deepEqual(choiceConnection(start, choices[0], origin === first.id ? second.id : first.id), link);
   }
   assert.deepEqual(connectionChoices(pending(second.id, 'target', 'prompt'), nodes), []);

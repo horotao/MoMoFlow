@@ -79,6 +79,7 @@
   white-space: nowrap; cursor: pointer; user-select: none; outline: none;
 }
 .generation-option-item[data-highlighted] { background: #fafaf223; }
+.generation-option-item[data-disabled] { color: #7c7b74; cursor: default; }
 .generation-option-indicator { display: inline-flex; flex: none; }
 .generation-option-indicator .image-node-icon { width: 16px; height: 16px; }
 .generation-option-menu[data-state=open] { animation: generation-option-in 150ms cubic-bezier(.22, 1, .36, 1) both; }

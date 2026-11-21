@@ -1,0 +1,14 @@
+{
+  "model": "gpt-6.2-sol",
+  "requests": 1,
+  "input": [
+    {
+      "prompt": "请结合参考图片，用一句中文描述画面主体，不超过30字。",
+      "images": 1
+    }
+  ],
+  "status": 200,
+  "result": "一名戴橙色帽子的男子正把一个巨型西瓜往坡上推。",
+  "costUsd": 0.005489,
+  "upstreamGenerated": false
+}

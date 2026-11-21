@@ -1,4 +1,4 @@
-.image-node-generation { position: absolute; z-index: 3; inset: 0; container-type: size; border-radius: inherit; pointer-events: none; }
+.image-node-generation, .image-node-thumbnail-generation { position: absolute; z-index: 3; inset: 0; container-type: size; border-radius: inherit; pointer-events: none; }
 .image-node-generation-fill-clip { position: absolute; inset: 0; clip-path: inset(2px round 22px); }
 .image-node-generation-fill { position: absolute; inset: 0; background: #fafaf223; transform: scaleX(0); transform-origin: left center; }
 .image-node-generation-ring {

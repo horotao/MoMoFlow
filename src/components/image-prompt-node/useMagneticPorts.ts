@@ -7,13 +7,14 @@ export function useMagneticPorts() {
   const node = useRef<HTMLElement>(null);
   const input = useRef<HTMLButtonElement>(null);
   const output = useRef<HTMLButtonElement>(null);
+  const textInput = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     const host = node.current;
     if (!host) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
-    const elements = [input, output];
+    const elements = [input, output, textInput];
     const tracks = elements.map(() => ({
       x: 0, y: 0, fromX: 0, fromY: 0, toX: 0, toY: 0, started: 0,
     }));
@@ -45,7 +46,7 @@ export function useMagneticPorts() {
       const rect = host.getBoundingClientRect();
       const width = host.offsetWidth, height = host.offsetHeight;
       const scale = rect.width / width;
-      const anchors = [{ x: -24, y: height / 2 + 20 }, { x: width + 28, y: height / 2 }];
+      const anchors = [{ x: -24, y: height / 2 + (host.classList.contains('text-node') ? 32 : 20) }, { x: width + 28, y: height / 2 }, { x: -24, y: height / 2 }];
       const now = performance.now();
       tracks.forEach((track, index) => {
         advance(track, now);
@@ -53,7 +54,7 @@ export function useMagneticPorts() {
         let y = 0;
         let near = false;
         const element = elements[index].current;
-        if (pointer && finePointer.matches && element && !element.disabled && element.dataset.connectionEligible !== 'false') {
+        if (pointer && finePointer.matches && element && !element.matches(':disabled, [data-locked=true]') && element.dataset.connectionEligible !== 'false') {
           const dx = (pointer.x - rect.left) / scale - anchors[index].x;
           const dy = (pointer.y - rect.top) / scale - anchors[index].y;
           if (Math.hypot(dx, dy) < 160) {
@@ -66,7 +67,7 @@ export function useMagneticPorts() {
         }
         // Reveal on the same fixed-anchor field as the pull, before the pointer
         // reaches the port hit area. Keep CSS reveal and magnetic transforms separate.
-        const attribute = index === 0 ? 'data-input-port-near' : 'data-output-port-near';
+        const attribute = index === 0 ? 'data-input-port-near' : index === 1 ? 'data-output-port-near' : 'data-text-port-near';
         if (host.hasAttribute(attribute) !== near) host.toggleAttribute(attribute, near);
         if (track.toX === x && track.toY === y) return;
         track.fromX = track.x;
@@ -107,6 +108,7 @@ export function useMagneticPorts() {
       size.disconnect();
       host.removeAttribute('data-input-port-near');
       host.removeAttribute('data-output-port-near');
+      host.removeAttribute('data-text-port-near');
       cancelAnimationFrame(frame);
       window.removeEventListener('pointermove', move);
       window.removeEventListener('blur', leave);
@@ -118,5 +120,5 @@ export function useMagneticPorts() {
     };
   }, []);
 
-  return { node, input, output };
+  return { node, input, output, textInput };
 }

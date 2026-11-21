@@ -141,7 +141,7 @@ export function ImagePromptHistory({ variants, activeVariant, onVariantChange }:
     <div className="image-node-variant-carousel" aria-label="Generation history carousel" tabIndex={0}>
       <HistoryProjection layoutKey={`${expanded}:${activeVariant}:${variants.map(variant => variant.id).join(',')}`} beforeProjection={centerActive}>
         <button type="button" aria-label="Previous variant" tabIndex={-1} disabled={activeVariant <= 0} onClick={() => onVariantChange?.(activeVariant - 1)}><ImagePromptIcon name="chevron" /></button>
-        <div ref={viewport} className="image-node-variant-viewport" onWheel={event => {
+        <div ref={viewport} className={`image-node-variant-viewport${expanded ? ' nowheel' : ''}`} onWheel={event => {
           if (expanded && event.currentTarget.scrollWidth > event.currentTarget.clientWidth) {
             event.stopPropagation();
             if (event.deltaY && !event.deltaX) event.currentTarget.scrollLeft += event.deltaY;

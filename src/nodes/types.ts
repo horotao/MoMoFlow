@@ -1,3 +1,4 @@
+import type { TextBilling, TextUsage } from './textPricing';
 import type { AnnotationHistory, InteractiveEditData } from './interactiveEdit';
 import type { GenerationRecord, OutputPolicy } from './executionGraph';
 import type { SeedreamSettings } from './seedream';
@@ -7,7 +8,18 @@ import type { SunburstParameter, SunburstProvider, SunburstSettings } from './su
 import type { JSONContent } from '@tiptap/core';
 
 export type TextDisplayMode = 'source-value' | 'value' | 'source';
-export type TextNode = Node<{ text: string; label?: string; locked?: boolean; content?: JSONContent; variableCount?: number; displayMode?: TextDisplayMode }, 'text'>;
+export type TextReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+export interface TextComposerData {
+  prompt: string; format: 'txt' | 'md'; quantity: number; reasoningEffort?: TextReasoningEffort; webSearch?: boolean;
+  selection: { modelIds: string[]; autoSelect: boolean; multiple: boolean };
+}
+export interface TextCitation { url: string; title: string; startIndex: number; endIndex: number }
+export interface TextGenerationResult {
+  id: string; text: string; prompt: string; model: string; responseId: string; createdAt: number; reasoningEffort?: TextReasoningEffort; webSearch?: boolean; citations?: TextCitation[]; usage?: TextUsage; billing?: TextBilling;
+}
+export type TextNode = Node<{ text: string; textComposer?: TextComposerData; textGeneration?: { model: string; responseId: string; createdAt: number }; textHistory?: TextGenerationResult[]; activeTextResultId?: string; label?: string; locked?: boolean; content?: JSONContent; variableCount?: number; displayMode?: TextDisplayMode }, 'text'>;
+export type CanvasText = TextNode & { data: { textComposer: TextComposerData } };
+export const isCanvasTextNode = (node: AppNode): node is CanvasText => node.type === 'text' && 'textComposer' in node.data && Boolean(node.data.textComposer);
 export type FileAsset = {
   id: string; name: string; url: string; kind: 'image' | 'video' | 'audio' | '3d'; size?: number; width?: number; height?: number;
   mimeType?: string; createdAt?: number;

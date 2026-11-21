@@ -1,0 +1,77 @@
+{
+  "historyWhilePending": {
+    "positions": [
+      {
+        "x": "208.489508044536",
+        "y": "221.2348945643572"
+      },
+      {
+        "x": "246.56162708623748",
+        "y": "736.2952315525368"
+      }
+    ],
+    "running": 2,
+    "selected": "true"
+  },
+  "oneCompleted": 2,
+  "allSettled": {
+    "running": 0,
+    "sweeps": 0
+  },
+  "reducedMotion": {
+    "sweeps": [
+      "none",
+      "none"
+    ],
+    "wires": [
+      "rgba(238, 238, 236, 0.55)",
+      "rgba(238, 238, 236, 0.55)"
+    ]
+  },
+  "cancelled": {
+    "running": 0,
+    "sweeps": 0
+  },
+  "removal": {
+    "edges": 1,
+    "nodes": 3
+  },
+  "undo": {
+    "edges": 2,
+    "nodes": 3
+  },
+  "beforeIdle": {
+    "listPresent": true,
+    "refRect": {
+      "bottom": 573.2000122070312,
+      "height": 25.29998779296875,
+      "left": 526.800048828125,
+      "right": 685.2000122070312,
+      "top": 547.9000244140625,
+      "width": 158.39996337890625,
+      "x": 526.800048828125,
+      "y": 547.9000244140625
+    },
+    "visibility": "0"
+  },
+  "beforeHover": {
+    "footerOpacity": "1",
+    "refs": 1
+  },
+  "afterGenerated": {
+    "opacity": "1",
+    "parent": "image-node-surface-body",
+    "unselected": true
+  },
+  "deleted": {
+    "edges": 2,
+    "nodes": 3,
+    "running": 0
+  },
+  "final": {
+    "iconPath": "M12 4v16M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2M9 20h6",
+    "opacity": "1",
+    "parent": "image-node-surface-body",
+    "references": 2
+  }
+}

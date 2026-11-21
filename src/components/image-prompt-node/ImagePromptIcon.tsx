@@ -1,6 +1,8 @@
 import './image-prompt-shared.css';
 
 const icons = {
+  'history-text': new URL('./assets/history-text.svg', import.meta.url).href,
+  'plug': new URL('./assets/plug.svg', import.meta.url).href,
   'metadata-info': new URL('./assets/metadata-info.svg', import.meta.url).href,
   'metadata-extend': new URL('./assets/metadata-extend.svg', import.meta.url).href,
   'metadata-edit': new URL('./assets/metadata-edit.svg', import.meta.url).href,

@@ -77,6 +77,8 @@
   border-radius: 8px;
   object-fit: cover;
 }
+.image-node-reference[data-kind=text] .image-node-reference-media { background: #383834; }
+.image-node-reference-text-icon { width: 16px; height: 16px; flex: none; pointer-events: none; }
 .image-node-reference-details {
   display: flex;
   flex-direction: column;

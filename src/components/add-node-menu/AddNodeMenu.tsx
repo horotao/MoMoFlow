@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import './add-node-menu.css';
 
 const imageEntry = { id: 'image', type: 'image', label: '图片', description: '生成和编辑图片', key: 'I' } as const;
-type AddNodeType = 'image';
+type AddNodeType = 'image' | 'text';
 export interface AddNodeRequest { type: AddNodeType; quantity: number }
 export interface AddNodeMenuProps {
   /** Viewport coordinates, unaffected by canvas zoom. Mount only while open. */
@@ -12,10 +12,12 @@ export interface AddNodeMenuProps {
   onClose: (restoreFocus: boolean) => void;
   /** Excludes the opener from outside-click dismissal. The host restores its focus. */
   allowQuantity?: boolean;
+  allowedTypes?: readonly AddNodeType[];
   triggerRef?: RefObject<HTMLElement>;
 }
 
 const icons = {
+  text: new URL('../image-prompt-node/assets/text.svg', import.meta.url).href,
   image: new URL('./assets/image.svg', import.meta.url).href,
   search: new URL('./assets/search.svg', import.meta.url).href,
   close: new URL('./assets/close.svg', import.meta.url).href,
@@ -29,13 +31,14 @@ function Icon({ name }: { name: keyof typeof icons }) {
 
 function normalizeQuantity(value: string) { return Math.max(1, Math.min(20, Math.trunc(Number(value)) || 1)); }
 
-export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuantity = true }: AddNodeMenuProps) {
+export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuantity = true, allowedTypes }: AddNodeMenuProps) {
   const panel = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [counts, setCounts] = useState<Partial<Record<AddNodeType, string>>>({});
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
-  const rows = [{ ...imageEntry, quantity: allowQuantity }];
+  const rows = [imageEntry, { id: 'text', type: 'text', label: '文本', description: '生成文本与 Markdown', key: 'T' } as const]
+    .filter(entry => !allowedTypes || allowedTypes.includes(entry.type)).map(entry => ({ ...entry, quantity: allowQuantity }));
   const filtered = rows.filter(entry => `${entry.type} ${entry.label} ${entry.description}`.toLowerCase().includes(query.trim().toLowerCase()));
   const width = Math.min(352, Math.max(0, viewport.width - 16));
   const groups = filtered.length ? [filtered] : [];

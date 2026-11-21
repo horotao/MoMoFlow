@@ -1,5 +1,6 @@
 import { preventCanvasImageDrag, withCanvasImageDrag } from './components/canvasImageDrag';
 import { ImageInspector } from './components/image-prompt-node/ImageInspector';
+import { TextInspector } from './components/image-prompt-node/TextInspector';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasNavigation, canvasMinZoom, canvasMaxZoom, type ZoomTarget } from './components/CanvasNavigation';
 import { CanvasSidebar, type CanvasTool } from './components/CanvasSidebar';
@@ -213,14 +214,14 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   );
 
   function addImages({ type, quantity }: AddNodeRequest) {
-    if (!pendingNodeMenu || type !== 'image') return;
+    if (!pendingNodeMenu) return;
     const pending = 'nodeId' in pendingNodeMenu ? pendingNodeMenu : null;
     const currentNodes = getNodes(), currentEdges = getEdges();
-    const choice = pending && connectionChoices(pending, currentNodes)[0];
+    const choice = pending && connectionChoices(pending, currentNodes).find(item => item.itemId === type);
     if (pending && !choice) return;
     const created: AppNode[] = [], connections: Edge[] = [];
     for (let i = 0; i < quantity; i++) {
-      const node = createLibraryNode('image', {
+      const node = createLibraryNode(type, {
         x: pendingNodeMenu.position.x - (choice?.portX ?? 0) + (i % 4) * 512,
         y: pendingNodeMenu.position.y - (choice?.portY ?? 0) + Math.floor(i / 4) * 512,
       });
@@ -379,6 +380,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         create={() => withSavedWorkflow(projectSession.create)} rename={projectSession.rename}
         remove={project => withSavedWorkflow(snapshot => projectSession.remove(project, snapshot))} />}
       {pendingNodeMenu && <AddNodeMenu key={menuGeneration} position={pendingNodeMenu.screen}
+        allowedTypes={'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes).map(choice => choice.itemId as 'image' | 'text') : undefined}
         triggerRef={'origin' in pendingNodeMenu ? addTrigger : undefined}
         allowQuantity={!('direction' in pendingNodeMenu) || pendingNodeMenu.direction === 'source'}
         onSelect={addImages}
@@ -411,6 +413,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         }} />
       <DescriberPanel onImageGenerated={projectSession?.autoName} />
       <ImageInspector />
+      <TextInspector />
       <CanvasNavigation pendingZoom={pendingZoom} />
       <ApiSettingsDialog open={apiSettingsOpen} onClose={() => setApiSettingsOpen(false)} onTestConnection={testApiConnection} />
     </ReactFlow></CanvasHistoryContext.Provider>

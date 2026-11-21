@@ -29,7 +29,7 @@ function progressAtTime(time: number) {
   return 1 - (1 - (low + high) / 2) ** 3;
 }
 
-export function ImagePromptGeneration({ state }: { state: ImagePromptGenerationState | null }) {
+export function ImagePromptGeneration({ state, borderOnly = false, fillOnly = false }: { state: ImagePromptGenerationState | null; borderOnly?: boolean; fillOnly?: boolean }) {
   const active = state !== null;
   const id = state?.id;
   const startedAt = state?.startedAt;
@@ -128,11 +128,11 @@ export function ImagePromptGeneration({ state }: { state: ImagePromptGenerationS
     return cleanup;
   }, [active, id, startedAt, estimate, progress]);
 
-  if (!active && !retained) return null;
-  return <div className="image-node-generation" data-phase={active ? 'running' : 'finishing'}
-    role="progressbar" aria-label="Generating image" aria-valuemin={0} aria-valuemax={100}
+  if (!active && (borderOnly || !retained)) return null;
+  return <div className={fillOnly ? 'image-node-thumbnail-generation' : 'image-node-generation'} data-phase={active ? 'running' : 'finishing'}
+    role="progressbar" aria-label={borderOnly ? 'Generating text' : 'Generating image'} aria-valuemin={0} aria-valuemax={100}
     aria-valuenow={!active ? 100 : Number.isFinite(progress) ? Math.round(clamp(progress!) * 100) : undefined}>
-    <div className="image-node-generation-fill-clip"><div ref={fill} className="image-node-generation-fill" /></div>
-    <div className="image-node-generation-ring" aria-hidden="true"><div className="image-node-generation-light" /></div>
+    <div className="image-node-generation-fill-clip" hidden={borderOnly}><div ref={fill} className="image-node-generation-fill" /></div>
+    {!fillOnly && <div className="image-node-generation-ring" aria-hidden="true"><div className="image-node-generation-light" /></div>}
   </div>;
 }

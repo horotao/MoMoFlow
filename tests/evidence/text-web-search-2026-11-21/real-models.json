@@ -1,0 +1,43 @@
+[
+  {
+    "model": "gpt-6.2-sol",
+    "text": "根据 OpenAI 官方文档，Responses API 的新集成应在 `tools` 数组中添加 `{\"type\": \"web_search\"}` 来启用网页搜索。[1]  \n旧版工具的 `type` 是 `web_search_preview`，仍可用于兼容现有集成，但新集成应使用 `web_search`。[2]",
+    "links": [
+      {
+        "text": "[1]",
+        "url": "https://developers.openai.com/api/docs/guides/tools-web-search?api-mode=responses&utm_source=openai"
+      },
+      {
+        "text": "[2]",
+        "url": "https://developers.openai.com/api/docs/guides/tools-web-search?api-mode=responses&site_locale=en&utm_source=openai"
+      }
+    ],
+    "networkStatus": 200
+  },
+  {
+    "model": "gpt-6.1-terra",
+    "text": "OpenAI 官方文档中，Responses API 的网络搜索工具类型是 `web_search`，可在 `tools` 中写作 `{\"type\": \"web_search\"}`。[1]  \nAPI 仍接受旧版类型 `web_search_preview`，但官方建议新集成使用 `web_search`。[2]",
+    "links": [
+      {
+        "text": "[1]",
+        "url": "https://developers.openai.com/api/docs/guides/tools-web-search"
+      },
+      {
+        "text": "[2]",
+        "url": "https://developers.openai.com/api/docs/guides/tools-web-search"
+      }
+    ],
+    "networkStatus": 200
+  },
+  {
+    "model": "gpt-6-luna",
+    "text": "OpenAI Responses API 的网页搜索工具 `type` 名称是 `web_search`。官方文档说明，旧版集成仍可使用 `web_search_preview`，但新集成应使用 `web_search`。[1]",
+    "links": [
+      {
+        "text": "[1]",
+        "url": "https://developers.openai.com/api/docs/guides/tools-web-search"
+      }
+    ],
+    "networkStatus": 200
+  }
+]

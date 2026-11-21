@@ -98,8 +98,6 @@
   transform: translateZ(0);
 }
 
-.canvas-image-node .image-node-download:enabled .image-node-icon { opacity: .5; }
-
 .canvas-image-preview {
   margin: auto;
   padding: 0;

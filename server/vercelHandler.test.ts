@@ -23,7 +23,7 @@ test('hosted BYOK routes reject untrusted requests and never use server keys', a
     req.on('error', reject);
     req.end(body);
   });
-  for (const path of ['/api/sunburst', '/api/nano-banana', '/api/apimart/images', '/api/apimart/seedream', '/api/apimart/task']) {
+  for (const path of ['/api/text', '/api/sunburst', '/api/nano-banana', '/api/apimart/images', '/api/apimart/seedream', '/api/apimart/task']) {
     const response = await request(path);
     assert.equal(response.status, 401, path);
     assert.match((await response.json()).error, /API Key/);

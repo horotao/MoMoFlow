@@ -5,32 +5,38 @@ import { ImagePromptInfoTip } from './ImagePromptInfoTip';
 import { ImagePromptIcon } from './ImagePromptIcon';
 import './image-prompt-model-menu.css';
 
-import { imagePromptModels, type ImagePromptModelSelection, type ImagePromptModelId } from './imagePromptModels';
-
 export function ImagePromptModelBrand({ brand }: { brand: string }) {
   return brand === 'openai' ? <ImagePromptIcon name="model-openai" /> : <img className="image-model-google" src={brand === 'bytedance' ? new URL('./assets/bytedance.svg', import.meta.url).href : new URL('./assets/google.svg', import.meta.url).href} alt="" />;
 }
 
-interface ModelMenuProps {
+export interface PromptModelOption<Id extends string = string> {
+  id: Id; name: string; brand: string; time: string; description: string; isNew?: boolean;
+}
+export interface PromptModelSelection<Id extends string = string> {
+  modelIds: Id[]; autoSelect: boolean; multiple: boolean;
+}
+interface ModelMenuProps<Id extends string> {
   id: string;
   anchor: RefObject<HTMLButtonElement>;
-  selection: ImagePromptModelSelection;
-  onChange: (selection: ImagePromptModelSelection) => void;
-  pinned: ImagePromptModelId[];
-  onPinnedChange: (pinned: ImagePromptModelId[]) => void;
+  models: readonly PromptModelOption<Id>[];
+  label?: string;
+  selection: PromptModelSelection<Id>;
+  onChange: (selection: PromptModelSelection<Id>) => void;
+  pinned: Id[];
+  onPinnedChange: (pinned: Id[]) => void;
   onClose: (restoreFocus?: boolean) => void;
 }
 
-export function ImagePromptModelMenu({ id, anchor, selection, onChange, pinned, onPinnedChange, onClose }: ModelMenuProps) {
+export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, label = '选择图像模型', selection, onChange, pinned, onPinnedChange, onClose }: ModelMenuProps<Id>) {
   const panel = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
-  const pendingPinFocus = useRef<ImagePromptModelId | null>(null);
+  const pendingPinFocus = useRef<Id | null>(null);
   const [query, setQuery] = useState('');
   const [position, setPosition] = useState({ left: 0, top: 0, maxHeight: 0, above: false });
   const titleId = useId();
   const autoSelectId = useId();
   const multipleId = useId();
-  const filtered = imagePromptModels.filter(model => `${model.name} ${model.brand} ${model.description}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const filtered = models.filter(model => `${model.name} ${model.brand} ${model.description}`.toLowerCase().includes(query.trim().toLowerCase()));
 
   useLayoutEffect(() => {
     function place() {
@@ -70,7 +76,7 @@ export function ImagePromptModelMenu({ id, anchor, selection, onChange, pinned, 
     return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('focusin', outside); };
   }, [anchor, onClose]);
 
-  function select(modelId: ImagePromptModelId) {
+  function select(modelId: Id) {
     const selected = selection.modelIds.includes(modelId);
     const modelIds = selection.multiple
       ? selected ? selection.modelIds.filter(id => id !== modelId) : [...selection.modelIds, modelId]
@@ -90,10 +96,10 @@ export function ImagePromptModelMenu({ id, anchor, selection, onChange, pinned, 
           <span className="image-model-brand"><ImagePromptModelBrand brand={model.brand} /></span>
           <span className="image-model-copy">
             <span className="image-model-name-line"><span className="image-model-name">{model.name}</span>
-              {'isNew' in model && <span className="image-model-new">新</span>}
+              {model.isNew && <span className="image-model-new">新</span>}
               <span className="image-model-time">{model.time}</span>
-              <span className="image-model-capability" title="文生图"><ImagePromptIcon name="model-text" /></span>
-              <span className="image-model-capability" title="图生图"><ImagePromptIcon name="model-image" /></span>
+              <span className="image-model-capability" title={label === '选择文本模型' ? '文本输入' : '文生图'}><ImagePromptIcon name="model-text" /></span>
+              <span className="image-model-capability" title={label === '选择文本模型' ? '图片输入' : '图生图'}><ImagePromptIcon name="model-image" /></span>
             </span>
             <span className="image-model-description">{model.description}</span>
           </span>
@@ -120,7 +126,7 @@ export function ImagePromptModelMenu({ id, anchor, selection, onChange, pinned, 
       const index = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : (current + (event.key === 'ArrowUp' ? -1 : 1) + options.length) % options.length;
       options[index].focus();
     }}>
-    <span id={titleId} className="image-model-sr-only">选择图像模型</span>
+    <span id={titleId} className="image-model-sr-only">{label}</span>
     <div className="image-model-search"><ImagePromptIcon name="search" />
       <input ref={search} aria-label="搜索兼容模型" placeholder="搜索兼容模型" value={query} onChange={event => setQuery(event.target.value)} />
       <button type="button" aria-label="清空搜索" style={{ visibility: query ? 'visible' : 'hidden' }} onClick={() => { setQuery(''); search.current?.focus(); }}><ImagePromptIcon name="close" /></button>

@@ -28,6 +28,11 @@ function OutputPortIcon() {
 }
 
 export interface ImagePromptNodeProps {
+  kind?: 'image' | 'text';
+  textResult?: ReactNode;
+  textFormat?: 'txt' | 'md';
+  onTextFormatChange?: (format: 'txt' | 'md') => void;
+  textInput?: ReactNode;
   assetOnly?: boolean;
   /** Canvas connection handles share the visual port hit areas. */
   handles?: { image: ReactNode; output: ReactNode };
@@ -63,6 +68,8 @@ export interface ImagePromptNodeProps {
   activeVariant?: number;
   onVariantChange?: (index: number) => void;
   onGenerate?: (request: { prompt: string; quantity: number }) => void;
+  onCancelGeneration?: () => void;
+  canGenerateWithoutPrompt?: boolean;
   onMention?: () => void;
   onDictate?: () => void;
   onEnhance?: () => void;
@@ -78,13 +85,14 @@ export interface ImagePromptNodeProps {
 }
 
 export function ImagePromptNode({
+  kind = 'image', textResult, textFormat = 'txt', onTextFormatChange, textInput,
   assetOnly = false, handles, promptReadOnly, prompt: promptValue, defaultPrompt = '', onPromptChange,
   quantity: quantityValue, defaultQuantity = 1, onQuantityChange,
   selected: selectedValue, defaultSelected = false, onSelectedChange,
   locked: lockedValue, defaultLocked = false, onLockedChange,
   title = 'Image', modelLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange,
   suggestion = 'Oil paint macro, impasto texture', className = '', toolbar, generation = null, result, variants = [], activeVariant = 0, onVariantChange,
-  onGenerate, onMention, onDictate, onEnhance, onImageInput, onAddConnectedNode, imageInputCount = 0,
+  onGenerate, onCancelGeneration, canGenerateWithoutPrompt = false, onMention, onDictate, onEnhance, onImageInput, onAddConnectedNode, imageInputCount = 0,
   references = [], onRemoveReference, onReorderReferences, referenceScale = 1, outputConnected = false,
 }: ImagePromptNodeProps) {
   const [aspectRatio, setAspectRatio] = useControllableValue(aspectRatioValue, defaultAspectRatio, onAspectRatioChange);
@@ -108,6 +116,7 @@ export function ImagePromptNode({
   const tooltipWarmUntil = useRef(0);
   const hasPrompt = Boolean(prompt.trim());
   const busy = generation !== null;
+  const canGenerate = hasPrompt || canGenerateWithoutPrompt;
   const hasResult = Boolean(result);
   const resultElement = useRef<HTMLDivElement>(null);
   const activeVariantId = variants[activeVariant]?.id;
@@ -131,7 +140,11 @@ export function ImagePromptNode({
       reduced.removeEventListener('change', stop);
     };
   }, [busy, activeVariantId, hasResult]);
-  const compactComposer = busy || hasResult;
+  const isText = kind === 'text';
+  const hasTextOutput = isText && (busy || Boolean(textResult));
+  const compactComposer = !isText && (busy || hasResult);
+  const referencesAbovePrompt = compactComposer || hasTextOutput;
+  const quantityEnabled = hasPrompt || (isText && canGenerateWithoutPrompt);
   const hasReferences = !assetOnly && references.length > 0;
   const ports = useMagneticPorts();
   const referenceStrip = hasReferences && <ImagePromptReferences references={references} onRemove={locked ? undefined : onRemoveReference}
@@ -222,7 +235,7 @@ export function ImagePromptNode({
     <>
       <section
         ref={ports.node}
-        className={`image-node${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}${contentOverflows ? ' is-overflowing' : ''}${hasResult ? ' has-result' : ''}${compactComposer ? ' has-compact-composer' : ''}${hasReferences ? ' has-reference-images' : ''} ${className}`}
+        className={`image-node${isText ? ' text-node' : ''}${hasTextOutput ? ' has-text-output' : ''}${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}${contentOverflows ? ' is-overflowing' : ''}${hasResult ? ' has-result' : ''}${compactComposer ? ' has-compact-composer' : ''}${hasReferences ? ' has-reference-images' : ''} ${className}`}
         aria-label={title}
         aria-busy={busy}
         tabIndex={hasReferences ? -1 : undefined}
@@ -244,17 +257,17 @@ export function ImagePromptNode({
         </div>}
 
         <header className="image-node-heading">
-          <h1 title={title}><ImagePromptIcon name="image" /><span>{title}</span></h1>
+          <h1 title={title}><ImagePromptIcon name={isText ? 'text' : 'image'} /><span>{title}</span></h1>
           {!assetOnly && <span className="image-node-model">{busy && Number.isFinite(generation.estimatedSeconds) && (generation.estimatedSeconds ?? 0) > 0
             ? <span className="image-node-estimate">~{Math.round(generation.estimatedSeconds!)}s</span>
             : <><ImagePromptModelBrand brand={activeModel?.brand ?? 'openai'} /><span title={displayModelLabel}>{displayModelLabel}</span></>}</span>}
         </header>
 
-        <div className="image-node-card" onClick={() => { if (!locked && !busy && !hasResult) editor.current?.focus(); }}>
+        <div className="image-node-card" onClick={event => { if (!locked && !busy && !hasResult && !(event.target as HTMLElement).closest('.text-node-output')) editor.current?.focus(); }}>
           {hasResult && !busy && <div ref={resultElement} className="image-node-result"><ImagePromptResult variantId={activeVariantId}>{result}</ImagePromptResult></div>}
           {!assetOnly && <div className="image-node-surface">
             <div className="image-node-surface-body">
-            {compactComposer && referenceStrip}
+            {referencesAbovePrompt && referenceStrip}
             <div ref={promptScroll} className="image-node-composer nowheel" onWheel={event => event.stopPropagation()}>
               <textarea ref={editor} rows={1} value={prompt} readOnly={locked || promptReadOnly} spellCheck aria-label="Chat message" onChange={event => setPrompt(event.currentTarget.value)} onKeyDown={event => {
                 if (event.key === 'Tab' && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && !event.nativeEvent.isComposing && !prompt && !locked && !promptReadOnly) {
@@ -265,8 +278,10 @@ export function ImagePromptNode({
               {!prompt && <div className="image-node-suggestion" aria-hidden="true"><span className="image-node-suggestion-label">Try "{suggestion}"</span><kbd>tab</kbd></div>}
             </div>
 
+            {hasTextOutput && <div className="text-node-output nowheel nodrag nopan" onWheel={event => event.stopPropagation()}>{textResult}</div>}
+
             <div className="image-node-footer">
-            {!compactComposer && referenceStrip}
+            {!referencesAbovePrompt && referenceStrip}
 
             <div className="image-node-actions" onClick={event => event.stopPropagation()}
               onPointerOver={event => {
@@ -283,30 +298,34 @@ export function ImagePromptNode({
               onPointerDownCapture={leaveTooltip}
             >
               <button type="button" aria-label="Mention node" onClick={onMention} {...tooltipProps('Mention node')} disabled={locked}><ImagePromptIcon name="mention" /></button>
-              <button type="button" aria-label="Reference Element" {...tooltipProps('No Elements available')} disabled><ImagePromptIcon name="hash" /></button>
+              {isText ? <button type="button" aria-label="Connected apps" aria-disabled="true" {...tooltipProps('Connected apps')}><ImagePromptIcon name="plug" /></button>
+                : <button type="button" aria-label="Reference Element" {...tooltipProps('No Elements available')} disabled><ImagePromptIcon name="hash" /></button>}
               <div className="image-node-actions-right">
-                <button type="button" aria-label="Dictate prompt" onClick={onDictate} {...tooltipProps('Dictate prompt')} disabled={locked}><ImagePromptIcon name="mic" /></button>
+                {isText ? <div className="text-node-formats" role="group" aria-label="Output format">
+                  {(['txt', 'md'] as const).map(format => <button type="button" key={format} aria-pressed={format === textFormat} disabled={locked} onClick={() => onTextFormatChange?.(format)}>{format.toUpperCase()}</button>)}
+                </div> : <button type="button" aria-label="Dictate prompt" onClick={onDictate} {...tooltipProps('Dictate prompt')} disabled={locked}><ImagePromptIcon name="mic" /></button>}
                 <button type="button" aria-label="Enhance prompt" onClick={onEnhance} {...tooltipProps('Enhance prompt')} disabled={!hasPrompt || locked}><ImagePromptIcon name="enhance" /></button>
-                <div className={`image-node-generate-group${quantity > 1 ? ' is-expanded' : ''}${hasPrompt && !locked ? '' : ' is-disabled'}`}>
+                <div className={`image-node-generate-group${quantity > 1 ? ' is-expanded' : ''}${canGenerate && !locked ? '' : ' is-disabled'}`}>
                   <div className="image-node-quantity">
-                    <button type="button" aria-label="Decrease quantity" disabled={!hasPrompt || locked || quantity <= 1} onClick={() => setQuantity(quantity - 1)}><ImagePromptIcon name="minus" /></button>
-                    <input aria-label="Quantity" role="spinbutton" aria-valuemin={1} aria-valuemax={20} aria-valuenow={quantity} inputMode="numeric" value={quantity} disabled={!hasPrompt || locked} onChange={event => setQuantity(Math.max(1, Math.min(20, Number(event.currentTarget.value) || 1)))} />
-                    <button type="button" aria-label="Increase quantity" disabled={!hasPrompt || locked || quantity >= 20} onClick={() => setQuantity(quantity + 1)}><ImagePromptIcon name="plus" /></button>
+                    <button type="button" aria-label="Decrease quantity" disabled={!quantityEnabled || locked || quantity <= 1} onClick={() => setQuantity(quantity - 1)}><ImagePromptIcon name="minus" /></button>
+                    <input aria-label="Quantity" role="spinbutton" aria-valuemin={1} aria-valuemax={20} aria-valuenow={quantity} inputMode="numeric" value={quantity} disabled={!quantityEnabled || locked} onChange={event => setQuantity(Math.max(1, Math.min(20, Number(event.currentTarget.value) || 1)))} />
+                    <button type="button" aria-label="Increase quantity" disabled={!quantityEnabled || locked || quantity >= 20} onClick={() => setQuantity(quantity + 1)}><ImagePromptIcon name="plus" /></button>
                   </div>
-                  <button className="image-node-generate" type="button" aria-label="Generate" onClick={() => onGenerate?.({ prompt, quantity })} disabled={!hasPrompt || locked}><ImagePromptIcon name="generate" /></button>
+                  <button className="image-node-generate" type="button" aria-label={busy && onCancelGeneration ? 'Cancel generation' : 'Generate'} onClick={() => busy && onCancelGeneration ? onCancelGeneration() : onGenerate?.({ prompt, quantity })} disabled={(!canGenerate || locked) && !(busy && onCancelGeneration)}><ImagePromptIcon name="generate" /></button>
                 </div>
               </div>
             </div>
             </div>
             </div>
           </div>}
-          <ImagePromptGeneration state={generation} />
+          <ImagePromptGeneration state={generation} borderOnly={isText} />
         </div>
 
         <ImagePromptHistory variants={variants} activeVariant={activeVariant} onVariantChange={onVariantChange} />
 
         <div className="image-node-ports">
           {!assetOnly && <div className="image-node-inputs">
+            {textInput && <div ref={element => { ports.textInput.current = element?.querySelector('button') ?? null; }}>{textInput}</div>}
             <button ref={ports.input} data-connection-port="image" data-connected={imageInputCount > 0 || undefined} disabled={locked} type="button" className="image-node-input" aria-label="Image input" onClick={onImageInput}>
               <span className="image-node-port-label"><span className="image-node-port-icon image-node-port-icon-image" aria-hidden="true" />Image <span className="image-node-port-count">{imageInputCount}/16</span></span><PortRing />{handles?.image}
             </button>

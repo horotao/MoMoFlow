@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import * as Select from '@radix-ui/react-select';
 import { ImagePromptIcon } from './ImagePromptIcon';
 
-export function GenerationOptionSelect({ label, value, choices, labels, disabled, onChange }: {
+export function GenerationOptionSelect({ label, value, choices, labels, disabled, disabledChoices, onChange }: {
   label: string; value: string; choices: readonly string[]; labels?: readonly string[];
-  disabled?: boolean; onChange: (value: string) => void;
+  disabled?: boolean; disabledChoices?: readonly string[]; onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [keyboard, setKeyboard] = useState(false);
@@ -26,7 +26,7 @@ export function GenerationOptionSelect({ label, value, choices, labels, disabled
         onKeyDown={event => { event.stopPropagation(); setKeyboard(true); }}>
         <Select.Viewport className="generation-option-viewport">
           <Select.Group>
-            {options.map(option => <Select.Item className="generation-option-item" key={option} value={option}>
+            {options.map(option => <Select.Item className="generation-option-item" key={option} value={option} disabled={disabledChoices?.includes(option)}>
               <Select.ItemText>{text(option)}</Select.ItemText>
               <Select.ItemIndicator className="generation-option-indicator"><ImagePromptIcon name="check" /></Select.ItemIndicator>
             </Select.Item>)}

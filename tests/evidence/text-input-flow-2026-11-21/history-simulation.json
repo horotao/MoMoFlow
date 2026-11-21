@@ -1,0 +1,15 @@
+{
+  "kind": "browser mock, no paid calls",
+  "checks": [
+    {
+      "variant": 2,
+      "prompt": "第一份历史：卡通西瓜撑着黄色雨伞。\n\n结合上游文字和参考图，整理一段中文提示词。",
+      "images": 1
+    },
+    {
+      "variant": 3,
+      "prompt": "第二份历史：卡通西瓜站在蓝色公交站旁。\n\n结合上游文字和参考图，整理一段中文提示词。",
+      "images": 1
+    }
+  ]
+}

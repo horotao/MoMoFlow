@@ -1,0 +1,3801 @@
+{
+  "baseline": [
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 72（已含推理 0）。计费搜索 0 次。",
+      "index": 1,
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "73",
+        "本次花费": "$0.000812",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修鞋匠把摊子搬回巷口。一个小姑娘提着湿透的布鞋来，问能不能把鞋底补得再厚些。她踮起脚，指指街对面：“这样下次涨水，我就能自己去接妈妈了。”"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 80（已含推理 0）。计费搜索 0 次。",
+      "index": 2,
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "82",
+        "本次花费": "$0.000892",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修伞匠把门口的积水扫进下水道，却留了一小洼。每天放学，孙女都要踩着那块倒映着红绿灯的水，说自己一步就能跨过整座城。今天她带了个同桌，两人商量半天，决定坐船。"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 71（已含推理 0）。计费搜索 0 次。",
+      "index": 3,
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "69",
+        "本次花费": "$0.000802",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修鞋匠把摊子挪到屋檐外。一个小女孩蹲在水洼边，等倒映的红灯变绿。他提着她刚补好的鞋，也站住了。绿灯一亮，两人各自跨过了自己的马路。"
+    }
+  ],
+  "samples": [
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278881254,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278881442,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278881608,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278881783,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278881950,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278882116,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278882283,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278882318,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278882329,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278882342,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278882509,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278882672,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278882839,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278883003,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278883171,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278883334,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278883498,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278883669,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278883837,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278884005,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278884170,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278884334,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278884498,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278884664,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278884829,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278884992,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278885158,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278885323,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278885485,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278885649,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278885814,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278885977,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278886144,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278886310,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278886475,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278886643,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278886809,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278886977,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨",
+      "time": 1795278887083,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招",
+      "time": 1795278887211,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招",
+      "time": 1795278887225,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被",
+      "time": 1795278887323,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被",
+      "time": 1795278887332,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班",
+      "time": 1795278887499,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班",
+      "time": 1795278887511,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追",
+      "time": 1795278887628,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追",
+      "time": 1795278887641,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸",
+      "time": 1795278887791,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸",
+      "time": 1795278887804,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不",
+      "time": 1795278887903,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不",
+      "time": 1795278887914,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪",
+      "time": 1795278888021,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪",
+      "time": 1795278888033,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，",
+      "time": 1795278888135,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天",
+      "time": 1795278888149,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街",
+      "time": 1795278888260,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街",
+      "time": 1795278888277,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，",
+      "time": 1795278888375,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，",
+      "time": 1795278888386,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，肩挨着肩，在积水退去",
+      "time": 1795278888535,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，肩挨着肩，在积水退去的路边给他围出了一间铺子。",
+      "time": 1795278888666,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    },
+    {
+      "cursor": true,
+      "hasCancel": true,
+      "rows": {},
+      "text": "",
+      "time": 1795278888773,
+      "variants": [
+        {
+          "label": "Variant 1 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 9",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 9",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 8 of 9",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 9 of 9",
+          "pending": true,
+          "selected": "false"
+        }
+      ]
+    }
+  ],
+  "partial": {
+    "cursor": true,
+    "hasCancel": true,
+    "rows": {},
+    "text": "",
+    "time": 1795278888773,
+    "variants": [
+      {
+        "label": "Variant 1 of 9",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 2 of 9",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 3 of 9",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 4 of 9",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 5 of 9",
+        "pending": true,
+        "selected": "true"
+      },
+      {
+        "label": "Variant 6 of 9",
+        "pending": true,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 7 of 9",
+        "pending": true,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 8 of 9",
+        "pending": true,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 9 of 9",
+        "pending": true,
+        "selected": "false"
+      }
+    ]
+  },
+  "completedBeforeCancel": {
+    "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 56 tokens，缓存读取 0，缓存写入 0；输出 334（已含推理 173）。计费搜索 0 次。",
+    "rows": {
+      "创建时间": "2026/11/22 00:34",
+      "创建者": "—",
+      "字符数": "163",
+      "本次花费": "$0.003452",
+      "模型": "GPT-6.2 Sol"
+    },
+    "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，肩挨着肩，在积水退去的路边给他围出了一间铺子。"
+  },
+  "immediatelyBeforeCancel": {
+    "cursor": true,
+    "hasCancel": true,
+    "rows": {},
+    "text": "",
+    "time": 1795278889493,
+    "variants": [
+      {
+        "label": "Variant 1 of 9",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 2 of 9",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 3 of 9",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 4 of 9",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 5 of 9",
+        "pending": true,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 6 of 9",
+        "pending": true,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 7 of 9",
+        "pending": true,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 8 of 9",
+        "pending": true,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 9 of 9",
+        "pending": true,
+        "selected": "true"
+      }
+    ]
+  },
+  "afterCancel": {
+    "cursor": false,
+    "hasCancel": false,
+    "rows": {
+      "创建时间": "2026/11/22 00:34",
+      "创建者": "—",
+      "字符数": "163",
+      "本次花费": "$0.003452",
+      "模型": "GPT-6.2 Sol"
+    },
+    "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，肩挨着肩，在积水退去的路边给他围出了一间铺子。",
+    "time": 1795278889803,
+    "variants": [
+      {
+        "label": "Variant 1 of 4",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 2 of 4",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 3 of 4",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 4 of 4",
+        "pending": false,
+        "selected": "true"
+      }
+    ]
+  },
+  "alert": "已停止本批生成，已完成结果已保留。已提交请求仍可能计费。\n×",
+  "requests": [
+    {
+      "id": "4414.2529",
+      "wallTime": 1795278880.986956,
+      "input": {
+        "model": "gpt-6.2-sol",
+        "prompt": "写一篇120到180字的中文微型故事，主题是雨后重新出发。自行选择人物和情节，包含一个出人意料但温暖的结尾，只输出故事正文，不要标题或解释。",
+        "images": [],
+        "reasoningEffort": "medium",
+        "webSearch": false
+      }
+    },
+    {
+      "id": "4414.2530",
+      "wallTime": 1795278880.987089,
+      "input": {
+        "model": "gpt-6.2-sol",
+        "prompt": "写一篇120到180字的中文微型故事，主题是雨后重新出发。自行选择人物和情节，包含一个出人意料但温暖的结尾，只输出故事正文，不要标题或解释。",
+        "images": [],
+        "reasoningEffort": "medium",
+        "webSearch": false
+      }
+    },
+    {
+      "id": "4414.2531",
+      "wallTime": 1795278880.987151,
+      "input": {
+        "model": "gpt-6.2-sol",
+        "prompt": "写一篇120到180字的中文微型故事，主题是雨后重新出发。自行选择人物和情节，包含一个出人意料但温暖的结尾，只输出故事正文，不要标题或解释。",
+        "images": [],
+        "reasoningEffort": "medium",
+        "webSearch": false
+      }
+    },
+    {
+      "id": "4414.2532",
+      "wallTime": 1795278888.751639,
+      "input": {
+        "model": "gpt-6.2-sol",
+        "prompt": "写一篇120到180字的中文微型故事，主题是雨后重新出发。自行选择人物和情节，包含一个出人意料但温暖的结尾，只输出故事正文，不要标题或解释。",
+        "images": [],
+        "reasoningEffort": "medium",
+        "webSearch": false
+      }
+    }
+  ],
+  "network": [
+    {
+      "id": "4414.2531",
+      "method": "Network.responseReceived",
+      "status": 200
+    },
+    {
+      "id": "4414.2529",
+      "method": "Network.responseReceived",
+      "status": 200
+    },
+    {
+      "id": "4414.2530",
+      "method": "Network.responseReceived",
+      "status": 200
+    },
+    {
+      "id": "4414.2529",
+      "method": "Network.loadingFailed",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "id": "4414.2531",
+      "method": "Network.loadingFailed",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "id": "4414.2530",
+      "method": "Network.loadingFailed",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "id": "4414.2532",
+      "method": "Network.loadingFailed",
+      "error": "net::ERR_ABORTED"
+    }
+  ],
+  "settled": {
+    "cursors": 0,
+    "generateEnabled": true,
+    "generationEffects": 0,
+    "hasCancel": false,
+    "historyLoading": 0,
+    "runningPhases": 0,
+    "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，肩挨着肩，在积水退去的路边给他围出了一间铺子。",
+    "time": 1795278928442,
+    "variants": [
+      {
+        "label": "Variant 1 of 4",
+        "pending": false
+      },
+      {
+        "label": "Variant 2 of 4",
+        "pending": false
+      },
+      {
+        "label": "Variant 3 of 4",
+        "pending": false
+      },
+      {
+        "label": "Variant 4 of 4",
+        "pending": false
+      }
+    ]
+  },
+  "postCancelVariants": [
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 56 tokens，缓存读取 0，缓存写入 0；输出 334（已含推理 173）。计费搜索 0 次。",
+      "index": 4,
+      "rows": {
+        "创建时间": "2026/11/22 00:34",
+        "创建者": "—",
+        "字符数": "163",
+        "本次花费": "$0.003452",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，肩挨着肩，在积水退去的路边给他围出了一间铺子。"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 72（已含推理 0）。计费搜索 0 次。",
+      "index": 1,
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "73",
+        "本次花费": "$0.000812",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修鞋匠把摊子搬回巷口。一个小姑娘提着湿透的布鞋来，问能不能把鞋底补得再厚些。她踮起脚，指指街对面：“这样下次涨水，我就能自己去接妈妈了。”"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 71（已含推理 0）。计费搜索 0 次。",
+      "index": 3,
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "69",
+        "本次花费": "$0.000802",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修鞋匠把摊子挪到屋檐外。一个小女孩蹲在水洼边，等倒映的红灯变绿。他提着她刚补好的鞋，也站住了。绿灯一亮，两人各自跨过了自己的马路。"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 80（已含推理 0）。计费搜索 0 次。",
+      "index": 2,
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "82",
+        "本次花费": "$0.000892",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修伞匠把门口的积水扫进下水道，却留了一小洼。每天放学，孙女都要踩着那块倒映着红绿灯的水，说自己一步就能跨过整座城。今天她带了个同桌，两人商量半天，决定坐船。"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 56 tokens，缓存读取 0，缓存写入 0；输出 334（已含推理 173）。计费搜索 0 次。",
+      "index": 4,
+      "rows": {
+        "创建时间": "2026/11/22 00:34",
+        "创建者": "—",
+        "字符数": "163",
+        "本次花费": "$0.003452",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，肩挨着肩，在积水退去的路边给他围出了一间铺子。"
+    }
+  ],
+  "historyRequestsAfterCancel": 0,
+  "afterReload": [
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 72（已含推理 0）。计费搜索 0 次。",
+      "cursors": 0,
+      "generationEffects": 0,
+      "index": 1,
+      "pending": 0,
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "73",
+        "本次花费": "$0.000812",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修鞋匠把摊子搬回巷口。一个小姑娘提着湿透的布鞋来，问能不能把鞋底补得再厚些。她踮起脚，指指街对面：“这样下次涨水，我就能自己去接妈妈了。”",
+      "variantCount": 4
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 80（已含推理 0）。计费搜索 0 次。",
+      "cursors": 0,
+      "generationEffects": 0,
+      "index": 2,
+      "pending": 0,
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "82",
+        "本次花费": "$0.000892",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修伞匠把门口的积水扫进下水道，却留了一小洼。每天放学，孙女都要踩着那块倒映着红绿灯的水，说自己一步就能跨过整座城。今天她带了个同桌，两人商量半天，决定坐船。",
+      "variantCount": 4
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 71（已含推理 0）。计费搜索 0 次。",
+      "cursors": 0,
+      "generationEffects": 0,
+      "index": 3,
+      "pending": 0,
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "69",
+        "本次花费": "$0.000802",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修鞋匠把摊子挪到屋檐外。一个小女孩蹲在水洼边，等倒映的红灯变绿。他提着她刚补好的鞋，也站住了。绿灯一亮，两人各自跨过了自己的马路。",
+      "variantCount": 4
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 56 tokens，缓存读取 0，缓存写入 0；输出 334（已含推理 173）。计费搜索 0 次。",
+      "cursors": 0,
+      "generationEffects": 0,
+      "index": 4,
+      "pending": 0,
+      "rows": {
+        "创建时间": "2026/11/22 00:34",
+        "创建者": "—",
+        "字符数": "163",
+        "本次花费": "$0.003452",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，肩挨着肩，在积水退去的路边给他围出了一间铺子。",
+      "variantCount": 4
+    }
+  ],
+  "final": {
+    "cursors": 0,
+    "loadingThumbs": 0,
+    "modelLabel": "GPT-6.2 Sol",
+    "progressbars": 0,
+    "rows": {
+      "创建时间": "2026/11/22 00:34",
+      "创建者": "—",
+      "字符数": "163",
+      "本次花费": "$0.003452",
+      "模型": "GPT-6.2 Sol"
+    },
+    "runningPhases": 0,
+    "selected": "Variant 4 of 4",
+    "variantCount": 4
+  }
+}

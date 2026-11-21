@@ -3,7 +3,7 @@ import type { Node } from '@xyflow/react';
 
 /** Composer Image nodes can move from the result without changing lock/tool flags. */
 export function withCanvasImageDrag<T extends Node>(node: T): T & { dragHandle?: string } {
-  return node.data.composer ? {
+  return node.data.composer || node.data.textComposer ? {
     ...node,
     dragHandle: '.image-node-heading, .image-node-toolbar-bridge, .image-node-result',
   } : node;

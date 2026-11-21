@@ -1,0 +1,10 @@
+[
+  {
+    "variant": 1,
+    "src": "http://localhost:5173/tests/fixtures/image-node-1.png"
+  },
+  {
+    "variant": 2,
+    "src": "http://localhost:5173/tests/fixtures/image-node-2.png"
+  }
+]

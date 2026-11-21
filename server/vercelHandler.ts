@@ -2,17 +2,19 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createApiSettingsMiddleware } from './apiSettings.ts';
 import { createApimartMiddleware } from './apimart.ts';
 import { createSunburstMiddleware } from './sunburst.ts';
+import { createTextMiddleware } from './text.ts';
 import { trustedDeploymentRequest } from './providerDiagnostics.ts';
 
 // Never load server/default credentials in the hosted BYOK deployment.
 const handlers = [
+  createTextMiddleware(''),
   createApiSettingsMiddleware({ openai: '', apimart: '', deepseek: '' }),
   createApimartMiddleware(''),
   createSunburstMiddleware(''),
 ];
 const paths = new Set([
   '/api/settings/test', '/api/apimart/images', '/api/apimart/seedream', '/api/apimart/task',
-  '/api/nano-banana', '/api/sunburst',
+  '/api/nano-banana', '/api/sunburst', '/api/text',
 ]);
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {

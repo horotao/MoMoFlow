@@ -1,0 +1,435 @@
+{
+  "waiting": [
+    {
+      "target": "h-3.5 w-1.5 shrink-0 animate-loading-surface-breathe rounded-xs bg-foreground-muted motion-reduce:animate-none",
+      "name": "loading-surface-breathe",
+      "duration": 2400,
+      "easing": "linear",
+      "frames": [
+        {
+          "offset": 0,
+          "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+          "composite": "auto",
+          "opacity": "0.7",
+          "computedOffset": 0
+        },
+        {
+          "offset": 0.5,
+          "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+          "composite": "auto",
+          "opacity": "1",
+          "computedOffset": 0.5
+        },
+        {
+          "offset": 1,
+          "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+          "composite": "auto",
+          "opacity": "0.7",
+          "computedOffset": 1
+        }
+      ]
+    },
+    {
+      "target": "absolute inset-0 bg-fill-subtle",
+      "duration": 40000,
+      "easing": "cubic-bezier(0.33, 1, 0.68, 1)",
+      "frames": [
+        {
+          "offset": null,
+          "easing": "linear",
+          "composite": "auto",
+          "transform": "scaleX(0)",
+          "computedOffset": 0
+        },
+        {
+          "offset": null,
+          "easing": "linear",
+          "composite": "auto",
+          "transform": "scaleX(0.95)",
+          "computedOffset": 1
+        }
+      ]
+    }
+  ],
+  "switch": {
+    "html": [
+      {
+        "id": "text-block",
+        "cls": "relative group h-full w-full"
+      },
+      {
+        "id": "text-block-output-markdown",
+        "cls": "nodrag overflow-wrap-anywhere min-h-0 flex-1 break-words pr-4 bg-transparent pt-4 text-foreground type-sm overflow-y-auto [scrollbar-gutter:stable] pb-32 nowheel"
+      },
+      {
+        "id": "generate-button",
+        "cls": "inline-flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-outline-focus active:brightness-90 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 text-foreground relative shrink-0 rounded-full p-0 transition-opacity duration-quick motion-reduce:transition-none hover:bg-transparent [&_svg]:size-full size-9"
+      }
+    ],
+    "animations": [
+      {
+        "target": "relative h-10 shrink-0 transition-all duration-quick ease-in-out motion-reduce:transition-none",
+        "duration": 150,
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": 0,
+            "easing": "linear",
+            "composite": "auto",
+            "width": "114px",
+            "computedOffset": 0
+          },
+          {
+            "offset": 1,
+            "easing": "linear",
+            "composite": "auto",
+            "width": "40px",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "flex shrink-0 items-center transition-opacity duration-quick ease-out motion-reduce:transition-none pointer-events-none opacity-0",
+        "duration": 150,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": 0,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "1",
+            "computedOffset": 0
+          },
+          {
+            "offset": 1,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "0",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "absolute inset-x-0 top-0 z-10 outline-none transition-opacity duration-quick opacity-100",
+        "duration": 150,
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": 0,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "0.6",
+            "computedOffset": 0
+          },
+          {
+            "offset": 1,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "1",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "relative w-fit gap-1.5 whitespace-nowrap rounded-xl focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-outline-focus active:brightness-90 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-3.5 hover:bg-fill-hover flex items-center justify-center p-1 text-foreground-muted transition focus-visible:outline-none cursor-not-allowed opacity-20 z-20 flex-none",
+        "duration": 150,
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": 0,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "0.00728872",
+            "computedOffset": 0
+          },
+          {
+            "offset": 1,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "0.5",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "nodrag relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-background type-mini-regular after:pointer-events-none after:absolute after:inset-0 after:box-border after:rounded-xl after:border after:border-border after:transition-opacity after:duration-[var(--duration-quick)] after:ease-out after:opacity-100",
+        "duration": 150,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": 0,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "0",
+            "computedOffset": 0
+          },
+          {
+            "offset": 1,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "1",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "nodrag relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-background type-mini-regular after:pointer-events-none after:absolute after:inset-0 after:box-border after:rounded-xl after:border after:border-border after:transition-opacity after:duration-[var(--duration-quick)] after:ease-out after:opacity-100",
+        "duration": 150,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": 0,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "0",
+            "computedOffset": 0
+          },
+          {
+            "offset": 1,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "1",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "nodrag relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-background type-mini-regular after:pointer-events-none after:absolute after:inset-0 after:box-border after:rounded-xl after:border after:border-border after:transition-opacity after:duration-[var(--duration-quick)] after:ease-out after:opacity-100",
+        "duration": 150,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": 0,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "0",
+            "computedOffset": 0
+          },
+          {
+            "offset": 1,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "1",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "nodrag relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-background type-mini-regular after:pointer-events-none after:absolute after:inset-0 after:box-border after:rounded-xl after:border after:border-border after:transition-opacity after:duration-[var(--duration-quick)] after:ease-out after:opacity-100",
+        "duration": 150,
+        "easing": "cubic-bezier(0, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": 0,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "0",
+            "computedOffset": 0
+          },
+          {
+            "offset": 1,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "1",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "relative w-fit cursor-pointer gap-1.5 whitespace-nowrap rounded-xl focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-outline-focus active:brightness-90 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-3.5 hover:bg-fill-hover flex items-center justify-center p-1 text-foreground-muted transition focus-visible:outline-none hover:text-foreground z-20 flex-none",
+        "duration": 150,
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": 0,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "0.5",
+            "computedOffset": 0
+          },
+          {
+            "offset": 1,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "1",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "min-w-15 text-center text-foreground-muted type-mini-regular transition-opacity duration-quick opacity-100",
+        "duration": 150,
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": 0,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "0",
+            "computedOffset": 0
+          },
+          {
+            "offset": 1,
+            "easing": "linear",
+            "composite": "auto",
+            "opacity": "1",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "relative w-fit gap-1.5 whitespace-nowrap rounded-xl focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-outline-focus active:brightness-90 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-3.5 hover:bg-fill-hover flex items-center justify-center p-1 text-foreground-muted transition focus-visible:outline-none cursor-not-allowed opacity-20 z-20 flex-none",
+        "duration": 250,
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "transform": "translate(32.9175px, 0px) scale(1, 1)",
+            "computedOffset": 0
+          },
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "transform": "none",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "nodrag relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-background type-mini-regular after:pointer-events-none after:absolute after:inset-0 after:box-border after:rounded-xl after:border after:border-border after:transition-opacity after:duration-[var(--duration-quick)] after:ease-out after:opacity-100",
+        "duration": 250,
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "transform": "translate(26.9224px, -2.63509e-05px) scale(0.799997, 0.800001)",
+            "computedOffset": 0
+          },
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "transform": "none",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "nodrag relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-background type-mini-regular after:pointer-events-none after:absolute after:inset-0 after:box-border after:rounded-xl after:border after:border-border after:transition-opacity after:duration-[var(--duration-quick)] after:ease-out after:opacity-100",
+        "duration": 250,
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "transform": "translate(8.9573px, 0px) scale(0.999993, 1)",
+            "computedOffset": 0
+          },
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "transform": "none",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "nodrag relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-background type-mini-regular after:pointer-events-none after:absolute after:inset-0 after:box-border after:rounded-xl after:border after:border-border after:transition-opacity after:duration-[var(--duration-quick)] after:ease-out after:opacity-100",
+        "duration": 250,
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "transform": "translate(-5.00751px, 0px) scale(1, 1)",
+            "computedOffset": 0
+          },
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "transform": "none",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "nodrag relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-background type-mini-regular after:pointer-events-none after:absolute after:inset-0 after:box-border after:rounded-xl after:border after:border-border after:transition-opacity after:duration-[var(--duration-quick)] after:ease-out after:opacity-100",
+        "duration": 250,
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "transform": "translate(-18.9725px, 0px) scale(1.00001, 1)",
+            "computedOffset": 0
+          },
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "transform": "none",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "nodrag relative flex shrink-0 items-center justify-center overflow-hidden rounded-xl bg-background type-mini-regular after:pointer-events-none after:absolute after:inset-0 after:box-border after:rounded-xl after:border after:border-border after:transition-opacity after:duration-[var(--duration-quick)] after:ease-out after:opacity-100",
+        "duration": 250,
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "transform": "translate(-32.9274px, 0px) scale(1.00063, 1.00063)",
+            "computedOffset": 0
+          },
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "transform": "none",
+            "computedOffset": 1
+          }
+        ]
+      },
+      {
+        "target": "relative w-fit cursor-pointer gap-1.5 whitespace-nowrap rounded-xl focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-outline-focus active:brightness-90 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg]:size-3.5 hover:bg-fill-hover flex items-center justify-center p-1 text-foreground-muted transition focus-visible:outline-none hover:text-foreground z-20 flex-none",
+        "duration": 250,
+        "easing": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "frames": [
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "transform": "translate(-32.9173px, 0px) scale(1, 1)",
+            "computedOffset": 0
+          },
+          {
+            "offset": null,
+            "easing": "linear",
+            "composite": "auto",
+            "transform": "none",
+            "computedOffset": 1
+          }
+        ]
+      }
+    ]
+  },
+  "stream": {
+    "name": "sd-fadeIn",
+    "duration": 450,
+    "easing": "ease-out",
+    "dom_evidence": "flora-generating-wait.html"
+  }
+}

@@ -1,11 +1,14 @@
 import type { Connection, Edge } from '@xyflow/react';
-import { isCanvasImageNode, isImportedCanvasImage, isNodeLocked, type AppNode } from './types.ts';
+import { isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isNodeLocked, type AppNode } from './types.ts';
 
 export const imageInputHandles = Array.from({ length: 16 }, (_, index) => `image-${index}`);
 export const isImageInputHandle = (handle?: string | null) => !!handle && imageInputHandles.includes(handle);
 
 export function isImageWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandle'>) {
   return connection.sourceHandle === 'result' && isImageInputHandle(connection.targetHandle);
+}
+export function isCanvasWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandle'>) {
+  return isImageWire(connection) || connection.sourceHandle === 'text' && connection.targetHandle === 'text';
 }
 
 export function withoutReplacedInput(connection: Pick<Edge, 'target' | 'targetHandle'>, edges: Edge[]) {
@@ -28,8 +31,10 @@ export function createsImageCycle(connection: Pick<Edge, 'source' | 'target'>, e
 export function canConnect(connection: Connection | Edge, nodes: AppNode[], edges: Edge[]): boolean {
   const source = nodes.find(node => node.id === connection.source);
   const target = nodes.find(node => node.id === connection.target);
-  if (!source || !target || !isCanvasImageNode(source) || !isCanvasImageNode(target)
-    || isImportedCanvasImage(target) || isNodeLocked(source) || isNodeLocked(target) || !isImageWire(connection)) return false;
+  if (!source || !target || isImportedCanvasImage(target) || isNodeLocked(source) || isNodeLocked(target)) return false;
+  const imageWire = isCanvasImageNode(source) && (isCanvasImageNode(target) || isCanvasTextNode(target)) && isImageWire(connection);
+  const textWire = isCanvasTextNode(source) && isCanvasTextNode(target) && connection.sourceHandle === 'text' && connection.targetHandle === 'text';
+  if (!imageWire && !textWire) return false;
   if (edges.some(edge => edge.source === source.id && edge.target === target.id)) return false;
   return !createsImageCycle(connection, withoutReplacedInput(connection, edges));
 }
