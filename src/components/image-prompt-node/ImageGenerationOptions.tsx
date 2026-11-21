@@ -4,16 +4,16 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { CircleArrowUp01Icon } from '@hugeicons/core-free-icons';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import type { AppNode, SunburstNode } from '../../nodes/types';
-import { changeComposerSettings, composerModelId, composerSettings } from '../../nodes/imageComposerSettings';
-import { imageQualities, imageQualityLabels } from '../../nodes/sunburst';
+import { changeComposerProvider, changeComposerSettings, composerAspectRatios, composerModelId, composerSettings } from '../../nodes/imageComposerSettings';
+import { imageQualities, imageQualityLabels, sunburstProviders, sunburstProviderLabels, type SunburstProvider } from '../../nodes/sunburst';
 import { seedreamChoices } from '../../nodes/seedream';
-import { nanoBananaAspectRatios } from '../../nodes/nanoBanana';
 import { imagePromptGenerationAspectRatios } from './imagePromptAspectRatios';
 import { defaultImagePromptModelSelection, imagePromptModels, type ImagePromptModelId } from './imagePromptModels';
 import { ImagePromptModelBrand, ImagePromptModelMenu } from './ImagePromptModelMenu';
 import { ImagePromptIcon } from './ImagePromptIcon';
 import { ImagePromptInfoTip } from './ImagePromptInfoTip';
 import { GenerationOptionSelect } from './GenerationOptionSelect';
+import { sunburstPreset } from '../imageNodePresets';
 import './image-generation-options.css';
 
 export function ImageGenerationOptions() {
@@ -47,10 +47,15 @@ function GenerationOptions({ nodeId }: { nodeId: string }) {
   const seedream = modelId === 'seedream-5-5';
   const nano = modelId.startsWith('nano-banana');
   const automaticSize = !seedream && !nano && data.provider !== 'apimart' && composer.ratio === 'auto';
-  const ratios = imagePromptGenerationAspectRatios.filter(ratio => seedream ? seedreamChoices.size.includes(ratio)
-    : nano ? nanoBananaAspectRatios.includes(ratio) : true);
+  const supportedRatios = composerAspectRatios(data);
+  const ratios = imagePromptGenerationAspectRatios.filter(ratio => supportedRatios.includes(ratio));
+  function edit(patch: Partial<SunburstNode['data']>) {
+    if (locked) return;
+    sunburstPreset.remember({ ...data!, ...patch });
+    updateNodeData(nodeId, patch);
+  }
   function setSetting(key: string, value: string) {
-    if (!locked) updateNodeData(nodeId, changeComposerSettings(data!, {}, {
+    edit(changeComposerSettings(data!, {}, {
       [key]: value, ...(key === 'background' && value === 'transparent' ? { outputFormat: 'png' } : {}),
     }));
   }
@@ -74,13 +79,17 @@ function GenerationOptions({ nodeId }: { nodeId: string }) {
       </button>
       {modelOpen && !locked && <ImagePromptModelMenu id={`${id}-models`} anchor={trigger} selection={composer.selection ?? defaultImagePromptModelSelection}
         pinned={pinned} onPinnedChange={setPinned} onClose={closeModel}
-        onChange={selection => updateNodeData(nodeId, changeComposerSettings(data, { selection }))} />}
+        onChange={selection => edit(changeComposerSettings(data, { selection }))} />}
+      {modelId === 'gpt-image-2-6' && <div className="generation-option-row"><span>渠道商</span><GenerationOptionSelect label="渠道商" value={data.provider ?? 'openai'}
+        choices={sunburstProviders} labels={sunburstProviders.map(value => sunburstProviderLabels[value])} disabled={locked}
+        onChange={value => edit(changeComposerProvider(data, value as SunburstProvider))} /></div>}
       <div className="generation-option-row"><span>画面比例</span><GenerationOptionSelect key={`ratio-${modelId}`} label="画面比例" value={composer.ratio} choices={ratios}
         labels={ratios.map(value => value === 'auto' ? '自动' : value)} disabled={locked}
-        onChange={ratio => updateNodeData(nodeId, changeComposerSettings(data, { ratio }))} /></div>
-      <div className="generation-option-row"><span>分辨率</span><GenerationOptionSelect key={`resolution-${modelId}`} label="分辨率" value={automaticSize ? 'auto' : settings.resolution}
-        choices={automaticSize ? ['auto'] : seedream ? seedreamChoices.resolution : ['1K', '2K', '4K']}
-        labels={automaticSize ? ['自动'] : undefined} disabled={locked || automaticSize} onChange={value => setSetting('resolution', value)} /></div>
+        onChange={ratio => edit(changeComposerSettings(data, { ratio }))} /></div>
+      <div className="generation-option-row"><span>分辨率{automaticSize && <ImagePromptInfoTip label="自动分辨率说明">OpenAI 自动比例下，选择分辨率会将画面比例设为 1:1。也可以先选择其他画面比例。</ImagePromptInfoTip>}</span><GenerationOptionSelect key={`resolution-${modelId}`} label="分辨率" value={automaticSize ? 'auto' : settings.resolution}
+        choices={automaticSize ? ['auto', '1K', '2K', '4K'] : seedream ? seedreamChoices.resolution : ['1K', '2K', '4K']}
+        labels={automaticSize ? ['自动', '1K', '2K', '4K'] : undefined} disabled={locked}
+        onChange={value => { if (value !== 'auto') setSetting('resolution', value); }} /></div>
       {!nano && (seedream || data.provider !== 'apimart' || data.channelModel === 'gpt-image-2.6') && <div className="generation-option-row"><span>背景</span><GenerationOptionSelect label="背景" value={settings.background ?? 'auto'}
         choices={['auto', 'transparent', 'opaque']} labels={['自动', '透明', '不透明']} disabled={locked} onChange={value => setSetting('background', value)} /></div>}
       {!seedream && !nano && <div className="generation-option-row"><span>画质</span><GenerationOptionSelect label="画质" value={settings.quality ?? 'medium'}

@@ -1,9 +1,17 @@
-import { imageSizes, imageSizeLabels, sunburstPresetSize, sunburstSizePreset, type SunburstResolution } from './sunburst.ts';
-import { defaultSeedreamSettings } from './seedream.ts';
-import { defaultNanoBananaSettings } from './nanoBanana.ts';
+import { imageSizes, imageSizeLabels, sunburstPresetSize, sunburstSizePreset, sunburstProviderSettings, apimartAspectRatios, type SunburstProvider, type SunburstResolution } from './sunburst.ts';
+import { defaultSeedreamSettings, seedreamChoices } from './seedream.ts';
+import { defaultNanoBananaSettings, nanoBananaAspectRatios } from './nanoBanana.ts';
 import type { ImageComposerData, SunburstNode, ImageGeneratorNode, NanoBananaNode, SeedreamNode } from './types';
 
 export const composerModelId = (data: SunburstNode['data']) => data.composer?.selection?.modelIds[0] ?? 'gpt-image-2-6';
+
+export function composerAspectRatios(data: SunburstNode['data']): readonly string[] {
+  const model = composerModelId(data);
+  if (model === 'seedream-5-5') return seedreamChoices.size;
+  if (model.startsWith('nano-banana')) return nanoBananaAspectRatios;
+  if (data.provider === 'apimart' && data.channelModel !== 'gpt-image-2.6') return apimartAspectRatios;
+  return ['auto', ...imageSizeLabels.slice(1)];
+}
 
 export function composerSettings(data: SunburstNode['data']) {
   const model = composerModelId(data);
@@ -17,17 +25,31 @@ export function composerSettings(data: SunburstNode['data']) {
 // Toolbar and generation options write the same ratio and API size in one edit.
 export function changeComposerSettings(data: SunburstNode['data'], change: Partial<ImageComposerData>, settings: Record<string, string> = {}) {
   const composer = { ...data.composer!, ...change };
+  if (change.selection && !composerAspectRatios({ ...data, composer }).includes(composer.ratio)) composer.ratio = 'auto';
   const model = composer.selection?.modelIds[0] ?? 'gpt-image-2-6';
   if (model !== 'gpt-image-2-6') return { composer: { ...composer, modelSettings: {
     ...composer.modelSettings, [model]: { ...composer.modelSettings?.[model], ...settings },
   } } };
-  if (change.ratio === undefined && settings.resolution === undefined) return { ...settings, composer };
+  if (change.ratio === undefined && settings.resolution === undefined && !change.selection) return { ...settings, composer };
   const next = { ...composerSettings({ ...data, composer }), ...settings };
+  // OpenAI accepts a pixel size, so choosing a tier from automatic sizing also
+  // chooses an explicit square ratio. Keep the toolbar and request in sync.
+  if (settings.resolution !== undefined && composer.ratio === 'auto' && data.provider !== 'apimart') composer.ratio = '1:1';
   const ratio = composer.ratio;
   const resolution = next.resolution as SunburstResolution;
   const size = data.provider === 'apimart' ? ratio : ratio === 'auto' ? 'auto'
     : sunburstPresetSize(imageSizes[imageSizeLabels.indexOf(ratio)] ?? 'auto', resolution);
   return { ...settings, size, resolution, composer };
+}
+
+export function changeComposerProvider(data: SunburstNode['data'], provider: SunburstProvider) {
+  // Keep restored standard choices; new APIMart choices use EXT.
+  const channelModel = data.channelModel ?? 'gpt-image-2.6-ext';
+  const converted = sunburstProviderSettings(data, provider, channelModel);
+  const next = { ...data, ...converted, provider, channelModel };
+  const ratio = provider === 'apimart' && channelModel === 'gpt-image-2.6-ext'
+    && !apimartAspectRatios.some(value => value === data.composer!.ratio) ? 'auto' : data.composer!.ratio;
+  return { ...converted, provider, channelModel, ...changeComposerSettings(next, { ratio }) };
 }
 
 // Keep the canvas node stable while adapting its settings to existing clients.

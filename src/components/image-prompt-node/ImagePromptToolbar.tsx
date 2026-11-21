@@ -13,6 +13,7 @@ export interface ImagePromptToolbarProps {
   onModelSelectionChange?: (selection: ImagePromptModelSelection) => void;
   onModelMenuOpenChange?: (open: boolean) => void;
   aspectRatio?: string;
+  aspectRatioChoices?: readonly string[];
   defaultAspectRatio?: string;
   onAspectRatioChange?: (ratio: string) => void;
   onAspectRatioMenuOpenChange?: (open: boolean) => void;
@@ -33,7 +34,7 @@ export interface ImagePromptToolbarProps {
 
 export function ImagePromptToolbar({
   modelLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, onModelMenuOpenChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange, onAspectRatioMenuOpenChange, locked = false,
-  hidden = false, onLockedChange, onModelClick, onAspectRatioClick, onToolsClick, onTagClick,
+  hidden = false, aspectRatioChoices, onLockedChange, onModelClick, onAspectRatioClick, onToolsClick, onTagClick,
   onDownload, downloadDisabled = true, onReplaceImage, onPreviewImage, replaceDisabled = false,
   className = '',
 }: ImagePromptToolbarProps) {
@@ -119,7 +120,7 @@ export function ImagePromptToolbar({
         onKeyDown={event => { if (event.key === 'ArrowDown' && !aspectMenuOpen) { event.preventDefault(); openAspectMenu(); } }}>
         {aspectRatio === 'auto' ? '自动' : aspectRatio}<ImagePromptIcon name="chevron" />
       </button>
-      {aspectMenuOpen && !locked && <ImagePromptAspectRatioMenu id={aspectMenuId} labelledBy={aspectTriggerId} anchor={aspectTrigger} value={aspectRatio} onChange={setAspectRatio} onClose={closeAspectMenu} />}
+      {aspectMenuOpen && !locked && <ImagePromptAspectRatioMenu id={aspectMenuId} labelledBy={aspectTriggerId} anchor={aspectTrigger} value={aspectRatio} choices={aspectRatioChoices} onChange={setAspectRatio} onClose={closeAspectMenu} />}
       <span className="image-node-separator" />
       <button type="button" className="image-node-toolbar-label image-node-tools-label" onClick={onToolsClick}><ImagePromptIcon name="tools" />Tools<ImagePromptIcon name="chevron" /></button>
       <span className="image-node-separator" />

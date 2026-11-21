@@ -132,5 +132,5 @@ test('APIMart standard settings survive clipboard and GIF sheet limits follow fr
   assert.throws(() => validateApimartGifSize('768x768', 13));
   assert.throws(() => validateApimartGifSize('1024x1024', 2));
   assert.equal(sunburstProviderSettings({ ...data, outputFormat: 'gif', size: '512x512' }, 'openai').size, 'auto');
-  assert.equal(sunburstProviderSettings({ ...data, size: '9:21', resolution: '4K' }, 'openai').size, '1648x3840');
+  assert.equal(sunburstProviderSettings({ ...data, size: '9:21', resolution: '4K' }, 'openai').size, '1632x3808');
 });

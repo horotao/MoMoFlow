@@ -60,8 +60,8 @@ export const apimartSvgEfforts = ['auto', 'none', 'low', 'medium', 'high', 'xhig
 export function apimartSvgModelEfforts(model: unknown): readonly typeof apimartSvgEfforts[number][] {
   return model === 'gpt-6.1-sol' ? apimartSvgEfforts.filter(value => value !== 'none') : apimartSvgEfforts;
 }
-export const imageSizes = ['auto', '1024x1024', '1536x1024', '1024x1536', '1536x1152', '1152x1536', '1280x1024', '1024x1280', '1536x864', '864x1536', '1792x768', '1536x768', '768x1536', '1536x512', '512x1536'] as const;
-export const imageSizeLabels = ['自动', '1:1', '3:2', '2:3', '4:3', '3:4', '5:4', '4:5', '16:9', '9:16', '21:9', '2:1', '1:2', '3:1', '1:3'];
+export const imageSizes = ['auto', '1024x1024', '1536x1024', '1024x1536', '1536x1152', '1152x1536', '1280x1024', '1024x1280', '1536x864', '864x1536', '1792x768', '1536x768', '768x1536', '1536x512', '512x1536', '768x1792'] as const;
+export const imageSizeLabels = ['自动', '1:1', '3:2', '2:3', '4:3', '3:4', '5:4', '4:5', '16:9', '9:16', '21:9', '2:1', '1:2', '3:1', '1:3', '9:21'];
 export const sunburstResolutions = ['1K', '2K', '4K'] as const;
 export type SunburstResolution = typeof sunburstResolutions[number];
 
@@ -223,8 +223,7 @@ export function sunburstProviderSettings(data: SunburstSettings, provider: Sunbu
     } else size = apimartAspectRatios.some(item => item === ratio) ? ratio : 'auto';
   } else if (apimartStandardAspectRatios.some(item => item !== 'auto' && item === size)) {
     const resolution = data.resolution ?? '1K';
-    size = size === '9:21' ? { '1K': '864x2016', '2K': '1152x2688', '4K': '1648x3840' }[resolution]
-      : sunburstPresetSize(imageSizes[imageSizeLabels.indexOf(size)], resolution);
+    size = sunburstPresetSize(imageSizes[imageSizeLabels.indexOf(size)], resolution);
   } else if (data.outputFormat === 'gif') {
     try { validateSunburstSize(size); } catch { size = 'auto'; }
   }

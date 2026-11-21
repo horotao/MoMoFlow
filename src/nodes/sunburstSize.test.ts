@@ -29,7 +29,7 @@ test('every resolution/ratio combination preserves exact ratio and stays within 
       unique.add(size);
     }
   }
-  assert.equal(unique.size, 42);
+  assert.equal(unique.size, 45);
 });
 
 test('custom and unfinished sizes stay distinct from presets', () => {

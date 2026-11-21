@@ -9,11 +9,12 @@ interface ImagePromptAspectRatioMenuProps {
   labelledBy: string;
   anchor: RefObject<HTMLButtonElement>;
   value: string;
+  choices?: readonly string[];
   onChange: (value: ImagePromptAspectRatio) => void;
   onClose: (restoreFocus?: boolean) => void;
 }
 
-export function ImagePromptAspectRatioMenu({ id, labelledBy, anchor, value, onChange, onClose }: ImagePromptAspectRatioMenuProps) {
+export function ImagePromptAspectRatioMenu({ id, labelledBy, anchor, value, choices, onChange, onClose }: ImagePromptAspectRatioMenuProps) {
   const panel = useRef<HTMLDivElement>(null);
   const [focusedValue, setFocusedValue] = useState(value);
   const [position, setPosition] = useState({ left: 0, top: 0, maxHeight: 0, above: false });
@@ -24,11 +25,11 @@ export function ImagePromptAspectRatioMenu({ id, labelledBy, anchor, value, onCh
       const rect = anchor.current.getBoundingClientRect();
       const width = Math.min(224, window.innerWidth - 16);
       const below = window.innerHeight - rect.bottom - 12;
-      const above = below < 498 && rect.top - 12 > below;
+      const above = below < 320 && rect.top - 12 > below;
       setPosition({
         left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
         top: above ? rect.top - 4 : rect.bottom + 4,
-        maxHeight: Math.max(0, above ? rect.top - 12 : below),
+        maxHeight: Math.max(0, Math.min(320, above ? rect.top - 12 : below)),
         above,
       });
     }
@@ -79,11 +80,12 @@ export function ImagePromptAspectRatioMenu({ id, labelledBy, anchor, value, onCh
       event.preventDefault(); event.stopPropagation();
       const current = options.indexOf(document.activeElement as HTMLButtonElement);
       const next = event.key === 'Home' ? 0 : event.key === 'End' ? options.length - 1 : (current + (event.key === 'ArrowUp' ? -1 : 1) + options.length) % options.length;
-      options[next].focus();
+      options[next].focus({ preventScroll: true });
+      options[next].scrollIntoView({ block: 'nearest' });
     }}>
-    {imagePromptAspectRatioGroups.map(group => <div role="group" aria-label={group.label} key={group.label}>
+    {imagePromptAspectRatioGroups.filter(group => group.values.some(ratio => !choices || choices.includes(ratio))).map(group => <div role="group" aria-label={group.label} key={group.label}>
       <div className="image-aspect-group-label">{group.label}</div>
-      {group.values.map(ratio => {
+      {group.values.filter(ratio => !choices || choices.includes(ratio)).map(ratio => {
         const [width, height] = ratio === 'auto' ? [1, 1] : ratio.split(':').map(Number);
         return <button key={ratio} type="button" role="menuitemradio" aria-checked={value === ratio} tabIndex={focusedValue === ratio ? 0 : -1} onFocus={() => setFocusedValue(ratio)} className="image-aspect-option"
           onClick={() => { onChange(ratio); onClose(true); }}>

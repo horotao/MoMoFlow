@@ -2,12 +2,13 @@ import { useLayoutEffect, useMemo, useRef, useState, type SyntheticEvent } from 
 import { Handle, Position, useEdges, useNodesData, useReactFlow, useStore, useUpdateNodeInternals, type Edge, type Node, type NodeProps } from '@xyflow/react';
 import { ImagePromptNode } from '../components/image-prompt-node/ImagePromptNode';
 import { ImagePromptToolbar } from '../components/image-prompt-node/ImagePromptToolbar';
+import { sunburstPreset } from '../components/imageNodePresets';
 import { useModelTasks } from '../components/useModelTasks';
 import { isActiveTask } from './taskQueue';
 import { downloadAsset } from './fileMedia';
 import { savedImagePrompt } from './generationRecord';
 import { imageInputHandles, isImageInputHandle } from './connectionRules';
-import { changeComposerSettings } from './imageComposerSettings';
+import { changeComposerSettings, composerAspectRatios } from './imageComposerSettings';
 import { canvasImageSize, hasImageDimensions } from './canvasImageGeometry';
 import { reorderImageReferences } from './imageReferenceOrder';
 import { ImportedCanvasImage, type CanvasImageChrome } from './ImportedCanvasImage';
@@ -107,12 +108,16 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
     ...activeTasks.map(item => ({ id: item.id, pending: true })),
   ];
   function edit(change: Partial<ImageComposerData>) {
-    if (!data.locked) updateNodeData(id, changeComposerSettings(data, change));
+    if (data.locked) return;
+    const patch = changeComposerSettings(data, change);
+    if (change.ratio !== undefined || change.selection !== undefined || change.quantity !== undefined) sunburstPreset.remember({ ...data, ...patch });
+    updateNodeData(id, patch);
   }
   const controls = {
     modelSelection: composer.selection,
     onModelSelectionChange: (selection: NonNullable<ImageComposerData['selection']>) => edit({ selection }),
     aspectRatio: composer.ratio,
+    aspectRatioChoices: composerAspectRatios(data),
     onAspectRatioChange: (ratio: string) => edit({ ratio }),
     locked: Boolean(data.locked),
     onLockedChange: (locked: boolean) => updateNodeData(id, { locked }),
