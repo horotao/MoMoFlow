@@ -1,71 +1,23 @@
-![](https://github.com/xyflow/web/blob/main/assets/codesandbox-header-ts.png?raw=true)
+# MoMoFlow
 
-# React Flow starter (Vite + TS)
+MoMoFlow 是一个用 Image 节点生成图片的画布。右键空白处或点击左侧加号可创建 Image，在节点内填写提示词并选择模型。把本地图片拖入画布，或把上游 Image 的结果连到下游 Image，即可用作参考图。节点的输入输出、界面与运行约定见[Image 节点文档](src/nodes/README.md)。
 
-MoMoFlow 的统一质量检查入口为 `npm run check`，开发时可用 `npm run check:quick`。
-本地和 CI 使用 `.nvmrc` 指定的 Node.js 24；检查覆盖范围、Codex Hook 启用与浏览器验收说明见 [代码质量检查](docs/code-quality.md)。
+## 本地开发
 
-We've put together this template to serve as a starting point for folks
-interested in React Flow. You can use this both as a base for your own React
-Flow applications, or for small experiments or bug reports.
-
-**TypeScript not your thing?** We also have a vanilla JavaScript starter template,
-just for you!
-
-## Getting up and running
-
-You can get this template without forking/cloning the repo using `degit`:
+使用 [.nvmrc](.nvmrc) 指定的 Node.js 24 和 npm。
 
 ```bash
-npx degit xyflow/vite-react-flow-template your-app-name
-```
-
-The template contains mostly the minimum dependencies to get up and running, but
-also includes eslint and some additional rules to help you write React code that
-is less likely to run into issues:
-
-```bash
-npm install # or `pnpm install` or `yarn install`
-```
-
-Vite is a great development server and build tool that we recommend our users to
-use. You can start a development server with:
-
-```bash
+npm ci
 npm run dev
 ```
 
-While the development server is running, changes you make to the code will be
-automatically reflected in the browser!
+开发时可运行 `npm run check:quick`，完整检查使用 `npm run check`。检查范围、Codex Hook 和浏览器验收见[代码质量检查](docs/code-quality.md)。
 
-## Things to try:
+## 画布界面
 
-- Create a new custom node inside `src/nodes/` (don't forget to export it from `src/nodes/index.ts`).
-- Change how things look by [overriding some of the built-in classes](https://reactflow.dev/learn/customization/theming#overriding-built-in-classes).
-- Add a layouting library to [position your nodes automatically](https://reactflow.dev/learn/layouting/layouting)
+Image 节点和工具栏使用 [ImagePromptNode 组件与样式](src/components/image-prompt-node/ImagePromptNode.tsx)。节点和工具栏使用随组件提供的 Geist Sans。画布其他界面沿用[全局样式](src/index.css)的 `--font-ui`，英文使用 Inter，macOS 中文优先使用苹方，Windows 中文使用随应用提供的 Noto Sans SC。
 
-## Resources
-
-Links:
-
-- [React Flow - Docs](https://reactflow.dev)
-- [React Flow - Discord](https://discord.com/invite/Bqt6xrs)
-
-Learn:
-
-- [React Flow – Custom Nodes](https://reactflow.dev/learn/customization/custom-nodes)
-- [React Flow – Layouting](https://reactflow.dev/learn/layouting/layouting)
-
-## UI 组件配置
-
-项目保留 React 18，已配置 Tailwind CSS 4、shadcn/ui（neutral 主题）和 React Flow UI。
-此次依赖安装使用 npm，以 `package-lock.json` 为准；原有 pnpm 锁文件未同步。
-
-界面字体统一使用 `src/index.css` 的 `--font-ui`：英文为随项目提供的 Inter，macOS 中文优先使用苹方（PingFang SC），Windows 中文使用 Noto Sans SC／思源黑体。`@fontsource-variable/noto-sans-sc` 提供随应用构建的字体分片，未安装字体时按需加载，无需访问外部字体服务。新增界面样式请复用 `var(--font-ui)` 或继承字体。侧边栏使用中文名称，并保留原英文名称的搜索匹配。
-
-底部 Dock 已移除，选择与抓手使用左侧 Dock 或 V / H；撤销与重做使用 Ctrl / ⌘ Z 和 Ctrl / ⌘ Shift Z，画布缩放仍支持滚轮与触控板。
-
-左侧加号、空白画布右键和拖线后的创建入口共用 Image 菜单。选择与抓手工具支持 V / H，更多菜单提供 API 设置和网格对齐。
+选择与抓手工具使用左侧 Dock 或快捷键 V / H。撤销使用 Ctrl / ⌘ Z，重做使用 Ctrl / ⌘ Shift Z。「更多」菜单提供 API 设置和网格对齐。
 
 画布与左侧 Dock 的颜色参考 FLORA 深色外观：画布底色 `#090908`，Dock 使用 90% 不透明的 `#191918`，图标区分暖灰默认态与灰白选中态。点阵在 100% 缩放下间隔 32px、直径 1px，随画布一起缩放；网格对齐沿用同一套间距。
 
@@ -73,29 +25,9 @@ Learn:
 
 小地图展开后内区为 186×105px，缩放工具栏居中悬浮在上方，间隔 8px。桌面端悬停地图或工具栏时显示控件，离开后隐藏；键盘聚焦时保持显示，触屏上始终显示。小地图可用方向键平移视野，Esc 收起并把焦点返回展开按钮。
 
-- `components.json`：shadcn 配置，`@/` 映射到 `src/`。
-- `src/index.css`：Tailwind、React Flow 样式、主题变量和现有画布样式。
-- `src/lib/utils.ts`：组件共用的 `cn()` 样式合并工具。
-- `src/components/base-node.tsx`：React Flow UI 官方 Base Node 及其标题、内容、页脚组件。
-- `src/components/ui/button.tsx`：shadcn Button，保留 React 18 的 `forwardRef` 接口，阴影类适配 Tailwind 4。
-- 用 [AnimatedToastStack](src/components/ui/AnimatedToastStack.tsx) 显示通知，用 [useAnimatedToastStack](src/components/ui/useAnimatedToastStack.ts) 管理通知。将 `toasts` 和 `dismissToast` 分别传给组件的 `toasts` 和 `onDismiss`，需要反馈时调用 `showToast({ status, title, description })`。画布的模型运行通知使用 `position="top-center"` 和 `placement="fixed"`，标题简述结果，描述说明原因或下一步。[beUI 组件示例](https://beui.dev/components/motion/animated-toast-stack)
+项目使用 React 18、Tailwind CSS 4 和 shadcn/ui。共享控件配置见 [components.json](components.json)，路径别名 `@/` 指向 `src/`。添加控件时保留 React 18 的 `forwardRef` 接口。
 
-组件源码已添加，可在新节点和界面中按需使用；现有节点外观和连接交互保持不变。
-画布的深浅色按钮同时切换根元素的 `dark` 类，使后续 shadcn 组件使用同一主题。
-
-继续添加组件：
-
-```bash
-npx shadcn@latest add https://ui.reactflow.dev/labeled-handle
-npx shadcn@latest add dialog
-```
-
-添加后需核对 React 18 兼容性，尤其是引用传递应使用 `forwardRef`，不能直接采用仅适用于 React 19 的 ref 参数写法。
-React Flow CSS 通过 `src/index.css` 中的 `layer(base)` 在 Tailwind 之后加载，
-现有画布样式也放在同一层，避免破坏 React Flow 深色主题的优先级。
-
-验证命令：`npm run lint`、`npm run build`。手动检查拖动、坐标更新、双向拖线创建节点、
-普通连线、主题切换、缩放及小地图。
+用 [AnimatedToastStack](src/components/ui/AnimatedToastStack.tsx) 显示通知，用 [useAnimatedToastStack](src/components/ui/useAnimatedToastStack.ts) 管理通知。将 `toasts` 和 `dismissToast` 分别传给组件的 `toasts` 和 `onDismiss`，需要反馈时调用 `showToast({ status, title, description })`。画布的模型运行通知使用 `position="top-center"` 和 `placement="fixed"`，标题简述结果，描述说明原因或下一步。[beUI 组件示例](https://beui.dev/components/motion/animated-toast-stack)
 
 ## BYOK API 设置
 
@@ -112,10 +44,6 @@ BYOK Base URL 支持公开 HTTPS 网关。服务端校验并固定 DNS 解析结
 线上仅使用用户在「更多 → API 设置」中填写的 API Key，不读取服务端默认密钥；连接测试同样需要填写 Key。`.vercelignore` 排除本地环境文件，部署时不要上传 `.env.local` 或配置共享模型密钥。接口仅接受 Vercel 提供的部署域名及对应 HTTPS Origin，用户配置仍保存在各自浏览器中。
 
 函数最长运行 300 秒，平台请求和响应大小限制为 4.5 MB（包括图片的 Base64 编码）。APIMart 图片由浏览器直传和直下；仅传输 URL 的函数请求可避开图片大小限制。仍以内联方式传输的其他渠道图片可能被平台拒绝。当前部署不包含账户系统、共享额度或云端工作流同步。自动检查不调用真实模型；部署后的路由检查也不能替代真实模型验收。
-
-## Image 画布
-
-空白处右键、左侧「添加节点」和拖线快捷创建均提供新版 Image。节点支持内置提示词、图片参考、历史结果、下载和锁定。节点接口与测试入口见[节点开发约定](src/nodes/README.md)。
 
 ## 画布本地保存
 

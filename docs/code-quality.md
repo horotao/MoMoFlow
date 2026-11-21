@@ -26,7 +26,7 @@ npm run check
 
 `tsconfig.check.json` 继承原有严格类型规则；工具和 Node.js 测试使用 ES2022 标准库以覆盖 `Error.cause` / `AggregateError`。前端仍由原配置单独检查。未改变现有 TypeScript 严格度，也没有使用 `@ts-ignore` 隐藏旧问题。
 
-TypeScript 固定为本机原已使用的 `5.9.3`，并同步 `package-lock.json`。原锁文件中的 `5.3.3` 不能识别现有 Compositor 对动态属性的类型收窄，导致干净安装失败；统一编译器版本后，本地与 CI 使用相同规则。此项目继续以 npm 锁文件为准，未同步旧 pnpm 锁文件。
+TypeScript 固定为本机原已使用的 `5.9.3`，并同步 `package-lock.json`。本地与 CI 使用相同的编译器版本。此项目继续以 npm 锁文件为准，未同步旧 pnpm 锁文件。
 
 服务端测试使用本地受控响应及假凭据，不访问真实模型；自动检查不会运行图片生成。暂未设置覆盖率或构建体积的新门槛；Vite 已有的大包警告仍由构建输出提示。
 
