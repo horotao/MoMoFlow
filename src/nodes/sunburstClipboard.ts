@@ -31,7 +31,7 @@ export function restoreSunburstData(value: unknown): SunburstNode['data'] | unde
   if (!Array.isArray(results) || !results.every(isFileAsset)) return;
   const composer = restoreComposer(data.composer);
   return {
-    ...(composer ? { composer } : {}),
+    ...(composer ? { composer, ...(data.imageSource === 'imported' ? { imageSource: 'imported' as const } : {}) } : {}),
     ...(apimartChannelModels.some(value => value === data.channelModel) ? { channelModel: data.channelModel as SunburstNode['data']['channelModel'] } : {}),
     ...(imageModerations.some(value => value === data.moderation) ? { moderation: data.moderation as SunburstNode['data']['moderation'] } : {}),
     ...(typeof data.frameCount === 'number' && Number.isInteger(data.frameCount) && data.frameCount >= 2 && data.frameCount <= 16 ? { frameCount: data.frameCount } : {}),

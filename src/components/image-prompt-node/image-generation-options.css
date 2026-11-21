@@ -57,7 +57,7 @@
 .image-generation-options button:disabled { opacity: .5; cursor: not-allowed; }
 .image-generation-options button:not(.generation-option-value):focus-visible { outline: 1px solid #b5b3ad; outline-offset: -2px; }
 .generation-option-menu {
-  z-index: 1500; width: max-content;
+  z-index: var(--image-menu-layer); width: max-content;
   max-height: min(384px, var(--radix-select-content-available-height));
   overflow: hidden; overscroll-behavior: contain;
   border: 1px solid #fafaf223; border-radius: 12px; background: rgb(25 25 24 / 90%);

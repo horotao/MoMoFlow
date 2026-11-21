@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { Handle, Position, useEdges, useReactFlow, useStore, useUpdateNodeInternals, type Node, type NodeProps } from '@xyflow/react';
+import { Handle, Position, useEdges, useReactFlow, useStore, useUpdateNodeInternals, type Edge, type Node, type NodeProps } from '@xyflow/react';
 import { ImagePromptNode } from '../components/image-prompt-node/ImagePromptNode';
 import { ImagePromptToolbar } from '../components/image-prompt-node/ImagePromptToolbar';
 import { useModelTasks } from '../components/useModelTasks';
@@ -9,6 +9,8 @@ import { savedImagePrompt } from './generationRecord';
 import { imageInputHandles, isImageInputHandle } from './connectionRules';
 import { changeComposerSettings } from './imageComposerSettings';
 import { canvasImageSize, hasImageDimensions } from './canvasImageGeometry';
+import { ImportedCanvasImage, type CanvasImageChrome } from './ImportedCanvasImage';
+import { selectedImageResult } from './annotationGraph';
 import type { AppNode, CanvasImage, ImageComposerData } from './types';
 import './CanvasImageNode.css';
 
@@ -28,9 +30,32 @@ function hasMultipleSelection(nodes: readonly Node[]) {
 }
 
 export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps<CanvasImage>) {
-  const composer = data.composer;
-  const { updateNodeData, setNodes } = useReactFlow<AppNode>();
+  const { setNodes } = useReactFlow<AppNode>();
   const edges = useEdges();
+  const overview = useStore(state => Math.round(state.transform[2] * 100) <= 14);
+  const toolbarHidden = useStore(state => state.userSelectionActive || hasMultipleSelection(state.nodes));
+  const connectable = isConnectable && !data.locked;
+  const chrome: CanvasImageChrome = {
+    selected, locked: Boolean(data.locked), toolbarHidden, showToolbar: !overview || selected,
+    outputConnected: edges.some(edge => edge.source === id),
+    output: <Handle type="source" position={Position.Right} id="result" isConnectable={connectable} />,
+    onSelectedChange: value => {
+      if (selected !== value) setNodes(nodes => nodes.map(node => node.id === id
+        ? { ...node, selected: value } : value ? { ...node, selected: false } : node));
+    },
+  };
+  if (data.imageSource === 'imported') {
+    const asset = selectedImageResult({ data });
+    return <ImportedCanvasImage id={id} asset={asset} chrome={chrome} />;
+  }
+  return <GeneratingCanvasImage id={id} data={data} edges={edges} connectable={connectable} chrome={chrome} />;
+}
+
+function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
+  id: string; data: CanvasImage['data']; edges: Edge[]; connectable: boolean; chrome: CanvasImageChrome;
+}) {
+  const composer = data.composer;
+  const { updateNodeData } = useReactFlow<AppNode>();
   const internals = useUpdateNodeInternals();
   const results = data.results ?? [];
   const tasks = useModelTasks();
@@ -47,8 +72,6 @@ export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps
   const [viewing, setViewing] = useState<{ batch: string; variantId: string }>();
   const chosen = batch && viewing?.batch === batch ? viewing.variantId : undefined;
   const task = chosen ? activeTasks.find(item => item.id === chosen) : activeTasks[0];
-  const overview = useStore(state => Math.round(state.transform[2] * 100) <= 14);
-  const toolbarHidden = useStore(state => state.userSelectionActive || hasMultipleSelection(state.nodes));
   const [error, setError] = useState('');
   const references = edges.filter(edge => edge.target === id && isImageInputHandle(edge.targetHandle));
   const occupied = new Set(references.map(edge => edge.targetHandle));
@@ -75,12 +98,9 @@ export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps
     locked: Boolean(data.locked),
     onLockedChange: (locked: boolean) => updateNodeData(id, { locked }),
   };
-  const connectable = isConnectable && !data.locked;
+  const { output, showToolbar, toolbarHidden, ...frame } = chrome;
   return <div className="canvas-image-mount" style={size}>
-    <ImagePromptNode {...controls} title={data.label} selected={selected}
-      onSelectedChange={value => {
-        if (selected !== value) setNodes(nodes => nodes.map(node => node.id === id ? { ...node, selected: value } : value ? { ...node, selected: false } : node));
-      }}
+    <ImagePromptNode {...controls} {...frame} title={data.label}
       prompt={composer.prompt} onPromptChange={prompt => edit({ prompt })}
       quantity={composer.quantity} onQuantityChange={quantity => edit({ quantity })}
       onGenerate={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: id }))}
@@ -103,14 +123,14 @@ export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps
           composer: { ...composer, prompt: savedImagePrompt(asset) ?? composer.prompt },
         });
       }}
-      imageInputCount={references.length} outputConnected={edges.some(edge => edge.source === id)}
+      imageInputCount={references.length}
       handles={{
         image: [...(available ? [available] : []), ...imageInputHandles.filter(handle => occupied.has(handle))].map(handle =>
           <Handle key={handle} type="target" position={Position.Left} id={handle}
             isConnectable={connectable && handle === available} style={{ pointerEvents: handle === available ? undefined : 'none' }} />),
-        output: <Handle type="source" position={Position.Right} id="result" isConnectable={connectable} />,
+        output,
       }}
-      toolbar={overview && !selected ? null : <ImagePromptToolbar className="nodrag nopan" {...controls} hidden={toolbarHidden} downloadDisabled={!active}
+      toolbar={!showToolbar ? null : <ImagePromptToolbar className="nodrag nopan" {...controls} hidden={toolbarHidden} downloadDisabled={!active}
         onDownload={() => { if (active) void downloadAsset(active).catch(() => setError('图片下载失败。')); }} />}
     />
     {error && <button type="button" role="alert" onClick={() => setError('')}>{error}</button>}

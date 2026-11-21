@@ -12,6 +12,9 @@ import { AddNodeMenu, type AddNodeRequest } from './components/add-node-menu/Add
 import { canConnect, withoutReplacedInput } from './nodes/connectionRules';
 import { connectionChoices, choiceConnection, type PendingConnection } from './nodes/connectionRecommendations';
 import { createLibraryNode } from './components/libraryCatalog';
+import { createImportedCanvasImage, readCanvasImage } from './nodes/importCanvasImage';
+import { assetResources } from './nodes/assetResources';
+import { canvasImageSize } from './nodes/canvasImageGeometry';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
@@ -28,6 +31,7 @@ import {
   type Edge,
   type NodeChange,
   type OnNodeDrag,
+  type XYPosition,
 } from '@xyflow/react';
 
 import { DescriberPanel } from './components/DescriberPanel';
@@ -61,6 +65,7 @@ type ProjectSession = {
 
 export function Flow({ storage, saved, projectSession }: { storage: WorkflowStorage; saved: Workflow | null; projectSession?: ProjectSession }) {
   const [apiSettingsOpen, setApiSettingsOpen] = useState(false);
+  const [imageImportError, setImageImportError] = useState('');
   const [gridSnap, setGridSnap] = useState(() => readGridSnap());
   const colorMode = 'dark' as const;
   const [viewport, setViewport] = useState(saved?.viewport ?? { x: 0, y: 0, zoom: 1 });
@@ -222,6 +227,30 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     if (connections.length) setEdges(current => [...withoutReplacedInput(connections[0], current), ...connections]);
   }
 
+  async function addImageFiles(files: File[], position: XYPosition, canvas: HTMLDivElement) {
+    setImageImportError('');
+    const settled = await Promise.allSettled(files.map(readCanvasImage));
+    const assets = settled.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
+    if (canvasRef.current !== canvas || canvas.hasAttribute('inert')) {
+      assetResources.discard(assets.map(asset => asset.url));
+      return;
+    }
+    const failures = files.length - assets.length;
+    if (failures) {
+      const only = settled.length === 1 ? settled[0] : undefined;
+      setImageImportError(only?.status === 'rejected' && only.reason instanceof Error
+        ? only.reason.message : `${failures} 个文件无法导入。请选择浏览器支持的图片文件。`);
+    }
+    if (!assets.length) return;
+    let x = position.x;
+    const imported = assets.map(asset => {
+      const item = createImportedCanvasImage(asset, { x, y: position.y });
+      x += canvasImageSize('auto', asset).width + 64;
+      return item;
+    });
+    setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...imported]);
+  }
+
   const canvasNodes = useMemo(() => nodes.map(node => {
     const editable = !isNodeLocked(node) && tool === 'select';
     return withCanvasImageDrag({ ...node, draggable: editable, deletable: !isNodeLocked(node),
@@ -266,7 +295,16 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       }}
       onDrop={event => {
         event.preventDefault();
-        if (!(event.target instanceof Element) || !event.target.classList.contains('react-flow__pane')) return;
+        if (!(event.target instanceof Element)) return;
+        const files = [...event.dataTransfer.files];
+        if (files.length) {
+          if (event.target.closest('.react-flow__pane, .react-flow__node')) {
+            dismissNodeMenu();
+            void addImageFiles(files, screenToFlowPosition({ x: event.clientX, y: event.clientY }), event.currentTarget);
+          }
+          return;
+        }
+        if (!event.target.classList.contains('react-flow__pane')) return;
         const node = createLibraryNode(event.dataTransfer.getData('application/x-momoflow-library'),
           screenToFlowPosition({ x: event.clientX, y: event.clientY }));
         if (node) setNodes(current => [...current.map(item => ({ ...item, selected: false })), node]);
@@ -336,6 +374,10 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       {persistence.error && <Panel position="top-left" className="canvas-save-status" role="alert">
         <span>{persistence.error}</span>
         <button type="button" onClick={persistence.retry}>重试保存</button>
+      </Panel>}
+      {!persistence.error && imageImportError && <Panel position="top-left" className="canvas-save-status" role="alert">
+        <span>{imageImportError}</span>
+        <button type="button" onClick={() => setImageImportError('')}>关闭</button>
       </Panel>}
       <CanvasSidebar tool={tool} onToolChange={setTool} addTrigger={addTrigger}
         gridSnap={{ enabled: gridSnap, toggle: toggleGridSnap }}

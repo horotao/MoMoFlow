@@ -5,12 +5,14 @@ import { WorkflowExecution, type ExecutionIO, type ExecutionStore } from './work
 import { preflight, prepareModel, requestSignature, selectedResult, type ExecutionGraph } from './executionGraph.ts';
 import { defaultSunburstSettings } from './sunburst.ts';
 import { ModelRequestCancelled } from './modelRequestError.ts';
-import { isImageGeneratorNode, type AppNode, type SunburstNode, type FileAsset } from './types.ts';
+import { isImageGeneratorNode, isImportedCanvasImage, type AppNode, type SunburstNode, type FileAsset } from './types.ts';
 import type { PreviewTask } from './taskQueue';
 import { isActiveTask } from './taskQueue.ts';
 import { workflowSnapshot } from '../persistence/workflowStorage.ts';
 import { commitAnnotations, emptyAnnotationHistory } from './interactiveEdit.ts';
 import { initialTextDocument } from './textDocument.ts';
+import { createImportedCanvasImage } from './importCanvasImage.ts';
+import { canConnect } from './connectionRules.ts';
 
 const file = (id: string): AppNode => ({ id, type: 'file', position: { x: 0, y: 0 }, data: { assets: [{ id, name: id, kind: 'image', url: `blob:${id}` }] } });
 const generator = (id: string): AppNode => ({ id, type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, imageInputs: 1 } });
@@ -54,6 +56,31 @@ function recordedSunburstGraph(recording: 'legacy' | 'apimart' | 'openai'): Exec
   upstream.data = { ...upstream.data, results: [asset], activeResultId: asset.id };
   return JSON.parse(JSON.stringify(workflowSnapshot({ ...graph, colorMode: 'dark', viewport: { x: 0, y: 0, zoom: 1 } })));
 }
+
+test('imported canvas images only supply references and replacements keep their connections', async () => {
+  const original: FileAsset = { id: 'original', kind: 'image', name: 'original.png', url: 'blob:original', width: 1024, height: 1024 };
+  const imported = createImportedCanvasImage(original, { x: 100, y: 50 });
+  const target: SunburstNode = { id: 'g', type: 'sunburst', position: { x: 0, y: 0 }, data: {
+    ...defaultSunburstSettings, provider: 'openai', imageInputs: 16, composer: { prompt: 'Use the original', quantity: 1, ratio: '1:1' },
+  } };
+  const reference = edge(imported.id, target.id, 'image-0', 'result');
+  assert.ok(canConnect(reference, [imported, target], []));
+  assert.equal(canConnect(edge(target.id, imported.id, 'image-0', 'result'), [imported, target], []), false);
+  const saved = workflowSnapshot({ nodes: [imported, target], edges: [reference], viewport: { x: 0, y: 0, zoom: 1 }, colorMode: 'dark' });
+  assert.ok(isImportedCanvasImage(saved.nodes[0]));
+  assert.throws(() => preflight(saved, [imported.id], 1), /不能运行/);
+  const h = harness(saved);
+  try {
+    await h.engine.run([target.id], 1);
+    const replacement = { ...original, id: 'replacement', url: 'blob:replacement' };
+    h.edit(graph => ({ ...graph, nodes: graph.nodes.map(node => node.id === imported.id
+      ? { ...imported, data: { ...imported.data, results: [replacement], activeResultId: replacement.id } } : node) }));
+    await h.engine.run([target.id], 1);
+    assert.deepEqual(h.requests.map(task => [task.nodeId, task.imageRequest?.images]),
+      [[target.id, ['blob:original']], [target.id, ['blob:replacement']]]);
+    assert.deepEqual(h.graph.edges, saved.edges);
+  } finally { h.engine.dispose(); }
+});
 
 test('workflow sends a connected annotation through Prompt and Seedream without a model call for the editor', async () => {
   const history = commitAnnotations(emptyAnnotationHistory, 'reference', [{ id: 'mark', start: { x: .3, y: .6 } }]);

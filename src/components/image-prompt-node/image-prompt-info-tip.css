@@ -5,7 +5,7 @@
 .image-model-menu .image-model-info-icon:focus-visible { outline-offset: 3px; }
 .image-model-info-tip-content {
   box-sizing: border-box;
-  z-index: 800;
+  z-index: calc(var(--image-menu-layer) + 1);
   width: max-content;
   max-width: min(320px, calc(100vw - 16px));
   padding: 4px 8px;

@@ -8,6 +8,8 @@
 
 新版 Image 使用 `data.composer` 保存提示词、生成数量、比例和模型选择。注册表见 [index.ts](index.ts)。旧项目的数据迁移和原始快照保留规则见[工作流](guides/workflow.md)。
 
+拖入画布的本地图片由 [ImportedCanvasImage](ImportedCanvasImage.tsx) 呈现，沿用 Image 的存储类型和 `result` 输出。导入图片用作其他 Image 的参考图。
+
 ## 新增或扩展节点
 
 在 [types.ts](types.ts) 定义数据并在注册表接入组件。同步更新 [创建工厂](../components/libraryCatalog.ts)、[菜单](../components/add-node-menu/AddNodeMenu.tsx)、[连接规则](connectionRules.ts)、[端口推荐](connectionRecommendations.ts) 和工作流恢复条件。涉及运行输入或素材时，同时检查任务调度、资源引用与持久化。

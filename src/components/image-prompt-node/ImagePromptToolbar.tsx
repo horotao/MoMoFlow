@@ -23,6 +23,9 @@ export interface ImagePromptToolbarProps {
   onAspectRatioClick?: () => void;
   onToolsClick?: () => void;
   onTagClick?: () => void;
+  onReplaceImage?: () => void;
+  onPreviewImage?: () => void;
+  replaceDisabled?: boolean;
   onDownload?: () => void;
   downloadDisabled?: boolean;
   className?: string;
@@ -31,7 +34,7 @@ export interface ImagePromptToolbarProps {
 export function ImagePromptToolbar({
   modelLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, onModelMenuOpenChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange, onAspectRatioMenuOpenChange, locked = false,
   hidden = false, onLockedChange, onModelClick, onAspectRatioClick, onToolsClick, onTagClick,
-  onDownload, downloadDisabled = true,
+  onDownload, downloadDisabled = true, onReplaceImage, onPreviewImage, replaceDisabled = false,
   className = '',
 }: ImagePromptToolbarProps) {
   const [selection, setSelection] = useControllableValue(modelSelection, defaultModelSelection, onModelSelectionChange);
@@ -74,6 +77,34 @@ export function ImagePromptToolbar({
     }
   }, [locked, hidden, menuOpen, aspectMenuOpen, closeMenu, closeAspectMenu]);
   if (hidden) return null;
+  if (onReplaceImage) return (
+    <div className={`image-node-toolbar ${className}`} role="toolbar" aria-label="Image node tools">
+      <button type="button" className="image-node-toolbar-label image-node-tools-label" disabled>
+        <ImagePromptIcon name="tools" />Tools<ImagePromptIcon name="chevron" />
+      </button>
+      <span className="image-node-separator" />
+      <button type="button" aria-label="替换图片" title="替换图片" disabled={locked || replaceDisabled} onClick={onReplaceImage}>
+        <ImagePromptIcon name="replace-image" />
+      </button>
+      <button type="button" aria-label="下载原图" title="下载原图" className="image-node-download" disabled={downloadDisabled} onClick={onDownload}>
+        <ImagePromptIcon name="download" />
+      </button>
+      <button type="button" aria-label="查看大图" title="查看大图" disabled={!onPreviewImage} onClick={onPreviewImage}>
+        <ImagePromptIcon name="expand-preview" />
+      </button>
+      <span className="image-node-separator" />
+      <button type="button" aria-label="标记" title="标记" disabled><span className="image-node-tag" /></button>
+      <button type="button" aria-label="添加到素材库" title="添加到素材库" disabled>
+        <ImagePromptIcon name="folder" />
+      </button>
+      <button type="button" aria-label="发送图片" title="发送图片" disabled>
+        <ImagePromptIcon name="send-image" />
+      </button>
+      <button type="button" aria-label="评论" title="评论" disabled>
+        <ImagePromptIcon name="comment" />
+      </button>
+    </div>
+  );
   return (
     <div className={`image-node-toolbar ${className}`} role="toolbar" aria-label="Image node tools">
       <button ref={trigger} type="button" className="image-node-toolbar-label" aria-label={`选择图像模型：${label}`} aria-haspopup="dialog" aria-expanded={menuOpen} aria-controls={menuOpen ? menuId : undefined} disabled={locked}

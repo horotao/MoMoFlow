@@ -24,10 +24,11 @@ export interface ImageComposerData {
   selection?: import('../components/image-prompt-node/imagePromptModels').ImagePromptModelSelection;
   modelSettings?: Record<string, Record<string, string>>;
 }
-export type SunburstNode = Node<SunburstSettings & OutputPolicy & ImageResults & { composer?: ImageComposerData; provider?: SunburstProvider; variant?: 'Sunburst' | 'Flare'; label?: string; locked?: boolean; imageInputs: number; exposed?: SunburstParameter[] }, 'sunburst'>;
+export type SunburstNode = Node<SunburstSettings & OutputPolicy & ImageResults & { composer?: ImageComposerData; imageSource?: 'imported'; provider?: SunburstProvider; variant?: 'Sunburst' | 'Flare'; label?: string; locked?: boolean; imageInputs: number; exposed?: SunburstParameter[] }, 'sunburst'>;
 export const isSunburstNode = (node: AppNode): node is SunburstNode => node.type === 'sunburst';
 export type CanvasImage = SunburstNode & { data: { composer: ImageComposerData } };
 export const isCanvasImageNode = (node: AppNode): node is CanvasImage => isSunburstNode(node) && Boolean(node.data.composer);
+export const isImportedCanvasImage = (node: AppNode) => isCanvasImageNode(node) && node.data.imageSource === 'imported';
 export type NanoBananaNode = Node<NanoBananaSettings & OutputPolicy & ImageResults & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof NanoBananaSettings)[] }, 'nano-banana'>;
 export type SeedreamNode = Node<SeedreamSettings & OutputPolicy & ImageResults & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof SeedreamSettings)[] }, 'seedream'>;
 export const isSeedreamNode = (node: AppNode): node is SeedreamNode => node.type === 'seedream';

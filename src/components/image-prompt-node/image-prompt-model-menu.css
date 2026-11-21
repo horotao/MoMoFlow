@@ -1,4 +1,4 @@
-.image-model-menu { position: fixed; z-index: 750; display: flex; flex-direction: column; width: min(384px, calc(100vw - 16px)); overflow: hidden; border: 1px solid var(--node-fill); border-radius: 16px; background: rgb(25 25 24 / .9); box-shadow: 0 4px 6px -1px #00000059, 0 2px 4px -2px #0000004d; backdrop-filter: blur(16px); outline: none; }
+.image-model-menu { position: fixed; z-index: var(--image-menu-layer); display: flex; flex-direction: column; width: min(384px, calc(100vw - 16px)); overflow: hidden; border: 1px solid var(--node-fill); border-radius: 16px; background: rgb(25 25 24 / .9); box-shadow: 0 4px 6px -1px #00000059, 0 2px 4px -2px #0000004d; backdrop-filter: blur(16px); outline: none; }
 .image-model-menu[data-side=top] { transform: translateY(-100%); }
 .image-model-menu button { touch-action: manipulation; }
 .image-model-menu button:focus-visible { outline: 1px solid var(--node-muted); outline-offset: -1px; }

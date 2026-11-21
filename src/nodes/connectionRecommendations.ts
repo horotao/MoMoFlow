@@ -1,6 +1,6 @@
 import type { Connection, XYPosition } from '@xyflow/react';
 import type { AppNode } from './types';
-import { isCanvasImageNode, isNodeLocked } from './types.ts';
+import { isCanvasImageNode, isImportedCanvasImage, isNodeLocked } from './types.ts';
 import { isImageInputHandle } from './connectionRules.ts';
 
 export type PendingConnection = {
@@ -30,7 +30,7 @@ export function connectionChoices(pending: PendingConnection, nodes: AppNode[]):
   if (pending.direction === 'source' && pending.handleId === 'result') {
     return [{ id: 'image:image-0', itemId: 'image', handleId: 'image-0', portY: 212 }];
   }
-  if (pending.direction === 'target' && isImageInputHandle(pending.handleId)) {
+  if (pending.direction === 'target' && !isImportedCanvasImage(node) && isImageInputHandle(pending.handleId)) {
     return [{ id: 'image:result', itemId: 'image', handleId: 'result', portY: 192 }];
   }
   return [];

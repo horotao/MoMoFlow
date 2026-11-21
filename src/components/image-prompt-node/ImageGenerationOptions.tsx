@@ -19,7 +19,8 @@ import './image-generation-options.css';
 export function ImageGenerationOptions() {
   const selectedId = useStore(state => {
     const selected = state.nodes.filter(node => node.selected);
-    return selected.length === 1 && selected[0].type === 'sunburst' && selected[0].data.composer ? selected[0].id : null;
+    return selected.length === 1 && selected[0].type === 'sunburst' && selected[0].data.composer
+      && selected[0].data.imageSource !== 'imported' ? selected[0].id : null;
   });
   return selectedId ? <GenerationOptions key={selectedId} nodeId={selectedId} /> : null;
 }

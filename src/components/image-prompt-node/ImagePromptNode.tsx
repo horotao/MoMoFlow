@@ -27,6 +27,7 @@ function OutputPortIcon() {
 }
 
 export interface ImagePromptNodeProps {
+  assetOnly?: boolean;
   /** Canvas connection handles share the visual port hit areas. */
   handles?: { image: ReactNode; output: ReactNode };
   promptReadOnly?: boolean;
@@ -72,7 +73,7 @@ export interface ImagePromptNodeProps {
 }
 
 export function ImagePromptNode({
-  handles, promptReadOnly, prompt: promptValue, defaultPrompt = '', onPromptChange,
+  assetOnly = false, handles, promptReadOnly, prompt: promptValue, defaultPrompt = '', onPromptChange,
   quantity: quantityValue, defaultQuantity = 1, onQuantityChange,
   selected: selectedValue, defaultSelected = false, onSelectedChange,
   locked: lockedValue, defaultLocked = false, onLockedChange,
@@ -212,7 +213,7 @@ export function ImagePromptNode({
       <section
         ref={ports.node}
         className={`image-node${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}${contentOverflows ? ' is-overflowing' : ''}${hasResult ? ' has-result' : ''}${compactComposer ? ' has-compact-composer' : ''} ${className}`}
-        aria-label="Image node"
+        aria-label={assetOnly ? '导入的图片' : 'Image node'}
         aria-busy={busy}
         data-toolbar-hovered={toolbarHovered || undefined}
         onPointerEnter={enterToolbarHover}
@@ -233,14 +234,14 @@ export function ImagePromptNode({
 
         <header className="image-node-heading">
           <h1><ImagePromptIcon name="image" /><span>{title}</span></h1>
-          <span className="image-node-model">{busy && Number.isFinite(generation.estimatedSeconds) && (generation.estimatedSeconds ?? 0) > 0
+          {!assetOnly && <span className="image-node-model">{busy && Number.isFinite(generation.estimatedSeconds) && (generation.estimatedSeconds ?? 0) > 0
             ? <span className="image-node-estimate">~{Math.round(generation.estimatedSeconds!)}s</span>
-            : <><ImagePromptModelBrand brand={activeModel?.brand ?? 'openai'} /><span>{displayModelLabel}</span></>}</span>
+            : <><ImagePromptModelBrand brand={activeModel?.brand ?? 'openai'} /><span>{displayModelLabel}</span></>}</span>}
         </header>
 
         <div className="image-node-card" onClick={() => { if (!locked && !busy && !hasResult) editor.current?.focus(); }}>
           {hasResult && !busy && <div ref={resultElement} className="image-node-result"><ImagePromptResult variantId={activeVariantId}>{result}</ImagePromptResult></div>}
-          <div className="image-node-surface">
+          {!assetOnly && <div className="image-node-surface">
             <div className="image-node-surface-body">
             <div ref={promptScroll} className="image-node-composer nowheel" onWheel={event => event.stopPropagation()}>
               <textarea ref={editor} rows={1} value={prompt} readOnly={locked || promptReadOnly} spellCheck aria-label="Chat message" onChange={event => setPrompt(event.currentTarget.value)} onKeyDown={event => {
@@ -282,18 +283,18 @@ export function ImagePromptNode({
               </div>
             </div>
             </div>
-          </div>
+          </div>}
           <ImagePromptGeneration state={generation} />
         </div>
 
         <ImagePromptHistory variants={variants} activeVariant={activeVariant} onVariantChange={onVariantChange} />
 
         <div className="image-node-ports">
-          <div className="image-node-inputs">
+          {!assetOnly && <div className="image-node-inputs">
             <button ref={ports.input} data-connection-port="image" data-connected={imageInputCount > 0 || undefined} disabled={locked} type="button" className="image-node-input" aria-label="Image input" onClick={onImageInput}>
               <span className="image-node-port-label"><span className="image-node-port-icon image-node-port-icon-image" aria-hidden="true" />Image <span className="image-node-port-count">{imageInputCount}/16</span></span><PortRing />{handles?.image}
             </button>
-          </div>
+          </div>}
           <button ref={ports.output} data-connection-port="output" data-connected={outputConnected || undefined} disabled={locked} type="button" className="image-node-output" aria-label="Add connected node" onClick={onAddConnectedNode}>
             <span className="image-node-output-visual"><OutputPortIcon /></span>{handles?.output}
           </button>

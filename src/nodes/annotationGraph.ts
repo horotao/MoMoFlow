@@ -8,7 +8,7 @@ import { isFileNode, isImageGeneratorNode, isInteractiveEditNode, type AppNode, 
 export type AnnotationSource = FileNode | ImageGeneratorNode;
 export const isAnnotationSource = (node: AppNode | undefined): node is AnnotationSource => isFileNode(node) || isImageGeneratorNode(node);
 export const annotationAssets = (node: AnnotationSource) => isFileNode(node) ? fileAssets(node.data) : node.data.results ?? [];
-export function selectedImageResult(node: ImageGeneratorNode) {
+export function selectedImageResult(node: Pick<ImageGeneratorNode, 'data'>) {
   const results = node.data.results ?? [];
   return results.find(asset => asset.id === node.data.activeResultId) ?? results[results.length - 1];
 }

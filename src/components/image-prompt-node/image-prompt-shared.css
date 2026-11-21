@@ -1,3 +1,6 @@
+/* Body-level image menus sit above canvas panels; their help tips sit above the menus. */
+:root { --image-menu-layer: 1500; }
+
 @font-face {
   font-family: GeistSans;
   src: url('./assets/geist.woff2') format('woff2');

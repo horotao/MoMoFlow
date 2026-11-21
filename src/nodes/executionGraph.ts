@@ -1,8 +1,8 @@
 import { mapAssets } from '../persistence/workflowStorage.ts';
 import { isTextNode } from './textVariables.ts';
 import type { Edge } from '@xyflow/react';
-import type { AppNode, FileAsset } from './types';
-import { isImageGeneratorNode, isNodeLocked } from './types.ts';
+import type { AppNode, FileAsset, ImageGeneratorNode } from './types';
+import { isImageGeneratorNode, isImportedCanvasImage, isNodeLocked } from './types.ts';
 import { annotationOutput, pinnedResultAsset, pinnedResultInput, selectedImageResult, storedAnnotationResult } from './annotationGraph.ts';
 import { isAnnotationInput } from './interactiveEdit.ts';
 import { hasVariable } from './textDocument.ts';
@@ -28,7 +28,8 @@ export type ExecutionGraph = {
 };
 export type GenerationRecord = { version: 1; taskId?: string; inputSignature: string; outputSignature: string };
 export type OutputPolicy = { outputMode?: 'manual' | 'fixed'; sourceSignature?: string };
-export const isModelNode = isImageGeneratorNode;
+export const isModelNode = (node: AppNode | undefined): node is ImageGeneratorNode =>
+  isImageGeneratorNode(node) && !isImportedCanvasImage(node);
 export const stableSignature = (value: unknown): string => JSON.stringify(value, (_key, item: unknown) => {
   if (item && typeof item === 'object' && !Array.isArray(item)) return Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)));
   return item;
@@ -37,7 +38,7 @@ export function selectedResult(node: AppNode) {
   return isImageGeneratorNode(node) ? selectedImageResult(node) : undefined;
 }
 export function fixedOutput(node: AppNode, graph: ExecutionGraph) {
-  return isImageGeneratorNode(node) && (!graph.refreshImages?.has(node.id)) && Boolean(selectedResult(node));
+  return isImageGeneratorNode(node) && (isImportedCanvasImage(node) || !graph.refreshImages?.has(node.id)) && Boolean(selectedResult(node));
 }
 export function executionInputs(node: AppNode, _handle: string | null | undefined, graph: ExecutionGraph): Edge[] {
   const edges = graph.edges.filter(edge => edge.target === node.id
@@ -270,6 +271,7 @@ export function preflight(graph: ExecutionGraph, targets: string[], runs: number
       if (!targets.includes(id) && fixedOutput(node, graph)) return;
 
       if (id === target && (!isModelNode(node) || isNodeLocked(node))) nodeProblem(node, '节点已锁定或不能运行。');
+      if (isImportedCanvasImage(node)) nodeProblem(node, '请替换无法读取的导入图片。');
 
       if (node.type === 'file' && !fileAssets(node.data).some(asset => asset.kind === 'image')) nodeProblem(node, '请先上传图片。');
       const inputs = executionInputs(node, handle, graph);

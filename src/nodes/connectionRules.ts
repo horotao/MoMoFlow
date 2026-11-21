@@ -1,5 +1,5 @@
 import type { Connection, Edge } from '@xyflow/react';
-import { isCanvasImageNode, isNodeLocked, type AppNode } from './types.ts';
+import { isCanvasImageNode, isImportedCanvasImage, isNodeLocked, type AppNode } from './types.ts';
 
 export const imageInputHandles = Array.from({ length: 16 }, (_, index) => `image-${index}`);
 export const isImageInputHandle = (handle?: string | null) => !!handle && imageInputHandles.includes(handle);
@@ -29,7 +29,7 @@ export function canConnect(connection: Connection | Edge, nodes: AppNode[], edge
   const source = nodes.find(node => node.id === connection.source);
   const target = nodes.find(node => node.id === connection.target);
   if (!source || !target || !isCanvasImageNode(source) || !isCanvasImageNode(target)
-    || isNodeLocked(source) || isNodeLocked(target) || !isImageWire(connection)) return false;
+    || isImportedCanvasImage(target) || isNodeLocked(source) || isNodeLocked(target) || !isImageWire(connection)) return false;
   if (edges.some(edge => edge.source === source.id && edge.target === target.id)) return false;
   return !createsImageCycle(connection, withoutReplacedInput(connection, edges));
 }
