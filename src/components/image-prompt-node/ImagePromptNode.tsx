@@ -134,6 +134,9 @@ export function ImagePromptNode({
   const compactComposer = busy || hasResult;
   const hasReferences = !assetOnly && references.length > 0;
   const ports = useMagneticPorts();
+  const referenceStrip = hasReferences && <ImagePromptReferences references={references} onRemove={locked ? undefined : onRemoveReference}
+    onReorder={locked ? undefined : onReorderReferences} scale={referenceScale}
+    restoreFocus={() => ports.node.current?.focus({ preventScroll: true })} />;
 
   useEffect(() => () => {
     clearTimeout(toolbarHideTimer.current);
@@ -251,6 +254,7 @@ export function ImagePromptNode({
           {hasResult && !busy && <div ref={resultElement} className="image-node-result"><ImagePromptResult variantId={activeVariantId}>{result}</ImagePromptResult></div>}
           {!assetOnly && <div className="image-node-surface">
             <div className="image-node-surface-body">
+            {compactComposer && referenceStrip}
             <div ref={promptScroll} className="image-node-composer nowheel" onWheel={event => event.stopPropagation()}>
               <textarea ref={editor} rows={1} value={prompt} readOnly={locked || promptReadOnly} spellCheck aria-label="Chat message" onChange={event => setPrompt(event.currentTarget.value)} onKeyDown={event => {
                 if (event.key === 'Tab' && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && !event.nativeEvent.isComposing && !prompt && !locked && !promptReadOnly) {
@@ -262,9 +266,7 @@ export function ImagePromptNode({
             </div>
 
             <div className="image-node-footer">
-            {hasReferences && <ImagePromptReferences references={references} onRemove={locked ? undefined : onRemoveReference}
-              onReorder={locked ? undefined : onReorderReferences} scale={referenceScale}
-              restoreFocus={() => ports.node.current?.focus({ preventScroll: true })} />}
+            {!compactComposer && referenceStrip}
 
             <div className="image-node-actions" onClick={event => event.stopPropagation()}
               onPointerOver={event => {

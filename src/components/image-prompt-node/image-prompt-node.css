@@ -86,6 +86,9 @@
 .image-node.has-compact-composer .image-node-composer::-webkit-scrollbar-thumb { background-color: var(--node-muted); }
 .image-node.has-compact-composer .image-node-footer { position: relative; inset: auto; flex: none; opacity: 1; visibility: inherit; transform: none; transition: none; }
 .image-node.has-compact-composer .image-node-actions::before { display: none; }
+.image-node.has-compact-composer .image-node-generate-group {
+  box-shadow: 0 4px 6px -1px #00000059, 0 2px 4px -2px #0000004d;
+}
 
 .image-node.has-reference-images:not(.has-compact-composer) .image-node-composer {
   bottom: 112px;
