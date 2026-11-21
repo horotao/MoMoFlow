@@ -156,6 +156,7 @@
   height: 40px;
   display: flex;
   align-items: center;
+  gap: 8px;
   opacity: 0;
   visibility: hidden;
   transform: translateY(4px);
