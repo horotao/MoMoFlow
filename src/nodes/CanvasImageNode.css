@@ -36,9 +36,11 @@
 .canvas-image-node .is-locked .image-node-heading { cursor: default; }
 
 /* React Flow gives each node its own stacking context and raises selected nodes to 1000. */
-.canvas-tool-select .react-flow__node.canvas-image-node:has(.image-node[data-toolbar-hovered=true] > .image-node-toolbar-bridge) {
+.canvas-tool-select .react-flow__node.canvas-image-node:has(.image-node[data-toolbar-hovered=true] > .image-node-toolbar-bridge:not(:empty)) {
   z-index: 1001 !important;
 }
+
+.canvas-image-node .image-node-toolbar-bridge:empty { display: none; }
 
 .canvas-image-node .image-node-toolbar-bridge {
   transform-origin: bottom center;

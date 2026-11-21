@@ -16,6 +16,7 @@ export interface ImagePromptToolbarProps {
   defaultAspectRatio?: string;
   onAspectRatioChange?: (ratio: string) => void;
   onAspectRatioMenuOpenChange?: (open: boolean) => void;
+  hidden?: boolean;
   locked?: boolean;
   onLockedChange?: (locked: boolean) => void;
   onModelClick?: () => void;
@@ -29,7 +30,7 @@ export interface ImagePromptToolbarProps {
 
 export function ImagePromptToolbar({
   modelLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, onModelMenuOpenChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange, onAspectRatioMenuOpenChange, locked = false,
-  onLockedChange, onModelClick, onAspectRatioClick, onToolsClick, onTagClick,
+  hidden = false, onLockedChange, onModelClick, onAspectRatioClick, onToolsClick, onTagClick,
   onDownload, downloadDisabled = true,
   className = '',
 }: ImagePromptToolbarProps) {
@@ -67,9 +68,12 @@ export function ImagePromptToolbar({
     onAspectRatioMenuOpenChange?.(true);
   }
   useEffect(() => {
-    if (locked && menuOpen) closeMenu();
-    if (locked && aspectMenuOpen) closeAspectMenu();
-  }, [locked, menuOpen, aspectMenuOpen, closeMenu, closeAspectMenu]);
+    if (locked || hidden) {
+      if (menuOpen) closeMenu();
+      if (aspectMenuOpen) closeAspectMenu();
+    }
+  }, [locked, hidden, menuOpen, aspectMenuOpen, closeMenu, closeAspectMenu]);
+  if (hidden) return null;
   return (
     <div className={`image-node-toolbar ${className}`} role="toolbar" aria-label="Image node tools">
       <button ref={trigger} type="button" className="image-node-toolbar-label" aria-label={`选择图像模型：${label}`} aria-haspopup="dialog" aria-expanded={menuOpen} aria-controls={menuOpen ? menuId : undefined} disabled={locked}

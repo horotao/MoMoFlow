@@ -69,12 +69,16 @@ async function run() {
   }
   for (const id of ['a', 'b']) {
     const running = document.querySelector(`[data-id="${id}"] .image-node[aria-busy="true"]`)!;
+    const surface = running.querySelector('.image-node-surface')!;
     check(running.classList.contains('is-selected') && !running.querySelector('textarea')!.readOnly
-      && ['.image-node-toolbar-bridge', '.image-node-surface'].every(selector => {
-        const element = running.querySelector(selector)!;
-        return getComputedStyle(element).visibility === 'visible' && element.getBoundingClientRect().height > 0;
-      }), `Generating selected Image ${id} keeps its toolbar visible and its prompt editable`);
+      && getComputedStyle(surface).visibility === 'visible' && surface.getBoundingClientRect().height > 0
+      && !running.querySelector('.image-node-toolbar'), `Multi-selected generating Image ${id} hides its toolbar and keeps its prompt editable`);
   }
+  api.setNodes(nodes => nodes.map(node => ({ ...node, selected: node.id === 'a' })));
+  await settle();
+  const toolbar = document.querySelector('[data-id="a"] .image-node-toolbar-bridge')!;
+  check(getComputedStyle(toolbar).visibility === 'visible' && toolbar.getBoundingClientRect().height > 0,
+    'Returning to a single generating Image shows its toolbar again');
   const wideRing = document.querySelector<HTMLElement>('[data-id="a"] .image-node-generation-ring')!;
   const sweep = wideRing.querySelector<HTMLElement>('.image-node-generation-light')!;
   check(wideRing.offsetWidth === 896 && wideRing.offsetHeight === 384 && sweep.offsetWidth === sweep.offsetHeight
