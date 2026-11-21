@@ -20,9 +20,9 @@ export function hasImageDimensions(image: ImageDimensions): image is Required<Im
     && typeof height === 'number' && Number.isFinite(height) && height > 0;
 }
 
-export function canvasImageSize(ratio: string, result?: ImageDimensions) {
+export function canvasImageSize(ratio: string, result?: ImageDimensions, reference?: ImageDimensions) {
   const [width, height] = ratio.split(':').map(Number);
-  const dimensions = result ?? { width, height };
+  const dimensions = result ?? (ratio === 'auto' ? reference : undefined) ?? { width, height };
   if (!hasImageDimensions(dimensions)) return { width: canvasImageBaseSize, height: canvasImageBaseSize };
   const scale = canvasImageBaseSize / Math.min(dimensions.width, dimensions.height);
   return { width: Math.round(dimensions.width * scale), height: Math.round(dimensions.height * scale) };

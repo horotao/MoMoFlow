@@ -11,8 +11,8 @@ export function useMagneticPorts() {
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
-    const anchors = [{ x: -24, y: 212 }, { x: 412, y: 192 }];
-    const tracks = anchors.map(() => ({
+    const elements = [input, output];
+    const tracks = elements.map(() => ({
       x: 0, y: 0, fromX: 0, fromY: 0, toX: 0, toY: 0, started: 0,
     }));
     let frame = 0;
@@ -29,10 +29,9 @@ export function useMagneticPorts() {
     function paint(now: number) {
       frame = 0;
       let moving = false;
-      const elements = [input.current, output.current];
       tracks.forEach((track, index) => {
         moving = advance(track, now) || moving;
-        const element = elements[index];
+        const element = elements[index].current;
         const transform = `translate3d(${track.x}px, ${track.y}px, 0px)`;
         if (element && element.style.transform !== transform) element.style.transform = transform;
       });
@@ -40,15 +39,18 @@ export function useMagneticPorts() {
     }
 
     function retarget() {
-      const rect = node.current?.getBoundingClientRect();
-      if (!rect) return;
-      const scale = rect.width / 384;
+      const frame = node.current;
+      if (!frame?.offsetWidth) return;
+      const rect = frame.getBoundingClientRect();
+      const width = frame.offsetWidth, height = frame.offsetHeight;
+      const scale = rect.width / width;
+      const anchors = [{ x: -24, y: height / 2 + 20 }, { x: width + 28, y: height / 2 }];
       const now = performance.now();
       tracks.forEach((track, index) => {
         advance(track, now);
         let x = 0;
         let y = 0;
-        const element = [input.current, output.current][index];
+        const element = elements[index].current;
         if (pointer && finePointer.matches && !element?.disabled && element?.dataset.connectionEligible !== 'false') {
           const dx = (pointer.x - rect.left) / scale - anchors[index].x;
           const dy = (pointer.y - rect.top) / scale - anchors[index].y;

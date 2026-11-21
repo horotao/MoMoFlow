@@ -31,3 +31,15 @@ test('empty Image composers can wire together and only recommend other composers
   }
   assert.deepEqual(connectionChoices(pending(second.id, 'target', 'prompt'), nodes), []);
 });
+
+test('quick-created targets align their input with the drop using the source image ratio', () => {
+  const size = (width: number, height: number): SunburstNode => ({ ...generator, data: {
+    ...generator.data, composer: { prompt: '', ratio: 'auto', quantity: 1 },
+    results: [{ id: 'asset', name: 'source.png', kind: 'image', url: 'blob:source', width, height }],
+  } });
+  const start = pending(generator.id, 'source', 'result');
+  for (const [width, height, portX, portY] of [[3, 4, -24, 276], [2, 1, -216, 212]]) {
+    const [choice] = connectionChoices(start, [size(width, height)]);
+    assert.deepEqual([choice.portX, choice.portY], [portX, portY]);
+  }
+});

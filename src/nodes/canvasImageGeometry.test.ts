@@ -12,3 +12,11 @@ test('result dimensions take precedence over the next generation ratio', () => {
   assert.deepEqual(canvasImageSize('9:16', { width: 1536, height: 1024 }), { width: 576, height: 384 });
   assert.deepEqual(canvasImageSize('9:16', { width: 0, height: 1024 }), { width: 384, height: 384 });
 });
+
+test('automatic empty nodes use the reference dimensions while explicit ratios and results take precedence', () => {
+  const reference = { width: 720, height: 960 };
+  assert.deepEqual(canvasImageSize('auto', undefined, reference), { width: 384, height: 512 });
+  assert.deepEqual(canvasImageSize('auto', undefined, { width: 720 }), { width: 384, height: 384 });
+  assert.deepEqual(canvasImageSize('16:9', undefined, reference), { width: 683, height: 384 });
+  assert.deepEqual(canvasImageSize('auto', { width: 1536, height: 1024 }, reference), { width: 576, height: 384 });
+});

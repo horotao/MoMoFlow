@@ -216,9 +216,8 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     if (pending && !choice) return;
     const created: AppNode[] = [], connections: Edge[] = [];
     for (let i = 0; i < quantity; i++) {
-      const portX = pending ? (pending.direction === 'source' ? -24 : 412) : 0;
       const node = createLibraryNode('image', {
-        x: pendingNodeMenu.position.x - portX + (i % 4) * 512,
+        x: pendingNodeMenu.position.x - (choice?.portX ?? 0) + (i % 4) * 512,
         y: pendingNodeMenu.position.y - (choice?.portY ?? 0) + Math.floor(i / 4) * 512,
       });
       if (!node) return;
@@ -331,6 +330,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       onConnectEnd={onConnectEnd}
       onKeyDown={(event) => {
         if ((event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]') || event.nativeEvent.isComposing) return;
+        if (!(event.metaKey || event.ctrlKey) && (event.target as HTMLElement).closest('.image-node-reference-viewport')) return;
         if (isArrangeShortcut({ ...event, isComposing: event.nativeEvent.isComposing })) {
           const state = canvasStore.getState();
           const blockedTarget = (event.target as HTMLElement).closest('button, select, [role="menu"], [role="dialog"], [role="listbox"], [contenteditable], .react-flow__panel');

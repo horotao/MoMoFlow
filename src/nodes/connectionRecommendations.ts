@@ -2,6 +2,8 @@ import type { Connection, XYPosition } from '@xyflow/react';
 import type { AppNode } from './types';
 import { isCanvasImageNode, isImportedCanvasImage, isNodeLocked } from './types.ts';
 import { isImageInputHandle } from './connectionRules.ts';
+import { selectedImageResult } from './annotationGraph.ts';
+import { canvasImageBaseSize, canvasImageSize } from './canvasImageGeometry.ts';
 
 export type PendingConnection = {
   nodeId: string;
@@ -14,6 +16,7 @@ export type ConnectionChoice = {
   id: string;
   itemId: string;
   handleId: string | null;
+  portX: number;
   portY: number;
   detail?: string;
 };
@@ -28,10 +31,12 @@ export function connectionChoices(pending: PendingConnection, nodes: AppNode[]):
   const node = nodes.find(item => item.id === pending.nodeId);
   if (!node || !isCanvasImageNode(node) || isNodeLocked(node)) return [];
   if (pending.direction === 'source' && pending.handleId === 'result') {
-    return [{ id: 'image:image-0', itemId: 'image', handleId: 'image-0', portY: 212 }];
+    const { width, height } = canvasImageSize('auto', undefined, selectedImageResult(node));
+    return [{ id: 'image:image-0', itemId: 'image', handleId: 'image-0',
+      portX: -24 - (width - canvasImageBaseSize) / 2, portY: height / 2 + 20 }];
   }
   if (pending.direction === 'target' && !isImportedCanvasImage(node) && isImageInputHandle(pending.handleId)) {
-    return [{ id: 'image:result', itemId: 'image', handleId: 'result', portY: 192 }];
+    return [{ id: 'image:result', itemId: 'image', handleId: 'result', portX: 412, portY: 192 }];
   }
   return [];
 }

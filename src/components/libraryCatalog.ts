@@ -7,6 +7,6 @@ export function createLibraryNode(id: string, position: { x: number; y: number }
   const preset = sunburstPreset.newNodeData();
   return anchorCanvasImage<SunburstNode>({ id: crypto.randomUUID(), position, selected: true, type: 'sunburst', data: {
     ...preset, variant: 'Sunburst', outputFormat: 'png', imageInputs: 16,
-    size: preset.provider === 'openai' ? '1024x1024' : '1:1', composer: { prompt: '', quantity: 1, ratio: '1:1' },
+    size: 'auto', composer: { prompt: '', quantity: 1, ratio: 'auto' },
   } });
 }

@@ -1,0 +1,139 @@
+/* Values measured from FLORA's input-preview asset, independent of app controls. */
+.image-node-reference-viewport {
+  flex: none;
+  width: calc(100% + 32px);
+  margin: -80px -16px;
+  padding: 80px 80px 80px 16px;
+  overflow: auto hidden;
+  scrollbar-width: none;
+  touch-action: pan-x;
+  pointer-events: none;
+}
+.image-node-reference-viewport::-webkit-scrollbar { display: none; }
+.image-node-reference-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-height: 46px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: auto;
+}
+.image-node-reference {
+  position: relative;
+  flex: none;
+  padding-top: 6px;
+}
+.image-node-reference-card {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 40px;
+  padding-right: 0;
+  border-radius: 12px;
+  background: transparent;
+  transition: background-color 250ms cubic-bezier(0, 0, .2, 1), padding-right 250ms cubic-bezier(0, 0, .2, 1);
+}
+.image-node-reference-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid #fafaf223;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms cubic-bezier(0, 0, .2, 1);
+}
+.image-node .image-node-reference-thumbnail {
+  display: block;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #b5b3ad;
+  cursor: default;
+}
+.image-node-reference-media {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #fafaf223;
+  border-radius: 12px;
+  transform-origin: center;
+  transition: transform 250ms cubic-bezier(0, 0, .2, 1);
+}
+.image-node-reference-media > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.image-node-reference-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  font-family: GeistSans, sans-serif;
+  font-size: 12px;
+  line-height: 13.5px;
+  letter-spacing: normal;
+  text-align: left;
+  transition: max-width 250ms cubic-bezier(0, 0, .2, 1), opacity 250ms cubic-bezier(0, 0, .2, 1);
+}
+.image-node-reference-name {
+  overflow: hidden;
+  color: #eeeeec;
+  font-weight: 500;
+  text-overflow: ellipsis;
+}
+.image-node-reference-type { color: #b5b3ad; font-weight: 400; }
+.image-node .image-node-reference-remove {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 1px solid #fafaf223;
+  border-radius: 50%;
+  background: #191918e6;
+  box-shadow: 0 20px 25px -5px #00000080, 0 8px 10px -6px #00000066;
+  color: #b5b3ad;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms cubic-bezier(.4, 0, .2, 1);
+}
+.image-node-reference-remove > svg { width: 8px; height: 8px; flex: none; }
+.image-node-reference[data-expanded=true] .image-node-reference-card { padding-right: 8px; background: #191918e6; }
+.image-node-reference[data-expanded=true] .image-node-reference-card::before { opacity: 1; }
+.image-node-reference[data-expanded=true] .image-node-reference-media { transform: scale(.8); }
+.image-node-reference[data-expanded=true] .image-node-reference-details { max-width: 80px; opacity: 1; }
+.image-node-reference[data-expanded=true] .image-node-reference-remove { opacity: 1; pointer-events: auto; }
+.image-node .image-node-reference-thumbnail:focus-visible,
+.image-node .image-node-reference-remove:focus-visible { outline: 2px solid #fafaf223; outline-offset: 1px; }
+/* Keyboard changes are immediate. Motion can reverse from its current state. */
+.image-node-reference-strip[data-keyboard=true] .image-node-reference *,
+.image-node-reference-strip[data-keyboard=true] .image-node-reference-card::before { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .image-node-reference *, .image-node-reference-card::before { transition: none; }
+}
+
+.image-node-reference[data-sortable=true] { touch-action: none; }
+.image-node-reference[data-sortable=true] .image-node-reference-thumbnail { cursor: grab; }
+.image-node-reference[data-dragging=true] { z-index: 2; }
+.image-node-reference[data-dragging=true] .image-node-reference-thumbnail { cursor: grabbing; }

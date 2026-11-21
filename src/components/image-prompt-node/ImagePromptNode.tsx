@@ -3,6 +3,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } f
 import { createPortal } from 'react-dom';
 import { ImagePromptIcon } from './ImagePromptIcon';
 import { ImagePromptHistory, type ImagePromptVariant } from './ImagePromptHistory';
+import { ImagePromptReferences, type ImagePromptReference } from './ImagePromptReferences';
 import { ImagePromptResult } from './ImagePromptResult';
 import { ImagePromptToolbar } from './ImagePromptToolbar';
 import { imagePromptModels, defaultImagePromptModelSelection, type ImagePromptModelSelection } from './imagePromptModels';
@@ -69,6 +70,10 @@ export interface ImagePromptNodeProps {
   onAddConnectedNode?: () => void;
   /** Frontend connection hosts may report their current port occupancy. */
   imageInputCount?: number;
+  references?: readonly ImagePromptReference[];
+  onRemoveReference?: (id: string) => void;
+  onReorderReferences?: (ids: string[]) => void;
+  referenceScale?: number;
   outputConnected?: boolean;
 }
 
@@ -79,7 +84,8 @@ export function ImagePromptNode({
   locked: lockedValue, defaultLocked = false, onLockedChange,
   title = 'Image', modelLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange,
   suggestion = 'Oil paint macro, impasto texture', className = '', toolbar, generation = null, result, variants = [], activeVariant = 0, onVariantChange,
-  onGenerate, onMention, onDictate, onEnhance, onImageInput, onAddConnectedNode, imageInputCount = 0, outputConnected = false,
+  onGenerate, onMention, onDictate, onEnhance, onImageInput, onAddConnectedNode, imageInputCount = 0,
+  references = [], onRemoveReference, onReorderReferences, referenceScale = 1, outputConnected = false,
 }: ImagePromptNodeProps) {
   const [aspectRatio, setAspectRatio] = useControllableValue(aspectRatioValue, defaultAspectRatio, onAspectRatioChange);
   const [selection, setSelection] = useControllableValue(modelSelection, defaultModelSelection, onModelSelectionChange);
@@ -126,6 +132,7 @@ export function ImagePromptNode({
     };
   }, [busy, activeVariantId, hasResult]);
   const compactComposer = busy || hasResult;
+  const hasReferences = !assetOnly && references.length > 0;
   const ports = useMagneticPorts();
 
   useEffect(() => () => {
@@ -179,7 +186,7 @@ export function ImagePromptNode({
       const lineHeight = Number.parseFloat(getComputedStyle(field).lineHeight);
       field.style.height = '0px';
       // A scrollbar narrows the text by 15px. Measure again after it appears
-      // so the outer viewport owns all scrolling, including the 144px tail.
+      // so the outer viewport owns all scrolling, including its bottom padding.
       for (let pass = 0; pass < 2; pass++) {
         const lines = Math.max(1, Math.round(field.scrollHeight / lineHeight));
         field.style.height = `${lines * lineHeight}px`;
@@ -212,9 +219,10 @@ export function ImagePromptNode({
     <>
       <section
         ref={ports.node}
-        className={`image-node${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}${contentOverflows ? ' is-overflowing' : ''}${hasResult ? ' has-result' : ''}${compactComposer ? ' has-compact-composer' : ''} ${className}`}
+        className={`image-node${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}${contentOverflows ? ' is-overflowing' : ''}${hasResult ? ' has-result' : ''}${compactComposer ? ' has-compact-composer' : ''}${hasReferences ? ' has-reference-images' : ''} ${className}`}
         aria-label={title}
         aria-busy={busy}
+        tabIndex={hasReferences ? -1 : undefined}
         data-toolbar-hovered={toolbarHovered || undefined}
         onPointerEnter={enterToolbarHover}
         onPointerLeave={leaveToolbarHover}
@@ -253,6 +261,11 @@ export function ImagePromptNode({
               {!prompt && <div className="image-node-suggestion" aria-hidden="true"><span className="image-node-suggestion-label">Try "{suggestion}"</span><kbd>tab</kbd></div>}
             </div>
 
+            <div className="image-node-footer">
+            {hasReferences && <ImagePromptReferences references={references} onRemove={locked ? undefined : onRemoveReference}
+              onReorder={locked ? undefined : onReorderReferences} scale={referenceScale}
+              restoreFocus={() => ports.node.current?.focus({ preventScroll: true })} />}
+
             <div className="image-node-actions" onClick={event => event.stopPropagation()}
               onPointerOver={event => {
                 if (event.pointerType === 'touch' || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
@@ -281,6 +294,7 @@ export function ImagePromptNode({
                   <button className="image-node-generate" type="button" aria-label="Generate" onClick={() => onGenerate?.({ prompt, quantity })} disabled={!hasPrompt || locked}><ImagePromptIcon name="generate" /></button>
                 </div>
               </div>
+            </div>
             </div>
             </div>
           </div>}

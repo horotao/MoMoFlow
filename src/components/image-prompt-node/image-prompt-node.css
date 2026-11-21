@@ -84,9 +84,13 @@
 .image-node.has-compact-composer .image-node-surface:is(:hover, :focus-within) .image-node-surface-body { opacity: 1; }
 .image-node.has-compact-composer .image-node-composer { position: relative; inset: auto; flex: none; max-height: 72px; padding: 0 0 0 4px; }
 .image-node.has-compact-composer .image-node-composer::-webkit-scrollbar-thumb { background-color: var(--node-muted); }
-.image-node.has-compact-composer .image-node-actions { position: relative; inset: auto; flex: none; opacity: 1; visibility: visible; transform: none; }
+.image-node.has-compact-composer .image-node-footer { position: relative; inset: auto; flex: none; opacity: 1; visibility: inherit; transform: none; transition: none; }
 .image-node.has-compact-composer .image-node-actions::before { display: none; }
 
+.image-node.has-reference-images:not(.has-compact-composer) .image-node-composer {
+  bottom: 112px;
+  padding-bottom: 8px;
+}
 
 .image-node-composer {
   position: absolute;
@@ -147,21 +151,22 @@
 }
 .image-node-suggestion kbd { display: inline-flex; align-items: center; justify-content: center; margin-left: 4px; height: 16px; min-width: 16px; padding: 0 4px; border-radius: 6px; background: var(--node-fill); font: 12px/12px GeistSans, sans-serif; vertical-align: baseline; }
 
-.image-node-actions {
+.image-node-footer {
   position: absolute;
   z-index: 1;
   bottom: 16px;
   left: 16px;
   right: 16px;
-  height: 40px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
   transform: translateY(4px);
   transition: opacity 150ms cubic-bezier(.42, 0, .58, 1), transform 150ms cubic-bezier(.42, 0, .58, 1), visibility 150ms;
 }
+.image-node-actions { position: relative; display: flex; align-items: center; gap: 8px; height: 40px; }
 .image-node-actions::before {
   content: '';
   position: absolute;
@@ -324,7 +329,7 @@
 }
 .image-node-input:focus-visible { background: var(--node-fill); }
 
-.image-node:is(:hover, :focus-within, .is-selected) .image-node-actions { opacity: 1; visibility: visible; transform: none; }
+.image-node:is(:hover, :focus-within, .is-selected) .image-node-footer { opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
 .image-node:is([data-toolbar-hovered=true], :focus-within, .is-selected) .image-node-toolbar-bridge {
   opacity: 1;
   visibility: visible;
