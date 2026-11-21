@@ -37,6 +37,40 @@ export function wireCurve(start: Point, end: Point, zoom: number) {
   return segment(controls(start, end, zoom), 0, 1);
 }
 
+/** Running highlights use a radial light, rather than a percentage of the stroke.
+ * Eight curve samples match the reference's length estimate in canvas units. */
+export function wirePacket(start: Point, end: Point) {
+  const points = controls(start, end, 1);
+  let length = 0, previous = start;
+  for (let index = 1; index <= 8; index++) {
+    const next = at(points, index / 8);
+    length += Math.hypot(next.x - previous.x, next.y - previous.y);
+    previous = next;
+  }
+  const radius = Math.min(50, length / 3);
+  const lead = radius * 1.4;
+  return { points, length, radius, lead,
+    durationMs: Math.min(2000, Math.max(500, (length + 2 * lead) / 600 * 1000)) };
+}
+
+export function wirePacketCenter(packet: ReturnType<typeof wirePacket>, phase: number): Point {
+  const { points, length, lead } = packet;
+  const distance = phase * (length + 2 * lead) - lead;
+  const t = Math.max(0, Math.min(1, distance / Math.max(length, .0001)));
+  const point = at(points, t);
+  const overshoot = distance < 0 ? distance : Math.max(distance - length, 0);
+  if (!overshoot) return point;
+  let direction = tangent(points, t);
+  if (Math.hypot(direction.x, direction.y) < .0001) {
+    direction = { x: points[3].x - points[0].x, y: points[3].y - points[0].y };
+  }
+  const magnitude = Math.hypot(direction.x, direction.y);
+  return magnitude < .0001 ? point : {
+    x: point.x + direction.x / magnitude * overshoot,
+    y: point.y + direction.y / magnitude * overshoot,
+  };
+}
+
 /** Flora's moving dashes are spaced in Bézier parameter t: they stretch a
  * little in the fast middle of the curve. Uniform SVG dasharray loses that
  * shape. Sub-curves preserve its horizontal tangents and moving dash phase. */
