@@ -155,7 +155,8 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
           if (!data) return;
           event.preventDefault();
           const { nodes: pasted } = migrateLegacyImageGraph([{
-            id: crypto.randomUUID(), type: 'sunburst', position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data,
+            id: crypto.randomUUID(), type: 'sunburst', position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 },
+            origin: saved.node.origin?.[0] === 0.5 && saved.node.origin?.[1] === 0 ? [0.5, 0] : undefined, data,
           }], []);
           setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...pasted.map(node => ({ ...node, selected: true }))]);
           return;

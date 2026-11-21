@@ -8,6 +8,7 @@ import { downloadAsset } from './fileMedia';
 import { savedImagePrompt } from './generationRecord';
 import { imageInputHandles, isImageInputHandle } from './connectionRules';
 import { changeComposerSettings } from './imageComposerSettings';
+import { canvasImageSize, hasImageDimensions } from './canvasImageGeometry';
 import type { AppNode, CanvasImage, ImageComposerData } from './types';
 import './CanvasImageNode.css';
 
@@ -39,6 +40,10 @@ export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps
   const available = imageInputHandles.find(handle => !occupied.has(handle));
   useLayoutEffect(() => { internals(id); }, [id, internals, available, edges]);
   const active = results.find(asset => chosen && (asset.generation?.taskId ?? asset.id) === chosen) ?? results.find(asset => asset.id === data.activeResultId) ?? results[results.length - 1];
+  const [loadedSizes, setLoadedSizes] = useState<Record<string, { width: number; height: number }>>({});
+  const needsImageSize = active && !hasImageDimensions(active);
+  const resultSize = needsImageSize ? loadedSizes[active.url] ?? active : active;
+  const size = canvasImageSize(composer.ratio, resultSize);
   const variants = [
     ...results.map(asset => ({ id: asset.generation?.taskId ?? asset.id, thumbnail: <img src={asset.url} alt="" /> })),
     ...activeTasks.map(item => ({ id: item.id, pending: true })),
@@ -55,7 +60,7 @@ export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps
     onLockedChange: (locked: boolean) => updateNodeData(id, { locked }),
   };
   const connectable = isConnectable && !data.locked;
-  return <div className="canvas-image-mount">
+  return <div className="canvas-image-mount" style={size}>
     <ImagePromptNode {...controls} title={data.label} selected={selected}
       onSelectedChange={value => {
         if (selected !== value) setNodes(nodes => nodes.map(node => node.id === id ? { ...node, selected: value } : value ? { ...node, selected: false } : node));
@@ -64,7 +69,11 @@ export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps
       quantity={composer.quantity} onQuantityChange={quantity => edit({ quantity })}
       onGenerate={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: id }))}
       generation={task ? { id: task.id, startedAt: task.started || undefined, estimatedSeconds: 25 } : null}
-      result={active ? <img src={active.url} alt={active.name} /> : undefined}
+      result={active ? <img src={active.url} alt={active.name}
+        onLoad={needsImageSize && !loadedSizes[active.url] ? event => {
+          const { naturalWidth: width, naturalHeight: height } = event.currentTarget;
+          if (width && height) setLoadedSizes(current => ({ ...current, [active.url]: { width, height } }));
+        } : undefined} /> : undefined}
       variants={variants} activeVariant={task ? results.length + activeTasks.indexOf(task) : active ? results.indexOf(active) : 0}
       onVariantChange={index => {
         if (data.locked) return;

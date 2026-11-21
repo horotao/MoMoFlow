@@ -6,6 +6,7 @@ import { savedImagePrompt } from '../nodes/generationRecord.ts';
 import { migrateImageModelGraph } from '../nodes/sunburstMigration.ts';
 import { defaultSunburstSettings, imageSizeLabels, imageSizes, sunburstSizePreset } from '../nodes/sunburst.ts';
 import { isTextNode, resolveTextValue } from '../nodes/textVariables.ts';
+import { anchorCanvasImage } from '../nodes/canvasImageGeometry.ts';
 import { isCanvasImageNode, isFileNode, isImageGeneratorNode, type AppNode, type CanvasImage, type FileAsset, type ImageGeneratorNode } from '../nodes/types.ts';
 
 export function hasLegacyImageGraph(nodes: AppNode[], edges: Edge[]) {
@@ -63,7 +64,7 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
 } {
   if (!hasLegacyImageGraph(nodes, edges)) {
     const ids = new Set(nodes.map(node => node.id));
-    return { nodes, edges: edges.filter(edge => ids.has(edge.source) && ids.has(edge.target)) };
+    return { nodes: nodes.map(anchorCanvasImage), edges: edges.filter(edge => ids.has(edge.source) && ids.has(edge.target)) };
   }
   const legacy = migrateImageModelGraph(nodes, edges);
   const graph = migrateFileAnnotations(legacy.nodes, legacy.edges);
@@ -71,7 +72,7 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
   const copiedPrompts = new Set<string>();
   const converted = new Map<string, CanvasImage>();
   const add = (node: AppNode, data: CanvasImage['data']) => {
-    converted.set(node.id, { id: node.id, type: 'sunburst', position: positionOnCanvas(node, sources), data });
+    converted.set(node.id, anchorCanvasImage({ id: node.id, type: 'sunburst', position: positionOnCanvas(node, sources), data }));
   };
 
   for (const node of graph.nodes) {
@@ -83,7 +84,7 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
       if (isCanvasImageNode(node)) {
         const data = prompt?.trim() ? { ...node.data, composer: { ...node.data.composer, prompt } } : node.data;
         if (node.parentId) add(node, data);
-        else converted.set(node.id, data === node.data ? node : { ...node, data });
+        else converted.set(node.id, anchorCanvasImage(data === node.data ? node : { ...node, data }));
         continue;
       }
       const results = node.data.results?.filter(asset => asset.kind === 'image' && hasAsset(asset));

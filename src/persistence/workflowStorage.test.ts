@@ -15,6 +15,8 @@ test('snapshot retains Image data, position and lock without transient state', (
   assert.equal(saved.nodes.length, 1);
   assert.deepEqual((saved.nodes[0] as SunburstNode).data.composer, node.data.composer);
   assert.equal((saved.nodes[0] as SunburstNode).data.locked, true);
+  assert.deepEqual(saved.nodes[0].origin, [0.5, 0]);
+  assert.deepEqual(saved.nodes[0].position, { x: node.position.x + 192, y: node.position.y });
   assert.equal(saved.nodes[0].measured, undefined);
   assert.equal(saved.nodes[0].selected, undefined);
   assert.equal(node.selected, true);
@@ -72,7 +74,7 @@ test('a mixed project migrates prompts, media, model results and reference wires
   assert.deepEqual(media.data.results, [asset, secondImage]);
   assert.equal(media.data.activeResultId, secondImage.id);
   assert.equal(media.data.locked, true);
-  assert.deepEqual(model.position, legacy.position);
+  assert.deepEqual(model.position, { x: legacy.position.x + 192, y: legacy.position.y });
   assert.deepEqual(model.data.results, [asset]);
   assert.equal(model.data.composer.prompt, prompt.data.text);
   assert.equal(model.data.composer.ratio, '16:9');
@@ -102,7 +104,7 @@ test('migration keeps valid new wires first and flattens children of retired gro
     ],
     viewport: { x: 0, y: 0, zoom: 1 }, colorMode: 'dark',
   });
-  assert.deepEqual(saved.nodes[0].position, { x: 212, y: 320 });
+  assert.deepEqual(saved.nodes[0].position, { x: 404, y: 320 });
   assert.equal(saved.nodes[0].parentId, undefined);
   assert.deepEqual(saved.edges.map(edge => edge.id), ['new', 'migrated']);
 });

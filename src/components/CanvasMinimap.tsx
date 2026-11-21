@@ -168,14 +168,15 @@ export function CanvasMinimap({ motion, minZoom, maxZoom }: {
     })}
     {[...nodes].sort((a, b) => Number(a.id === focusedId) - Number(b.id === focusedId)).map(node => {
       const rect = projectMapRect(node, camera);
-      const side = rect.width * 0.735;
+      const width = rect.width * 0.735;
+      const height = rect.height * 0.735;
       const cx = rect.x + rect.width / 2;
       const cy = rect.y + rect.height / 2;
       const type = node.type && node.type in nodeIcons ? node.type as keyof typeof nodeIcons : 'file';
-      const iconSize = Math.min(10, side * 0.7);
+      const iconSize = Math.min(10, width * 0.7, height * 0.7);
       return <g key={node.id} className="navigation-map-node" data-selected={node.selected}
         data-focused={node.id === focusedId} style={{ transform: `scale(${1 + 0.2 * (focusWeights[node.id] ?? 0)})` }}>
-        <rect x={cx - side / 2} y={cy - side / 2} width={side} height={side} rx={1} />
+        <rect x={cx - width / 2} y={cy - height / 2} width={width} height={height} rx={1} />
         <g transform={`translate(${cx - iconSize / 2} ${cy - iconSize / 2}) scale(${iconSize / 24})`}>
           <NodeIcon nodeType={type} />
         </g>

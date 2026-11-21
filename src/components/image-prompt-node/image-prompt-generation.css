@@ -1,4 +1,4 @@
-.image-node-generation { position: absolute; z-index: 3; inset: 0; border-radius: inherit; pointer-events: none; }
+.image-node-generation { position: absolute; z-index: 3; inset: 0; container-type: size; border-radius: inherit; pointer-events: none; }
 .image-node-generation-fill-clip { position: absolute; inset: 0; clip-path: inset(2px round 22px); }
 .image-node-generation-fill { position: absolute; inset: 0; background: #fafaf223; transform: scaleX(0); transform-origin: left center; }
 .image-node-generation-ring {
@@ -12,7 +12,12 @@
 }
 .image-node-generation-light {
   position: absolute;
-  inset: -50%;
+  top: 50%;
+  left: 50%;
+  /* A square sized to the diagonal covers every corner throughout the rotation. */
+  width: calc(hypot(100cqw, 100cqh) + 2px);
+  aspect-ratio: 1;
+  translate: -50% -50%;
   background: conic-gradient(from 120deg,
     #eeeeec 0deg, rgb(238 238 236 / 6.3%) 60deg 120deg,
     #eeeeec 180deg, rgb(238 238 236 / 6.3%) 240deg 300deg, #eeeeec 360deg);

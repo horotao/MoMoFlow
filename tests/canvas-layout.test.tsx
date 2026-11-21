@@ -17,7 +17,7 @@ function Probe() {
 }
 const storage = new WorkflowStorage(`momoflow-layout-qa-${crypto.randomUUID()}`);
 const saved: Workflow = { nodes: [
-  { ...canvasImage('a', 500, 50), selected: true },
+  { ...canvasImage('a', 500, 50, { composer: { prompt: '', quantity: 1, ratio: '21:9' } }), selected: true },
   { ...canvasImage('b', 50, 400), selected: true },
   { ...canvasImage('c', 2000, 1000), selected: true },
   { ...canvasImage('d', 2500, 1250), selected: true },
@@ -36,10 +36,10 @@ async function run() {
   const before = positions(); const viewport = JSON.stringify(api.getViewport()); const edges = JSON.stringify(api.getEdges());
   canvas.focus(); press(); await settle();
   const arranged = positions();
-  check(api.getNode('c')!.position.x === 2000 && api.getNode('c')!.position.y === 1000, 'Second workflow preserves its original area and vertical separation');
-  check(api.getNode('isolated')!.position.x === -500.3 && api.getNode('isolated')!.position.y === -600.7, 'Selected isolated node stays exactly in place');
+  check(api.getInternalNode('c')!.internals.positionAbsolute.x === 2000 && api.getNode('c')!.position.y === 1000, 'Second workflow preserves its original area and vertical separation');
+  check(api.getInternalNode('isolated')!.internals.positionAbsolute.x === -500.3 && api.getNode('isolated')!.position.y === -600.7, 'Selected isolated node stays exactly in place');
   check(arranged !== before && api.getNode('a')!.position.x < api.getNode('b')!.position.x, 'Shift+L arranges dependency left to right at 63% zoom');
-  check(api.getNode('fixed')!.position.x === 1100 && JSON.stringify(api.getEdges()) === edges && JSON.stringify(api.getViewport()) === viewport, 'Unselected node, edges and viewport unchanged');
+  check(api.getInternalNode('fixed')!.internals.positionAbsolute.x === 1100 && JSON.stringify(api.getEdges()) === edges && JSON.stringify(api.getViewport()) === viewport, 'Unselected node, edges and viewport unchanged');
   press(); await settle(); check(positions() === arranged, 'Repeated arrange is idempotent');
   canvasHistoryShortcut('undo'); await settle(); check(positions() === before, 'One undo restores whole selection');
   canvasHistoryShortcut('redo'); await settle(); check(positions() === arranged, 'Redo restores layout');
@@ -75,6 +75,11 @@ async function run() {
         return getComputedStyle(element).visibility === 'visible' && element.getBoundingClientRect().height > 0;
       }), `Generating selected Image ${id} keeps its toolbar visible and its prompt editable`);
   }
+  const wideRing = document.querySelector<HTMLElement>('[data-id="a"] .image-node-generation-ring')!;
+  const sweep = wideRing.querySelector<HTMLElement>('.image-node-generation-light')!;
+  check(wideRing.offsetWidth === 896 && wideRing.offsetHeight === 384 && sweep.offsetWidth === sweep.offsetHeight
+    && sweep.offsetWidth >= Math.hypot(wideRing.offsetWidth, wideRing.offsetHeight),
+  'The rotating sweep covers all corners of a 21:9 Image');
   tasks.update(() => []);
   result.dataset.result = 'passed';
 }

@@ -246,7 +246,8 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  clip-path: polygon(evenodd, -2000px -2000px, 2000px -2000px, 2000px 2000px, -2000px 2000px, -2000px -2000px, 0 0, 100% 0, 100% 100%, 0 100%, 0 0);
+  clip-path: polygon(evenodd, -2000px -2000px, calc(100% + 2000px) -2000px, calc(100% + 2000px) calc(100% + 2000px),
+    -2000px calc(100% + 2000px), -2000px -2000px, 0 0, 100% 0, 100% 100%, 0 100%, 0 0);
 }
 .image-node-inputs, .image-node-output { pointer-events: auto; }
 .image-node-inputs {

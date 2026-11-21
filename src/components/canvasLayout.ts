@@ -41,7 +41,16 @@ export function arrangeSelectedNodes<T extends LayoutNode>(nodes: T[], edges: Pi
   }
   const moving = new Set(groups.flatMap(group => group.map(node => node.id)));
   type Rect = { left: number; top: number; right: number; bottom: number };
-  const rectangle = (node: T, position = node.position): Rect => ({
+  const anchorOffset = (node: T) => {
+    const { width, height } = size(node);
+    const [x, y] = node.origin ?? [0, 0];
+    return { x: width * x, y: height * y };
+  };
+  const topLeft = (node: T) => {
+    const offset = anchorOffset(node);
+    return { x: node.position.x - offset.x, y: node.position.y - offset.y };
+  };
+  const rectangle = (node: T, position = topLeft(node)): Rect => ({
     left: position.x, top: position.y, right: position.x + size(node).width, bottom: position.y + size(node).height,
   });
   const obstacles: Rect[] = nodes.filter(node => !moving.has(node.id) && !node.hidden && !node.parentId).map(node => rectangle(node));
@@ -50,7 +59,8 @@ export function arrangeSelectedNodes<T extends LayoutNode>(nodes: T[], edges: Pi
   for (const group of groups) {
     const memberIds = new Set(group.map(node => node.id));
     const groupLinks = links.filter(edge => memberIds.has(edge.source));
-    const origin = { x: snap(Math.min(...group.map(node => node.position.x))), y: snap(Math.min(...group.map(node => node.position.y))) };
+    const corners = group.map(topLeft);
+    const origin = { x: snap(Math.min(...corners.map(point => point.x))), y: snap(Math.min(...corners.map(point => point.y))) };
     const ranks = new Map(group.map(node => [node.id, 0]));
     const remaining = new Set(memberIds);
     // Stable cycle breaking keeps cyclic workflows finite and repeatable.
@@ -101,8 +111,11 @@ export function arrangeSelectedNodes<T extends LayoutNode>(nodes: T[], edges: Pi
   }
   let changed = false;
   const result = nodes.map(node => {
-    const position = positions.get(node.id);
-    if (!position || (position.x === node.position.x && position.y === node.position.y)) return node;
+    const corner = positions.get(node.id);
+    if (!corner) return node;
+    const offset = anchorOffset(node);
+    const position = { x: corner.x + offset.x, y: corner.y + offset.y };
+    if (position.x === node.position.x && position.y === node.position.y) return node;
     changed = true;
     return { ...node, position };
   });

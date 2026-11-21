@@ -1,7 +1,7 @@
 import { useWorkflowExecution } from './useWorkflowExecution';
 import { ExecutionProblem, isModelNode } from '../nodes/executionGraph';
 import { apimartExtMarkupError } from '../nodes/sunburst';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { TaskManager } from './TaskManager';
 import { useModelTaskStore } from './useModelTasks';
@@ -27,10 +27,16 @@ function executionErrorToast(error: unknown, title: string): ToastInput {
 }
 
 export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (prompt: string) => Promise<void> }) {
-  const { setNodes, getNodes, setCenter } = useReactFlow<AppNode>();
+  const { setNodes, getNodes, getNodesBounds, setCenter } = useReactFlow<AppNode>();
   const taskStore = useModelTaskStore();
   const execution = useWorkflowExecution(onImageGenerated);
   const { toasts, showToast, dismissToast, clearToasts } = useAnimatedToastStack({ limit: 4 });
+  const focusNode = useCallback((id: string) => {
+    if (!getNodes().some(node => node.id === id)) return;
+    const { x, y, width, height } = getNodesBounds([id]);
+    setNodes(nodes => nodes.map(node => ({ ...node, selected: node.id === id })));
+    void setCenter(x + width / 2, y + height / 2, { zoom: .8, duration: 300 });
+  }, [getNodes, getNodesBounds, setNodes, setCenter]);
   useEffect(() => {
     const run = (event: Event) => {
       const detail = (event as CustomEvent<string | string[]>).detail;
@@ -42,16 +48,13 @@ export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (promp
         clearToasts();
       } catch (error) {
         showToast(executionErrorToast(error, '无法运行模型'));
-        if (error instanceof ExecutionProblem) {
-          const node = getNodes().find(item => item.id === error.nodeId);
-          if (node) { setNodes(all => all.map(item => ({ ...item, selected: item.id === node.id }))); void setCenter(node.position.x + 230, node.position.y + 200, { zoom: .8, duration: 300 }); }
-        }
+        if (error instanceof ExecutionProblem) focusNode(error.nodeId);
       }
     };
     window.addEventListener('describer-run', run);
     window.addEventListener('sunburst-run', run);
     return () => { window.removeEventListener('describer-run', run); window.removeEventListener('sunburst-run', run); };
-  }, [getNodes, taskStore, execution, setNodes, setCenter, showToast, clearToasts]);
+  }, [getNodes, taskStore, execution, focusNode, showToast, clearToasts]);
   return <>
     <TaskManager
       onRetry={(task) => {
@@ -62,12 +65,7 @@ export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (promp
           clearToasts();
         } catch (error) { showToast(executionErrorToast(error, '无法重试任务')); }
       }}
-      onFocus={(id) => {
-        const node = getNodes().find((n) => n.id === id);
-        if (!node) return;
-        setNodes((all) => all.map((n) => ({ ...n, selected: n.id === id })));
-        void setCenter(node.position.x + 230, node.position.y + 200, { zoom: 0.8, duration: 300 });
-      }} />
+      onFocus={focusNode} />
     <AnimatedToastStack toasts={toasts} onDismiss={dismissToast} position="top-center" placement="fixed"
       labels={executionToastLabels} classNames={executionToastClassNames} />
   </>;
