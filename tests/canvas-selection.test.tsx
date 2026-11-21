@@ -8,6 +8,7 @@ import { useLayoutEffect, useRef, type CSSProperties } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CanvasBackground } from '../src/components/CanvasBackground';
 import { CanvasNavigation, canvasMaxZoom, canvasMinZoom, type ZoomTarget } from '../src/components/CanvasNavigation';
+import { edgeTypes } from '../src/edges';
 import { nodeTypes } from '../src/nodes';
 import type { AppNode } from '../src/nodes/types';
 import '../src/index.css';
@@ -18,8 +19,8 @@ const sampleNodes: AppNode[] = [
   canvasImage('palette', 1160, 640), canvasImage('prompt', 390, 610),
 ];
 const sampleEdges: Edge[] = [
-  { id: 'source-router', source: 'source', sourceHandle: 'file', target: 'router', targetHandle: 'variable-1' },
-  { id: 'router-preview', source: 'router', sourceHandle: null, target: 'preview', targetHandle: 'variable-1' },
+  { id: 'source-router', source: 'source', sourceHandle: 'result', target: 'router', targetHandle: 'image-0' },
+  { id: 'router-preview', source: 'router', sourceHandle: 'result', target: 'preview', targetHandle: 'image-0' },
 ];
 const fitViewOptions = {
   padding: { top: '160px', bottom: '100px', left: '130px', right: '130px' }, maxZoom: 1,
@@ -54,7 +55,7 @@ function SelectionPreview() {
     data-multiple={hasMultipleSelected}
     style={{ '--canvas-zoom': zoom } as CSSProperties}
     colorMode="dark" proOptions={{ hideAttribution: true }}
-    nodes={nodes} edges={edges} nodeTypes={nodeTypes}
+    nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
     onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect}
     minZoom={canvasMinZoom} maxZoom={canvasMaxZoom}
     selectionOnDrag selectionMode={SelectionMode.Partial} paneClickDistance={4} panOnDrag={[1, 2]}

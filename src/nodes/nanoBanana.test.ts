@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { isCanvasImageNode } from './types.ts';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, FileAsset, NanoBananaNode } from './types';
 import { defaultNanoBananaSettings, nanoBananaModel } from './nanoBanana.ts';
@@ -55,9 +56,11 @@ test('selected result, extraction, clipboard, asset ownership and persisted data
   assert.equal((extracted[0] as NanoBananaNode).data.activeResultId, second.id);
   assert.deepEqual(imageOutput(extracted[1], 'file'), [asset]);
   const snapshot = workflowSnapshot({ nodes: [{ ...generated, selected: true }], edges: [], viewport: { x: 1, y: 2, zoom: .5 }, colorMode: 'dark' });
-  const localData = { ...generated.data };
-  delete localData.exposed;
-  assert.equal(snapshot.nodes.length, 1);
-  assert.equal(snapshot.nodes[0].selected, undefined);
-  assert.deepEqual(snapshot.nodes[0].data, localData);
+  const [saved] = snapshot.nodes;
+  assert.ok(isCanvasImageNode(saved));
+  assert.equal(saved.selected, undefined);
+  assert.deepEqual(saved.data.results, [asset, second]);
+  assert.equal(saved.data.activeResultId, asset.id);
+  assert.equal(saved.data.composer.selection?.modelIds[0], 'nano-banana-2-1');
+  assert.equal(saved.data.composer.modelSettings?.['nano-banana-2-1'].resolution, '1K');
 });

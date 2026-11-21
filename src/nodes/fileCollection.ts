@@ -11,7 +11,6 @@ export function fileOutputKind(data: FileNode['data']) {
   const assets = fileAssets(data);
   return assets.length && assets.every((asset) => asset.kind === assets[0].kind) ? assets[0].kind : 'file';
 }
-export const filePortColors = { file: 'var(--media-port-file, #f3ffe3)', image: 'var(--media-port-image, #97ffcd)', video: 'var(--media-port-video, #a7b5ff)', audio: 'var(--media-port-audio, #ffce94)', '3d': 'var(--media-port-3d, #ffadce)' };
 export function fileNodeTitle(data: FileNode['data']) {
   const assets = fileAssets(data);
   if (data.label) return data.label;

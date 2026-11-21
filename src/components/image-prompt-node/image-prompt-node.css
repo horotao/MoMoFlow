@@ -156,7 +156,6 @@
   height: 40px;
   display: flex;
   align-items: center;
-  gap: 8px;
   opacity: 0;
   visibility: hidden;
   transform: translateY(4px);
@@ -251,11 +250,10 @@
 .image-node-inputs, .image-node-output { pointer-events: auto; }
 .image-node-inputs {
   position: absolute;
-  top: calc(50% - 36px);
+  top: calc(50% + 4px);
   right: calc(100% + 8px);
   display: grid;
   justify-items: end;
-  gap: 8px;
   opacity: 0;
   visibility: hidden;
   transform: translateX(28px);
@@ -289,7 +287,6 @@
   mask-repeat: no-repeat;
   mask-position: 0 0;
 }
-.image-node-port-icon-text { mask-position: -28px 0; }
 .image-node-port-count { color: #eeeeec99; margin-left: -1px; }
 .image-node-port { display: block; flex: none; width: 24px; height: 24px; pointer-events: none; }
 .image-node-output {

@@ -19,10 +19,10 @@ test('empty Image composers can wire together and only recommend other composers
   const link = { source: first.id, sourceHandle: 'result', target: second.id, targetHandle: 'image-0' };
   assert.ok(canConnect(link, nodes, []));
   for (const source of [generator.id, image.id]) {
-    assert.equal(canConnect({ ...link, source, sourceHandle: source === image.id ? 'file' : 'result' }, nodes, []), true);
+    assert.equal(canConnect({ ...link, source, sourceHandle: source === image.id ? 'file' : 'result' }, nodes, []), false);
   }
-  assert.equal(canConnect({ ...link, target: generator.id }, nodes, []), true);
-  assert.equal(canConnect({ ...link, source: text.id, sourceHandle: 'text', targetHandle: 'prompt' }, nodes, []), true);
+  assert.equal(canConnect({ ...link, target: generator.id }, nodes, []), false);
+  assert.equal(canConnect({ ...link, source: text.id, sourceHandle: null, targetHandle: 'prompt' }, nodes, []), false);
   for (const [origin, direction, handle] of [[first.id, 'source', 'result'], [second.id, 'target', 'image-0']] as const) {
     const start = pending(origin, direction, handle);
     const choices = connectionChoices(start, nodes);

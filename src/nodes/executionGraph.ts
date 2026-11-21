@@ -18,6 +18,7 @@ import { prepareNanoBananaRun } from './nanoBananaRun.ts';
 import { outputKind } from './outputPort.ts';
 import type { PreviewTask } from './taskQueue';
 import { composerExecutionNode } from './imageComposerSettings.ts';
+import { modelInputSignatureVersion, savedImagePrompt } from './generationRecord.ts';
 
 export type ExecutionGraph = {
   nodes: AppNode[];
@@ -27,7 +28,6 @@ export type ExecutionGraph = {
 };
 export type GenerationRecord = { version: 1; taskId?: string; inputSignature: string; outputSignature: string };
 export type OutputPolicy = { outputMode?: 'manual' | 'fixed'; sourceSignature?: string };
-const modelInputSignatureVersion = 'model-input-v1';
 export const isModelNode = isImageGeneratorNode;
 export const stableSignature = (value: unknown): string => JSON.stringify(value, (_key, item: unknown) => {
   if (item && typeof item === 'object' && !Array.isArray(item)) return Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)));
@@ -172,17 +172,6 @@ export function requestSignature(task: PreviewTask, graph: ExecutionGraph) {
   const replace = (value: unknown): unknown => typeof value === 'string' && assets.has(value) ? assets.get(value)
     : Array.isArray(value) ? value.map(replace) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replace(item)])) : value;
   return stableSignature([modelInputSignatureVersion, task.model, replace(task.seedreamRequest ?? task.imageRequest ?? task.nanoBananaRequest)]);
-}
-
-export function savedImagePrompt(asset: FileAsset): string | undefined {
-  const generation = asset.generation;
-  if (asset.kind !== 'image' || generation?.version !== 1 || generation.outputSignature !== asset.id) return;
-  try {
-    const input: unknown = JSON.parse(generation.inputSignature);
-    if (!Array.isArray(input) || input[0] !== modelInputSignatureVersion) return;
-    const prompt: unknown = input[2]?.prompt;
-    if (typeof prompt === 'string' && prompt.trim()) return prompt;
-  } catch { /* Older or damaged generation records may not contain a recoverable prompt. */ }
 }
 
 export function earliestSavedImagePrompt(nodes: AppNode[]): string | undefined {

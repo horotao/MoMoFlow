@@ -5,13 +5,14 @@ import { useEffect, useRef } from 'react';
 // Magnetic movement and the separate 150ms reveal never share a transform.
 export function useMagneticPorts() {
   const node = useRef<HTMLElement>(null);
-  const inputs = useRef<(HTMLButtonElement | null)[]>([]);
+  const input = useRef<HTMLButtonElement>(null);
   const output = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
-    const tracks = Array.from({ length: 3 }, () => ({
+    const anchors = [{ x: -24, y: 212 }, { x: 412, y: 192 }];
+    const tracks = anchors.map(() => ({
       x: 0, y: 0, fromX: 0, fromY: 0, toX: 0, toY: 0, started: 0,
     }));
     let frame = 0;
@@ -28,7 +29,7 @@ export function useMagneticPorts() {
     function paint(now: number) {
       frame = 0;
       let moving = false;
-      const elements = [...inputs.current, output.current];
+      const elements = [input.current, output.current];
       tracks.forEach((track, index) => {
         moving = advance(track, now) || moving;
         const element = elements[index];
@@ -42,17 +43,12 @@ export function useMagneticPorts() {
       const rect = node.current?.getBoundingClientRect();
       if (!rect) return;
       const scale = rect.width / 384;
-      const anchors = [
-        { x: -24, y: 172 },
-        { x: -24, y: 212 },
-        { x: 412, y: 192 },
-      ];
       const now = performance.now();
       tracks.forEach((track, index) => {
         advance(track, now);
         let x = 0;
         let y = 0;
-        const element = [...inputs.current, output.current][index];
+        const element = [input.current, output.current][index];
         if (pointer && finePointer.matches && !element?.disabled && element?.dataset.connectionEligible !== 'false') {
           const dx = (pointer.x - rect.left) / scale - anchors[index].x;
           const dy = (pointer.y - rect.top) / scale - anchors[index].y;
@@ -98,5 +94,5 @@ export function useMagneticPorts() {
     };
   }, []);
 
-  return { node, inputs, output };
+  return { node, input, output };
 }

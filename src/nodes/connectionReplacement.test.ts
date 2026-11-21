@@ -11,7 +11,7 @@ test('Image input replacement keeps other slots and rejects loops, duplicates an
   const edges = [link('a', 'b', 0), link('d', 'b', 1)];
   const replacement = link('c', 'b', 0);
   assert.ok(canConnect(replacement, nodes, edges));
-  assert.deepEqual(withoutReplacedInput(replacement, nodes, edges), [edges[1]]);
+  assert.deepEqual(withoutReplacedInput(replacement, edges), [edges[1]]);
   for (const invalid of [link('a', 'b', 1), link('b', 'a', 0), link('a', 'a', 0), link('c', 'b', 16)]) {
     assert.equal(canConnect(invalid, nodes, edges), false);
   }

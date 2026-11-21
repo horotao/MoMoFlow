@@ -2,10 +2,10 @@ import { StrictMode, useLayoutEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from '../src/App';
 import { ProjectLibrary } from '../src/persistence/projectLibrary';
-import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
+import { preImageMigrationKey, WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
 import { useWorkflowPersistence } from '../src/persistence/useWorkflowPersistence';
 import { canvasImage } from './fixtures/canvasImage';
-import { isSunburstNode, type FileAsset } from '../src/nodes/types';
+import { isCanvasImageNode, isSunburstNode, type FileAsset } from '../src/nodes/types';
 import '../src/index.css';
 
 const output = document.getElementById('results')!;
@@ -29,6 +29,69 @@ function button(selector: string) {
 }
 const empty: Workflow = { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 }, colorMode: 'dark' };
 
+function resultOf<T>(request: IDBRequest<T>) {
+  return new Promise<T>((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function verifyMigration(database: string, blob: Blob) {
+  const request = indexedDB.open(database, 1);
+  request.onupgradeneeded = () => {
+    request.result.createObjectStore('workflows');
+    request.result.createObjectStore('assets');
+  };
+  const db = await resultOf(request);
+  const asset = { id: 'upload', kind: 'image', name: '原图.png', url: 'blob:upload' } as const;
+  const original = { version: 1, revision: 'legacy', ...empty, nodes: [
+    { id: 'upload-node', type: 'file', position: { x: 2, y: 5 }, data: { asset } },
+    { id: 'prompt-node', type: 'text', position: { x: 0, y: 0 }, data: { text: '旧提示词' } },
+    canvasImage('model', 500, 100),
+    { id: 'retired', type: 'ideogram', position: { x: 100, y: 35 }, data: { results: [{ ...asset, url: 'blob:retired' }] } },
+  ], edges: [
+    { id: 'ref', source: 'upload-node', sourceHandle: 'file', target: 'model', targetHandle: 'image-0' },
+    { id: 'prompt', source: 'prompt-node', sourceHandle: null, target: 'model', targetHandle: 'prompt' },
+  ] };
+  const seed = db.transaction(['workflows', 'assets'], 'readwrite');
+  const done = new Promise<void>((resolve, reject) => {
+    seed.oncomplete = () => resolve();
+    seed.onabort = () => reject(seed.error);
+  });
+  seed.objectStore('workflows').put(original, 'current');
+  seed.objectStore('assets').put(blob, 'blob:upload');
+  seed.objectStore('assets').put(blob, 'blob:retired');
+  await done;
+
+  const storage = new WorkflowStorage(database);
+  const stale = new WorkflowStorage(database);
+  const migrated = await storage.load();
+  const staleView = await stale.load();
+  assert(migrated?.nodes.length === 2 && migrated.nodes.every(isCanvasImageNode)
+    && isCanvasImageNode(migrated.nodes[1]) && migrated.nodes[1].data.composer.prompt === '旧提示词',
+  '旧项目只显示迁移后的 Image，保留内联提示词');
+  assert(migrated.edges[0]?.id === 'ref' && migrated.edges[0].sourceHandle === 'result', '旧文件连线映射至新版 result 端口');
+  await storage.save({ ...migrated, viewport: { x: 18, y: 20, zoom: 0.8 } });
+  assert(staleView, '另一个标签页可读取迁移后的画布');
+  const conflict = await stale.save(staleView).catch((error: unknown) => error);
+  assert(conflict instanceof Error && conflict.name === 'WorkflowConflictError', '迁移写入拒绝旧版本标签页覆盖');
+  await storage.save(empty);
+  const verify = db.transaction(['workflows', 'assets'], 'readonly');
+  const [backup, current, upload, retired] = await Promise.all([
+    resultOf(verify.objectStore('workflows').get(preImageMigrationKey)),
+    resultOf(verify.objectStore('workflows').get('current')),
+    resultOf(verify.objectStore('assets').get('blob:upload')),
+    resultOf(verify.objectStore('assets').get('blob:retired')),
+  ]);
+  assert(JSON.stringify(backup?.workflow) === JSON.stringify(original) && current.nodes.length === 0,
+    '后续保存保留同一份原始快照和原有端口');
+  assert(upload instanceof Blob && upload.size === blob.size && retired instanceof Blob && retired.size === blob.size,
+    '清空已迁移画布仍保留原始快照的图片和未映射节点素材');
+  storage.dispose();
+  stale.dispose();
+  db.close();
+}
+
 async function run() {
   const prefix = `momoflow-project-qa-${crypto.randomUUID()}`;
   const library = new ProjectLibrary(prefix, `${prefix}-legacy`);
@@ -41,6 +104,7 @@ async function run() {
   const context = canvas.getContext('2d')!;
   context.fillStyle = '#e8a87c'; context.fillRect(0, 0, 32, 32);
   const blob = await new Promise<Blob>(resolve => canvas.toBlob(value => resolve(value!)));
+  await verifyMigration(`${prefix}-migration`, blob);
   const url = URL.createObjectURL(blob);
   const workflow: Workflow = { ...empty, viewport: { x: 120, y: 140, zoom: 0.7 }, nodes: [
     canvasImage('source', 0, 0, { results: [{ id: 'local', kind: 'image', name: '本地图片.png', url }] }),

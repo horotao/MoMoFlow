@@ -34,13 +34,13 @@ import { DescriberPanel } from './components/DescriberPanel';
 import { ModelTasksProvider } from './components/ModelTasksProvider';
 import { CanvasHistoryContext, useCanvasHistory } from './components/useCanvasHistory';
 import { initialNodes, nodeTypes } from './nodes';
-import { isCanvasImageNode, isNodeLocked, type AppNode } from './nodes/types';
-import { isTextNode, textVariableCount } from './nodes/textVariables';
+import { isNodeLocked, type AppNode } from './nodes/types';
 import { initialEdges, edgeTypes } from './edges';
 import { ConnectionLine } from './edges/ConnectionLine';
 import { useConnectionGesture } from './edges/useConnectionGesture';
 
-import { restoreGraph, WorkflowStorage, type Workflow } from './persistence/workflowStorage';
+import { WorkflowStorage, type Workflow } from './persistence/workflowStorage';
+import { migrateLegacyImageGraph } from './persistence/legacyImageMigration';
 import { useWorkflowPersistence } from './persistence/useWorkflowPersistence';
 import { ProjectLibrary, type CanvasProject } from './persistence/projectLibrary';
 import { CanvasProjectHeader } from './components/CanvasProjectHeader';
@@ -68,7 +68,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     document.documentElement.classList.add('dark');
   }, []);
 
-  const [initialGraph] = useState(() => restoreGraph(saved?.nodes ?? initialNodes, saved?.edges ?? initialEdges));
+  const [initialGraph] = useState(() => migrateLegacyImageGraph(saved?.nodes ?? initialNodes, saved?.edges ?? initialEdges));
   const [nodes, setNodes, onNodesChange] = useNodesState(initialGraph.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialGraph.edges);
   const workflow = useMemo(() => ({ nodes, edges, viewport, colorMode }), [nodes, edges, viewport, colorMode]);
@@ -154,7 +154,10 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
           const data = restoreSunburstData(saved.node.data);
           if (!data) return;
           event.preventDefault();
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), { id: crypto.randomUUID(), type: 'sunburst', selected: true, position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data }]);
+          const { nodes: pasted } = migrateLegacyImageGraph([{
+            id: crypto.randomUUID(), type: 'sunburst', position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 }, data,
+          }], []);
+          setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...pasted.map(node => ({ ...node, selected: true }))]);
           return;
         }
 
@@ -165,7 +168,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   }, [setNodes]);
   const onConnect: OnConnect = useCallback(connection => {
     if (connectionCancelled.current || !withinConnectionRadius(connection) || !canConnect(connection, getNodes(), getEdges())) return;
-    setEdges(current => addEdge(connection, withoutReplacedInput(connection, getNodes(), current)));
+    setEdges(current => addEdge(connection, withoutReplacedInput(connection, current)));
   }, [connectionCancelled, withinConnectionRadius, getNodes, getEdges, setEdges]);
 
   const onConnectEnd: OnConnectEnd = useCallback(
@@ -215,18 +218,14 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       created.push(node);
     }
     setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...created]);
-    if (connections.length) setEdges(current => [...withoutReplacedInput(connections[0], currentNodes, current), ...connections]);
+    if (connections.length) setEdges(current => [...withoutReplacedInput(connections[0], current), ...connections]);
   }
 
   const canvasNodes = useMemo(() => nodes.map(node => {
     const editable = !isNodeLocked(node) && tool === 'select';
-    const interactive = { ...node, draggable: editable, deletable: !isNodeLocked(node), connectable: editable };
-    if (isCanvasImageNode(node)) return withCanvasImageDrag({ ...interactive, className: 'canvas-image-node' });
-    if (isTextNode(node)) return { ...interactive,
-      style: { ...node.style, height: undefined, minHeight: Math.max(405, 139 + (textVariableCount(node, edges) - 1) * 60) },
-    };
-    return interactive;
-  }), [nodes, edges, tool]);
+    return withCanvasImageDrag({ ...node, draggable: editable, deletable: !isNodeLocked(node),
+      connectable: editable, className: 'canvas-image-node' });
+  }), [nodes, tool]);
 
   return (
     <CanvasHistoryContext.Provider value={history}><ReactFlow

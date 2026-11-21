@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mapAssets, workflowSnapshot, WorkflowStorage, type Workflow } from './workflowStorage.ts';
+import { prepareModel } from '../nodes/executionGraph.ts';
+import { isCanvasImageNode } from '../nodes/types.ts';
 import type { FileAsset, FileNode, SunburstNode, TextNode } from '../nodes/types';
 
 const asset: FileAsset = { id: 'image', kind: 'image', name: 'local.png', url: 'blob:old' };
@@ -44,25 +46,63 @@ test('unavailable IndexedDB rejects restoration and remains retryable', async ()
   storage.dispose();
 });
 
-test('a mixed canvas keeps legacy prompt, image input and generated result on viewport save', () => {
+test('a mixed project migrates prompts, media, model results and reference wires to Image', () => {
   const retired = { id: 'obsolete', type: 'ideogram', position: file.position, data: { results: [{ ...asset, url: 'blob:missing' }] } };
+  const secondImage = { ...asset, id: 'second', url: 'blob:second' };
+  const video = { ...asset, id: 'video', kind: 'video' as const };
+  const mixedFile = { ...file, data: { ...file.data, assets: [asset, secondImage, video], activeAssetId: secondImage.id } };
   const prompt: TextNode = { id: 'prompt', type: 'text', position: { x: 2, y: 4 }, data: { text: '旧项目提示词' } };
-  const legacy: SunburstNode = { ...result, id: 'old-gpt', data: { ...result.data, composer: undefined } };
+  const standalone: TextNode = { ...prompt, id: 'standalone', data: { text: '独立草稿' } };
+  const legacy: SunburstNode = { ...result, id: 'old-gpt', data: { ...result.data, composer: undefined, size: '1536x864' } };
   const edges = [
-    { id: 'prompt-wire', source: prompt.id, sourceHandle: 'text', target: legacy.id, targetHandle: 'prompt' },
+    { id: 'prompt-wire', source: prompt.id, sourceHandle: null, target: legacy.id, targetHandle: 'prompt' },
     { id: 'file-wire', source: file.id, sourceHandle: 'file', target: legacy.id, targetHandle: 'image-0' },
     { id: 'result-wire', source: legacy.id, sourceHandle: 'result', target: result.id, targetHandle: 'image-0' },
+    { id: 'mask-wire', source: file.id, sourceHandle: 'file', target: legacy.id, targetHandle: 'mask' },
+    { id: 'retired-wire', source: retired.id, sourceHandle: 'result', target: legacy.id, targetHandle: 'image-1' },
   ];
+  const original: Workflow = { nodes: [prompt, mixedFile, legacy, retired as unknown as Workflow['nodes'][number], result, standalone],
+    edges, colorMode: 'dark', viewport: { x: 3, y: 4, zoom: 0.8 } };
+  const saved = workflowSnapshot(original);
+  assert.deepEqual(saved.nodes.map(node => node.id), [file.id, legacy.id, result.id, standalone.id]);
+  assert.deepEqual(saved.edges.map(edge => [edge.id, edge.sourceHandle, edge.targetHandle]),
+    [['result-wire', 'result', 'image-0'], ['file-wire', 'result', 'image-0']]);
+  const [media, model, current, draft] = saved.nodes;
+  assert.ok(isCanvasImageNode(media) && isCanvasImageNode(model) && isCanvasImageNode(current) && isCanvasImageNode(draft));
+  assert.deepEqual(media.data.results, [asset, secondImage]);
+  assert.equal(media.data.activeResultId, secondImage.id);
+  assert.equal(media.data.locked, true);
+  assert.deepEqual(model.position, legacy.position);
+  assert.deepEqual(model.data.results, [asset]);
+  assert.equal(model.data.composer.prompt, prompt.data.text);
+  assert.equal(model.data.composer.ratio, '16:9');
+  const expectedCurrent = { ...result.data };
+  delete expectedCurrent.exposed;
+  assert.deepEqual(current.data, expectedCurrent);
+  assert.equal(draft.data.composer.prompt, '独立草稿');
+  const request = prepareModel(saved, model.id)[0].imageRequest;
+  assert.equal(request?.prompt, '旧项目提示词');
+  assert.deepEqual(request?.images, ['blob:second']);
+  assert.deepEqual(saved.viewport, original.viewport);
+  assert.deepEqual(workflowSnapshot(saved), saved);
+  assert.equal(original.nodes.length, 6);
+  assert.equal(original.edges[1].sourceHandle, 'file');
+});
+
+test('migration keeps valid new wires first and flattens children of retired groups', () => {
+  const group = { id: 'group', type: 'group' as const, position: { x: 200, y: 300 }, data: {} };
+  const upstream = { ...result, id: 'upstream', parentId: group.id, position: { x: 12, y: 20 } };
   const saved = workflowSnapshot({
-    nodes: [prompt, file, legacy, retired as unknown as Workflow['nodes'][number], result],
-    edges: [...edges, { ...edges[2], id: 'retired-wire', source: retired.id }],
-    colorMode: 'dark', viewport: { x: 3, y: 4, zoom: 0.8 },
+    nodes: [group, upstream, file, result],
+    edges: [
+      { id: 'new', source: upstream.id, sourceHandle: 'result', target: result.id, targetHandle: 'image-0' },
+      { id: 'occupied', source: file.id, sourceHandle: 'file', target: result.id, targetHandle: 'image-0' },
+      { id: 'migrated', source: file.id, sourceHandle: 'file', target: result.id, targetHandle: 'image-1' },
+      { id: 'duplicate', source: file.id, sourceHandle: 'file', target: result.id, targetHandle: 'image-2' },
+    ],
+    viewport: { x: 0, y: 0, zoom: 1 }, colorMode: 'dark',
   });
-  assert.deepEqual(saved.nodes.map(node => node.id), [prompt.id, file.id, legacy.id, result.id]);
-  assert.deepEqual(saved.edges, edges.map(edge => ({ ...edge, selected: undefined })));
-  assert.equal((saved.nodes[0] as TextNode).data.text, prompt.data.text);
-  assert.deepEqual((saved.nodes[1] as FileNode).data.assets, [asset]);
-  assert.deepEqual(saved.nodes[2].position, legacy.position);
-  assert.deepEqual((saved.nodes[2] as SunburstNode).data.results, [asset]);
-  assert.deepEqual(saved.viewport, { x: 3, y: 4, zoom: 0.8 });
+  assert.deepEqual(saved.nodes[0].position, { x: 212, y: 320 });
+  assert.equal(saved.nodes[0].parentId, undefined);
+  assert.deepEqual(saved.edges.map(edge => edge.id), ['new', 'migrated']);
 });

@@ -1,7 +1,6 @@
 import { isFileNode, isImageGeneratorNode, isInteractiveEditNode } from '../nodes/types.ts';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources.ts';
-import { migrateImageModelGraph } from '../nodes/sunburstMigration.ts';
-import { migrateFileAnnotations } from '../nodes/annotationMigration.ts';
+import { hasLegacyImageGraph, migrateLegacyImageGraph } from './legacyImageMigration.ts';
 import type { Edge, Viewport } from '@xyflow/react';
 import type { AppNode, FileAsset } from '../nodes/types';
 
@@ -15,31 +14,12 @@ export type Workflow = {
 type StoredWorkflow = Workflow & { version: 1; revision?: string };
 const documentKey = 'current';
 
-function supportedNode(node: AppNode): boolean {
-  return isImageGeneratorNode(node) || isFileNode(node) || isInteractiveEditNode(node)
-    || node.type === 'text' || ['default', 'input', 'output', 'group'].includes(node.type ?? 'default');
-}
+export const preImageMigrationKey = 'pre-image-migration';
+type LegacyBackup = { workflow: StoredWorkflow; assetKeys: string[] };
 
-export function restoreGraph(nodes: AppNode[], edges: Edge[]) {
-  const supported = nodes.filter(supportedNode);
-  const kept = new Set(supported.map(node => node.id));
-  const models = migrateImageModelGraph(supported, edges.filter(edge => kept.has(edge.source) && kept.has(edge.target)));
-  return migrateFileAnnotations(models.nodes, models.edges);
-}
-
-// Older editors can still open retired nodes. Keep their raw data and local
-// blobs in the saved project while the current canvas displays supported nodes.
-function retainRetiredGraph(previous: StoredWorkflow | undefined, snapshot: StoredWorkflow, storedKeys: Set<string>) {
+// Unknown retired node types can still refer to local blobs in their own shape.
+function originalAssetKeys(workflow: StoredWorkflow, storedKeys: Set<string>) {
   const keys = new Set<string>();
-  if (!previous) return keys;
-  const retired = previous.nodes.filter(node => !supportedNode(node));
-  if (!retired.length) return keys;
-  const retiredIds = new Set(retired.map(node => node.id));
-  const kept = new Set([...snapshot.nodes.map(node => node.id), ...retiredIds]);
-  snapshot.nodes.push(...retired);
-  snapshot.edges.push(...previous.edges.filter(edge => kept.has(edge.source) && kept.has(edge.target)
-    && (retiredIds.has(edge.source) || retiredIds.has(edge.target))));
-
   const seen = new Set<object>();
   function visit(value: unknown) {
     if (typeof value === 'string' && storedKeys.has(value)) keys.add(value);
@@ -47,13 +27,13 @@ function retainRetiredGraph(previous: StoredWorkflow | undefined, snapshot: Stor
     seen.add(value);
     Object.values(value).forEach(visit);
   }
-  retired.forEach(visit);
-  return keys;
+  visit(workflow);
+  return [...keys];
 }
 
 // Drop React Flow's temporary interaction/measurement state, retain node content.
 export function workflowSnapshot(workflow: Workflow): StoredWorkflow {
-  const graph = restoreGraph(workflow.nodes, workflow.edges);
+  const graph = migrateLegacyImageGraph(workflow.nodes, workflow.edges);
   return {
     ...workflow, version: 1, colorMode: 'dark',
     nodes: graph.nodes.map(node => ({
@@ -139,7 +119,8 @@ export class WorkflowStorage {
     this.storedKeys = new Set(keys.result as string[]);
     const blobs = new Map(keys.result.map((key, index) => [key, assets.result[index] as Blob]));
     const urls = new Map<string, string>();
-    const graph = restoreGraph(saved.nodes, saved.edges);
+    const graph = migrateLegacyImageGraph(saved.nodes, saved.edges,
+      asset => !asset.url.startsWith('blob:') || blobs.get(asset.url) instanceof Blob);
     const nodes = mapAssets(graph.nodes, asset => {
       if (!asset.url.startsWith('blob:')) return asset;
       const key = asset.url;
@@ -184,6 +165,7 @@ export class WorkflowStorage {
     const done = completed(transaction);
     const assets = transaction.objectStore('assets');
     const documents = transaction.objectStore('workflows');
+    const original = documents.get(preImageMigrationKey);
     const current = documents.get(documentKey);
     let failure: unknown;
     let archivedKeys = new Set<string>();
@@ -196,7 +178,15 @@ export class WorkflowStorage {
           error.name = 'WorkflowConflictError';
           throw error;
         }
-        archivedKeys = retainRetiredGraph(current.result, snapshot, this.storedKeys);
+        const previous = current.result as StoredWorkflow | undefined;
+        const backup = original.result as LegacyBackup | undefined;
+        if (backup) archivedKeys = new Set(backup.assetKeys);
+        else if (previous && hasLegacyImageGraph(previous.nodes, previous.edges)) {
+          const assetKeys = originalAssetKeys(previous, this.storedKeys);
+          // Save the original before replacing the live graph, in the same transaction.
+          documents.add({ workflow: previous, assetKeys } satisfies LegacyBackup, preImageMigrationKey);
+          archivedKeys = new Set(assetKeys);
+        }
         for (const [key, blob] of additions) assets.put(blob, key);
         for (const key of this.storedKeys) if (!required.has(key) && !archivedKeys.has(key)) assets.delete(key);
         documents.put(snapshot, documentKey);

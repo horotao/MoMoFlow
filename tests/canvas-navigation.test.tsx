@@ -25,8 +25,8 @@ const sampleNodes: AppNode[] = [
   canvasImage('palette', 1160, 640), canvasImage('prompt', 390, 610),
 ];
 const sampleEdges: Edge[] = [
-  { id: 'source-router', source: 'source', sourceHandle: 'file', target: 'router', targetHandle: 'variable-1' },
-  { id: 'router-preview', source: 'router', sourceHandle: null, target: 'preview', targetHandle: 'variable-1' },
+  { id: 'source-router', source: 'source', sourceHandle: 'result', target: 'router', targetHandle: 'image-0' },
+  { id: 'router-preview', source: 'router', sourceHandle: 'result', target: 'preview', targetHandle: 'image-0' },
 ];
 const dockChoices = [{ id: 'image', itemId: 'image' }];
 const sampleTasks: QueueTask[] = [

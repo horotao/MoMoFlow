@@ -5,12 +5,11 @@ import { ImagePromptToolbar } from '../components/image-prompt-node/ImagePromptT
 import { useModelTasks } from '../components/useModelTasks';
 import { isActiveTask } from './taskQueue';
 import { downloadAsset } from './fileMedia';
-import { savedImagePrompt } from './executionGraph';
+import { savedImagePrompt } from './generationRecord';
+import { imageInputHandles, isImageInputHandle } from './connectionRules';
 import { changeComposerSettings } from './imageComposerSettings';
 import type { AppNode, CanvasImage, ImageComposerData } from './types';
 import './CanvasImageNode.css';
-
-const imageHandles = Array.from({ length: 16 }, (_, i) => 'image-' + i);
 
 export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps<CanvasImage>) {
   const composer = data.composer;
@@ -34,10 +33,10 @@ export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps
   const task = chosen ? activeTasks.find(item => item.id === chosen) : activeTasks[0];
   const overview = useStore(state => Math.round(state.transform[2] * 100) <= 14);
   const [error, setError] = useState('');
-  const references = edges.filter(edge => edge.target === id && edge.targetHandle?.startsWith('image-'));
+  const references = edges.filter(edge => edge.target === id && isImageInputHandle(edge.targetHandle));
   const occupied = new Set(references.map(edge => edge.targetHandle));
 
-  const available = imageHandles.find(handle => !occupied.has(handle));
+  const available = imageInputHandles.find(handle => !occupied.has(handle));
   useLayoutEffect(() => { internals(id); }, [id, internals, available, edges]);
   const active = results.find(asset => chosen && (asset.generation?.taskId ?? asset.id) === chosen) ?? results.find(asset => asset.id === data.activeResultId) ?? results[results.length - 1];
   const variants = [
@@ -81,8 +80,7 @@ export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps
       }}
       imageInputCount={references.length} outputConnected={edges.some(edge => edge.source === id)}
       handles={{
-        prompt: <Handle type="target" position={Position.Left} id="prompt" isConnectable={connectable} />,
-        image: [...(available ? [available] : []), ...imageHandles.filter(handle => occupied.has(handle))].map(handle =>
+        image: [...(available ? [available] : []), ...imageInputHandles.filter(handle => occupied.has(handle))].map(handle =>
           <Handle key={handle} type="target" position={Position.Left} id={handle}
             isConnectable={connectable && handle === available} style={{ pointerEvents: handle === available ? undefined : 'none' }} />),
         output: <Handle type="source" position={Position.Right} id="result" isConnectable={connectable} />,

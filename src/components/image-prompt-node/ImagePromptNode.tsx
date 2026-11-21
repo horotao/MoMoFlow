@@ -28,7 +28,7 @@ function OutputPortIcon() {
 
 export interface ImagePromptNodeProps {
   /** Canvas connection handles share the visual port hit areas. */
-  handles?: { prompt: ReactNode; image: ReactNode; output: ReactNode };
+  handles?: { image: ReactNode; output: ReactNode };
   promptReadOnly?: boolean;
   prompt?: string;
   defaultPrompt?: string;
@@ -64,7 +64,6 @@ export interface ImagePromptNodeProps {
   onMention?: () => void;
   onDictate?: () => void;
   onEnhance?: () => void;
-  onPromptInput?: () => void;
   onImageInput?: () => void;
   onAddConnectedNode?: () => void;
   /** Frontend connection hosts may report their current port occupancy. */
@@ -79,7 +78,7 @@ export function ImagePromptNode({
   locked: lockedValue, defaultLocked = false, onLockedChange,
   title = 'Image', modelLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange,
   suggestion = 'Oil paint macro, impasto texture', className = '', toolbar, generation = null, result, variants = [], activeVariant = 0, onVariantChange,
-  onGenerate, onMention, onDictate, onEnhance, onPromptInput, onImageInput, onAddConnectedNode, imageInputCount = 0, outputConnected = false,
+  onGenerate, onMention, onDictate, onEnhance, onImageInput, onAddConnectedNode, imageInputCount = 0, outputConnected = false,
 }: ImagePromptNodeProps) {
   const [aspectRatio, setAspectRatio] = useControllableValue(aspectRatioValue, defaultAspectRatio, onAspectRatioChange);
   const [selection, setSelection] = useControllableValue(modelSelection, defaultModelSelection, onModelSelectionChange);
@@ -291,10 +290,7 @@ export function ImagePromptNode({
 
         <div className="image-node-ports">
           <div className="image-node-inputs">
-            <button ref={element => { ports.inputs.current[0] = element; }} data-connection-port="prompt" disabled={locked} type="button" className="image-node-input" aria-label="Prompt input" onClick={onPromptInput}>
-              <span className="image-node-port-label"><span className="image-node-port-icon image-node-port-icon-text" aria-hidden="true" />Prompt</span><PortRing />{handles?.prompt}
-            </button>
-            <button ref={element => { ports.inputs.current[1] = element; }} data-connection-port="image" data-connected={imageInputCount > 0 || undefined} disabled={locked} type="button" className="image-node-input" aria-label="Image input" onClick={onImageInput}>
+            <button ref={ports.input} data-connection-port="image" data-connected={imageInputCount > 0 || undefined} disabled={locked} type="button" className="image-node-input" aria-label="Image input" onClick={onImageInput}>
               <span className="image-node-port-label"><span className="image-node-port-icon image-node-port-icon-image" aria-hidden="true" />Image <span className="image-node-port-count">{imageInputCount}/16</span></span><PortRing />{handles?.image}
             </button>
           </div>

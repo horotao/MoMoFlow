@@ -1,6 +1,6 @@
 import type { AppNode } from './types';
 import { isInteractiveEditNode } from './types.ts';
-import { fileOutputKind, filePortColors } from './fileCollection.ts';
+import { fileOutputKind } from './fileCollection.ts';
 
 export type OutputKind = 'text' | 'image' | 'mask' | 'video' | 'audio' | '3d' | 'file';
 
@@ -17,9 +17,4 @@ export function outputKind(node: AppNode | undefined, handle?: string | null): O
   if (['seedream', 'nano-banana', 'sunburst'].includes(node.type ?? '')) return handle === 'result' ? 'image' : undefined;
   if (node.type === 'text') return !handle ? 'text' : undefined;
   return undefined;
-}
-
-export function outputColor(kind?: OutputKind) {
-  return kind === 'text' ? '#e28cf8' : kind === 'mask' ? 'var(--sunburst-mask-port, #f3ffe3)'
-    : kind ? filePortColors[kind] : 'var(--node-port-color)';
 }

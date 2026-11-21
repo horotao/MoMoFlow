@@ -110,7 +110,9 @@ test('APIMart standard accepts image references for all formats and masks only f
     const nodes: AppNode[] = [node, prompt, image];
     assert.doesNotThrow(() => preflight({ nodes, edges }, ['g'], 1));
     assert.equal(prepareSunburstRun(nodes, edges, ['g'], 1).tasks[0].imageRequest?.images[0], 'blob:a');
-    assert.equal(canConnect(maskEdge, nodes, edges), outputFormat === 'png');
+    const canvasNode: SunburstNode = { ...node, data: { ...node.data, composer: { prompt: 'prompt', ratio: 'auto', quantity: 1 } } };
+    const reference: SunburstNode = { ...canvasNode, id: image.id };
+    assert.equal(canConnect({ ...maskEdge, sourceHandle: 'result' }, [canvasNode, reference], []), false);
     if (outputFormat === 'png') assert.equal(prepareSunburstRun(nodes, [...edges, maskEdge], ['g'], 1).error, undefined);
     else assert.throws(() => preflight({ nodes, edges: [...edges, maskEdge] }, ['g'], 1), /Mask/);
   }
