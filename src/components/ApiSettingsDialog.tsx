@@ -6,7 +6,6 @@ import { Tick02Icon, ViewOffSlashIcon } from '@hugeicons/core-free-icons';
 import { spring } from '../lib/springs';
 import { SettingsMorphSelect } from './SettingsMorphSelect';
 import { ApiConnectionError, apiProviders, readApiSettings, saveApiSettings, validApiKey, validBaseUrl, type ApiCredential, type ApiProvider } from './apiSettings';
-import './NodeSettingsSidebar.css';
 import './ApiSettingsDialog.css';
 
 export type ApiConnectionTest = (provider: ApiProvider, credential: ApiCredential, signal: AbortSignal) => Promise<void>;

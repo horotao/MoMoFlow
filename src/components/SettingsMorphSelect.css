@@ -1,0 +1,13 @@
+.settings-select-surface { box-sizing: border-box; border: 1px solid #3d3d3d; background: var(--panel-input); corner-shape: superellipse(1.25); }
+.settings-select-fill { position: absolute; inset: 0; }
+.settings-select-trigger > .settings-select-row { position: relative; }
+.settings-select-trigger[aria-expanded=true] > .settings-select-row { visibility: hidden; }
+.settings-select-trigger:focus-visible { outline: 1px solid var(--panel-muted); outline-offset: -1px; }
+.settings-select-row img { display: block; flex-shrink: 0; }
+.settings-select-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.settings-select-popup { position: absolute; z-index: 3; overflow: hidden; }
+.settings-select-list { position: relative; box-sizing: border-box; padding: 4px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #525252 transparent; outline: none; }
+.settings-select-list [role=option] { display: flex; align-items: center; justify-content: space-between; gap: 6px; height: 24px; padding: 0 7px; border-radius: 5px; color: var(--panel-muted); cursor: default; }
+.settings-select-list [role=option] svg { width: 14px; height: 14px; flex-shrink: 0; }
+.settings-select-list [role=option][aria-selected=true] { background: #333; color: var(--panel-text); }
+.settings-select-list [data-active=true], .settings-select-list [role=option]:hover { background: #383838; color: var(--panel-text); }

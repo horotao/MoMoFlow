@@ -18,8 +18,6 @@ import type { AppNode } from '../nodes/types';
 import { nodeSettingsSpring } from '../lib/springs';
 import { AnimatedToastStack, type ToastInput } from './ui/AnimatedToastStack';
 import { useAnimatedToastStack } from './ui/useAnimatedToastStack';
-import './NodeSettingsSidebar.css';
-import './ImageModelSettings.css';
 
 const executionToastLabels = { dismiss: '关闭通知' };
 const executionToastClassNames = { description: 'line-clamp-none wrap-anywhere' };

@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { DescriberIcon } from './DescriberIcon';
+import './SettingsMorphSelect.css';
 
 // Shared surface and spring from the beUI Morph Select.
 // https://beui.dev/components/motion/select

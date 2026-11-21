@@ -7,11 +7,6 @@
   max-width: calc(100% - 24px);
 }
 
-.canvas-task-queue[data-sidebar-open='true'] {
-  right: calc(var(--node-settings-width) + 12px);
-  max-width: calc(100% - var(--node-settings-width) - 24px);
-}
-
 .model-queue {
   --queue-border: var(--canvas-overlay-border);
   --queue-muted: #8c8c8c;

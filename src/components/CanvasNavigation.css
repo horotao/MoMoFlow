@@ -161,16 +161,14 @@
 .navigation-map-node[data-selected='true'] > rect { fill: #242424; stroke: #777777; }
 
 @media (max-width: 520px) {
-  .react-flow:has(> .canvas-navigation) > .canvas-task-queue:not([data-sidebar-open='true']) {
+  .react-flow:has(> .canvas-navigation) > .canvas-task-queue {
     max-width: calc(100% - 190px);
   }
 
-  .react-flow:has(> .canvas-navigation) > .canvas-task-queue[data-sidebar-open='true'] { bottom: 58px; }
   .react-flow:has(> .canvas-navigation[data-map-open='true']) > .canvas-task-queue { bottom: 172px; }
 }
 
 @media (max-width: 800px) {
-  .react-flow:has(> .canvas-navigation[data-map-open='true']) > .canvas-task-queue[data-sidebar-open='true'] { bottom: 172px; }
 }
 
 @media (max-height: 680px) {

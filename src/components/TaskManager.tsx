@@ -20,12 +20,11 @@ function queueTask(task: PreviewTask): QueueTask {
 }
 
 type Props = {
-  sidebarOpen: boolean;
   onFocus: (id: string) => void;
   onRetry: (task: PreviewTask) => void;
 };
 
-export function TaskManager({ sidebarOpen, onFocus, onRetry }: Props) {
+export function TaskManager({ onFocus, onRetry }: Props) {
   const tasks = useModelTasks();
   const store = useModelTaskStore();
   const [expanded, setExpanded] = useState(false);
@@ -44,8 +43,8 @@ export function TaskManager({ sidebarOpen, onFocus, onRetry }: Props) {
     return store.subscribe(openOnStart);
   }, [store]);
 
-  return <motion.div className="canvas-task-queue nodrag nopan nowheel" data-sidebar-open={sidebarOpen}
-    layout={reduceMotion ? false : 'position'} layoutDependency={sidebarOpen}
+  return <motion.div className="canvas-task-queue nodrag nopan nowheel"
+    layout={reduceMotion ? false : 'position'}
     transition={{ layout: nodeSettingsSpring }}
     onKeyDown={event => event.stopPropagation()}>
     <TaskQueue tasks={newestTasks.map(queueTask)} expanded={expanded} onExpandedChange={setExpanded}
