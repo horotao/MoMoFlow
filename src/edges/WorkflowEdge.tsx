@@ -1,10 +1,13 @@
 import { useLayoutEffect, useRef } from 'react';
-import { useStoreApi, type EdgeProps } from '@xyflow/react';
+import { useStore, useStoreApi, type EdgeProps } from '@xyflow/react';
 import { portCenter, workflowPort } from './workflowPort';
 import { wireCurve } from './wireGeometry';
 import './workflowWire.css';
 
 export function WorkflowEdge({ source, target, sourceHandleId, targetHandleId, sourceX, sourceY, targetX, targetY }: EdgeProps) {
+  const connectedNodeSelected = useStore(state => Boolean(
+    state.nodeLookup.get(source)?.selected || state.nodeLookup.get(target)?.selected,
+  ));
   const group = useRef<SVGGElement>(null);
   const store = useStoreApi();
   useLayoutEffect(() => {
@@ -46,5 +49,5 @@ export function WorkflowEdge({ source, target, sourceHandleId, targetHandleId, s
       element.removeEventListener('pointerleave', hide);
     };
   }, [store, source, target, sourceHandleId, targetHandleId, sourceX, sourceY, targetX, targetY]);
-  return <g ref={group}><path className="workflow-wire" /><path className="workflow-wire-hit" /></g>;
+  return <g ref={group} data-node-selected={connectedNodeSelected || undefined}><path className="workflow-wire" /><path className="workflow-wire-hit" /></g>;
 }
