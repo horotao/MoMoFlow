@@ -336,9 +336,9 @@
   transform: translate(-50%, 0);
   pointer-events: auto;
 }
-.image-node:hover .image-node-inputs { opacity: 1; visibility: visible; transform: none; }
-.image-node:hover .image-node-output { visibility: visible; }
-.image-node:hover .image-node-output-visual { opacity: 1; transform: none; }
+.image-node:is(:hover, [data-input-port-near]) .image-node-inputs { opacity: 1; visibility: visible; transform: none; }
+.image-node:is(:hover, [data-output-port-near]) .image-node-output { visibility: visible; }
+.image-node:is(:hover, [data-output-port-near]) .image-node-output-visual { opacity: 1; transform: none; }
 .image-node button:focus-visible, .image-node input:focus-visible { outline: 1px solid #b5b3ad; outline-offset: -1px; }
 
 @media (prefers-reduced-motion: reduce) {

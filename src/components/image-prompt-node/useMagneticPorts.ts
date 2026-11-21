@@ -9,6 +9,8 @@ export function useMagneticPorts() {
   const output = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
+    const host = node.current;
+    if (!host) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
     const elements = [input, output];
@@ -39,10 +41,9 @@ export function useMagneticPorts() {
     }
 
     function retarget() {
-      const frame = node.current;
-      if (!frame?.offsetWidth) return;
-      const rect = frame.getBoundingClientRect();
-      const width = frame.offsetWidth, height = frame.offsetHeight;
+      if (!host?.offsetWidth) return;
+      const rect = host.getBoundingClientRect();
+      const width = host.offsetWidth, height = host.offsetHeight;
       const scale = rect.width / width;
       const anchors = [{ x: -24, y: height / 2 + 20 }, { x: width + 28, y: height / 2 }];
       const now = performance.now();
@@ -50,17 +51,23 @@ export function useMagneticPorts() {
         advance(track, now);
         let x = 0;
         let y = 0;
+        let near = false;
         const element = elements[index].current;
-        if (pointer && finePointer.matches && !element?.disabled && element?.dataset.connectionEligible !== 'false') {
+        if (pointer && finePointer.matches && element && !element.disabled && element.dataset.connectionEligible !== 'false') {
           const dx = (pointer.x - rect.left) / scale - anchors[index].x;
           const dy = (pointer.y - rect.top) / scale - anchors[index].y;
           if (Math.hypot(dx, dy) < 160) {
+            near = true;
             x = dx * .35;
             y = dy * .35;
             const length = Math.hypot(x, y);
             if (length > 20) { x *= 20 / length; y *= 20 / length; }
           }
         }
+        // Reveal on the same fixed-anchor field as the pull, before the pointer
+        // reaches the port hit area. Keep CSS reveal and magnetic transforms separate.
+        const attribute = index === 0 ? 'data-input-port-near' : 'data-output-port-near';
+        if (host.hasAttribute(attribute) !== near) host.toggleAttribute(attribute, near);
         if (track.toX === x && track.toY === y) return;
         track.fromX = track.x;
         track.fromY = track.y;
@@ -72,7 +79,7 @@ export function useMagneticPorts() {
     }
 
     function move(event: PointerEvent) {
-      if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
+      if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') { leave(); return; }
       pointer = { x: event.clientX, y: event.clientY };
       retarget();
     }
@@ -84,7 +91,22 @@ export function useMagneticPorts() {
     window.addEventListener('scroll', retarget, { passive: true, capture: true });
     reduced.addEventListener('change', retarget);
     finePointer.addEventListener('change', retarget);
+    const geometry = new MutationObserver(() => { if (pointer) retarget(); });
+    for (const element of [host.closest('.react-flow__node'), host.closest('.react-flow__viewport')]) {
+      if (element) geometry.observe(element, { attributes: true, attributeFilter: ['style'] });
+    }
+    const availability = new MutationObserver(retarget);
+    elements.forEach(ref => {
+      if (ref.current) availability.observe(ref.current, { attributes: true, attributeFilter: ['disabled', 'data-connection-eligible'] });
+    });
+    const size = new ResizeObserver(() => { if (pointer) retarget(); });
+    size.observe(host);
     return () => {
+      geometry.disconnect();
+      availability.disconnect();
+      size.disconnect();
+      host.removeAttribute('data-input-port-near');
+      host.removeAttribute('data-output-port-near');
       cancelAnimationFrame(frame);
       window.removeEventListener('pointermove', move);
       window.removeEventListener('blur', leave);
