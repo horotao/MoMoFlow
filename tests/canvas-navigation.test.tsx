@@ -1,3 +1,4 @@
+import { canvasImage } from './fixtures/canvasImage';
 import {
   addEdge, Panel, ReactFlow, ReactFlowProvider, useEdgesState, useNodesState,
   useNodesInitialized, useReactFlow, type Edge, type FitViewOptions, type OnConnect,
@@ -8,36 +9,26 @@ import { CanvasNavigation, canvasMinZoom, canvasMaxZoom, type ZoomTarget } from 
 import { CanvasSidebar, type CanvasTool } from '../src/components/CanvasSidebar';
 import { CanvasBackground } from '../src/components/CanvasBackground';
 import { ConnectionMenu, type NodeMenuChoice } from '../src/components/ConnectionMenu';
-import { createLibraryNode, items } from '../src/components/libraryCatalog';
+import { createLibraryNode } from '../src/components/libraryCatalog';
 import { TaskQueue, type QueueTask } from '../src/components/TaskQueue';
 import { edgeTypes } from '../src/edges';
 import { nodeTypes } from '../src/nodes';
-import type { AppNode, FileAsset } from '../src/nodes/types';
+import type { AppNode } from '../src/nodes/types';
 import '../src/index.css';
 import './canvas-navigation.css';
 
 const fitOptions = {
   padding: { top: '72px', right: '32px', bottom: '232px', left: '76px' }, maxZoom: 1,
 } satisfies FitViewOptions<AppNode>;
-const asset: FileAsset = {
-  id: 'sample-market', name: '市集参考图', kind: 'image', url: '/describer-qa/market.jpg',
-};
 const sampleNodes: AppNode[] = [
-  { id: 'source', type: 'file', position: { x: 0, y: 0 }, data: { label: '市集 · 原图', asset } },
-  { id: 'router', type: 'text', position: { x: 680, y: 62 }, data: { text: '说明', label: '说明' } },
-  { id: 'preview', type: 'text', position: { x: 1160, y: 0 }, data: { text: '市集', label: '市集' } },
-  { id: 'palette', type: 'file', position: { x: 1160, y: 640 }, data: {} },
-  { id: 'prompt', type: 'text', position: { x: 390, y: 610 }, data: {
-    label: '画面笔记', text: '保留市集的暖色和光影，突出摊位的层次。',
-  } },
+  canvasImage('source', 0, 0), canvasImage('router', 680, 62), canvasImage('preview', 1160, 0),
+  canvasImage('palette', 1160, 640), canvasImage('prompt', 390, 610),
 ];
 const sampleEdges: Edge[] = [
   { id: 'source-router', source: 'source', sourceHandle: 'file', target: 'router', targetHandle: 'variable-1' },
   { id: 'router-preview', source: 'router', sourceHandle: null, target: 'preview', targetHandle: 'variable-1' },
 ];
-const previewNodeIds = new Set(['file', 'text']);
-const dockChoices: NodeMenuChoice[] = items.filter(item => previewNodeIds.has(item.id))
-  .map(item => ({ id: item.id, itemId: item.id }));
+const dockChoices = [{ id: 'image', itemId: 'image' }];
 const sampleTasks: QueueTask[] = [
   { id: 'sample-image', label: 'GPT Image 2.5', state: 'running', progress: 65 },
   { id: 'sample-banana', label: 'Nano Banana', state: 'running', progress: 45 },

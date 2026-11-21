@@ -7,7 +7,7 @@ import { pinnedResultInput } from './annotationGraph.ts';
 import { resolveTextValue } from './textVariables.ts';
 import type { PreviewTask } from './taskQueue';
 
-export function prepareNanoBananaRun(nodes: AppNode[], edges: Edge[], ids: string[], runs: number): { tasks: PreviewTask[]; error?: string } {
+export function prepareNanoBananaRun(nodes: AppNode[], edges: Edge[], ids: string[], runs: number, inlinePrompt?: string): { tasks: PreviewTask[]; error?: string } {
   if (!Number.isInteger(runs) || runs < 1 || runs > 10) return { tasks: [], error: '运行次数必须为 1–10。' };
   const tasks: PreviewTask[] = [], batchId = crypto.randomUUID(), createdAt = Date.now();
   try {
@@ -17,7 +17,7 @@ export function prepareNanoBananaRun(nodes: AppNode[], edges: Edge[], ids: strin
       const settings = validateNanoBananaSettings(node.data);
       const inputs = edges.filter(edge => edge.target === id);
       const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
-      const prompt = promptEdge ? resolveTextValue(promptEdge.source, nodes, edges).trim() : '';
+      const prompt = promptEdge ? resolveTextValue(promptEdge.source, nodes, edges).trim() : inlinePrompt?.trim() ?? '';
       if (!prompt || prompt.length > 32000) throw new Error('请为 Nano Banana 连接非空提示词，最多 32000 个字符。');
       const images = inputs.filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''))
         .sort((a, b) => Number(a.targetHandle?.slice(6)) - Number(b.targetHandle?.slice(6)))

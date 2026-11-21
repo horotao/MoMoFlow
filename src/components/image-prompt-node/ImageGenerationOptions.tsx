@@ -21,29 +21,27 @@ export function ImageGenerationOptions() {
     const selected = state.nodes.filter(node => node.selected);
     return selected.length === 1 && selected[0].type === 'sunburst' && selected[0].data.composer ? selected[0].id : null;
   });
-  const { getNode } = useReactFlow<AppNode>();
-  return selectedId ? <GenerationOptions key={selectedId} node={getNode(selectedId) as SunburstNode} /> : null;
+  return selectedId ? <GenerationOptions key={selectedId} nodeId={selectedId} /> : null;
 }
 
-function GenerationOptions({ node: initialNode }: { node: SunburstNode }) {
-  const node = useStore(state => state.nodeLookup.get(initialNode.id)) as SunburstNode | undefined;
+function GenerationOptions({ nodeId }: { nodeId: string }) {
+  const data = useStore(state => state.nodeLookup.get(nodeId)?.data) as SunburstNode['data'] | undefined;
   const { updateNodeData } = useReactFlow<AppNode>();
   const [expanded, setExpanded] = useState(true);
   const [modelOpen, setModelOpen] = useState(false);
   const [pinned, setPinned] = useState<ImagePromptModelId[]>(['nano-banana-2']);
   const trigger = useRef<HTMLButtonElement>(null);
   const id = useId();
-  const locked = Boolean(node?.data.locked);
+  const locked = Boolean(data?.locked);
   useEffect(() => { if (locked) setModelOpen(false); }, [locked]);
   const closeModel = useCallback((restoreFocus = false) => {
     setModelOpen(false);
     if (restoreFocus) trigger.current?.focus({ preventScroll: true });
   }, []);
-  if (!node?.data.composer) return null;
-  const { data } = node;
-  const composer = data.composer!;
+  if (!data?.composer) return null;
+  const composer = data.composer;
   const modelId = composerModelId(data);
-  const model = imagePromptModels.find(item => item.id === modelId)!;
+  const model = imagePromptModels.find(item => item.id === modelId);
   const settings = composerSettings(data);
   const seedream = modelId === 'seedream-5-5';
   const nano = modelId.startsWith('nano-banana');
@@ -51,7 +49,7 @@ function GenerationOptions({ node: initialNode }: { node: SunburstNode }) {
   const ratios = imagePromptGenerationAspectRatios.filter(ratio => seedream ? seedreamChoices.size.includes(ratio)
     : nano ? nanoBananaAspectRatios.includes(ratio) : true);
   function setSetting(key: string, value: string) {
-    if (!locked) updateNodeData(node!.id, changeComposerSettings(data, {}, {
+    if (!locked) updateNodeData(nodeId, changeComposerSettings(data!, {}, {
       [key]: value, ...(key === 'background' && value === 'transparent' ? { outputFormat: 'png' } : {}),
     }));
   }
@@ -75,10 +73,10 @@ function GenerationOptions({ node: initialNode }: { node: SunburstNode }) {
       </button>
       {modelOpen && !locked && <ImagePromptModelMenu id={`${id}-models`} anchor={trigger} selection={composer.selection ?? defaultImagePromptModelSelection}
         pinned={pinned} onPinnedChange={setPinned} onClose={closeModel}
-        onChange={selection => updateNodeData(node.id, changeComposerSettings(data, { selection }))} />}
+        onChange={selection => updateNodeData(nodeId, changeComposerSettings(data, { selection }))} />}
       <div className="generation-option-row"><span>画面比例</span><GenerationOptionSelect key={`ratio-${modelId}`} label="画面比例" value={composer.ratio} choices={ratios}
         labels={ratios.map(value => value === 'auto' ? '自动' : value)} disabled={locked}
-        onChange={ratio => updateNodeData(node.id, changeComposerSettings(data, { ratio }))} /></div>
+        onChange={ratio => updateNodeData(nodeId, changeComposerSettings(data, { ratio }))} /></div>
       <div className="generation-option-row"><span>分辨率</span><GenerationOptionSelect key={`resolution-${modelId}`} label="分辨率" value={automaticSize ? 'auto' : settings.resolution}
         choices={automaticSize ? ['auto'] : seedream ? seedreamChoices.resolution : ['1K', '2K', '4K']}
         labels={automaticSize ? ['自动'] : undefined} disabled={locked || automaticSize} onChange={value => setSetting('resolution', value)} /></div>

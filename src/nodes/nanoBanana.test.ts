@@ -57,6 +57,7 @@ test('selected result, extraction, clipboard, asset ownership and persisted data
   const snapshot = workflowSnapshot({ nodes: [{ ...generated, selected: true }], edges: [], viewport: { x: 1, y: 2, zoom: .5 }, colorMode: 'dark' });
   const localData = { ...generated.data };
   delete localData.exposed;
+  assert.equal(snapshot.nodes.length, 1);
   assert.equal(snapshot.nodes[0].selected, undefined);
   assert.deepEqual(snapshot.nodes[0].data, localData);
 });

@@ -4,7 +4,7 @@ import { ArrowLeft, X } from 'lucide-react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Tick02Icon } from '@hugeicons/core-free-icons';
 import {
-  nodeMenuGroups, searchableNodeMenuEntries, resolveMenuGroups, withImageModelCreationMenu,
+  nodeMenuGroups, searchableNodeMenuEntries, resolveMenuGroups,
   type NodeMenuEntry, type NodeMenuGroup, type NodeMenuChoice,
 } from './nodeMenuCatalog';
 import { useCascadeMenu } from './useCascadeMenu';
@@ -93,8 +93,7 @@ export function NodeAddMenu({ id = 'canvas-node-menu', animateEntrance = false, 
   const { activeRow, highlightedRow, activate, cancelHover } = useCascadeMenu({ main, submenu, trigger, onDismiss });
   const term = query.trim().toLocaleLowerCase();
   const submenuFor = (entry: NodeMenuEntry) => entry.submenu;
-  const resolve = (groups: NodeMenuGroup[]) => resolveMenuGroups(groups, choices).map(group => mode === 'create'
-    ? { ...group, entries: group.entries.map(withImageModelCreationMenu) } : group);
+  const resolve = (groups: NodeMenuGroup[]) => resolveMenuGroups(groups, choices);
   const matches = resolve([{ entries: searchableNodeMenuEntries }]).flatMap(group => group.entries)
     .filter(entry => `${entry.label} ${entry.keywords}`.toLocaleLowerCase().includes(term));
   const groups = term ? [{ label: '搜索结果', entries: matches }] : resolve(nodeMenuGroups);

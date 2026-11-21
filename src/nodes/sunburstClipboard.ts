@@ -1,7 +1,20 @@
 import { isFileAsset } from './fileCollection.ts';
 import { restoreFileAnnotations } from './interactiveEdit.ts';
 import { apimartChannelModels, apimartSvgModels, apimartSvgEfforts, imageModerations, migrateSunburstProvider, validateSunburstVariant, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
-import type { SunburstNode } from './types';
+import { imagePromptModels } from '../components/image-prompt-node/imagePromptModels.ts';
+import { imagePromptAspectRatioGroups } from '../components/image-prompt-node/imagePromptAspectRatios.ts';
+import type { ImageComposerData, SunburstNode } from './types';
+
+function restoreComposer(value: unknown): ImageComposerData | undefined {
+  if (!value || typeof value !== 'object') return;
+  const { prompt, quantity, ratio, selection } = value as Partial<ImageComposerData>;
+  if (typeof prompt !== 'string' || typeof quantity !== 'number' || !Number.isInteger(quantity)
+    || quantity < 1 || quantity > 20 || typeof ratio !== 'string'
+    || !imagePromptAspectRatioGroups.some(group => group.values.some(value => value === ratio))) return;
+  if (selection && (!Array.isArray(selection.modelIds) || !selection.modelIds.every(id => imagePromptModels.some(model => model.id === id))
+    || typeof selection.autoSelect !== 'boolean' || typeof selection.multiple !== 'boolean')) return;
+  return { prompt, quantity, ratio, selection };
+}
 
 export function restoreSunburstData(value: unknown): SunburstNode['data'] | undefined {
   if (!value || typeof value !== 'object') return;
@@ -16,7 +29,9 @@ export function restoreSunburstData(value: unknown): SunburstNode['data'] | unde
   if (typeof count !== 'number' || !Number.isInteger(count) || count < 1 || count > 16) return;
   const results = data.results ?? [];
   if (!Array.isArray(results) || !results.every(isFileAsset)) return;
+  const composer = restoreComposer(data.composer);
   return {
+    ...(composer ? { composer } : {}),
     ...(apimartChannelModels.some(value => value === data.channelModel) ? { channelModel: data.channelModel as SunburstNode['data']['channelModel'] } : {}),
     ...(imageModerations.some(value => value === data.moderation) ? { moderation: data.moderation as SunburstNode['data']['moderation'] } : {}),
     ...(typeof data.frameCount === 'number' && Number.isInteger(data.frameCount) && data.frameCount >= 2 && data.frameCount <= 16 ? { frameCount: data.frameCount } : {}),

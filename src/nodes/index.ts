@@ -1,19 +1,16 @@
-import { SeedreamNode } from './SeedreamNode';
-import { NanoBananaNode } from './NanoBananaNode';
-import { SunburstNode } from './SunburstNode';
 import type { NodeTypes } from '@xyflow/react';
-
+import { ImageNode } from './ImageNode';
 import { FileNode } from './FileNode';
+import { NanoBananaNode } from './NanoBananaNode';
+import { SeedreamNode } from './SeedreamNode';
 import { TextNode } from './TextNode';
 import type { AppNode } from './types';
 
 export const initialNodes: AppNode[] = [];
-
 export const nodeTypes = {
-  sunburst: SunburstNode,
-  'nano-banana': NanoBananaNode,
-  seedream: SeedreamNode,
+  sunburst: ImageNode,
   text: TextNode,
   file: FileNode,
-  // Add any of your custom nodes here!
+  seedream: SeedreamNode,
+  'nano-banana': NanoBananaNode,
 } satisfies NodeTypes;

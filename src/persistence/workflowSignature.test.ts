@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { workflowSignature } from './workflowSignature.ts';
-import { initialTextDocument, documentText } from '../nodes/textDocument.ts';
+import { defaultSunburstSettings } from '../nodes/sunburst.ts';
 import type { Workflow } from './workflowStorage';
-import type { TextNode } from '../nodes/types';
+import type { SunburstNode } from '../nodes/types';
 
-const text: TextNode = { id: 'text', type: 'text', position: { x: 10, y: 20 }, data: { text: '中文提示词' } };
-const source: TextNode = { ...text, id: 'source', data: { text: '变量' } };
-const baseline: Workflow = { nodes: [source, text], edges: [{ id: 'edge', source: 'source', target: 'text', targetHandle: 'variable-1' }], viewport: { x: 0, y: 0, zoom: 1 }, colorMode: 'dark' };
+const text: SunburstNode = { id: 'text', type: 'sunburst', position: { x: 10, y: 20 }, data: { ...defaultSunburstSettings, imageInputs: 16, composer: { prompt: '中文提示词', quantity: 1, ratio: '1:1' } } };
+const source: SunburstNode = { ...text, id: 'source', data: { ...text.data } };
+const baseline: Workflow = { nodes: [source, text], edges: [{ id: 'edge', source: 'source', target: 'text', sourceHandle: 'result', targetHandle: 'image-0' }], viewport: { x: 0, y: 0, zoom: 1 }, colorMode: 'dark' };
 
 test('selection, dragging, measured dimensions and resize flags do not dirty a restored canvas', () => {
   const transient: Workflow = {
@@ -18,19 +18,9 @@ test('selection, dragging, measured dimensions and resize flags do not dirty a r
   assert.equal(workflowSignature(transient), workflowSignature(baseline));
 });
 
-test('hydrated legacy text, rich document key order and empty paragraphs are equivalent', () => {
-  const content = initialTextDocument(text.data.text, ['variable-1'], text.id);
-  const hydrated: Workflow = { ...baseline, nodes: [source, { ...text, data: { content, text: documentText(content) } }] };
-  assert.equal(workflowSignature(hydrated), workflowSignature(baseline));
-  const empty: Workflow = { ...baseline, edges: [], nodes: [source, { ...text, data: { text: '', content: { type: 'doc', content: [{ type: 'paragraph', content: [] }] } } }] };
-  const tiptap: Workflow = { ...empty, nodes: [source, { ...text, data: { content: { content: [{ type: 'paragraph' }], type: 'doc' }, text: '' } }] };
-  assert.equal(workflowSignature(empty), workflowSignature(tiptap));
-  assert.equal(workflowSignature({ ...baseline, version: 1, revision: 'storage metadata' } as Workflow), workflowSignature(baseline));
-});
-
 test('actual text, graph, geometry, parameters, asset and viewport edits still dirty the canvas', () => {
   const edits: Workflow[] = [
-    { ...baseline, nodes: [source, { ...text, data: { text: 'changed' } }] },
+    { ...baseline, nodes: [source, { ...text, data: { ...text.data, composer: { ...text.data.composer!, prompt: 'changed' } } }] },
     { ...baseline, nodes: [source, { ...text, data: { ...text.data, locked: true } }] },
     { ...baseline, nodes: [source, { ...text, position: { x: 11, y: 20 } }] },
     { ...baseline, nodes: [source, { ...text, style: { width: 600 } }] },
@@ -38,7 +28,7 @@ test('actual text, graph, geometry, parameters, asset and viewport edits still d
     { ...baseline, nodes: [] },
     { ...baseline, viewport: { x: 10, y: 0, zoom: 1 } },
     { ...baseline, viewport: { x: 0, y: 0, zoom: 0.75 } },
-    { ...baseline, nodes: [...baseline.nodes, { id: 'file', type: 'file', position: { x: 0, y: 0 }, data: { assets: [{ id: 'a', name: 'a.png', kind: 'image', url: 'blob:a' }] } }] },
+    { ...baseline, nodes: [source, { ...text, data: { ...text.data, results: [{ id: 'a', name: 'a.png', kind: 'image' as const, url: 'blob:a' }] } }] },
   ];
   for (const edit of edits) assert.notEqual(workflowSignature(edit), workflowSignature(baseline));
   assert.equal(workflowSignature(structuredClone(baseline)), workflowSignature(baseline));

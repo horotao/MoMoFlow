@@ -17,6 +17,7 @@ import { effectiveSunburstSettings, prepareSunburstRun, resolveSunburstEditPromp
 import { prepareNanoBananaRun } from './nanoBananaRun.ts';
 import { outputKind } from './outputPort.ts';
 import type { PreviewTask } from './taskQueue';
+import { composerExecutionNode } from './imageComposerSettings.ts';
 
 export type ExecutionGraph = {
   nodes: AppNode[];
@@ -24,7 +25,7 @@ export type ExecutionGraph = {
   // Keep the execution boundary stable while a batch creates its first results.
   refreshImages?: ReadonlySet<string>;
 };
-export type GenerationRecord = { version: 1; inputSignature: string; outputSignature: string };
+export type GenerationRecord = { version: 1; taskId?: string; inputSignature: string; outputSignature: string };
 export type OutputPolicy = { outputMode?: 'manual' | 'fixed'; sourceSignature?: string };
 const modelInputSignatureVersion = 'model-input-v1';
 export const isModelNode = isImageGeneratorNode;
@@ -146,11 +147,18 @@ export function graphGuard(graph: ExecutionGraph, id: string, force = false, han
   return stableSignature([...records].sort(([a], [b]) => a.localeCompare(b)));
 }
 export function prepareModel(graph: ExecutionGraph, id: string): PreviewTask[] {
-  const node = graph.nodes.find(item => item.id === id);
-  if (!node) throw new ExecutionProblem(id, '节点已删除。');
-  if (!isModelNode(node)) nodeProblem(node, '节点已下线或不能运行。');
-  const prepare = node.type === 'sunburst' ? prepareSunburstRun : node.type === 'nano-banana' ? prepareNanoBananaRun : prepareSeedreamRun;
-  const result = prepare(graph.nodes, graph.edges, [id], 1);
+  const original = graph.nodes.find(item => item.id === id);
+  if (!original) throw new ExecutionProblem(id, '节点已删除。');
+  if (!isModelNode(original)) nodeProblem(original, '节点已下线或不能运行。');
+  let node;
+  try { node = composerExecutionNode(original); }
+  catch (error) { nodeProblem(original, error instanceof Error ? error.message : '无法选择生成模型。'); }
+
+  const nodes = node === original ? graph.nodes : graph.nodes.map(item => item.id === id ? node : item);
+  const prompt = original.type === 'sunburst' ? original.data.composer?.prompt : undefined;
+  const result = node.type === 'sunburst' ? prepareSunburstRun(nodes, graph.edges, [id], 1)
+    : node.type === 'nano-banana' ? prepareNanoBananaRun(nodes, graph.edges, [id], 1, prompt)
+    : prepareSeedreamRun(nodes, graph.edges, [id], 1, prompt);
   if (result.error || !result.tasks[0]) nodeProblem(node, result.error ?? '节点已锁定或不能运行。');
 
   for (const edge of executionInputs(node, undefined, graph).filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''))) {
@@ -166,7 +174,7 @@ export function requestSignature(task: PreviewTask, graph: ExecutionGraph) {
   return stableSignature([modelInputSignatureVersion, task.model, replace(task.seedreamRequest ?? task.imageRequest ?? task.nanoBananaRequest)]);
 }
 
-function savedImagePrompt(asset: FileAsset): string | undefined {
+export function savedImagePrompt(asset: FileAsset): string | undefined {
   const generation = asset.generation;
   if (asset.kind !== 'image' || generation?.version !== 1 || generation.outputSignature !== asset.id) return;
   try {
@@ -220,18 +228,21 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
   try {
 
     if (!isImageGeneratorNode(node)) return;
+    const composer = node.type === 'sunburst' ? node.data.composer : undefined;
+    const model = composerExecutionNode(node);
     const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
-    const sunburst = node.type === 'sunburst' ? effectiveSunburstSettings(node) : undefined;
+    const sunburst = model.type === 'sunburst' ? effectiveSunburstSettings(model) : undefined;
     const edit = sunburst && promptEdge && !unknown.has('prompt')
       ? resolveSunburstEditPrompt(promptEdge.source, graph.nodes, graph.edges,
         sunburst.provider === 'apimart' && sunburst.channelModel !== 'gpt-image-2.6') : undefined;
     if (!unknown.has('prompt')) {
-      if (node.type === 'seedream' && promptEdge && hasSplitSeedreamPrompt(promptEdge.source, graph.nodes, graph.edges)) {
-        const prepared = prepareSeedreamRun(graph.nodes, graph.edges, [node.id], 1);
+      if (model.type === 'seedream' && promptEdge && hasSplitSeedreamPrompt(promptEdge.source, graph.nodes, graph.edges)) {
+        const nodes = model === node ? graph.nodes : graph.nodes.map(item => item.id === node.id ? model : item);
+        const prepared = prepareSeedreamRun(nodes, graph.edges, [node.id], 1);
         if (prepared.error) throw new Error(prepared.error);
         return;
       }
-      const prompt = edit?.prompt ?? (promptEdge ? resolveTextValue(promptEdge.source, graph.nodes, graph.edges).trim() : '');
+      const prompt = edit?.prompt ?? (promptEdge ? resolveTextValue(promptEdge.source, graph.nodes, graph.edges).trim() : composer?.prompt.trim() ?? '');
       if (!prompt || prompt.length > 32000) throw new Error('请连接非空提示词，最多 32000 个字符。');
     }
     const masked = inputs.some(edge => edge.targetHandle === 'mask');
@@ -245,16 +256,17 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
       if (edit?.markupMarks) validateSunburstMarkup(validated.outputFormat, true, masked);
       validateSunburstImageInputs(String(settings.outputFormat), Boolean(edit?.original || images.length), masked, validateSunburstProvider(settings.provider), validated.channelModel);
       if (masked && !images.length) throw new Error('使用 Mask 时必须连接 Image。');
-    } else if (node.type === 'seedream') {
-      validateSeedreamSettings(knownSettings({ ...node.data, size: node.data.size ?? 'auto' }, defaultSeedreamSettings));
-    } else if (node.type === 'nano-banana') {
-      validateNanoBananaSettings(knownSettings(node.data, defaultNanoBananaSettings));
+    } else if (model.type === 'seedream') {
+      validateSeedreamSettings(knownSettings({ ...model.data, size: model.data.size ?? 'auto' }, defaultSeedreamSettings));
+    } else if (model.type === 'nano-banana') {
+      validateNanoBananaSettings(knownSettings(model.data, defaultNanoBananaSettings));
     }
   } catch (error) { nodeProblem(node, error instanceof Error ? error.message : '输入参数无效。'); }
 }
 
 export function preflight(graph: ExecutionGraph, targets: string[], runs: number) {
-  if (!Number.isInteger(runs) || runs < 1 || runs > 10) throw new Error('运行次数必须为 1–10。');
+  const maxRuns = targets.length === 1 && graph.nodes.some(node => node.id === targets[0] && node.type === 'sunburst' && 'composer' in node.data && node.data.composer) ? 20 : 10;
+  if (!Number.isInteger(runs) || runs < 1 || runs > maxRuns) throw new Error(`运行次数必须为 1–${maxRuns}。`);
   const dependencies = new Map<string, Set<string>>();
   for (const target of targets) {
     const all = new Set<string>();
@@ -273,7 +285,7 @@ export function preflight(graph: ExecutionGraph, targets: string[], runs: number
       if (node.type === 'file' && !fileAssets(node.data).some(asset => asset.kind === 'image')) nodeProblem(node, '请先上传图片。');
       const inputs = executionInputs(node, handle, graph);
 
-      if (isImageGeneratorNode(node) && !inputs.some(edge => edge.targetHandle === 'prompt')) nodeProblem(node, '请连接提示词。');
+      if (isImageGeneratorNode(node) && !(node.type === 'sunburst' && node.data.composer?.prompt.trim()) && !inputs.some(edge => edge.targetHandle === 'prompt')) nodeProblem(node, '请连接提示词。');
 
       for (const edge of inputs) {
         const source = graph.nodes.find(item => item.id === edge.source);

@@ -1,22 +1,29 @@
+import { canvasImage } from './fixtures/canvasImage';
 import { createRoot } from 'react-dom/client';
 import { ReactFlowProvider, useReactFlow, type ReactFlowInstance } from '@xyflow/react';
 import { Flow } from '../src/App';
+import { useModelTaskStore } from '../src/components/useModelTasks';
 import { ModelTasksProvider } from '../src/components/ModelTasksProvider';
 import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
 import type { AppNode } from '../src/nodes/types';
 import { canvasHistoryShortcut } from './canvasShortcuts';
 import '../src/index.css';
 let api: ReactFlowInstance<AppNode>;
-function Probe() { api = useReactFlow<AppNode>(); return null; }
+let tasks: ReturnType<typeof useModelTaskStore>;
+function Probe() {
+  api = useReactFlow<AppNode>();
+  tasks = useModelTaskStore();
+  return null;
+}
 const storage = new WorkflowStorage(`momoflow-layout-qa-${crypto.randomUUID()}`);
 const saved: Workflow = { nodes: [
-  { id: 'a', type: 'text', position: { x: 500, y: 50 }, selected: true, data: { text: 'Source' } },
-  { id: 'b', type: 'text', position: { x: 50, y: 400 }, selected: true, data: { text: 'Target' } },
-  { id: 'c', type: 'text', position: { x: 2000, y: 1000 }, selected: true, data: { text: 'Second source' } },
-  { id: 'd', type: 'text', position: { x: 2500, y: 1250 }, selected: true, data: { text: 'Second target' } },
-  { id: 'isolated', type: 'text', position: { x: -500.3, y: -600.7 }, selected: true, data: { text: 'Isolated' } },
-  { id: 'fixed', type: 'text', position: { x: 1100, y: 700 }, data: { text: 'Unselected' } },
-], edges: [{ id: 'ab', source: 'a', target: 'b', sourceHandle: 'text', targetHandle: 'input-0' }, { id: 'cd', source: 'c', target: 'd', sourceHandle: 'text', targetHandle: 'input-0' }], viewport: { x: 0, y: 0, zoom: 0.63 }, colorMode: 'dark' };
+  { ...canvasImage('a', 500, 50), selected: true },
+  { ...canvasImage('b', 50, 400), selected: true },
+  { ...canvasImage('c', 2000, 1000), selected: true },
+  { ...canvasImage('d', 2500, 1250), selected: true },
+  { ...canvasImage('isolated', -500.3, -600.7), selected: true },
+  { ...canvasImage('fixed', 1100, 700), selected: false },
+], edges: [{ id: 'ab', source: 'a', target: 'b', sourceHandle: 'result', targetHandle: 'image-0' }, { id: 'cd', source: 'c', target: 'd', sourceHandle: 'result', targetHandle: 'image-0' }], viewport: { x: 0, y: 0, zoom: 0.63 }, colorMode: 'dark' };
 createRoot(document.getElementById('root')!).render(<ReactFlowProvider><ModelTasksProvider><Flow storage={storage} saved={saved} /><Probe /></ModelTasksProvider></ReactFlowProvider>);
 const settle = () => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 const result = document.getElementById('results')!;
@@ -41,6 +48,34 @@ async function run() {
   const input = document.createElement('input'); canvas.append(input); input.focus(); press({}, input); await settle(); check(positions() === before, 'Typing is protected'); input.remove();
   const dialog = document.createElement('div'); dialog.setAttribute('role', 'dialog'); document.body.append(dialog); canvas.focus(); press(); await settle(); check(positions() === before, 'Open dialog blocks shortcut'); dialog.remove();
   api.setNodes(nodes => nodes.map(n => ({ ...n, selected: false }))); await settle(); press(); await settle(); check(positions() === before, 'Empty selection does not rearrange whole canvas');
+  api.updateNodeData('b', { results: [{ id: 'prior', kind: 'image', name: 'prior.png',
+    url: new URL('./snapshots/image-prompt-node-2026-11-20-v1/tests/generation-preview.png', import.meta.url).href }] });
+  api.setNodes(nodes => nodes.map(node => ({ ...node, selected: node.id === 'a' || node.id === 'b' })));
+  await settle();
+  tasks.update(() => ['a', 'b'].map(nodeId => ({
+    id: nodeId, batchId: 'layout', nodeId, model: 'image', createdAt: Date.now(),
+    started: Date.now(), progress: 10, state: 'Running',
+  })));
+  await settle();
+  const wire = document.querySelector<SVGPathElement>('.react-flow__edge[data-id="ab"] .workflow-wire')!;
+  for (const [id, selector, distance] of [
+    ['a', '.image-node-output-visual', 0],
+    ['b', '[data-connection-port="image"] .image-node-port', wire.getTotalLength()],
+  ] as const) {
+    const port = document.querySelector(`[data-id="${id}"] [aria-busy="true"] ${selector}`)!.getBoundingClientRect();
+    const end = wire.getPointAtLength(distance).matrixTransform(wire.getScreenCTM()!);
+    check(port.width > 0 && Math.hypot(end.x - port.x - port.width / 2, end.y - port.y - port.height / 2) < 1,
+      `Generating Image keeps its wire attached to ${id}`);
+  }
+  for (const id of ['a', 'b']) {
+    const running = document.querySelector(`[data-id="${id}"] .image-node[aria-busy="true"]`)!;
+    check(running.classList.contains('is-selected') && !running.querySelector('textarea')!.readOnly
+      && ['.image-node-toolbar-bridge', '.image-node-surface'].every(selector => {
+        const element = running.querySelector(selector)!;
+        return getComputedStyle(element).visibility === 'visible' && element.getBoundingClientRect().height > 0;
+      }), `Generating selected Image ${id} keeps its toolbar visible and its prompt editable`);
+  }
+  tasks.update(() => []);
   result.dataset.result = 'passed';
 }
 void run().catch(error => { result.dataset.result = 'failed'; result.textContent += `\nFAIL ${String(error)}`; });

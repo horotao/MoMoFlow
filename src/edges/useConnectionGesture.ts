@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useStoreApi, type Connection, type Edge, type OnConnectStart } from '@xyflow/react';
+import { workflowPort } from './workflowPort';
 import { magneticSizeScale } from './magneticSizing';
 
 // XYHandle captures its search radius at pointer-down and has no public abort
 // method. Keep its candidate search broad, validate against the live viewport,
 // and route cancellation through its pointer-up cleanup as well as the store.
-export function useConnectionGesture(radius: number) {
+export function useConnectionGesture(radius: number, workflow = false) {
   const store = useStoreApi();
   const cancelled = useRef(false);
   const active = useRef(false);
@@ -90,9 +91,18 @@ export function useConnectionGesture(radius: number) {
     const [tx, ty, zoom] = state.transform;
     const x = (pointer.current.clientX - bounds.left - tx) / zoom;
     const y = (pointer.current.clientY - bounds.top - ty) / zoom;
+    if (workflow) {
+      const port = workflowPort(state.domNode, node.id, reverse ? 'source' : 'target', handleId);
+      if (!port) return false;
+      const { clientX, clientY } = pointer.current;
+      const under = state.domNode?.ownerDocument.elementFromPoint(clientX, clientY)?.closest('[data-connection-port]');
+      if (under && under !== port.closest('[data-connection-port]')) return false;
+      const rect = port.getBoundingClientRect();
+      return Math.hypot(clientX - rect.x - rect.width / 2, clientY - rect.y - rect.height / 2) <= radius * zoom;
+    }
     const hx = node.internals.positionAbsolute.x + handle.x + handle.width / 2;
     const hy = node.internals.positionAbsolute.y + handle.y + handle.height / 2;
     return Math.hypot(x - hx, y - hy) <= radius * magneticSizeScale(zoom);
-  }, [store, radius]);
-  return { cancelled, start, startClick, end, cancel, withinRadius, connectionRadius: radius };
+  }, [store, radius, workflow]);
+  return { cancelled, start, startClick, end, cancel, withinRadius, connectionRadius: workflow ? radius + 32 : radius };
 }

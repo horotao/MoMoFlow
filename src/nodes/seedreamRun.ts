@@ -78,7 +78,7 @@ function splitAnnotationPrompt({ originals, marks, prompt, marker }: ReturnType<
   }));
 }
 
-function singleSeedreamPrompt(annotation: ReturnType<typeof collectAnnotationPrompt>, inputs: Edge[], imageInputs: number, nodes: AppNode[], edges: Edge[], promptId: string) {
+function singleSeedreamPrompt(annotation: ReturnType<typeof collectAnnotationPrompt>, inputs: Edge[], imageInputs: number, nodes: AppNode[], edges: Edge[], promptId?: string) {
   const references = inputs.filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''))
     .sort((a, b) => Number(a.targetHandle?.slice(6)) - Number(b.targetHandle?.slice(6)))
     .flatMap(edge => {
@@ -102,7 +102,7 @@ function singleSeedreamPrompt(annotation: ReturnType<typeof collectAnnotationPro
   };
 }
 
-export function prepareSeedreamRun(nodes: AppNode[], edges: Edge[], ids: string[], runs: number): { tasks: PreviewTask[]; error?: string } {
+export function prepareSeedreamRun(nodes: AppNode[], edges: Edge[], ids: string[], runs: number, inlinePrompt?: string): { tasks: PreviewTask[]; error?: string } {
   if (!Number.isInteger(runs) || runs < 1 || runs > 10) return { tasks: [], error: '运行次数必须为 1–10。' };
   const tasks: PreviewTask[] = [], batchId = crypto.randomUUID(), createdAt = Date.now();
   try {
@@ -112,11 +112,11 @@ export function prepareSeedreamRun(nodes: AppNode[], edges: Edge[], ids: string[
       const settings = validateSeedreamSettings({ ...node.data, size: node.data.size ?? 'auto' });
       const inputs = edges.filter(edge => edge.target === id);
       const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
-      if (!promptEdge) throw new Error('请为 Seedream 连接非空提示词，最多 32000 个字符。');
-      const annotation = collectAnnotationPrompt(promptEdge.source, nodes, edges);
+      const annotation = promptEdge ? collectAnnotationPrompt(promptEdge.source, nodes, edges)
+        : { prompt: inlinePrompt ?? '', originals: [], marks: [], marker: /(?!)/g };
       const groups = annotation.originals.length > 1
         ? splitAnnotationPrompt(annotation)
-        : [singleSeedreamPrompt(annotation, inputs, node.data.imageInputs, nodes, edges, promptEdge.source)];
+        : [singleSeedreamPrompt(annotation, inputs, node.data.imageInputs, nodes, edges, promptEdge?.source)];
       for (const { prompt } of groups) {
         if (!prompt || prompt.length > 32000) throw new Error('请为 Seedream 连接非空提示词，最多 32000 个字符。');
       }

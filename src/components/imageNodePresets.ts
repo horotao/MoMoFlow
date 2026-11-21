@@ -1,5 +1,3 @@
-import { defaultNanoBananaSettings, validateNanoBananaSettings } from '../nodes/nanoBanana';
-import { defaultSeedreamSettings, validateSeedreamSettings } from '../nodes/seedream';
 import {
   apimartFixedSettings, defaultSunburstSettings, validateSunburstProvider,
   validateSunburstSettings, validateSunburstVariant, type SunburstSettings,
@@ -40,6 +38,3 @@ export const sunburstPreset = createImagePreset('sunburst', defaultSunburstPrese
     variant: validateSunburstVariant(variant),
   };
 });
-
-export const nanoBananaPreset = createImagePreset('nano-banana', defaultNanoBananaSettings, validateNanoBananaSettings);
-export const seedreamPreset = createImagePreset('seedream', defaultSeedreamSettings, validateSeedreamSettings);

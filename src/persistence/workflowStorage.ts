@@ -15,18 +15,45 @@ export type Workflow = {
 type StoredWorkflow = Workflow & { version: 1; revision?: string };
 const documentKey = 'current';
 
-function restoreGraph(nodes: AppNode[], edges: Edge[]) {
-  // Discard retired nodes before touching their potentially missing assets.
-  const supported = nodes.filter(node => isImageGeneratorNode(node) || node.type === 'text'
-    || node.type === 'file' || isInteractiveEditNode(node) || ['default', 'input', 'output', 'group'].includes(node.type ?? 'default'));
+function supportedNode(node: AppNode): boolean {
+  return isImageGeneratorNode(node) || isFileNode(node) || isInteractiveEditNode(node)
+    || node.type === 'text' || ['default', 'input', 'output', 'group'].includes(node.type ?? 'default');
+}
+
+export function restoreGraph(nodes: AppNode[], edges: Edge[]) {
+  const supported = nodes.filter(supportedNode);
   const kept = new Set(supported.map(node => node.id));
-  return migrateImageModelGraph(supported, edges.filter(edge => kept.has(edge.source) && kept.has(edge.target)));
+  const models = migrateImageModelGraph(supported, edges.filter(edge => kept.has(edge.source) && kept.has(edge.target)));
+  return migrateFileAnnotations(models.nodes, models.edges);
+}
+
+// Older editors can still open retired nodes. Keep their raw data and local
+// blobs in the saved project while the current canvas displays supported nodes.
+function retainRetiredGraph(previous: StoredWorkflow | undefined, snapshot: StoredWorkflow, storedKeys: Set<string>) {
+  const keys = new Set<string>();
+  if (!previous) return keys;
+  const retired = previous.nodes.filter(node => !supportedNode(node));
+  if (!retired.length) return keys;
+  const retiredIds = new Set(retired.map(node => node.id));
+  const kept = new Set([...snapshot.nodes.map(node => node.id), ...retiredIds]);
+  snapshot.nodes.push(...retired);
+  snapshot.edges.push(...previous.edges.filter(edge => kept.has(edge.source) && kept.has(edge.target)
+    && (retiredIds.has(edge.source) || retiredIds.has(edge.target))));
+
+  const seen = new Set<object>();
+  function visit(value: unknown) {
+    if (typeof value === 'string' && storedKeys.has(value)) keys.add(value);
+    if (!value || typeof value !== 'object' || seen.has(value)) return;
+    seen.add(value);
+    Object.values(value).forEach(visit);
+  }
+  retired.forEach(visit);
+  return keys;
 }
 
 // Drop React Flow's temporary interaction/measurement state, retain node content.
 export function workflowSnapshot(workflow: Workflow): StoredWorkflow {
-  const models = restoreGraph(workflow.nodes, workflow.edges);
-  const graph = migrateFileAnnotations(models.nodes, models.edges);
+  const graph = restoreGraph(workflow.nodes, workflow.edges);
   return {
     ...workflow, version: 1, colorMode: 'dark',
     nodes: graph.nodes.map(node => ({
@@ -128,7 +155,7 @@ export class WorkflowStorage {
       }
       return { ...asset, url };
     });
-    return { ...saved, ...migrateFileAnnotations(nodes, graph.edges), colorMode: 'dark' };
+    return { ...saved, nodes, edges: graph.edges, colorMode: 'dark' };
   }
 
   // The caller serializes saves. Assets and graph commit in the same transaction.
@@ -159,6 +186,7 @@ export class WorkflowStorage {
     const documents = transaction.objectStore('workflows');
     const current = documents.get(documentKey);
     let failure: unknown;
+    let archivedKeys = new Set<string>();
     snapshot.revision = crypto.randomUUID();
     current.onsuccess = () => {
       try {
@@ -168,8 +196,9 @@ export class WorkflowStorage {
           error.name = 'WorkflowConflictError';
           throw error;
         }
+        archivedKeys = retainRetiredGraph(current.result, snapshot, this.storedKeys);
         for (const [key, blob] of additions) assets.put(blob, key);
-        for (const key of this.storedKeys) if (!required.has(key)) assets.delete(key);
+        for (const key of this.storedKeys) if (!required.has(key) && !archivedKeys.has(key)) assets.delete(key);
         documents.put(snapshot, documentKey);
       } catch (error) {
         failure = error;
@@ -178,7 +207,7 @@ export class WorkflowStorage {
     };
     await done.catch(error => { throw failure ?? error; });
     this.revision = snapshot.revision;
-    this.storedKeys = new Set(required.keys());
+    this.storedKeys = new Set([...required.keys(), ...archivedKeys]);
   }
 
   releaseRestoredAssets() {

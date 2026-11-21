@@ -5,7 +5,7 @@ import { WorkflowExecution, type ExecutionIO, type ExecutionStore } from './work
 import { preflight, prepareModel, requestSignature, selectedResult, type ExecutionGraph } from './executionGraph.ts';
 import { defaultSunburstSettings } from './sunburst.ts';
 import { ModelRequestCancelled } from './modelRequestError.ts';
-import { isImageGeneratorNode, type AppNode, type FileAsset } from './types.ts';
+import { isImageGeneratorNode, type AppNode, type SunburstNode, type FileAsset } from './types.ts';
 import type { PreviewTask } from './taskQueue';
 import { isActiveTask } from './taskQueue.ts';
 import { workflowSnapshot } from '../persistence/workflowStorage.ts';
@@ -30,12 +30,15 @@ function harness(initial = fixture(), request?: ExecutionIO['request'], io: Part
   return { engine, store, requests, discarded, get graph() { return graph; }, edit(change: (graph: ExecutionGraph) => ExecutionGraph) { graph = change(graph); engine.observe(graph); }, node(id: string) { return graph.nodes.find(node => node.id === id)!; } };
 }
 function recordedSunburstGraph(recording: 'legacy' | 'apimart' | 'openai'): ExecutionGraph {
-  const upstream = generator('upstream');
-  assert.equal(upstream.type, 'sunburst');
+  const image = (id: string): SunburstNode => ({ id, type: 'sunburst', position: { x: 0, y: 0 }, data: {
+    ...defaultSunburstSettings, imageInputs: 16, composer: { prompt: 'A circle', ratio: '1:1', quantity: 1 },
+  } });
+  const upstream = image('upstream'), source = image('source');
+  source.data.results = [generatedAsset('original')];
   if (recording !== 'legacy') upstream.data = { ...upstream.data, provider: recording, ...(recording === 'apimart' ? { channelModel: 'gpt-image-2.6' } : {}) };
   const graph: ExecutionGraph = {
-    nodes: [file('source'), { id: 'prompt', type: 'text', position: { x: 0, y: 0 }, data: { text: 'A circle' } }, upstream, generator('downstream')],
-    edges: [edge('prompt', 'downstream', 'prompt'), edge('prompt', 'upstream', 'prompt'), edge('source', 'upstream', 'image-0', 'file'), edge('upstream', 'downstream', 'image-0', 'result')],
+    nodes: [source, upstream, image('downstream')],
+    edges: [edge('source', 'upstream', 'image-0', 'result'), edge('upstream', 'downstream', 'image-0', 'result')],
   };
   const recorded = prepareModel(graph, 'upstream')[0];
   assert.ok(recorded.imageRequest);
@@ -205,8 +208,8 @@ test('upstream image results survive model, provider, input and parameter change
   for (const change of ['model-upgrade', 'variant', 'provider', 'prompt', 'image', '2K', '4K', 'quality', 'output', 'signature', 'locked-size', 'openai-to-apimart']) {
     const graph = recordedSunburstGraph(change === 'model-upgrade' ? 'legacy' : change === 'openai-to-apimart' ? 'openai' : 'apimart');
     graph.nodes = graph.nodes.map(node => {
-      if (change === 'prompt' && node.id === 'prompt') return { ...node, data: { text: 'A different circle' } } as AppNode;
-      if (change === 'image' && node.id === 'source') return { ...file('source'), data: { assets: [{ id: 'replacement', kind: 'image', name: 'new.png', url: 'blob:new' }] } } as AppNode;
+      if (change === 'prompt' && node.id === 'upstream' && isImageGeneratorNode(node) && node.type === 'sunburst') return { ...node, data: { ...node.data, composer: { ...node.data.composer!, prompt: 'A different circle' } } };
+      if (change === 'image' && node.id === 'source') return { ...node, data: { ...node.data, results: [generatedAsset('replacement')] } } as AppNode;
       if (node.id !== 'upstream' || !isImageGeneratorNode(node)) return node;
       return { ...node, data: { ...node.data,
         ...(change === 'provider' ? { provider: 'openai' } : change === 'openai-to-apimart' ? { provider: 'apimart', channelModel: 'gpt-image-2.6' } : {}),
@@ -353,4 +356,21 @@ test('provider-cancelled APIMart tasks and their dependents end as Cancelled and
     if (!downstream) assert.equal(selectedResult(h.node('g'))?.id, 'previous');
     h.engine.dispose();
   }
+});
+
+test('Image composer batches use the inline prompt, with a connected Prompt taking precedence', () => {
+  const image = generator('image');
+  assert.ok(isImageGeneratorNode(image) && image.type === 'sunburst');
+  image.data.composer = { prompt: 'inline prompt', ratio: '1:1', quantity: 20 };
+  const graph: ExecutionGraph = { nodes: [image, textNode('text', 'connected prompt')], edges: [] };
+  preflight(graph, ['image'], 20);
+  assert.equal(prepareModel(graph, 'image')[0].imageRequest?.prompt, 'inline prompt');
+  graph.edges = [edge('text', 'image', 'prompt')];
+  assert.equal(prepareModel(graph, 'image')[0].imageRequest?.prompt, 'connected prompt');
+  assert.throws(() => preflight(graph, ['image'], 21), /1–20/);
+  image.data.composer.selection = { modelIds: ['seedream-5-5'], multiple: false, autoSelect: false };
+  assert.doesNotThrow(() => preflight(graph, ['image'], 1));
+  assert.equal(prepareModel(graph, 'image')[0].seedreamRequest?.prompt, 'connected prompt');
+  image.data.composer.selection = { modelIds: ['nano-banana-pro'], multiple: false, autoSelect: false };
+  assert.throws(() => preflight(graph, ['image'], 1), /请选择其中一个模型/);
 });

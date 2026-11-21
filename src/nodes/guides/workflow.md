@@ -1,13 +1,5 @@
-# 工作流执行
+# Image 工作流
 
-[返回节点索引](../README.md)
+Image 可先连线再运行。运行前检查节点的提示词、参考图、锁定状态和所选模型。执行器按依赖顺序准备输入，根据输入和输出记录判断是否可复用上游结果。
 
-## 任务调度与取消
-
-GPT Image 2.6、Nano Banana 和 Seedream 共用任务队列和四个并发请求名额。任务面板支持取消和重试。模型节点运行次数为 1–10，结果写回后任务才完成。Seedream 按标注原图拆分请求，失败时可以只重试对应原图。
-
-## 按依赖自动执行与结果复用
-
-运行前检查提示词、图片、模型设置、锁定状态和环路。上游模型已有图片时使用选中的结果，缺少结果时先生成。目标主动运行时使用当前输入。每个下游保留本轮取得的结果；不同消费者可共享同一上游请求。输入变化或取消后，迟到结果不能继续写回。
-
-生成记录和素材随画布保存，运行中的任务不跨刷新恢复。执行器和校验见 [workflowExecution.ts](../workflowExecution.ts) 与 [executionGraph.ts](../executionGraph.ts)。
+任务按节点记录进度，可取消或手动重试。结果随工作流保存，刷新后可继续选择已有图片；进行中的任务状态只在当前会话内维护。调度与重试见 [workflowExecution.ts](../workflowExecution.ts)，界面接入见 [useWorkflowExecution.ts](../../components/useWorkflowExecution.ts)。

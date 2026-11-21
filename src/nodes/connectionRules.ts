@@ -1,7 +1,7 @@
 import { isImageGenerationInput } from './sunburst.ts';
 import type { Connection, Edge } from '@xyflow/react';
 import type { AppNode } from './types';
-import { isNodeLocked, isImageGeneratorNode } from './types.ts';
+import { isCanvasImageNode, isNodeLocked, isImageGeneratorNode } from './types.ts';
 import { fileAssets, fileOutputKind } from './fileCollection.ts';
 import { isTextNode, textAnnotationCount, textInputHandle } from './textVariables.ts';
 import { annotationInputIndex, isAnnotationInput } from './interactiveEdit.ts';
@@ -23,6 +23,11 @@ export function withoutReplacedInput(connection: Pick<Edge, 'target' | 'targetHa
 export function canConnect(connection: Connection | Edge, nodes: AppNode[], currentEdges: Edge[], pendingImportId?: string): boolean {
   const source = nodes.find(node => node.id === connection.source), target = nodes.find(node => node.id === connection.target);
   if (!source || !target || isNodeLocked(source) || isNodeLocked(target) || source.id === target.id) return false;
+  const composerSource = isCanvasImageNode(source), composerTarget = isCanvasImageNode(target);
+  if (composerSource && connection.sourceHandle !== 'result') return false;
+  if (composerTarget && connection.targetHandle !== 'prompt'
+    && !/^image-([0-9]|1[0-5])$/.test(connection.targetHandle ?? '')) return false;
+  if (composerSource && composerTarget && currentEdges.some(edge => edge.source === source.id && edge.target === target.id)) return false;
   if (isTextNode(target) && isAnnotationInput(connection.targetHandle) && annotationInputIndex(connection.targetHandle) >= textAnnotationCount(target, currentEdges)) return false;
   if (currentEdges.some(edge => edge.source === source.id && edge.target === target.id
     && (edge.sourceHandle ?? null) === (connection.sourceHandle ?? null)
