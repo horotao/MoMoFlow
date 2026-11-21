@@ -45,3 +45,5 @@
 `/tests/media-node-style.html` 是 GPT Image、Nano Banana 与文件导入的独立浏览器验收入口，使用 React、真实 React Flow 及浏览器断言，覆盖外框尺寸、真实图片比例、双图/四图瀑布流、文件图片单击不展开与双击展开、键盘操作、全屏、等宽进度与取消。运行 `npm run dev` 后打开该页面；仅使用本地 Figma 示例素材，不读取用户画布或调用模型，类型检查包含在 `npm run check` 中。
 
 `/tests/text-node-style.html` 是独立的 Text 样式与交互验收入口，使用真实画布与隔离存储，不调用模型、不读写用户工作流；检查尺寸、资源、编辑、变量三种显示、菜单和锁定。先运行 `npm run dev`，再在浏览器打开该页面；浏览器验收不由 `npm test` 执行，类型检查包含在 `npm run check` 中。
+
+出图后可从结果图片区域拖动整个节点。主画布通过 `canvasImageDrag` 统一拦截结果图（含淡入淡出层）和历史缩略图的浏览器原生拖拽；保留提示词编辑、历史切换、端口连线与锁定行为。

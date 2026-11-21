@@ -1,3 +1,4 @@
+import { preventCanvasImageDrag, withCanvasImageDrag } from './components/canvasImageDrag';
 import { EnsureResultAnnotationWorkflow, PromptAnnotationEdits, PromptAnnotationLinks } from './nodes/promptAnnotationEdits';
 import { isAnnotationInput, restoreFileAnnotations, restoreInteractiveEditData, resultAnnotationDraftHandle } from './nodes/interactiveEdit';
 import { annotationOutput, canAnnotateResult, isAnnotationSource, resultAnnotationDraft, selectedImageResult, withImageAnnotationHistories } from './nodes/annotationGraph';
@@ -608,6 +609,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     <EnsureResultAnnotationWorkflow.Provider value={ensureResultAnnotationWorkflow}><PromptAnnotationLinks.Provider value={annotationLinks}><PromptAnnotationEdits.Provider value={applyPromptAnnotationEdit}><CanvasHistoryContext.Provider value={history}><ConnectionEffectsContext.Provider value={connectionEffects}><ReactFlow
       ref={canvasRef}
       tabIndex={0}
+      onDragStartCapture={preventCanvasImageDrag}
       onPointerDownCapture={event => {
         if ((event.target as HTMLElement).classList.contains('react-flow__pane')) canvasRef.current?.focus({ preventScroll: true });
       }}
@@ -625,7 +627,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       nodesDraggable={tool === 'select'}
       nodesConnectable={tool === 'select'}
       elementsSelectable={tool === 'select'}
-      nodes={displayPlacement(canvasNodes)}
+      nodes={displayPlacement(canvasNodes).map(withCanvasImageDrag)}
       nodeTypes={nodeTypes}
       onNodesChange={changeCanvasNodes}
       onNodeDragStart={startGridDrag}
