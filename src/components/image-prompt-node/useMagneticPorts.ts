@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { inputPortMinimumSpacing, inputPortSpacing, separateInputPorts } from '../magneticPortSpacing';
 
 // FLORA's rendered handle geometry: 160-unit attraction radius, 35% pull,
 // capped at 20 units, retargeted from the current position over 500ms (easeOutCubic).
@@ -32,10 +33,18 @@ export function useMagneticPorts() {
     function paint(now: number) {
       frame = 0;
       let moving = false;
+      tracks.forEach(track => { moving = advance(track, now) || moving; });
+      const top = textInput.current;
+      const bottom = input.current;
+      // Project every rendered frame, including interrupted/reversed movement.
+      // Keep the raw tracks continuous and leave disabled ports at rest.
+      const [topY, bottomY] = top && bottom
+        ? separateInputPorts(tracks[2].y, tracks[0].y, inputPortSpacing, inputPortMinimumSpacing)
+        : [tracks[2].y, tracks[0].y];
       tracks.forEach((track, index) => {
-        moving = advance(track, now) || moving;
         const element = elements[index].current;
-        const transform = `translate3d(${track.x}px, ${track.y}px, 0px)`;
+        const y = index === 0 ? bottomY : index === 2 ? topY : track.y;
+        const transform = `translate3d(${track.x}px, ${y}px, 0px)`;
         if (element && element.style.transform !== transform) element.style.transform = transform;
       });
       if (moving) frame = requestAnimationFrame(paint);
@@ -46,7 +55,7 @@ export function useMagneticPorts() {
       const rect = host.getBoundingClientRect();
       const width = host.offsetWidth, height = host.offsetHeight;
       const scale = rect.width / width;
-      const anchors = [{ x: -24, y: height / 2 + (host.classList.contains('has-text-input') ? 32 : 20) }, { x: width + 28, y: height / 2 }, { x: -24, y: height / 2 }];
+      const anchors = [{ x: -24, y: height / 2 + 20 }, { x: width + 28, y: height / 2 }, { x: -24, y: height / 2 - inputPortSpacing / 2 }];
       const now = performance.now();
       tracks.forEach((track, index) => {
         advance(track, now);

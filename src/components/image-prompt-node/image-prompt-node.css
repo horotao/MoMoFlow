@@ -299,6 +299,9 @@
 }
 .image-node-port-count { color: #eeeeec99; margin-left: -1px; }
 .image-node-port { display: block; flex: none; width: 24px; height: 24px; pointer-events: none; }
+.image-node-port-ring { stroke-width: calc(1.5px + var(--port-aa) / var(--canvas-zoom, 1)); }
+.image-node-port-dot { display: none; r: calc(3.84px + var(--port-aa) / var(--canvas-zoom, 1) / 2); }
+.image-node-input[data-connected=true] .image-node-port-dot { display: block; }
 .image-node-output {
   position: absolute;
   left: calc(100% - 4px);
@@ -359,5 +362,6 @@
 /* Connected prompts remain legible below results, even when the node loses selection. */
 .image-node.has-connected-prompt.has-compact-composer .image-node-surface { opacity: 1; visibility: visible; transform: none; }
 .image-node.has-connected-prompt .image-node-composer textarea { opacity: .5; }
-.image-node.has-text-input .image-node-inputs { top: calc(50% - 16px); }
+/* Two 32px buttons + 8px gap, centered together on the card midpoint. */
+.image-node.has-text-input .image-node-inputs { top: calc(50% - 36px); row-gap: 8px; }
 .image-node[data-text-port-near] .image-node-inputs { opacity: 1; visibility: visible; transform: none; }

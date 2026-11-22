@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState, type SyntheticEvent } from 
 import { Handle, Position, useEdges, useNodesData, useReactFlow, useStore, useUpdateNodeInternals, type Edge, type Node, type NodeProps } from '@xyflow/react';
 import { ImagePromptNode } from '../components/image-prompt-node/ImagePromptNode';
 import { ImagePromptIcon } from '../components/image-prompt-node/ImagePromptIcon';
+import { InputPortRing } from '../components/image-prompt-node/InputPortRing';
 import { ImagePromptGeneration } from '../components/image-prompt-node/ImagePromptGeneration';
 import { textOutputValue } from './textGeneration';
 import { textInputReferences, textReferenceEdges } from './textReferences';
@@ -170,7 +171,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
       references={textInputReferences(incoming, sourceNodes).map(input => ({ ...input, onLoad: rememberSize(inputs.find(item => item.id === input.id)?.asset) }))}
       textInput={<button type="button" className="image-node-input" data-connection-port="text" data-connected={Boolean(promptEdge) || undefined} aria-label="Prompt input" disabled={data.locked}>
         <span className="image-node-port-label"><ImagePromptIcon name="text" />Prompt</span>
-        <svg className="image-node-port" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="3.818 4.036" transform="rotate(-100.94 12 12)" /></svg>
+        <InputPortRing />
         <Handle type="target" position={Position.Left} id="prompt" isConnectable={connectable} />
       </button>}
       onRemoveReference={edgeId => {

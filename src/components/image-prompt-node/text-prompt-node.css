@@ -24,7 +24,6 @@
 .text-node .text-node-formats button { width: auto; height: 18px; padding: 2px 6px; border-radius: 6px; font-size: 12px; line-height: 12px; }
 .text-node .text-node-formats button[aria-pressed=true] { background: #fafaf218; color: #eeeeec; }
 .text-node .image-node-actions > button > .image-node-icon { width: 14px; height: 14px; }
-.text-node .image-node-inputs { top: calc(50% - 16px); }
 .text-node .text-node-input { position: relative; }
 .text-node .image-node-port-icon-text { mask-position: -14px 0; }
 .text-node-markdown :is(h1,h2,h3,h4,h5,h6) { margin: 24px 0 8px; font-family: -apple-system, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; line-height: 24px; font-weight: 600; }

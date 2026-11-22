@@ -10,13 +10,8 @@ import { imagePromptModels, defaultImagePromptModelSelection, type ImagePromptMo
 import { ImagePromptGeneration, type ImagePromptGenerationState } from './ImagePromptGeneration';
 import { useMagneticPorts } from './useMagneticPorts';
 import { useControllableValue } from './useControllableValue';
+import { InputPortRing } from './InputPortRing';
 import './image-prompt-node.css';
-
-function PortRing() {
-  return <svg className="image-node-port" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="3.818 4.036" transform="rotate(-100.94 12 12)" />
-  </svg>;
-}
 
 // Match the reference handle shader's 24px plane: 22px ring and a
 // round-capped 8px cross with a 2px stroke, independent of toolbar icons.
@@ -327,7 +322,7 @@ export function ImagePromptNode({
           {!assetOnly && <div className="image-node-inputs">
             {textInput && <div ref={element => { ports.textInput.current = element?.querySelector('button') ?? null; }}>{textInput}</div>}
             <button ref={ports.input} data-connection-port="image" data-connected={imageInputCount > 0 || undefined} disabled={locked} type="button" className="image-node-input" aria-label="Image input" onClick={onImageInput}>
-              <span className="image-node-port-label"><span className="image-node-port-icon image-node-port-icon-image" aria-hidden="true" />Image <span className="image-node-port-count">{imageInputCount}/16</span></span><PortRing />{handles?.image}
+              <span className="image-node-port-label"><span className="image-node-port-icon image-node-port-icon-image" aria-hidden="true" />Image <span className="image-node-port-count">{imageInputCount}/16</span></span><InputPortRing />{handles?.image}
             </button>
           </div>}
           <button ref={ports.output} data-connection-port="output" data-connected={outputConnected || undefined} disabled={locked} type="button" className="image-node-output" aria-label="Add connected node" onClick={onAddConnectedNode}>

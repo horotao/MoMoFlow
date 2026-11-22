@@ -3,6 +3,7 @@ import { Handle, Position, useEdges, useNodesData, useReactFlow, useStore, useUp
 import { ImagePromptNode } from '../components/image-prompt-node/ImagePromptNode';
 import { ImagePromptToolbar } from '../components/image-prompt-node/ImagePromptToolbar';
 import { ImagePromptIcon } from '../components/image-prompt-node/ImagePromptIcon';
+import { InputPortRing } from '../components/image-prompt-node/InputPortRing';
 import { ImagePromptGeneration } from '../components/image-prompt-node/ImagePromptGeneration';
 import { TextOutput } from '../components/image-prompt-node/TextOutput';
 import { TextModelPicker } from '../components/image-prompt-node/TextModelPicker';
@@ -204,7 +205,7 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
       }}
       textInput={<button type="button" className="image-node-input text-node-input" data-connection-port="text" data-connected={connectedText || undefined} aria-label="Text input" disabled={data.locked}>
         <span className="image-node-port-label"><ImagePromptIcon name="text" />Text</span>
-        <svg className="image-node-port" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="3.818 4.036" transform="rotate(-100.94 12 12)" /></svg>
+        <InputPortRing />
         <Handle type="target" position={Position.Left} id="text" isConnectable={connectable} />
       </button>}
       handles={{ image: [...(available ? [available] : []), ...imageInputHandles.filter(handle => occupied.has(handle))].map(handle =>
