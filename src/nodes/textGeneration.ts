@@ -4,6 +4,7 @@ import type { Edge } from '@xyflow/react';
 import { imageInputHandles, isImageInputHandle } from './connectionRules.ts';
 import { textWithCitations } from './textCitations.ts';
 import { selectedImageResult } from './annotationGraph.ts';
+import { numberedMentionPrompt } from './promptMentionText.ts';
 import { isCanvasImageNode, isCanvasTextNode, type AppNode, type CanvasText, type TextComposerData, type TextGenerationResult, type TextReasoningEffort, type TextCitation } from './types.ts';
 
 export const textModels = [
@@ -40,7 +41,7 @@ export function selectTextResult(data: CanvasText['data'], result: TextGeneratio
   return {
     text: result.text, activeTextResultId: result.id,
     textGeneration: { model: result.model, responseId: result.responseId, createdAt: result.createdAt },
-    textComposer: { ...data.textComposer, prompt: result.prompt, reasoningEffort: result.reasoningEffort ?? 'low', webSearch: result.webSearch ?? false,
+    textComposer: { ...data.textComposer, mentions: result.prompt === data.textComposer.prompt ? data.textComposer.mentions : undefined, prompt: result.prompt, reasoningEffort: result.reasoningEffort ?? 'low', webSearch: result.webSearch ?? false,
       selection: textModelSelection({ modelIds: [result.model], autoSelect: false, multiple: false }) },
   };
 }
@@ -82,22 +83,23 @@ export function textGenerationInput(id: string, nodes: AppNode[], edges: Edge[])
   const model = selection.modelIds[0];
   if (!isTextModel(model)) throw new Error('请选择 GPT-6.2 Sol、GPT-6.1 Terra 或 GPT-6 Luna。');
   const quantity = textQuantity(composer.quantity);
+  const imageInputs = edges.filter(edge => edge.target === id && isImageInputHandle(edge.targetHandle))
+    .sort((a, b) => imageInputHandles.indexOf(a.targetHandle!) - imageInputHandles.indexOf(b.targetHandle!)).map(edge => {
+      const source = nodes.find(item => item.id === edge.source);
+      const asset = source && isCanvasImageNode(source) ? selectedImageResult(source) : undefined;
+      if (!asset) throw new Error('参考图片尚未就绪，请先生成或导入图片。');
+      return { nodeId: edge.source, url: asset.url };
+    });
+  const images = imageInputs.map(input => input.url);
   const textInputs = edges.filter(edge => edge.target === id && edge.targetHandle === 'text').map(edge => {
     const source = nodes.find(item => item.id === edge.source);
     if (!source || !isCanvasTextNode(source)) throw new Error('找不到上游 Text，请检查连线。');
     const text = textOutputValue(source.data);
     if (!text.trim()) throw new Error('上游 Text 为空，请填写文字或选择生成结果。');
-    return text;
+    return !source.data.text.trim() ? numberedMentionPrompt(text, source.data.textComposer.mentions, imageInputs, images) : text;
   });
-  const prompt = [...textInputs, composer.prompt].filter(value => value.trim()).join('\n\n');
+  const prompt = [...textInputs, numberedMentionPrompt(composer.prompt, composer.mentions, imageInputs, images)].filter(value => value.trim()).join('\n\n');
   if (!prompt.trim() || prompt.length > 128000) throw new Error('请输入提示词或连接非空 Text，总文本最多 128000 个字符。');
-  const images = edges.filter(edge => edge.target === id && isImageInputHandle(edge.targetHandle))
-    .sort((a, b) => imageInputHandles.indexOf(a.targetHandle!) - imageInputHandles.indexOf(b.targetHandle!)).map(edge => {
-      const source = nodes.find(item => item.id === edge.source);
-      const asset = source && isCanvasImageNode(source) ? selectedImageResult(source) : undefined;
-      if (!asset) throw new Error('参考图片尚未就绪，请先生成或导入图片。');
-      return asset.url;
-    });
   const reasoningEffort = composer.reasoningEffort ?? 'low';
   if (!isTextReasoningEffort(reasoningEffort)) throw new Error('请选择受支持的思考强度。');
   const webSearch = composer.webSearch ?? false;

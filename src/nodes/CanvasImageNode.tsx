@@ -1,3 +1,4 @@
+import { useCanvasMentions } from './CanvasMentionContext';
 import { useLayoutEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
 import { Handle, Position, useEdges, useNodesData, useReactFlow, useStore, useUpdateNodeInternals, type Edge, type Node, type NodeProps } from '@xyflow/react';
 import { ImagePromptNode } from '../components/image-prompt-node/ImagePromptNode';
@@ -77,6 +78,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   id: string; data: CanvasImage['data']; edges: Edge[]; connectable: boolean; chrome: CanvasImageChrome;
 }) {
   const composer = data.composer;
+  const mentions = useCanvasMentions(id);
   const zoom = useStore(state => state.transform[2]);
   const { setEdges, updateNodeData } = useReactFlow<AppNode>();
   const internals = useUpdateNodeInternals();
@@ -157,6 +159,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   const { output, showToolbar, toolbarHidden, ...frame } = chrome;
   return <div className="canvas-image-mount" style={{ width, height }}>
     <ImagePromptNode {...controls} {...frame}
+      promptMentions={promptEdge ? [] : composer.mentions} mentionCandidates={mentions.candidates} onMentionEdit={promptEdge ? undefined : mentions.onEdit}
       prompt={prompt} promptReadOnly={Boolean(promptEdge)} onPromptChange={prompt => edit({ prompt })}
       quantity={composer.quantity} onQuantityChange={quantity => edit({ quantity })}
       onGenerate={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: id }))}
@@ -173,7 +176,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
         const asset = results[index];
         if (asset) updateNodeData(id, {
           activeResultId: asset.id,
-          ...(promptEdge ? {} : { composer: { ...composer, prompt: savedImagePrompt(asset) ?? composer.prompt } }),
+          ...(promptEdge ? {} : { composer: { ...composer, mentions: !savedImagePrompt(asset) || savedImagePrompt(asset) === composer.prompt ? composer.mentions : undefined, prompt: savedImagePrompt(asset) ?? composer.prompt } }),
         });
       }}
       imageInputCount={references.length}

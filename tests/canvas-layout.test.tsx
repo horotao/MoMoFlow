@@ -70,7 +70,7 @@ async function run() {
   for (const id of ['a', 'b']) {
     const running = document.querySelector(`[data-id="${id}"] .image-node[aria-busy="true"]`)!;
     const surface = running.querySelector('.image-node-surface')!;
-    check(running.classList.contains('is-selected') && !running.querySelector('textarea')!.readOnly
+    check(running.classList.contains('is-selected') && running.querySelector<HTMLElement>('[role="textbox"]')!.isContentEditable
       && getComputedStyle(surface).visibility === 'visible' && surface.getBoundingClientRect().height > 0
       && !running.querySelector('.image-node-toolbar'), `Multi-selected generating Image ${id} hides its toolbar and keeps its prompt editable`);
   }
@@ -85,6 +85,44 @@ async function run() {
     && sweep.offsetWidth >= Math.hypot(wideRing.offsetWidth, wideRing.offsetHeight),
   'The rotating sweep covers all corners of a 21:9 Image');
   tasks.update(() => []);
+  api.setNodes(nodes => [...nodes, ...Array.from({ length: 3 }, (_, i) => canvasImage(`mention-${i}`, 3200 + i * 500, 1600))]);
+  await settle();
+  document.querySelector<HTMLButtonElement>('[data-id="a"] [aria-label="Mention node"]')!.click();
+  await settle();
+  const picker = document.querySelector<HTMLElement>('.image-mention-menu')!;
+  check(picker && picker.getBoundingClientRect().width === 256 && picker.getBoundingClientRect().height <= 278,
+    'Image @ uses Flora’s 256px picker with a bounded scroll viewport');
+  const scroller = picker.querySelector<HTMLElement>('.image-mention-scroll')!;
+  const shellBounds = picker.getBoundingClientRect(), scrollBounds = scroller.getBoundingClientRect();
+  check(scrollBounds.right <= shellBounds.right - 3 && scrollBounds.top >= shellBounds.top + 3
+    && getComputedStyle(picker).overflow === 'hidden' && getComputedStyle(scroller.parentElement!).overflow === 'hidden',
+    'The scrollbar stays inset inside both rounded clipping layers');
+  const thumbStyle = getComputedStyle(scroller, '::-webkit-scrollbar-thumb');
+  check(getComputedStyle(scroller, '::-webkit-scrollbar').width === '15px' && thumbStyle.borderLeftWidth === '6px'
+    && thumbStyle.backgroundClip === 'padding-box' && scroller.clientWidth === 235
+    && picker.querySelector<HTMLElement>('[role=option]')!.getBoundingClientRect().width === 227,
+    'Flora Image reserves a 15px scrollbar gutter with a 3px visible thumb and 227px options');
+  const flowViewport = document.querySelector<HTMLElement>('.react-flow__viewport')!;
+  const transform = flowViewport.style.transform;
+  flowViewport.style.transform = transform;
+  scroller.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true, cancelable: true }));
+  scroller.scrollTop = 90;
+  await settle();
+  check(document.querySelector('.image-mention-menu') === picker && scroller.scrollTop > 0,
+    'Scrolling an ungenerated Image picker and rewriting the same viewport transform keep the picker open');
+  // The result log sits above the canvas; let its newly appended line settle
+  // before measuring whether keyboard navigation scrolls the page.
+  await settle();
+  const pageTop = document.documentElement.scrollTop;
+  const prompt = document.querySelector<HTMLElement>('[data-id="a"] [role="textbox"]')!;
+  prompt.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true, cancelable: true }));
+  await settle();
+  const last = picker.querySelector<HTMLElement>('[aria-selected="true"]')!.getBoundingClientRect();
+  check(last.bottom <= picker.getBoundingClientRect().bottom && document.documentElement.scrollTop === pageTop && flowViewport.style.transform === transform,
+    'Keyboard scrolling keeps the selected row visible without scrolling or zooming the canvas');
+  prompt.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+  await settle();
+  check(!document.querySelector('.image-mention-menu'), 'Escape still dismisses the Image picker');
   result.dataset.result = 'passed';
 }
 void run().catch(error => { result.dataset.result = 'failed'; result.textContent += `\nFAIL ${String(error)}`; });

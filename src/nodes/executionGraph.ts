@@ -2,7 +2,8 @@ import { mapAssets } from '../persistence/workflowStorage.ts';
 import { isTextNode } from './textVariables.ts';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, FileAsset, ImageGeneratorNode } from './types';
-import { isImageGeneratorNode, isImportedCanvasImage, isCanvasTextNode, isNodeLocked } from './types.ts';
+import { isImageGeneratorNode, isImportedCanvasImage, isCanvasImageNode, isCanvasTextNode, isNodeLocked } from './types.ts';
+import { numberedMentionPrompt } from './promptMentionText.ts';
 import { annotationOutput, pinnedResultAsset, pinnedResultInput, selectedImageResult, storedAnnotationResult } from './annotationGraph.ts';
 import { isAnnotationInput } from './interactiveEdit.ts';
 import { hasVariable } from './textDocument.ts';
@@ -167,7 +168,30 @@ export function prepareModel(graph: ExecutionGraph, id: string): PreviewTask[] {
   for (const edge of executionInputs(node, undefined, graph).filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''))) {
     if (!imageOutput(graph.nodes.find(item => item.id === edge.source), edge.sourceHandle).length) nodeProblem(node, '连接的图片尚未准备完成。');
   }
-  return result.tasks;
+  const promptEdge = graph.edges.find(edge => edge.target === id && edge.targetHandle === 'prompt');
+  const source = promptEdge ? graph.nodes.find(item => item.id === promptEdge.source) : original;
+  const authored = source && isCanvasTextNode(source) && !source.data.text.trim() ? source.data.textComposer
+    : !promptEdge && isCanvasImageNode(original) ? original.data.composer : undefined;
+  if (!authored?.mentions?.length) return result.tasks;
+  const references = graph.edges.filter(edge => edge.target === id && /^image-\d+$/.test(edge.targetHandle ?? ''))
+    .sort((a, b) => Number(a.targetHandle!.slice(6)) - Number(b.targetHandle!.slice(6)))
+    .flatMap(edge => {
+      const input = pinnedResultInput(edge, promptEdge?.source, graph.nodes, graph.edges) ?? edge;
+      return imageOutput(graph.nodes.find(item => item.id === input.source), input.sourceHandle).map(asset => ({ nodeId: edge.source, url: asset.url }));
+    });
+  return result.tasks.map(task => {
+    const request = task.imageRequest ?? task.seedreamRequest ?? task.nanoBananaRequest;
+    // Annotation-generated instructions have their own image/coordinate syntax.
+    if (!request || request.prompt !== authored.prompt.trim()) return task;
+    try {
+      const prompt = numberedMentionPrompt(authored.prompt, authored.mentions, references, request.images).trim();
+      return { ...task,
+        ...(task.imageRequest ? { imageRequest: { ...task.imageRequest, prompt } } : {}),
+        ...(task.seedreamRequest ? { seedreamRequest: { ...task.seedreamRequest, prompt } } : {}),
+        ...(task.nanoBananaRequest ? { nanoBananaRequest: { ...task.nanoBananaRequest, prompt } } : {}),
+      };
+    } catch (error) { nodeProblem(original, error instanceof Error ? error.message : '无法解析引用图片。'); }
+  });
 }
 export function requestSignature(task: PreviewTask, graph: ExecutionGraph) {
   const assets = new Map<string, ReturnType<typeof assetIdentity>>();

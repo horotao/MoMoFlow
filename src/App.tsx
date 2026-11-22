@@ -1,3 +1,6 @@
+import { CanvasMentionContext } from './nodes/CanvasMentionContext';
+import { editPromptMentions, pruneDisconnectedMentions } from './nodes/promptMentions';
+import { animateMentionWire } from './edges/mentionWireAnimation';
 import { preventCanvasImageDrag, withCanvasImageDrag } from './components/canvasImageDrag';
 import { ImageInspector } from './components/image-prompt-node/ImageInspector';
 import { TextInspector } from './components/image-prompt-node/TextInspector';
@@ -273,7 +276,13 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   }), [nodes, tool]);
 
   return (
-    <CanvasHistoryContext.Provider value={history}><ReactFlow
+    <CanvasMentionContext.Provider value={(id, edit, sourceId) => {
+      const result = editPromptMentions(id, edit, getNodes(), getEdges(), sourceId, crypto.randomUUID());
+      if (!result) return false;
+      result.addedEdges.forEach(edge => animateMentionWire(edge.id));
+      setNodes(result.nodes); setEdges(result.edges);
+      return true;
+    }}><CanvasHistoryContext.Provider value={history}><ReactFlow
       ref={canvasRef}
       tabIndex={0}
       onDragStartCapture={preventCanvasImageDrag}
@@ -303,7 +312,14 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       defaultEdgeOptions={defaultEdgeOptions}
       connectionLineComponent={ConnectionLine}
       connectionRadius={connectionRadius}
-      onEdgesChange={onEdgesChange}
+      onEdgesChange={changes => {
+        const ids = new Set(changes.filter(change => change.type === 'remove').map(change => change.id));
+        if (ids.size) {
+          const removed = getEdges().filter(edge => ids.has(edge.id));
+          setNodes(current => pruneDisconnectedMentions(current, removed));
+        }
+        onEdgesChange(changes);
+      }}
       isValidConnection={(connection) => withinConnectionRadius(connection) && canConnect(connection, getNodes(), getEdges())}
       onDragOver={event => {
         if (event.dataTransfer.types.includes('application/x-momoflow-library') || event.dataTransfer.types.includes('Files')) event.preventDefault();
@@ -416,7 +432,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       <TextInspector />
       <CanvasNavigation pendingZoom={pendingZoom} />
       <ApiSettingsDialog open={apiSettingsOpen} onClose={() => setApiSettingsOpen(false)} onTestConnection={testApiConnection} />
-    </ReactFlow></CanvasHistoryContext.Provider>
+    </ReactFlow></CanvasHistoryContext.Provider></CanvasMentionContext.Provider>
   );
 }
 

@@ -9,7 +9,9 @@ import type { JSONContent } from '@tiptap/core';
 
 export type TextDisplayMode = 'source-value' | 'value' | 'source';
 export type TextReasoningEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+export interface PromptMention { nodeId: string; from: number; to: number }
 export interface TextComposerData {
+  mentions?: PromptMention[];
   prompt: string; format: 'txt' | 'md'; quantity: number; reasoningEffort?: TextReasoningEffort; webSearch?: boolean;
   selection: { modelIds: string[]; autoSelect: boolean; multiple: boolean };
 }
@@ -31,6 +33,7 @@ export type FileNode = Node<{ label?: string; locked?: boolean; asset?: FileAsse
 export const isFileNode = (node: AppNode | undefined): node is FileNode => node?.type === 'file';
 type ImageResults = { results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name'; annotations?: AnnotationHistory[] };
 export interface ImageComposerData {
+  mentions?: PromptMention[];
   prompt: string;
   quantity: number;
   ratio: string;

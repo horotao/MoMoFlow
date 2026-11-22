@@ -1,3 +1,6 @@
+import { PromptMentionEditor, type PromptMentionEditorHandle } from './PromptMentionEditor';
+import type { PromptMention } from '../../nodes/types';
+import type { MentionCandidate, MentionEdit, MentionSources } from '../../nodes/promptMentions';
 import { ImagePromptModelBrand } from './ImagePromptModelMenu';
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -69,6 +72,9 @@ export interface ImagePromptNodeProps {
   onCancelGeneration?: () => void;
   canGenerateWithoutPrompt?: boolean;
   onMention?: () => void;
+  promptMentions?: readonly PromptMention[];
+  mentionCandidates?: readonly MentionCandidate[];
+  onMentionEdit?: (edit: MentionEdit, sourceId?: MentionSources) => boolean;
   onDictate?: () => void;
   onEnhance?: () => void;
   onImageInput?: () => void;
@@ -91,6 +97,7 @@ export function ImagePromptNode({
   title = 'Image', onTitleChange, modelLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange,
   suggestion = 'Oil paint macro, impasto texture', className = '', toolbar, generation = null, result, onPreviewImage, variants = [], activeVariant = 0, onVariantChange,
   onGenerate, onCancelGeneration, canGenerateWithoutPrompt = false, onMention, onDictate, onEnhance, onImageInput, onAddConnectedNode, imageInputCount = 0,
+  promptMentions, mentionCandidates, onMentionEdit,
   references = [], onRemoveReference, onReorderReferences, referenceScale = 1, outputConnected = false,
 }: ImagePromptNodeProps) {
   const [aspectRatio, setAspectRatio] = useControllableValue(aspectRatioValue, defaultAspectRatio, onAspectRatioChange);
@@ -104,7 +111,7 @@ export function ImagePromptNode({
   function setQuantity(value: number) { updateQuantity(Math.max(1, Math.min(20, Math.trunc(value) || 1))); }
   const [toolbarHovered, setToolbarHovered] = useState(false);
   const toolbarHideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const editor = useRef<HTMLTextAreaElement>(null);
+  const editor = useRef<PromptMentionEditorHandle>(null);
   const promptScroll = useRef<HTMLDivElement>(null);
   const [contentOverflows, setContentOverflows] = useState(false);
   const tooltipId = useId();
@@ -186,7 +193,7 @@ export function ImagePromptNode({
   }
 
   useLayoutEffect(() => {
-    const field = editor.current;
+    const field = promptScroll.current?.querySelector<HTMLElement>('.image-node-prompt-editor');
     const scroller = promptScroll.current;
     if (!field || !scroller) return;
     let disposed = false;
@@ -197,14 +204,6 @@ export function ImagePromptNode({
       const previousTop = scroller.scrollTop;
       const previousMax = scroller.scrollHeight - scroller.clientHeight;
       const wasAtBottom = previousMax > 1 && previousTop >= previousMax - 1;
-      const lineHeight = Number.parseFloat(getComputedStyle(field).lineHeight);
-      field.style.height = '0px';
-      // A scrollbar narrows the text by 15px. Measure again after it appears
-      // so the outer viewport owns all scrolling, including its bottom padding.
-      for (let pass = 0; pass < 2; pass++) {
-        const lines = Math.max(1, Math.round(field.scrollHeight / lineHeight));
-        field.style.height = `${lines * lineHeight}px`;
-      }
       const maximum = scroller.scrollHeight - scroller.clientHeight;
       scroller.scrollTop = wasAtBottom ? maximum : Math.min(previousTop, maximum);
       setContentOverflows(maximum > 1);
@@ -213,6 +212,7 @@ export function ImagePromptNode({
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(scroller);
+    observer.observe(field);
     void document.fonts.ready.then(measure);
     return () => { disposed = true; observer.disconnect(); };
   }, [prompt, compactComposer]);
@@ -261,7 +261,7 @@ export function ImagePromptNode({
             : <><ImagePromptModelBrand brand={activeModel?.brand ?? 'openai'} /><span title={displayModelLabel}>{displayModelLabel}</span></>}</span>}
         </header>
 
-        <div className="image-node-card" onClick={event => { if (!locked && !busy && !hasResult && !(event.target as HTMLElement).closest('.text-node-output')) editor.current?.focus(); }}>
+        <div className="image-node-card" onClick={event => { if (!locked && !busy && !hasResult && !(event.target as HTMLElement).closest('.text-node-output, .image-node-prompt-editor')) editor.current?.focus(); }}>
           {hasResult && !busy && <div ref={resultElement} className="image-node-result" onDoubleClickCapture={event => {
             if (onPreviewImage) { event.preventDefault(); event.stopPropagation(); onPreviewImage(); }
           }}><ImagePromptResult variantId={activeVariantId}>{result}</ImagePromptResult></div>}
@@ -269,12 +269,8 @@ export function ImagePromptNode({
             <div className="image-node-surface-body">
             {referencesAbovePrompt && referenceStrip}
             <div ref={promptScroll} className="image-node-composer nowheel" onWheel={event => event.stopPropagation()}>
-              <textarea ref={editor} rows={1} value={prompt} readOnly={locked || promptReadOnly} spellCheck aria-label="Chat message" onChange={event => setPrompt(event.currentTarget.value)} onKeyDown={event => {
-                if (event.key === 'Tab' && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey && !event.nativeEvent.isComposing && !prompt && !locked && !promptReadOnly) {
-                  event.preventDefault();
-                  setPrompt(suggestion);
-                }
-              }} />
+              <PromptMentionEditor ref={editor} kind={kind} prompt={prompt} mentions={promptMentions} candidates={mentionCandidates}
+                readOnly={locked || promptReadOnly} suggestion={suggestion} onChange={setPrompt} onEdit={onMentionEdit} />
               {!prompt && !promptReadOnly && <div className="image-node-suggestion" aria-hidden="true"><span className="image-node-suggestion-label">Try "{suggestion}"</span><kbd>tab</kbd></div>}
             </div>
 
@@ -297,7 +293,7 @@ export function ImagePromptNode({
               onBlurCapture={leaveTooltip}
               onPointerDownCapture={leaveTooltip}
             >
-              <button type="button" aria-label="Mention node" onClick={onMention} {...tooltipProps('Mention node')} disabled={locked}><ImagePromptIcon name="mention" /></button>
+              <button type="button" aria-label="Mention node" onPointerDown={event => event.preventDefault()} onClick={() => { hideTooltip(); editor.current?.mention(); onMention?.(); }} {...tooltipProps('Mention node')} disabled={locked || promptReadOnly}><ImagePromptIcon name="mention" /></button>
               {isText ? <button type="button" aria-label="Connected apps" aria-disabled="true" {...tooltipProps('Connected apps')}><ImagePromptIcon name="plug" /></button>
                 : <button type="button" aria-label="Reference Element" {...tooltipProps('No Elements available')} disabled><ImagePromptIcon name="hash" /></button>}
               <div className="image-node-actions-right">

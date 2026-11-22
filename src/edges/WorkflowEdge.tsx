@@ -1,3 +1,4 @@
+import { takeMentionWireAnimation } from './mentionWireAnimation';
 import { useId, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 import { useStore, useStoreApi, type EdgeProps } from '@xyflow/react';
 import { useModelTaskStore } from '../components/useModelTasks';
@@ -6,7 +7,7 @@ import { portCenter, workflowPort } from './workflowPort';
 import { wireCurve, wirePacket, wirePacketCenter } from './wireGeometry';
 import './workflowWire.css';
 
-export function WorkflowEdge({ source, target, sourceHandleId, targetHandleId, sourceX, sourceY, targetX, targetY }: EdgeProps) {
+export function WorkflowEdge({ id, source, target, sourceHandleId, targetHandleId, sourceX, sourceY, targetX, targetY }: EdgeProps) {
   const sweepId = useId();
   const tasks = useModelTaskStore();
   const imageRunning = useSyncExternalStore(tasks.subscribe,
@@ -17,6 +18,26 @@ export function WorkflowEdge({ source, target, sourceHandleId, targetHandleId, s
     state.nodeLookup.get(source)?.selected || state.nodeLookup.get(target)?.selected,
   ));
   const group = useRef<SVGGElement>(null);
+  const revealWire = useRef<boolean>();
+  useLayoutEffect(() => {
+    if (revealWire.current === undefined) revealWire.current = takeMentionWireAnimation(id);
+    if (!revealWire.current) return;
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    const path = group.current?.querySelector<SVGPathElement>('.workflow-wire');
+    if (!path || reduced.matches) return;
+    // SVG dash reveal follows the same curve as the real wire, including while
+    // either endpoint moves. Only @-created wires play it; saved edges do not.
+    path.setAttribute('pathLength', '1');
+    path.style.strokeDasharray = '1';
+    const animation = path.animate([{ strokeDashoffset: '1' }, { strokeDashoffset: '0' }], {
+      duration: 400, easing: 'cubic-bezier(.333333, 0, .666667, 1)',
+    });
+    const clean = () => { path.style.removeProperty('stroke-dasharray'); path.removeAttribute('pathLength'); };
+    animation.onfinish = clean;
+    const stop = () => { if (reduced.matches) { animation.cancel(); clean(); } };
+    reduced.addEventListener('change', stop);
+    return () => { animation.cancel(); clean(); reduced.removeEventListener('change', stop); };
+  }, [id]);
   const clock = useRef({ started: 0, duration: 0 });
   const store = useStoreApi();
   useLayoutEffect(() => {

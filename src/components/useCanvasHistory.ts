@@ -7,7 +7,7 @@ import type { Edge } from '@xyflow/react';
 import { initialTextDocument } from '../nodes/textDocument';
 import { isTextNode, textInputHandles } from '../nodes/textVariables';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources';
-import type { AppNode } from '../nodes/types';
+import { isCanvasImageNode, isCanvasTextNode, type AppNode } from '../nodes/types';
 
 export const CanvasHistoryContext = createContext({ canUndo: false, canRedo: false, undo: () => {}, redo: () => {} });
 
@@ -55,13 +55,16 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
       const previous = state.present.nodes.find(item => item.id === node.id);
       return previous && isSeedreamNode(previous) && node.data.size !== previous.data.size;
     })());
+    const mentionIds = (node: AppNode | undefined) => node && (isCanvasTextNode(node) ? node.data.textComposer.mentions
+      : isCanvasImageNode(node) ? node.data.composer.mentions : undefined)?.map(item => item.nodeId).join('\n');
+    const mentionsChanged = nodes.some(node => mentionIds(node) !== mentionIds(state.present.nodes.find(item => item.id === node.id)));
     const labelChanged = nodes.some(node => node.data.label !== state.present.nodes.find(item => item.id === node.id)?.data.label);
-    if (labelChanged || annotationsChanged || seedreamSizeChanged || !dataOnly || Date.now() - state.time > 750) {
+    if (mentionsChanged || labelChanged || annotationsChanged || seedreamSizeChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;
     state.future = [];
-    state.time = dataOnly && !labelChanged ? Date.now() : 0;
+    state.time = dataOnly && !labelChanged && !mentionsChanged ? Date.now() : 0;
     sync();
   }, [nodes, edges, sync]);
 

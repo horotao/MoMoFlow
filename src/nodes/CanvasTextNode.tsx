@@ -1,3 +1,4 @@
+import { useCanvasMentions } from './CanvasMentionContext';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Handle, Position, useEdges, useNodesData, useReactFlow, useStore, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { ImagePromptNode } from '../components/image-prompt-node/ImagePromptNode';
@@ -26,6 +27,7 @@ interface TextBatchState {
 export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<CanvasText>) {
   const { setNodes, setEdges, updateNodeData, getNode, getNodes, getEdges } = useReactFlow<AppNode>();
   const edges = useEdges();
+  const mentions = useCanvasMentions(id);
   const internals = useUpdateNodeInternals();
   const overview = useStore(state => Math.round(state.transform[2] * 100) <= 14);
   const toolbarHidden = useStore(state => state.userSelectionActive || state.nodes.filter(node => node.selected).length > 1);
@@ -170,6 +172,7 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
       selected={selected} onSelectedChange={value => {
         if (selected !== value) setNodes(nodes => nodes.map(node => node.id === id ? { ...node, selected: value } : value ? { ...node, selected: false } : node));
       }}
+      promptMentions={composer.mentions} mentionCandidates={mentions.candidates} onMentionEdit={mentions.onEdit}
       prompt={composer.prompt} onPromptChange={prompt => edit({ prompt })} suggestion="Short film logline and synopsis"
       quantity={composer.quantity} onQuantityChange={quantity => edit({ quantity })} onGenerate={() => { void generate(); }} onCancelGeneration={cancel} canGenerateWithoutPrompt={connectedText}
       textFormat={format} onTextFormatChange={format => edit({ format })}
