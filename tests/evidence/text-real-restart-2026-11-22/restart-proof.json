@@ -1,0 +1,5601 @@
+{
+  "baseline": [
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 72（已含推理 0）。计费搜索 0 次。",
+      "index": 1,
+      "prompt": "写一段40到90字的中文微型故事，主题是雨后的城市。自由选择不同的主角、情节和长度，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "73",
+        "本次花费": "$0.000812",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修鞋匠把摊子搬回巷口。一个小姑娘提着湿透的布鞋来，问能不能把鞋底补得再厚些。她踮起脚，指指街对面：“这样下次涨水，我就能自己去接妈妈了。”"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 80（已含推理 0）。计费搜索 0 次。",
+      "index": 2,
+      "prompt": "写一段40到90字的中文微型故事，主题是雨后的城市。自由选择不同的主角、情节和长度，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "82",
+        "本次花费": "$0.000892",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修伞匠把门口的积水扫进下水道，却留了一小洼。每天放学，孙女都要踩着那块倒映着红绿灯的水，说自己一步就能跨过整座城。今天她带了个同桌，两人商量半天，决定坐船。"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 71（已含推理 0）。计费搜索 0 次。",
+      "index": 3,
+      "prompt": "写一段40到90字的中文微型故事，主题是雨后的城市。自由选择不同的主角、情节和长度，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "69",
+        "本次花费": "$0.000802",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修鞋匠把摊子挪到屋檐外。一个小女孩蹲在水洼边，等倒映的红灯变绿。他提着她刚补好的鞋，也站住了。绿灯一亮，两人各自跨过了自己的马路。"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 56 tokens，缓存读取 0，缓存写入 0；输出 334（已含推理 173）。计费搜索 0 次。",
+      "index": 4,
+      "prompt": "写一篇120到180字的中文微型故事，主题是雨后重新出发。自行选择人物和情节，包含一个出人意料但温暖的结尾，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 00:34",
+        "创建者": "—",
+        "字符数": "163",
+        "本次花费": "$0.003452",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，肩挨着肩，在积水退去的路边给他围出了一间铺子。"
+    }
+  ],
+  "cancelSamples": [
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0200718, 0, 0, 1, 0, 0)",
+        "matrix(0.0200718, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(0.752751, 0.658306, -0.658306, 0.752751, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308007091,
+      "variants": [
+        {
+          "label": "Variant 1 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 6",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 6",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0307478, 0, 0, 1, 0, 0)",
+        "matrix(0.0307478, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(0.402734, 0.915317, -0.915317, 0.402734, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308007260,
+      "variants": [
+        {
+          "label": "Variant 1 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 6",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 6",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0429952, 0, 0, 1, 0, 0)",
+        "matrix(0.0429952, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(-0.0436333, 0.999048, -0.999048, -0.0436333, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308007432,
+      "variants": [
+        {
+          "label": "Variant 1 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 6",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 6",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0544991, 0, 0, 1, 0, 0)",
+        "matrix(0.0544991, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(-0.45998, 0.887929, -0.887929, -0.45998, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308007603,
+      "variants": [
+        {
+          "label": "Variant 1 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 6",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 6",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0659957, 0, 0, 1, 0, 0)",
+        "matrix(0.0659957, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(-0.793149, 0.609027, -0.609027, -0.793149, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308007766,
+      "variants": [
+        {
+          "label": "Variant 1 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 6",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 6",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0767438, 0, 0, 1, 0, 0)",
+        "matrix(0.0767438, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(-0.970929, 0.239367, -0.239367, -0.970929, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308007930,
+      "variants": [
+        {
+          "label": "Variant 1 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 6",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 6",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0885423, 0, 0, 1, 0, 0)",
+        "matrix(0.0885423, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(-0.976782, -0.214238, 0.214238, -0.976782, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308008100,
+      "variants": [
+        {
+          "label": "Variant 1 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 6",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 6",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0997159, 0, 0, 1, 0, 0)",
+        "matrix(0.0997159, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(-0.794035, -0.607872, 0.607872, -0.794035, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308008271,
+      "variants": [
+        {
+          "label": "Variant 1 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 6",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 6",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.11024, 0, 0, 1, 0, 0)",
+        "matrix(0.11024, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(-0.4809, -0.876775, 0.876775, -0.4809, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308008435,
+      "variants": [
+        {
+          "label": "Variant 1 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 6",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 6",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.121731, 0, 0, 1, 0, 0)",
+        "matrix(0.121731, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(-0.0435183, -0.999053, 0.999053, -0.0435183, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308008600,
+      "variants": [
+        {
+          "label": "Variant 1 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 6",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 6",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.132568, 0, 0, 1, 0, 0)",
+        "matrix(0.132568, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(0.382616, -0.923908, 0.923908, 0.382616, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308008768,
+      "variants": [
+        {
+          "label": "Variant 1 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 6",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 6",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.1401, 0, 0, 1, 0, 0)",
+        "matrix(0.1401, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(0.642798, -0.766035, 0.766035, 0.642798, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308008888,
+      "variants": [
+        {
+          "label": "Variant 1 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 6",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 6",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 6",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    }
+  ],
+  "rerunSamples": [
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0224437, 0, 0, 1, 0, 0)",
+        "matrix(0.0223729, 0, 0, 1, 0, 0)",
+        "matrix(0.0223729, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.677236, 0.735766, -0.735766, 0.677236, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308009624,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0342013, 0, 0, 1, 0, 0)",
+        "matrix(0.0341311, 0, 0, 1, 0, 0)",
+        "matrix(0.0341311, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.302254, 0.953227, -0.953227, 0.302254, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308009792,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0458811, 0, 0, 1, 0, 0)",
+        "matrix(0.0458116, 0, 0, 1, 0, 0)",
+        "matrix(0.0458116, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.13056, 0.99144, -0.99144, -0.13056, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308009956,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0574143, 0, 0, 1, 0, 0)",
+        "matrix(0.0573454, 0, 0, 1, 0, 0)",
+        "matrix(0.0573454, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.537402, 0.843326, -0.843326, -0.537402, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308010123,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0688299, 0, 0, 1, 0, 0)",
+        "matrix(0.0687616, 0, 0, 1, 0, 0)",
+        "matrix(0.0687616, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.843222, 0.537565, -0.537565, -0.843222, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308010290,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0801017, 0, 0, 1, 0, 0)",
+        "matrix(0.0800341, 0, 0, 1, 0, 0)",
+        "matrix(0.0800341, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.991139, 0.132828, -0.132828, -0.991139, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308010457,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0913255, 0, 0, 1, 0, 0)",
+        "matrix(0.0912584, 0, 0, 1, 0, 0)",
+        "matrix(0.0912584, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.954387, -0.298574, 0.298574, -0.954387, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308010625,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.0924643, 0, 0, 1, 0, 0)",
+        "matrix(0.0923973, 0, 0, 1, 0, 0)",
+        "matrix(0.0923973, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.940158, -0.34074, 0.34074, -0.940158, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308010642,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.103609, 0, 0, 1, 0, 0)",
+        "matrix(0.103542, 0, 0, 1, 0, 0)",
+        "matrix(0.103542, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.707083, -0.707131, 0.707131, -0.707083, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308010806,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.11402, 0, 0, 1, 0, 0)",
+        "matrix(0.113954, 0, 0, 1, 0, 0)",
+        "matrix(0.113954, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.364195, -0.931323, 0.931323, -0.364195, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308010971,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.118949, 0, 0, 1, 0, 0)",
+        "matrix(0.118884, 0, 0, 1, 0, 0)",
+        "matrix(0.118884, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.175247, -0.984524, 0.984524, -0.175247, 0, 0)",
+      "rows": {},
+      "text": "清晨第一",
+      "time": 1795308011041,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.128195, 0, 0, 1, 0, 0)",
+        "matrix(0.12813, 0, 0, 1, 0, 0)",
+        "matrix(0.12813, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.193583, -0.981084, 0.981084, 0.193583, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖",
+      "time": 1795308011186,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.128727, 0, 0, 1, 0, 0)",
+        "matrix(0.128662, 0, 0, 1, 0, 0)",
+        "matrix(0.128662, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.214598, -0.976702, 0.976702, 0.214598, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖",
+      "time": 1795308011197,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.135748, 0, 0, 1, 0, 0)",
+        "matrix(0.135683, 0, 0, 1, 0, 0)",
+        "matrix(0.135683, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.479488, -0.877549, 0.877549, 0.479488, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖",
+      "time": 1795308011301,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.137883, 0, 0, 1, 0, 0)",
+        "matrix(0.137819, 0, 0, 1, 0, 0)",
+        "matrix(0.137819, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.553638, -0.832757, 0.832757, 0.553638, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的",
+      "time": 1795308011333,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.147569, 0, 0, 1, 0, 0)",
+        "matrix(0.147505, 0, 0, 1, 0, 0)",
+        "matrix(0.147505, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.831489, -0.555542, 0.555542, 0.831489, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆",
+      "time": 1795308011487,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.153936, 0, 0, 1, 0, 0)",
+        "matrix(0.153872, 0, 0, 1, 0, 0)",
+        "matrix(0.153872, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.946857, -0.321655, 0.321655, 0.946857, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追",
+      "time": 1795308011588,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.160811, 0, 0, 1, 0, 0)",
+        "matrix(0.160748, 0, 0, 1, 0, 0)",
+        "matrix(0.160748, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.999057, -0.043411, 0.043411, 0.999057, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀",
+      "time": 1795308011691,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.164482, 0, 0, 1, 0, 0)",
+        "matrix(0.164419, 0, 0, 1, 0, 0)",
+        "matrix(0.164419, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.994072, 0.108727, -0.108727, 0.994072, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀",
+      "time": 1795308011749,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.167626, 0, 0, 1, 0, 0)",
+        "matrix(0.167563, 0, 0, 1, 0, 0)",
+        "matrix(0.167563, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.971375, 0.237549, -0.237549, 0.971375, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只",
+      "time": 1795308011800,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.172851, 0, 0, 1, 0, 0)",
+        "matrix(0.172788, 0, 0, 1, 0, 0)",
+        "matrix(0.172788, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.896858, 0.442319, -0.442319, 0.896858, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只",
+      "time": 1795308011885,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.173888, 0, 0, 1, 0, 0)",
+        "matrix(0.173825, 0, 0, 1, 0, 0)",
+        "matrix(0.173825, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.876794, 0.480866, -0.480866, 0.876794, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只",
+      "time": 1795308011899,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.176495, 0, 0, 1, 0, 0)",
+        "matrix(0.176433, 0, 0, 1, 0, 0)",
+        "matrix(0.176433, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.819032, 0.573747, -0.573747, 0.819032, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多",
+      "time": 1795308011947,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.177485, 0, 0, 1, 0, 0)",
+        "matrix(0.177423, 0, 0, 1, 0, 0)",
+        "matrix(0.177423, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.794447, 0.607334, -0.607334, 0.794447, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多",
+      "time": 1795308011957,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.18112, 0, 0, 1, 0, 0)",
+        "matrix(0.181058, 0, 0, 1, 0, 0)",
+        "matrix(0.181058, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.692496, 0.721421, -0.721421, 0.692496, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多",
+      "time": 1795308012016,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.182187, 0, 0, 1, 0, 0)",
+        "matrix(0.182125, 0, 0, 1, 0, 0)",
+        "matrix(0.182125, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.65932, 0.751862, -0.751862, 0.65932, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多",
+      "time": 1795308012035,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.184211, 0, 0, 1, 0, 0)",
+        "matrix(0.184149, 0, 0, 1, 0, 0)",
+        "matrix(0.184149, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.592619, 0.805483, -0.805483, 0.592619, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘",
+      "time": 1795308012067,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.185275, 0, 0, 1, 0, 0)",
+        "matrix(0.185213, 0, 0, 1, 0, 0)",
+        "matrix(0.185213, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.55576, 0.831343, -0.831343, 0.55576, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘",
+      "time": 1795308012083,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.189851, 0, 0, 1, 0, 0)",
+        "matrix(0.189789, 0, 0, 1, 0, 0)",
+        "matrix(0.189789, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.384828, 0.922988, -0.922988, 0.384828, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘",
+      "time": 1795308012158,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.193494, 0, 0, 1, 0, 0)",
+        "matrix(0.193433, 0, 0, 1, 0, 0)",
+        "matrix(0.193433, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.237483, 0.971392, -0.971392, 0.237483, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后",
+      "time": 1795308012215,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.193979, 0, 0, 1, 0, 0)",
+        "matrix(0.193917, 0, 0, 1, 0, 0)",
+        "matrix(0.193917, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.217343, 0.976095, -0.976095, 0.217343, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后",
+      "time": 1795308012230,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.196037, 0, 0, 1, 0, 0)",
+        "matrix(0.195976, 0, 0, 1, 0, 0)",
+        "matrix(0.195976, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.130752, 0.991415, -0.991415, 0.130752, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后",
+      "time": 1795308012263,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.197058, 0, 0, 1, 0, 0)",
+        "matrix(0.196997, 0, 0, 1, 0, 0)",
+        "matrix(0.196997, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(0.0872957, 0.996182, -0.996182, 0.0872957, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后",
+      "time": 1795308012276,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.201134, 0, 0, 1, 0, 0)",
+        "matrix(0.201073, 0, 0, 1, 0, 0)",
+        "matrix(0.201073, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.0873635, 0.996176, -0.996176, -0.0873635, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿",
+      "time": 1795308012347,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.205134, 0, 0, 1, 0, 0)",
+        "matrix(0.205074, 0, 0, 1, 0, 0)",
+        "matrix(0.205074, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.256828, 0.966457, -0.966457, -0.256828, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿",
+      "time": 1795308012407,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.207692, 0, 0, 1, 0, 0)",
+        "matrix(0.207632, 0, 0, 1, 0, 0)",
+        "matrix(0.207632, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.361819, 0.932248, -0.932248, -0.361819, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说",
+      "time": 1795308012452,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.208182, 0, 0, 1, 0, 0)",
+        "matrix(0.208122, 0, 0, 1, 0, 0)",
+        "matrix(0.208122, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.381505, 0.924367, -0.924367, -0.381505, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说",
+      "time": 1795308012463,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.214246, 0, 0, 1, 0, 0)",
+        "matrix(0.214186, 0, 0, 1, 0, 0)",
+        "matrix(0.214186, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.608788, 0.793333, -0.793333, -0.608788, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说",
+      "time": 1795308012560,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.223726, 0, 0, 1, 0, 0)",
+        "matrix(0.223667, 0, 0, 1, 0, 0)",
+        "matrix(0.223667, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.876701, 0.481035, -0.481035, -0.876701, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说",
+      "time": 1795308012722,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.22621, 0, 0, 1, 0, 0)",
+        "matrix(0.22615, 0, 0, 1, 0, 0)",
+        "matrix(0.22615, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.923893, 0.382652, -0.382652, -0.923893, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说",
+      "time": 1795308012756,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.232602, 0, 0, 1, 0, 0)",
+        "matrix(0.232543, 0, 0, 1, 0, 0)",
+        "matrix(0.232543, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.993907, 0.110221, -0.110221, -0.993907, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说",
+      "time": 1795308012871,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.233618, 0, 0, 1, 0, 0)",
+        "matrix(0.233559, 0, 0, 1, 0, 0)",
+        "matrix(0.233559, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.997861, 0.0653692, -0.0653692, -0.997861, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说",
+      "time": 1795308012881,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.234072, 0, 0, 1, 0, 0)",
+        "matrix(0.234013, 0, 0, 1, 0, 0)",
+        "matrix(0.234013, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.998976, 0.0452418, -0.0452418, -0.998976, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说，妈妈上夜班，没人给你做早饭。”第二天",
+      "time": 1795308012892,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.234551, 0, 0, 1, 0, 0)",
+        "matrix(0.234492, 0, 0, 1, 0, 0)",
+        "matrix(0.234492, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.999711, 0.0240492, -0.0240492, -0.999711, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说，妈妈上夜班，没人给你做早饭。”第二天，",
+      "time": 1795308012903,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.237985, 0, 0, 1, 0, 0)",
+        "matrix(0.237926, 0, 0, 1, 0, 0)",
+        "matrix(0.237926, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.991745, -0.128224, 0.128224, -0.991745, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说，妈妈上夜班，没人给你做早饭。”第二天，巷口多了一把",
+      "time": 1795308012963,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.24146, 0, 0, 1, 0, 0)",
+        "matrix(0.241401, 0, 0, 1, 0, 0)",
+        "matrix(0.241401, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.960065, -0.279778, 0.279778, -0.960065, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说，妈妈上夜班，没人给你做早饭。”第二天，巷口多了一把",
+      "time": 1795308013019,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.246301, 0, 0, 1, 0, 0)",
+        "matrix(0.246242, 0, 0, 1, 0, 0)",
+        "matrix(0.246242, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.877423, -0.479717, 0.479717, -0.877423, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说，妈妈上夜班，没人给你做早饭。”第二天，巷口多了一把等车的小",
+      "time": 1795308013102,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.247746, 0, 0, 1, 0, 0)",
+        "matrix(0.247688, 0, 0, 1, 0, 0)",
+        "matrix(0.247688, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.84445, -0.535634, 0.535634, -0.84445, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说，妈妈上夜班，没人给你做早饭。”第二天，巷口多了一把等车的小",
+      "time": 1795308013123,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.248235, 0, 0, 1, 0, 0)",
+        "matrix(0.248177, 0, 0, 1, 0, 0)",
+        "matrix(0.248177, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.832467, -0.554074, 0.554074, -0.832467, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说，妈妈上夜班，没人给你做早饭。”第二天，巷口多了一把等车的小",
+      "time": 1795308013133,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.24969, 0, 0, 1, 0, 0)",
+        "matrix(0.249632, 0, 0, 1, 0, 0)",
+        "matrix(0.249632, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 4,
+      "ring": "matrix(-0.794447, -0.607334, 0.607334, -0.794447, 0, 0)",
+      "rows": {},
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说，妈妈上夜班，没人给你做早饭。”第二天，巷口多了一把等车的小凳子。",
+      "time": 1795308013161,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.254017, 0, 0, 1, 0, 0)",
+        "matrix(0.254017, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(-0.659517, -0.75169, 0.75169, -0.659517, 0, 0)",
+      "rows": {},
+      "text": "清晨的第一班公交车开到桥头，司机轻轻踩下刹车。卖菜的阿婆还在雾里，挎着两篮青菜，走几步就歇一歇。车上有人替她接过篮子，有人往里挪了挪。阿婆坐稳后，从怀里摸出两个烤红",
+      "time": 1795308013232,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.255463, 0, 0, 1, 0, 0)",
+        "matrix(0.255463, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(-0.608942, -0.793215, 0.793215, -0.608942, 0, 0)",
+      "rows": {},
+      "text": "清晨的第一班公交车开到桥头，司机轻轻踩下刹车。卖菜的阿婆还在雾里，挎着两篮青菜，走几步就歇一歇。车上有人替她接过篮子，有人往里挪了挪。阿婆坐稳后，从怀里摸出两个烤红薯，掰开了",
+      "time": 1795308013262,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.265006, 0, 0, 1, 0, 0)",
+        "matrix(0.265006, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(-0.218621, -0.97581, 0.97581, -0.218621, 0, 0)",
+      "rows": {},
+      "text": "清晨的第一班公交车开到桥头，司机轻轻踩下刹车。卖菜的阿婆还在雾里，挎着两篮青菜，走几步就歇一歇。车上有人替她接过篮子，有人往里挪了挪。阿婆坐稳后，从怀里摸出两个烤红薯，掰开了分。车",
+      "time": 1795308013423,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.271232, 0, 0, 1, 0, 0)",
+        "matrix(0.271232, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(0.0651758, -0.997874, 0.997874, 0.0651758, 0, 0)",
+      "rows": {},
+      "text": "清晨的第一班公交车开到桥头，司机轻轻踩下刹车。卖菜的阿婆还在雾里，挎着两篮青菜，走几步就歇一歇。车上有人替她接过篮子，有人往里挪了挪。阿婆坐稳后，从怀里摸出两个烤红薯，掰开了分。车厢里慢慢有",
+      "time": 1795308013538,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.275444, 0, 0, 1, 0, 0)",
+        "matrix(0.275444, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 3,
+      "ring": "matrix(0.256575, -0.966524, 0.966524, 0.256575, 0, 0)",
+      "rows": {},
+      "text": "清晨的第一班公交车开到桥头，司机轻轻踩下刹车。卖菜的阿婆还在雾里，挎着两篮青菜，走几步就歇一歇。车上有人替她接过篮子，有人往里挪了挪。阿婆坐稳后，从怀里摸出两个烤红薯，掰开了分。车厢里慢慢有了甜香。",
+      "time": 1795308013611,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": true,
+          "selected": "true"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "false"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.280207, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.461934, -0.886915, 0.886915, 0.461934, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308013693,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.289551, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.793374, -0.608734, 0.608734, 0.793374, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308013860,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.298811, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.976322, -0.216321, 0.216321, 0.976322, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308014023,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.307515, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.98083, 0.194867, -0.194867, 0.98083, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308014187,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.314792, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.854939, 0.518728, -0.518728, 0.854939, 0, 0)",
+      "rows": {},
+      "text": "",
+      "time": 1795308014324,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 0
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.323337, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.574335, 0.818621, -0.818621, 0.574335, 0, 0)",
+      "rows": {},
+      "text": "清晨五",
+      "time": 1795308014482,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.330911, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.239517, 0.970892, -0.970892, 0.239517, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交",
+      "time": 1795308014621,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.33627, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(-0.0217617, 0.999763, -0.999763, -0.0217617, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出",
+      "time": 1795308014720,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.341513, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(-0.277515, 0.960721, -0.960721, -0.277515, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖",
+      "time": 1795308014820,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.346819, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(-0.518728, 0.854939, -0.854939, -0.518728, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐",
+      "time": 1795308014919,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.354217, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(-0.793374, 0.608734, -0.608734, -0.793374, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照",
+      "time": 1795308015062,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.359803, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(-0.931513, 0.363707, -0.363707, -0.931513, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前",
+      "time": 1795308015169,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.365409, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(-0.996205, 0.0870349, -0.0870349, -0.996205, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却",
+      "time": 1795308015274,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.37303, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(-0.954308, -0.298823, 0.298823, -0.954308, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不",
+      "time": 1795308015426,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.37392, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(-0.939621, -0.342216, 0.342216, -0.939621, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不",
+      "time": 1795308015441,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.381072, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(-0.752163, -0.658978, 0.658978, -0.752163, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。",
+      "time": 1795308015583,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.386473, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(-0.53933, -0.842094, 0.842094, -0.53933, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐",
+      "time": 1795308015691,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.387353, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(-0.499971, -0.866042, 0.866042, -0.499971, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐",
+      "time": 1795308015710,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.395603, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(-0.0891212, -0.996021, 0.996021, -0.0891212, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来",
+      "time": 1795308015877,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.396419, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(-0.0460264, -0.99894, 0.99894, -0.0460264, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来",
+      "time": 1795308015892,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.400943, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.193069, -0.981185, 0.981185, 0.193069, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来，我去接他。到了火",
+      "time": 1795308015984,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.406293, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.461934, -0.886915, 0.886915, 0.461934, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来，我去接他。到了火车站，司机没急着关",
+      "time": 1795308016092,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.406654, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.479028, -0.8778, 0.8778, 0.479028, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来，我去接他。到了火车站，司机没急着关",
+      "time": 1795308016102,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.411965, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.707131, -0.707083, 0.707083, 0.707131, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来，我去接他。到了火车站，司机没急着关门，笑着指了指车窗外：“",
+      "time": 1795308016208,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.412372, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.722508, -0.691362, 0.691362, 0.722508, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来，我去接他。到了火车站，司机没急着关门，笑着指了指车窗外：“",
+      "time": 1795308016221,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.420387, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.946688, -0.322151, 0.322151, 0.946688, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来，我去接他。到了火车站，司机没急着关门，笑着指了指车窗外：“您瞧，他也",
+      "time": 1795308016389,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.421599, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.965935, -0.258786, 0.258786, 0.965935, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来，我去接他。到了火车站，司机没急着关门，笑着指了指车窗外：“您瞧，他也",
+      "time": 1795308016408,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": true,
+      "fills": [
+        "matrix(0.423989, 0, 0, 1, 0, 0)"
+      ],
+      "hasCancel": true,
+      "phaseCount": 2,
+      "ring": "matrix(0.991449, -0.130492, 0.130492, 0.991449, 0, 0)",
+      "rows": {},
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来，我去接他。到了火车站，司机没急着关门，笑着指了指车窗外：“您瞧，他也在跑呢。”",
+      "time": 1795308016462,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": true,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    },
+    {
+      "cursor": false,
+      "fills": [],
+      "hasCancel": false,
+      "phaseCount": 0,
+      "ring": null,
+      "rows": {
+        "创建时间": "2026/11/22 08:40",
+        "创建者": "—",
+        "字符数": "100",
+        "本次花费": "$0.00105",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来，我去接他。到了火车站，司机没急着关门，笑着指了指车窗外：“您瞧，他也在跑呢。”",
+      "time": 1795308016529,
+      "variants": [
+        {
+          "label": "Variant 1 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 2 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 3 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 4 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 5 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 6 of 7",
+          "pending": false,
+          "selected": "false"
+        },
+        {
+          "label": "Variant 7 of 7",
+          "pending": false,
+          "selected": "true"
+        }
+      ],
+      "words": 1
+    }
+  ],
+  "cancelRequests": [
+    {
+      "id": "67796.327",
+      "input": {
+        "model": "gpt-6.2-sol",
+        "prompt": "写一段70到110字的中文微型故事，主题是清晨的第一班公交车。自由选择人物与情节，结尾温暖，只输出故事正文，不要标题或解释。",
+        "images": [],
+        "reasoningEffort": "medium",
+        "webSearch": false
+      }
+    },
+    {
+      "id": "67796.328",
+      "input": {
+        "model": "gpt-6.2-sol",
+        "prompt": "写一段70到110字的中文微型故事，主题是清晨的第一班公交车。自由选择人物与情节，结尾温暖，只输出故事正文，不要标题或解释。",
+        "images": [],
+        "reasoningEffort": "medium",
+        "webSearch": false
+      }
+    }
+  ],
+  "beforeImmediateCancel": {
+    "cursor": true,
+    "fills": [
+      "matrix(0.1401, 0, 0, 1, 0, 0)",
+      "matrix(0.1401, 0, 0, 1, 0, 0)"
+    ],
+    "hasCancel": true,
+    "phaseCount": 3,
+    "ring": "matrix(0.642798, -0.766035, 0.766035, 0.642798, 0, 0)",
+    "rows": {},
+    "text": "",
+    "time": 1795308008888,
+    "variants": [
+      {
+        "label": "Variant 1 of 6",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 2 of 6",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 3 of 6",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 4 of 6",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 5 of 6",
+        "pending": true,
+        "selected": "true"
+      },
+      {
+        "label": "Variant 6 of 6",
+        "pending": true,
+        "selected": "false"
+      }
+    ],
+    "words": 0
+  },
+  "cancelAccepted": [
+    {
+      "id": "67796.328",
+      "status": 200
+    }
+  ],
+  "cancelClickedAt": 1795308008910,
+  "afterImmediateCancel": {
+    "cursor": false,
+    "fills": [],
+    "hasCancel": false,
+    "phaseCount": 0,
+    "ring": null,
+    "rows": {
+      "创建时间": "2026/11/22 00:34",
+      "创建者": "—",
+      "字符数": "163",
+      "本次花费": "$0.003452",
+      "模型": "GPT-6.2 Sol"
+    },
+    "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，肩挨着肩，在积水退去的路边给他围出了一间铺子。",
+    "time": 1795308009214,
+    "variants": [
+      {
+        "label": "Variant 1 of 4",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 2 of 4",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 3 of 4",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 4 of 4",
+        "pending": false,
+        "selected": "true"
+      }
+    ],
+    "words": 0
+  },
+  "rerunClickedAt": 1795308009281,
+  "restartInitial": {
+    "cursor": true,
+    "fills": [
+      "matrix(0.0201426, 0, 0, 1, 0, 0)",
+      "matrix(0.0200718, 0, 0, 1, 0, 0)",
+      "matrix(0.0200718, 0, 0, 1, 0, 0)"
+    ],
+    "hasCancel": true,
+    "phaseCount": 4,
+    "ring": "matrix(0.751817, 0.659371, -0.659371, 0.751817, 0, 0)",
+    "rows": {},
+    "text": "",
+    "time": 1795308009583,
+    "variants": [
+      {
+        "label": "Variant 1 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 2 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 3 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 4 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 5 of 7",
+        "pending": true,
+        "selected": "true"
+      },
+      {
+        "label": "Variant 6 of 7",
+        "pending": true,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 7 of 7",
+        "pending": true,
+        "selected": "false"
+      }
+    ],
+    "words": 0
+  },
+  "rerunRequests": [
+    {
+      "id": "67796.329",
+      "input": {
+        "model": "gpt-6.2-sol",
+        "prompt": "写一段70到110字的中文微型故事，主题是清晨的第一班公交车。自由选择人物与情节，结尾温暖，只输出故事正文，不要标题或解释。",
+        "images": [],
+        "reasoningEffort": "medium",
+        "webSearch": false
+      }
+    },
+    {
+      "id": "67796.330",
+      "input": {
+        "model": "gpt-6.2-sol",
+        "prompt": "写一段70到110字的中文微型故事，主题是清晨的第一班公交车。自由选择人物与情节，结尾温暖，只输出故事正文，不要标题或解释。",
+        "images": [],
+        "reasoningEffort": "medium",
+        "webSearch": false
+      }
+    },
+    {
+      "id": "67796.331",
+      "input": {
+        "model": "gpt-6.2-sol",
+        "prompt": "写一段70到110字的中文微型故事，主题是清晨的第一班公交车。自由选择人物与情节，结尾温暖，只输出故事正文，不要标题或解释。",
+        "images": [],
+        "reasoningEffort": "medium",
+        "webSearch": false
+      }
+    }
+  ],
+  "rerunResponses": [
+    {
+      "id": "67796.329",
+      "status": 200,
+      "mime": "text/event-stream"
+    },
+    {
+      "id": "67796.330",
+      "status": 200,
+      "mime": "text/event-stream"
+    },
+    {
+      "id": "67796.331",
+      "status": 200,
+      "mime": "text/event-stream"
+    }
+  ],
+  "history": [
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 72（已含推理 0）。计费搜索 0 次。",
+      "index": 1,
+      "prompt": "写一段40到90字的中文微型故事，主题是雨后的城市。自由选择不同的主角、情节和长度，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "73",
+        "本次花费": "$0.000812",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修鞋匠把摊子搬回巷口。一个小姑娘提着湿透的布鞋来，问能不能把鞋底补得再厚些。她踮起脚，指指街对面：“这样下次涨水，我就能自己去接妈妈了。”"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 80（已含推理 0）。计费搜索 0 次。",
+      "index": 2,
+      "prompt": "写一段40到90字的中文微型故事，主题是雨后的城市。自由选择不同的主角、情节和长度，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "82",
+        "本次花费": "$0.000892",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修伞匠把门口的积水扫进下水道，却留了一小洼。每天放学，孙女都要踩着那块倒映着红绿灯的水，说自己一步就能跨过整座城。今天她带了个同桌，两人商量半天，决定坐船。"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 71（已含推理 0）。计费搜索 0 次。",
+      "index": 3,
+      "prompt": "写一段40到90字的中文微型故事，主题是雨后的城市。自由选择不同的主角、情节和长度，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "69",
+        "本次花费": "$0.000802",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修鞋匠把摊子挪到屋檐外。一个小女孩蹲在水洼边，等倒映的红灯变绿。他提着她刚补好的鞋，也站住了。绿灯一亮，两人各自跨过了自己的马路。"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 56 tokens，缓存读取 0，缓存写入 0；输出 334（已含推理 173）。计费搜索 0 次。",
+      "index": 4,
+      "prompt": "写一篇120到180字的中文微型故事，主题是雨后重新出发。自行选择人物和情节，包含一个出人意料但温暖的结尾，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 00:34",
+        "创建者": "—",
+        "字符数": "163",
+        "本次花费": "$0.003452",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，肩挨着肩，在积水退去的路边给他围出了一间铺子。"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 50 tokens，缓存读取 0，缓存写入 0；输出 97（已含推理 0）。计费搜索 0 次。",
+      "index": 5,
+      "prompt": "写一段70到110字的中文微型故事，主题是清晨的第一班公交车。自由选择人物与情节，结尾温暖，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 08:40",
+        "创建者": "—",
+        "字符数": "103",
+        "本次花费": "$0.00107",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说，妈妈上夜班，没人给你做早饭。”第二天，巷口多了一把等车的小凳子。"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 50 tokens，缓存读取 0，缓存写入 0；输出 107（已含推理 0）。计费搜索 0 次。",
+      "index": 6,
+      "prompt": "写一段70到110字的中文微型故事，主题是清晨的第一班公交车。自由选择人物与情节，结尾温暖，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 08:40",
+        "创建者": "—",
+        "字符数": "99",
+        "本次花费": "$0.00117",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "清晨的第一班公交车开到桥头，司机轻轻踩下刹车。卖菜的阿婆还在雾里，挎着两篮青菜，走几步就歇一歇。车上有人替她接过篮子，有人往里挪了挪。阿婆坐稳后，从怀里摸出两个烤红薯，掰开了分。车厢里慢慢有了甜香。"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 50 tokens，缓存读取 0，缓存写入 0；输出 95（已含推理 0）。计费搜索 0 次。",
+      "index": 7,
+      "prompt": "写一段70到110字的中文微型故事，主题是清晨的第一班公交车。自由选择人物与情节，结尾温暖，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 08:40",
+        "创建者": "—",
+        "字符数": "100",
+        "本次花费": "$0.00105",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来，我去接他。到了火车站，司机没急着关门，笑着指了指车窗外：“您瞧，他也在跑呢。”"
+    }
+  ],
+  "newCompletedCostUsd": 0.00329,
+  "afterRerun": {
+    "cursor": false,
+    "fills": [],
+    "hasCancel": false,
+    "phaseCount": 0,
+    "ring": null,
+    "rows": {
+      "创建时间": "2026/11/22 08:40",
+      "创建者": "—",
+      "字符数": "100",
+      "本次花费": "$0.00105",
+      "模型": "GPT-6.2 Sol"
+    },
+    "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来，我去接他。到了火车站，司机没急着关门，笑着指了指车窗外：“您瞧，他也在跑呢。”",
+    "time": 1795308055275,
+    "variants": [
+      {
+        "label": "Variant 1 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 2 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 3 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 4 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 5 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 6 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 7 of 7",
+        "pending": false,
+        "selected": "true"
+      }
+    ],
+    "words": 0
+  },
+  "submittedRequestIds": [
+    "67796.327",
+    "67796.328",
+    "67796.329",
+    "67796.330",
+    "67796.331"
+  ],
+  "documentRequestsBeforeVerificationReload": 0,
+  "switches": [
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 72（已含推理 0）。计费搜索 0 次。",
+      "hasCancel": false,
+      "index": 1,
+      "prompt": "写一段40到90字的中文微型故事，主题是雨后的城市。自由选择不同的主角、情节和长度，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "73",
+        "本次花费": "$0.000812",
+        "模型": "GPT-6.2 Sol"
+      },
+      "running": 0,
+      "text": "雨停后，修鞋匠把摊子搬回巷口。一个小姑娘提着湿透的布鞋来，问能不能把鞋底补得再厚些。她踮起脚，指指街对面：“这样下次涨水，我就能自己去接妈妈了。”"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 56 tokens，缓存读取 0，缓存写入 0；输出 334（已含推理 173）。计费搜索 0 次。",
+      "hasCancel": false,
+      "index": 4,
+      "prompt": "写一篇120到180字的中文微型故事，主题是雨后重新出发。自行选择人物和情节，包含一个出人意料但温暖的结尾，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 00:34",
+        "创建者": "—",
+        "字符数": "163",
+        "本次花费": "$0.003452",
+        "模型": "GPT-6.2 Sol"
+      },
+      "running": 0,
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，肩挨着肩，在积水退去的路边给他围出了一间铺子。"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 50 tokens，缓存读取 0，缓存写入 0；输出 107（已含推理 0）。计费搜索 0 次。",
+      "hasCancel": false,
+      "index": 6,
+      "prompt": "写一段70到110字的中文微型故事，主题是清晨的第一班公交车。自由选择人物与情节，结尾温暖，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 08:40",
+        "创建者": "—",
+        "字符数": "99",
+        "本次花费": "$0.00117",
+        "模型": "GPT-6.2 Sol"
+      },
+      "running": 0,
+      "text": "清晨的第一班公交车开到桥头，司机轻轻踩下刹车。卖菜的阿婆还在雾里，挎着两篮青菜，走几步就歇一歇。车上有人替她接过篮子，有人往里挪了挪。阿婆坐稳后，从怀里摸出两个烤红薯，掰开了分。车厢里慢慢有了甜香。"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 50 tokens，缓存读取 0，缓存写入 0；输出 97（已含推理 0）。计费搜索 0 次。",
+      "hasCancel": false,
+      "index": 5,
+      "prompt": "写一段70到110字的中文微型故事，主题是清晨的第一班公交车。自由选择人物与情节，结尾温暖，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 08:40",
+        "创建者": "—",
+        "字符数": "103",
+        "本次花费": "$0.00107",
+        "模型": "GPT-6.2 Sol"
+      },
+      "running": 0,
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说，妈妈上夜班，没人给你做早饭。”第二天，巷口多了一把等车的小凳子。"
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 50 tokens，缓存读取 0，缓存写入 0；输出 95（已含推理 0）。计费搜索 0 次。",
+      "hasCancel": false,
+      "index": 7,
+      "prompt": "写一段70到110字的中文微型故事，主题是清晨的第一班公交车。自由选择人物与情节，结尾温暖，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 08:40",
+        "创建者": "—",
+        "字符数": "100",
+        "本次花费": "$0.00105",
+        "模型": "GPT-6.2 Sol"
+      },
+      "running": 0,
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来，我去接他。到了火车站，司机没急着关门，笑着指了指车窗外：“您瞧，他也在跑呢。”"
+    }
+  ],
+  "historySwitchRequests": 0,
+  "afterReload": [
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 72（已含推理 0）。计费搜索 0 次。",
+      "cursors": 0,
+      "index": 1,
+      "pending": 0,
+      "phases": 0,
+      "prompt": "写一段40到90字的中文微型故事，主题是雨后的城市。自由选择不同的主角、情节和长度，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "73",
+        "本次花费": "$0.000812",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修鞋匠把摊子搬回巷口。一个小姑娘提着湿透的布鞋来，问能不能把鞋底补得再厚些。她踮起脚，指指街对面：“这样下次涨水，我就能自己去接妈妈了。”",
+      "variants": 7
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 80（已含推理 0）。计费搜索 0 次。",
+      "cursors": 0,
+      "index": 2,
+      "pending": 0,
+      "phases": 0,
+      "prompt": "写一段40到90字的中文微型故事，主题是雨后的城市。自由选择不同的主角、情节和长度，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "82",
+        "本次花费": "$0.000892",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修伞匠把门口的积水扫进下水道，却留了一小洼。每天放学，孙女都要踩着那块倒映着红绿灯的水，说自己一步就能跨过整座城。今天她带了个同桌，两人商量半天，决定坐船。",
+      "variants": 7
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 46 tokens，缓存读取 0，缓存写入 0；输出 71（已含推理 0）。计费搜索 0 次。",
+      "cursors": 0,
+      "index": 3,
+      "pending": 0,
+      "phases": 0,
+      "prompt": "写一段40到90字的中文微型故事，主题是雨后的城市。自由选择不同的主角、情节和长度，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 00:28",
+        "创建者": "—",
+        "字符数": "69",
+        "本次花费": "$0.000802",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停后，修鞋匠把摊子挪到屋檐外。一个小女孩蹲在水洼边，等倒映的红灯变绿。他提着她刚补好的鞋，也站住了。绿灯一亮，两人各自跨过了自己的马路。",
+      "variants": 7
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 56 tokens，缓存读取 0，缓存写入 0；输出 334（已含推理 173）。计费搜索 0 次。",
+      "cursors": 0,
+      "index": 4,
+      "pending": 0,
+      "phases": 0,
+      "prompt": "写一篇120到180字的中文微型故事，主题是雨后重新出发。自行选择人物和情节，包含一个出人意料但温暖的结尾，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 00:34",
+        "创建者": "—",
+        "字符数": "163",
+        "本次花费": "$0.003452",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "雨停时，修伞匠老周把招牌从泥里拔出来。铺子被冲垮了，他打算坐头班车回乡。\n\n走到站口，一个小姑娘追上来，递给他一把撑不开的伞。老周摸出钳子，蹲下修好，说：“最后一单，不收钱。”\n\n小姑娘撑开伞，伞面上歪歪扭扭写着：“老周修伞，今天开张。”\n\n她指了指身后。街坊们撑着他修过的旧伞，肩挨着肩，在积水退去的路边给他围出了一间铺子。",
+      "variants": 7
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 50 tokens，缓存读取 0，缓存写入 0；输出 97（已含推理 0）。计费搜索 0 次。",
+      "cursors": 0,
+      "index": 5,
+      "pending": 0,
+      "phases": 0,
+      "prompt": "写一段70到110字的中文微型故事，主题是清晨的第一班公交车。自由选择人物与情节，结尾温暖，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 08:40",
+        "创建者": "—",
+        "字符数": "103",
+        "本次花费": "$0.00107",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "清晨第一班公交车驶到巷口，卖豆浆的阿婆还在追，怀里护着一只保温桶。司机多等了一会儿。她上车，喘匀了气，把豆浆递给后排穿校服的女孩：“昨天你说，妈妈上夜班，没人给你做早饭。”第二天，巷口多了一把等车的小凳子。",
+      "variants": 7
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 50 tokens，缓存读取 0，缓存写入 0；输出 107（已含推理 0）。计费搜索 0 次。",
+      "cursors": 0,
+      "index": 6,
+      "pending": 0,
+      "phases": 0,
+      "prompt": "写一段70到110字的中文微型故事，主题是清晨的第一班公交车。自由选择人物与情节，结尾温暖，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 08:40",
+        "创建者": "—",
+        "字符数": "99",
+        "本次花费": "$0.00117",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "清晨的第一班公交车开到桥头，司机轻轻踩下刹车。卖菜的阿婆还在雾里，挎着两篮青菜，走几步就歇一歇。车上有人替她接过篮子，有人往里挪了挪。阿婆坐稳后，从怀里摸出两个烤红薯，掰开了分。车厢里慢慢有了甜香。",
+      "variants": 7
+    },
+    {
+      "billingTitle": "按 OpenAI 2026-11-21 单价与本次实际用量计算（美元），最终以账单为准。输入 50 tokens，缓存读取 0，缓存写入 0；输出 95（已含推理 0）。计费搜索 0 次。",
+      "cursors": 0,
+      "index": 7,
+      "pending": 0,
+      "phases": 0,
+      "prompt": "写一段70到110字的中文微型故事，主题是清晨的第一班公交车。自由选择人物与情节，结尾温暖，只输出故事正文，不要标题或解释。",
+      "rows": {
+        "创建时间": "2026/11/22 08:40",
+        "创建者": "—",
+        "字符数": "100",
+        "本次花费": "$0.00105",
+        "模型": "GPT-6.2 Sol"
+      },
+      "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来，我去接他。到了火车站，司机没急着关门，笑着指了指车窗外：“您瞧，他也在跑呢。”",
+      "variants": 7
+    }
+  ],
+  "final": {
+    "cursor": false,
+    "fills": [],
+    "hasCancel": false,
+    "phaseCount": 0,
+    "ring": null,
+    "rows": {
+      "创建时间": "2026/11/22 08:40",
+      "创建者": "—",
+      "字符数": "100",
+      "本次花费": "$0.00105",
+      "模型": "GPT-6.2 Sol"
+    },
+    "text": "清晨五点半，第一班公交车拐出车站。卖豆腐的周姨照例坐在前排，怀里却没抱篮子。司机问她今天怎么不出摊。她说，儿子坐夜车回来，我去接他。到了火车站，司机没急着关门，笑着指了指车窗外：“您瞧，他也在跑呢。”",
+    "time": 1795308138874,
+    "variants": [
+      {
+        "label": "Variant 1 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 2 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 3 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 4 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 5 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 6 of 7",
+        "pending": false,
+        "selected": "false"
+      },
+      {
+        "label": "Variant 7 of 7",
+        "pending": false,
+        "selected": "true"
+      }
+    ],
+    "words": 0
+  },
+  "finalNodeId": "e5b10af6-beb4-4f4c-a877-876ee4412fad",
+  "consoleErrors": [],
+  "finalViewport": {
+    "bottom": 605.5146484375,
+    "height": 384,
+    "left": 154.23867797851562,
+    "right": 538.2386474609375,
+    "top": 221.5146484375,
+    "width": 383.9999694824219,
+    "x": 154.23867797851562,
+    "y": 221.5146484375
+  },
+  "finalHistoryLayout": {
+    "alerts": 0,
+    "buttons": [
+      {
+        "selected": "false",
+        "transform": "none",
+        "width": 32
+      },
+      {
+        "selected": "false",
+        "transform": "none",
+        "width": 32
+      },
+      {
+        "selected": "false",
+        "transform": "none",
+        "width": 32
+      },
+      {
+        "selected": "false",
+        "transform": "none",
+        "width": 32
+      },
+      {
+        "selected": "false",
+        "transform": "none",
+        "width": 32
+      },
+      {
+        "selected": "false",
+        "transform": "none",
+        "width": 32
+      },
+      {
+        "selected": "true",
+        "transform": "none",
+        "width": 40
+      }
+    ],
+    "counter": "7 of 7",
+    "counterOpacity": "1",
+    "expanded": "true"
+  }
+}
