@@ -46,7 +46,7 @@ export function useMagneticPorts() {
       const rect = host.getBoundingClientRect();
       const width = host.offsetWidth, height = host.offsetHeight;
       const scale = rect.width / width;
-      const anchors = [{ x: -24, y: height / 2 + (host.classList.contains('text-node') ? 32 : 20) }, { x: width + 28, y: height / 2 }, { x: -24, y: height / 2 }];
+      const anchors = [{ x: -24, y: height / 2 + (host.classList.contains('has-text-input') ? 32 : 20) }, { x: width + 28, y: height / 2 }, { x: -24, y: height / 2 }];
       const now = performance.now();
       tracks.forEach((track, index) => {
         advance(track, now);

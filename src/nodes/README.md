@@ -5,7 +5,7 @@
 | 节点 | 存储类型 | 组件 | 输入与输出 |
 | --- | --- | --- | --- |
 | Text | `text` | [CanvasTextNode](CanvasTextNode.tsx) | `text` 接收上游文本，`image-0` 至 `image-15` 接收图片；`text` 输出当前选中的已完成文本；尚未生成时直接输出手写提示词。接入 GPT-6.2 Sol、GPT-6.1 Terra 和 GPT-6 Luna，连入文本和图片时显示共用参考缩略图，可开启网络搜索并显示可点击来源，每次可生成 1–20 份流式结果并进入历史；辅助图标为占位。 |
-| Image | `sunburst` | [CanvasImageNode](CanvasImageNode.tsx) | 节点内填写提示词，最多接入 16 张参考图。`result` 输出当前选中的结果。 |
+| Image | `sunburst` | [CanvasImageNode](CanvasImageNode.tsx) | `prompt` 接收 Text，替代节点内提示词；最多接入 16 张参考图。`result` 输出当前选中的结果。 |
 
 Image 使用 `data.composer` 保存提示词、生成数量、比例和模型选择。Text 使用 `data.textComposer` 保存提示词、TXT／MD、数量、模型选择、思考强度和网络搜索开关，`data.text` 保存当前选中的完成结果；`data.textHistory` 保存历次成功输出及其提示词、模型、搜索设置、来源引用、实际用量与计费快照，`activeTextResultId` 保存当前项。新 Text 与历史 Prompt 通过 `textComposer` 区分，刷新与混合迁移保留 Text 及其连接。运行过程不持久化；删除、切换项目或刷新会停止接收当前生成；完成的文本结果和模型记录会保存。
 

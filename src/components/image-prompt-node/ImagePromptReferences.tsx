@@ -29,8 +29,8 @@ export function ImagePromptReferences({ references, onRemove, onReorder, scale =
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-  const sortable = Boolean(onReorder && references.length > 1);
-  const ids = references.map(reference => reference.id);
+  const ids = references.filter(reference => reference.kind !== 'text').map(reference => reference.id);
+  const sortable = Boolean(onReorder && ids.length > 1);
 
   return <DndContext sensors={sensors} collisionDetection={closestCenter}
     measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
@@ -60,7 +60,7 @@ export function ImagePromptReferences({ references, onRemove, onReorder, scale =
         <ul className="image-node-reference-strip" aria-label={references.some(reference => reference.kind === 'text') ? '连入的参考内容' : '连入的参考图'} data-keyboard={keyboard} data-dragging={dragging}>
           {references.map(reference => <SortableReference key={reference.id} reference={reference}
             expanded={expanded} setExpanded={setExpanded} keyboard={keyboard} setKeyboard={setKeyboard}
-            disabled={!sortable} scale={scale} reduceMotion={reduceMotion} onRemove={onRemove} restoreFocus={restoreFocus} />)}
+            disabled={!sortable || reference.kind === 'text'} scale={scale} reduceMotion={reduceMotion} onRemove={onRemove} restoreFocus={restoreFocus} />)}
         </ul>
       </SortableContext>
     </div>

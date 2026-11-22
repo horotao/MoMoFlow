@@ -7,7 +7,7 @@ import { migrateImageModelGraph } from '../nodes/sunburstMigration.ts';
 import { defaultSunburstSettings, imageSizeLabels, imageSizes, sunburstSizePreset } from '../nodes/sunburst.ts';
 import { isTextNode, resolveTextValue } from '../nodes/textVariables.ts';
 import { anchorCanvasImage } from '../nodes/canvasImageGeometry.ts';
-import { isCanvasImageNode, isCanvasTextNode, isFileNode, isImageGeneratorNode, type AppNode, type CanvasText, type CanvasImage, type FileAsset, type ImageGeneratorNode } from '../nodes/types.ts';
+import { isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isFileNode, isImageGeneratorNode, type AppNode, type CanvasText, type CanvasImage, type FileAsset, type ImageGeneratorNode } from '../nodes/types.ts';
 
 export function hasLegacyImageGraph(nodes: AppNode[], edges: Edge[]) {
   return nodes.some(node => (!isCanvasImageNode(node) && !isCanvasTextNode(node)) || node.parentId || 'exposed' in node.data) || edges.some(edge => !isCanvasWire(edge));
@@ -79,7 +79,7 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
     if (isImageGeneratorNode(node)) {
       const input = graph.edges.find(edge => edge.target === node.id && edge.targetHandle === 'prompt');
       const source = input && sources.get(input.source);
-      const prompt = source && isTextNode(source) ? resolveTextValue(source.id, graph.nodes, graph.edges) : undefined;
+      const prompt = source && isTextNode(source) && !isCanvasTextNode(source) ? resolveTextValue(source.id, graph.nodes, graph.edges) : undefined;
       if (prompt?.trim() && source) copiedPrompts.add(source.id);
       if (isCanvasImageNode(node)) {
         const data = prompt?.trim() ? { ...node.data, composer: { ...node.data.composer, prompt } } : node.data;
@@ -114,8 +114,10 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
   for (const edge of [...graph.edges.filter(isImageWire), ...graph.edges.filter(edge => !isImageWire(edge))]) {
     const source = sources.get(edge.source);
     const target = sources.get(edge.target);
-    if (source && target && isCanvasTextNode(target) && converted.has(source.id) && converted.has(target.id)
-      && (isCanvasImageNode(source) && isImageWire(edge) || isCanvasTextNode(source) && edge.sourceHandle === 'text' && edge.targetHandle === 'text')) {
+    if (source && target && converted.has(source.id) && converted.has(target.id)
+      && (isCanvasTextNode(target) && isCanvasImageNode(source) && isImageWire(edge)
+        || isCanvasTextNode(source) && edge.sourceHandle === 'text'
+          && (isCanvasTextNode(target) && edge.targetHandle === 'text' || isCanvasImageNode(target) && !isImportedCanvasImage(target) && edge.targetHandle === 'prompt'))) {
       if (!wires.some(item => item.target === edge.target && (item.source === edge.source || item.targetHandle === edge.targetHandle)) && !createsImageCycle(edge, wires)) wires.push(edge);
       continue;
     }

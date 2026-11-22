@@ -2,7 +2,7 @@ import { mapAssets } from '../persistence/workflowStorage.ts';
 import { isTextNode } from './textVariables.ts';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, FileAsset, ImageGeneratorNode } from './types';
-import { isImageGeneratorNode, isImportedCanvasImage, isNodeLocked } from './types.ts';
+import { isImageGeneratorNode, isImportedCanvasImage, isCanvasTextNode, isNodeLocked } from './types.ts';
 import { annotationOutput, pinnedResultAsset, pinnedResultInput, selectedImageResult, storedAnnotationResult } from './annotationGraph.ts';
 import { isAnnotationInput } from './interactiveEdit.ts';
 import { hasVariable } from './textDocument.ts';
@@ -41,6 +41,8 @@ export function fixedOutput(node: AppNode, graph: ExecutionGraph) {
   return isImageGeneratorNode(node) && (isImportedCanvasImage(node) || !graph.refreshImages?.has(node.id)) && Boolean(selectedResult(node));
 }
 export function executionInputs(node: AppNode, _handle: string | null | undefined, graph: ExecutionGraph): Edge[] {
+  // Text exposes its selected completed result (or authored prompt), never its dependencies.
+  if (isCanvasTextNode(node)) return [];
   const edges = graph.edges.filter(edge => edge.target === node.id
     && (!isTextNode(node) || !isAnnotationInput(edge.targetHandle)
       || annotationOutput(graph.nodes.find(source => source.id === edge.source), edge.sourceHandle, graph.nodes, graph.edges)));

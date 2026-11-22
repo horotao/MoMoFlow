@@ -1,5 +1,7 @@
 import type { Edge } from '@xyflow/react';
 import type { AppNode, TextNode } from './types';
+import { isCanvasTextNode } from './types.ts';
+import { textOutputValue } from './textGeneration.ts';
 import { documentText } from './textDocument.ts';
 import { annotationInputs, annotationInputIndex, annotationMarkup, isAnnotationInput, resultAnnotationDraftHandle } from './interactiveEdit.ts';
 import { annotationOutput } from './annotationGraph.ts';
@@ -52,6 +54,7 @@ export function resolveTextValue(id: string, nodes: AppNode[], edges: Edge[], vi
   if (visited.has(id)) return '';
   const node = nodes.find((item) => item.id === id);
   if (!node || node.type === 'file') return '';
+  if (isCanvasTextNode(node)) return textOutputValue(node.data);
   if (!isTextNode(node)) return 'label' in node.data && typeof node.data.label === 'string' ? node.data.label : '';
   const nextVisited = new Set(visited).add(id);
   const inputs = textInputs(id, edges);

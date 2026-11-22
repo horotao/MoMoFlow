@@ -31,15 +31,17 @@ export function connectionChoices(pending: PendingConnection, nodes: AppNode[]):
   const node = nodes.find(item => item.id === pending.nodeId);
   if (!node || (!isCanvasImageNode(node) && !isCanvasTextNode(node)) || isNodeLocked(node)) return [];
   if (isCanvasTextNode(node) && pending.direction === 'source' && pending.handleId === 'text') {
-    return [{ id: 'text:text', itemId: 'text', handleId: 'text', portX: -24, portY: 192 }];
+    return [{ id: 'image:prompt', itemId: 'image', handleId: 'prompt', portX: -24, portY: 192 },
+      { id: 'text:text', itemId: 'text', handleId: 'text', portX: -24, portY: 192 }];
   }
-  if (isCanvasTextNode(node) && pending.direction === 'target' && pending.handleId === 'text') {
+  if (pending.direction === 'target' && (isCanvasTextNode(node) && pending.handleId === 'text'
+    || isCanvasImageNode(node) && !isImportedCanvasImage(node) && pending.handleId === 'prompt')) {
     return [{ id: 'text:text-output', itemId: 'text', handleId: 'text', portX: 412, portY: 192 }];
   }
   if (isCanvasImageNode(node) && pending.direction === 'source' && pending.handleId === 'result') {
     const { width, height } = canvasImageSize('auto', undefined, selectedImageResult(node));
     return [{ id: 'image:image-0', itemId: 'image', handleId: 'image-0',
-      portX: -24 - (width - canvasImageBaseSize) / 2, portY: height / 2 + 20 },
+      portX: -24 - (width - canvasImageBaseSize) / 2, portY: height / 2 + 32 },
       { id: 'text:image-0', itemId: 'text', handleId: 'image-0', portX: -24, portY: 224 }];
   }
   if (pending.direction === 'target' && !isImportedCanvasImage(node) && isImageInputHandle(pending.handleId)) {

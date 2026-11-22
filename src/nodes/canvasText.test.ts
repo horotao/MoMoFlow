@@ -4,7 +4,7 @@ import { createLibraryNode } from '../components/libraryCatalog.ts';
 import { canConnect } from './connectionRules.ts';
 import { connectionChoices } from './connectionRecommendations.ts';
 import { hasLegacyImageGraph, migrateLegacyImageGraph } from '../persistence/legacyImageMigration.ts';
-import type { AppNode } from './types.ts';
+import type { AppNode, CanvasImage } from './types.ts';
 import { completeTextResult, estimateCanvasTextCost, selectTextResult, textGenerationInput, textHistory } from './textGeneration.ts';
 import { estimateTextCost } from './textPricing.ts';
 import type { CanvasText, TextGenerationResult } from './types.ts';
@@ -36,9 +36,9 @@ test('modern Text results and mixed connections survive migration, including alo
   }
 });
 
-test('connection menu offers Text only for text output and image or Text for image output', () => {
+test('connection menu offers Image Prompt and Text for text output and typed reverse creation', () => {
   const pending = { nodeId: 'a', handleId: 'text', direction: 'source' as const, screen: { x: 0, y: 0 }, position: { x: 0, y: 0 } };
-  assert.deepEqual(connectionChoices(pending, nodes).map(choice => choice.itemId), ['text']);
+  assert.deepEqual(connectionChoices(pending, nodes).map(choice => choice.itemId), ['image', 'text']);
   assert.deepEqual(connectionChoices({ ...pending, nodeId: 'image', handleId: 'result' }, nodes).map(choice => choice.itemId), ['image', 'text']);
   assert.deepEqual(connectionChoices({ ...pending, direction: 'target' }, nodes).map(choice => choice.itemId), ['text']);
 });
@@ -138,4 +138,24 @@ test('Text saves search settings and citations, restores history defaults, and p
   assert.deepEqual(restored.textHistory[0].citations, result.citations);
   const target = { ...b, data: { ...b.data, textComposer: { ...b.data.textComposer, prompt: 'Continue' } } };
   assert.equal(textGenerationInput('b', [{ ...a, data: restored }, target], [textWire]).prompt, '来自官方的信息。[[1]](<https://openai.com/>)\n\nContinue');
+});
+
+
+test('Text connects to Image Prompt with type, cycle, lock, reverse creation and mixed migration protection', () => {
+  const link = { id: 'prompt', source: a.id, sourceHandle: 'text', target: image.id, targetHandle: 'prompt' };
+  const target: CanvasImage = { ...(image as CanvasImage), data: { ...image.data, composer: { ...(image as CanvasImage).data.composer, prompt: '保留草稿' } } };
+  const graph = [a, b, target];
+  assert.ok(canConnect(link, graph, []));
+  assert.equal(canConnect({ ...link, targetHandle: 'text' }, graph, []), false);
+  assert.equal(canConnect({ ...link, source: image.id, sourceHandle: 'result' }, graph, []), false);
+  assert.equal(canConnect(link, [a, b, { ...target, data: { ...target.data, locked: true } }], []), false);
+  assert.equal(canConnect(link, [a, b, { ...target, data: { ...target.data, imageSource: 'imported' as const } }], []), false);
+  assert.equal(canConnect(link, graph, [{ ...imageWire, target: a.id }]), false);
+  assert.equal(hasLegacyImageGraph(graph, [link]), false);
+  for (const extra of [[], [{ id: 'old', type: 'text' as const, position: { x: 0, y: 500 }, data: { text: '旧提示词' } }]]) {
+    const restored = migrateLegacyImageGraph([...graph, ...extra], [link]);
+    assert.deepEqual(restored.edges, [link]);
+    assert.equal((restored.nodes.find(node => node.id === target.id) as typeof target).data.composer.prompt, '保留草稿');
+    assert.ok(restored.nodes.some(node => node.id === a.id && node.type === 'text'));
+  }
 });

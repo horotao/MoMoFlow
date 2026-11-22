@@ -235,7 +235,7 @@ export function ImagePromptNode({
     <>
       <section
         ref={ports.node}
-        className={`image-node${isText ? ' text-node' : ''}${hasTextOutput ? ' has-text-output' : ''}${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}${contentOverflows ? ' is-overflowing' : ''}${hasResult ? ' has-result' : ''}${compactComposer ? ' has-compact-composer' : ''}${hasReferences ? ' has-reference-images' : ''} ${className}`}
+        className={`image-node${textInput ? ' has-text-input' : ''}${promptReadOnly && !isText ? ' has-connected-prompt' : ''}${isText ? ' text-node' : ''}${hasTextOutput ? ' has-text-output' : ''}${selected ? ' is-selected' : ''}${locked ? ' is-locked' : ''}${contentOverflows ? ' is-overflowing' : ''}${hasResult ? ' has-result' : ''}${compactComposer ? ' has-compact-composer' : ''}${hasReferences ? ' has-reference-images' : ''} ${className}`}
         aria-label={title}
         aria-busy={busy}
         tabIndex={hasReferences ? -1 : undefined}
@@ -275,7 +275,7 @@ export function ImagePromptNode({
                   setPrompt(suggestion);
                 }
               }} />
-              {!prompt && <div className="image-node-suggestion" aria-hidden="true"><span className="image-node-suggestion-label">Try "{suggestion}"</span><kbd>tab</kbd></div>}
+              {!prompt && !promptReadOnly && <div className="image-node-suggestion" aria-hidden="true"><span className="image-node-suggestion-label">Try "{suggestion}"</span><kbd>tab</kbd></div>}
             </div>
 
             {hasTextOutput && <div className="text-node-output nowheel nodrag nopan" onWheel={event => event.stopPropagation()}>{textResult}</div>}
@@ -303,8 +303,8 @@ export function ImagePromptNode({
               <div className="image-node-actions-right">
                 {isText ? <div className="text-node-formats" role="group" aria-label="Output format">
                   {(['txt', 'md'] as const).map(format => <button type="button" key={format} aria-pressed={format === textFormat} disabled={locked} onClick={() => onTextFormatChange?.(format)}>{format.toUpperCase()}</button>)}
-                </div> : <button type="button" aria-label="Dictate prompt" onClick={onDictate} {...tooltipProps('Dictate prompt')} disabled={locked}><ImagePromptIcon name="mic" /></button>}
-                <button type="button" aria-label="Enhance prompt" onClick={onEnhance} {...tooltipProps('Enhance prompt')} disabled={!hasPrompt || locked}><ImagePromptIcon name="enhance" /></button>
+                </div> : <button type="button" aria-label="Dictate prompt" onClick={onDictate} {...tooltipProps('Dictate prompt')} disabled={locked || promptReadOnly}><ImagePromptIcon name="mic" /></button>}
+                <button type="button" aria-label="Enhance prompt" onClick={onEnhance} {...tooltipProps('Enhance prompt')} disabled={!hasPrompt || locked || promptReadOnly}><ImagePromptIcon name="enhance" /></button>
                 <div className={`image-node-generate-group${quantity > 1 ? ' is-expanded' : ''}${canGenerate && !locked ? '' : ' is-disabled'}`}>
                   <div className="image-node-quantity">
                     <button type="button" aria-label="Decrease quantity" disabled={!quantityEnabled || locked || quantity <= 1} onClick={() => setQuantity(quantity - 1)}><ImagePromptIcon name="minus" /></button>

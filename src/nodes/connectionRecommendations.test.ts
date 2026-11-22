@@ -29,7 +29,7 @@ test('empty Image composers wire together and recommend compatible Image or Text
     assert.deepEqual(choices.map(choice => choice.itemId), direction === 'source' ? ['image', 'text'] : ['image']);
     assert.deepEqual(choiceConnection(start, choices[0], origin === first.id ? second.id : first.id), link);
   }
-  assert.deepEqual(connectionChoices(pending(second.id, 'target', 'prompt'), nodes), []);
+  assert.deepEqual(connectionChoices(pending(second.id, 'target', 'prompt'), nodes).map(choice => choice.itemId), ['text']);
 });
 
 test('quick-created targets align their input with the drop using the source image ratio', () => {
@@ -38,7 +38,7 @@ test('quick-created targets align their input with the drop using the source ima
     results: [{ id: 'asset', name: 'source.png', kind: 'image', url: 'blob:source', width, height }],
   } });
   const start = pending(generator.id, 'source', 'result');
-  for (const [width, height, portX, portY] of [[3, 4, -24, 276], [2, 1, -216, 212]]) {
+  for (const [width, height, portX, portY] of [[3, 4, -24, 288], [2, 1, -216, 224]]) {
     const [choice] = connectionChoices(start, [size(width, height)]);
     assert.deepEqual([choice.portX, choice.portY], [portX, portY]);
   }

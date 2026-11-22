@@ -8,7 +8,7 @@ export function isImageWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandl
   return connection.sourceHandle === 'result' && isImageInputHandle(connection.targetHandle);
 }
 export function isCanvasWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandle'>) {
-  return isImageWire(connection) || connection.sourceHandle === 'text' && connection.targetHandle === 'text';
+  return isImageWire(connection) || connection.sourceHandle === 'text' && (connection.targetHandle === 'text' || connection.targetHandle === 'prompt');
 }
 
 export function withoutReplacedInput(connection: Pick<Edge, 'target' | 'targetHandle'>, edges: Edge[]) {
@@ -33,7 +33,8 @@ export function canConnect(connection: Connection | Edge, nodes: AppNode[], edge
   const target = nodes.find(node => node.id === connection.target);
   if (!source || !target || isImportedCanvasImage(target) || isNodeLocked(source) || isNodeLocked(target)) return false;
   const imageWire = isCanvasImageNode(source) && (isCanvasImageNode(target) || isCanvasTextNode(target)) && isImageWire(connection);
-  const textWire = isCanvasTextNode(source) && isCanvasTextNode(target) && connection.sourceHandle === 'text' && connection.targetHandle === 'text';
+  const textWire = isCanvasTextNode(source) && connection.sourceHandle === 'text'
+    && (isCanvasTextNode(target) && connection.targetHandle === 'text' || isCanvasImageNode(target) && connection.targetHandle === 'prompt');
   if (!imageWire && !textWire) return false;
   if (edges.some(edge => edge.source === source.id && edge.target === target.id)) return false;
   return !createsImageCycle(connection, withoutReplacedInput(connection, edges));

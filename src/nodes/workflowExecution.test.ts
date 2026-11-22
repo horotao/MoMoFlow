@@ -1,3 +1,4 @@
+import { createLibraryNode } from '../components/libraryCatalog.ts';
 import { defaultSeedreamSettings } from './seedream.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -5,7 +6,7 @@ import { WorkflowExecution, type ExecutionIO, type ExecutionStore } from './work
 import { preflight, prepareModel, requestSignature, selectedResult, type ExecutionGraph } from './executionGraph.ts';
 import { defaultSunburstSettings } from './sunburst.ts';
 import { ModelRequestCancelled } from './modelRequestError.ts';
-import { isImageGeneratorNode, isImportedCanvasImage, type AppNode, type SunburstNode, type FileAsset } from './types.ts';
+import { isImageGeneratorNode, isImportedCanvasImage, type AppNode, type CanvasImage, type SunburstNode, type FileAsset } from './types.ts';
 import type { PreviewTask } from './taskQueue';
 import { isActiveTask } from './taskQueue.ts';
 import { workflowSnapshot } from '../persistence/workflowStorage.ts';
@@ -425,4 +426,35 @@ test('Seedream Image composer executes a batch and commits both results to the e
   assert.ok(selectedResult(saved)?.generation?.taskId);
   assert.ok(saved.data.results?.every(asset => typeof asset.createdAt === 'number' && asset.createdAt > 0));
   h.engine.dispose();
+});
+
+
+test('Image Prompt runs only the image with authored or selected Text output across all composer models', async () => {
+  const source = { ...createLibraryNode('text', { x: 0, y: 0 }), id: 'text' };
+  source.data.textComposer.prompt = '手写提示词';
+  source.data.locked = true; // Reading a locked upstream output is allowed.
+  const upstream = { ...createLibraryNode('image', { x: -500, y: 0 }), id: 'unready-image' };
+  const target = { ...createLibraryNode('image', { x: 500, y: 0 }), id: 'target' } as CanvasImage;
+  const wires = [edge(source.id, target.id, 'prompt', 'text'), edge(upstream.id, source.id, 'image-0', 'result')];
+  for (const model of ['gpt-image-2-6', 'seedream-5-5', 'nano-banana-2-1'] as const) {
+    for (const text of ['', '当前选中的生成结果']) {
+      const selected = { ...source, data: { ...source.data, text } };
+      const image: CanvasImage = { ...target, data: { ...target.data, composer: { ...target.data.composer, prompt: '保留本地草稿',
+        selection: { modelIds: [model], autoSelect: false, multiple: false } } } };
+      const h = harness({ nodes: [upstream, selected, image], edges: wires });
+      try {
+        await h.engine.run([target.id], 1);
+        assert.equal(h.requests.length, 1);
+        const task = h.requests[0];
+        assert.equal(task.nodeId, target.id);
+        assert.equal(task.imageRequest?.prompt ?? task.seedreamRequest?.prompt ?? task.nanoBananaRequest?.prompt, text || source.data.textComposer.prompt);
+        assert.deepEqual(h.node(source.id).data, selected.data);
+        assert.equal((h.node(target.id) as typeof image).data.composer.prompt, '保留本地草稿');
+      } finally { h.engine.dispose(); }
+    }
+  }
+  const empty = { ...source, data: { ...source.data, textComposer: { ...source.data.textComposer, prompt: '' } } };
+  const invalid = { nodes: [empty, target], edges: [wires[0]] };
+  assert.throws(() => preflight(invalid, [target.id], 1), /非空/);
+  assert.throws(() => prepareModel(invalid, target.id), /非空/);
 });

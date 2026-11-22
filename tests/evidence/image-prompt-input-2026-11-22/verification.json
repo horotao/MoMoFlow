@@ -1,0 +1,52 @@
+{
+  "project": "Image Prompt 端口验收",
+  "edges": [
+    {
+      "source": "reference-0",
+      "target": "image-target",
+      "input": "image-1"
+    },
+    {
+      "source": "reference-1",
+      "target": "image-target",
+      "input": "image-0"
+    },
+    {
+      "source": "prompt-source",
+      "target": "image-target",
+      "input": "prompt"
+    }
+  ],
+  "preview": "第一份：红色茶壶，白色桌面。",
+  "localDraft": "断开后恢复的本地草稿",
+  "selectedText": "text-first",
+  "selectedImage": "image-second",
+  "references": [
+    {
+      "kind": "text",
+      "sortable": "false",
+      "name": "场景提示词Text"
+    },
+    {
+      "kind": "image",
+      "sortable": "true",
+      "name": "参考图 2Image"
+    },
+    {
+      "kind": "image",
+      "sortable": "true",
+      "name": "参考图 1Image"
+    }
+  ],
+  "visible": "visible",
+  "selected": false,
+  "controlledRun": {
+    "endpoint": "/api/sunburst",
+    "count": 1,
+    "textEndpointCount": 0,
+    "prompt": "一只红色陶瓷茶壶放在白色桌面上，柔和的窗边自然光，简洁的产品摄影。",
+    "upstreamHistoryBeforeAndAfter": [],
+    "resultImageFixture": "/describer-qa/market.jpg",
+    "realModelCalled": false
+  }
+}

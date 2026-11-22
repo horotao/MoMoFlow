@@ -355,3 +355,9 @@
     -webkit-text-fill-color: var(--node-muted);
   }
 }
+
+/* Connected prompts remain legible below results, even when the node loses selection. */
+.image-node.has-connected-prompt.has-compact-composer .image-node-surface { opacity: 1; visibility: visible; transform: none; }
+.image-node.has-connected-prompt .image-node-composer textarea { opacity: .5; }
+.image-node.has-text-input .image-node-inputs { top: calc(50% - 16px); }
+.image-node[data-text-port-near] .image-node-inputs { opacity: 1; visibility: visible; transform: none; }

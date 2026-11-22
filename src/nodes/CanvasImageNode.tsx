@@ -1,10 +1,14 @@
 import { useLayoutEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
 import { Handle, Position, useEdges, useNodesData, useReactFlow, useStore, useUpdateNodeInternals, type Edge, type Node, type NodeProps } from '@xyflow/react';
 import { ImagePromptNode } from '../components/image-prompt-node/ImagePromptNode';
+import { ImagePromptIcon } from '../components/image-prompt-node/ImagePromptIcon';
+import { ImagePromptGeneration } from '../components/image-prompt-node/ImagePromptGeneration';
+import { textOutputValue } from './textGeneration';
+import { textInputReferences, textReferenceEdges } from './textReferences';
 import { ImagePromptToolbar } from '../components/image-prompt-node/ImagePromptToolbar';
 import { sunburstPreset } from '../components/imageNodePresets';
 import { useModelTasks } from '../components/useModelTasks';
-import { isActiveTask } from './taskQueue';
+import { isActiveTask, type PreviewTask } from './taskQueue';
 import { downloadAsset } from './fileMedia';
 import { savedImagePrompt } from './generationRecord';
 import { imageInputHandles, isImageInputHandle } from './connectionRules';
@@ -15,11 +19,17 @@ import { referenceRatioSettings } from './imageReferenceRatio';
 import { ImportedCanvasImage, type CanvasImageChrome } from './ImportedCanvasImage';
 import { selectedImageResult } from './annotationGraph';
 import { usePublishVisibleImage } from './visibleCanvasImage';
+import type { CanvasText } from './types';
 import type { AppNode, CanvasImage, FileAsset, ImageComposerData } from './types';
 import './CanvasImageNode.css';
 
 // All Image nodes share the selection check for the same React Flow nodes array.
 const multipleSelection = new WeakMap<readonly Node[], boolean>();
+const generationState = (task: PreviewTask) => ({
+  id: task.id, startedAt: task.started || undefined, estimatedSeconds: 25,
+  progress: task.state === 'Queued' ? 0 : undefined,
+});
+
 function hasMultipleSelection(nodes: readonly Node[]) {
   const cached = multipleSelection.get(nodes);
   if (cached !== undefined) return cached;
@@ -80,11 +90,15 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   const [error, setError] = useState('');
   const references = useMemo(() => edges.filter(edge => edge.target === id && isImageInputHandle(edge.targetHandle))
     .sort((a, b) => imageInputHandles.indexOf(a.targetHandle ?? '') - imageInputHandles.indexOf(b.targetHandle ?? '')), [edges, id]);
-  const referenceSources = useMemo(() => references.map(edge => edge.source), [references]);
-  const sourceNodes = useNodesData<CanvasImage>(referenceSources);
+  const incoming = useMemo(() => textReferenceEdges(id, edges), [edges, id]);
+  const referenceSources = useMemo(() => incoming.map(edge => edge.source), [incoming]);
+  const sourceNodes = useNodesData<CanvasImage | CanvasText>(referenceSources);
+  const promptEdge = incoming.find(edge => edge.targetHandle === 'prompt');
+  const promptSource = sourceNodes.find(node => node.id === promptEdge?.source);
+  const prompt = promptEdge ? promptSource?.type === 'text' ? textOutputValue(promptSource.data) : '' : composer.prompt;
   const inputs = references.map(edge => {
     const source = sourceNodes.find(node => node.id === edge.source);
-    const asset = source && selectedImageResult(source);
+    const asset = source?.type === 'sunburst' ? selectedImageResult(source) : undefined;
     return { id: edge.id, asset, name: asset?.name || source?.data.label || '上游 Image' };
   });
   const occupied = new Set(references.map(edge => edge.targetHandle));
@@ -112,7 +126,9 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   }
   const variants = [
     ...results.map(asset => ({ id: asset.generation?.taskId ?? asset.id, thumbnail: <img src={asset.url} alt="" /> })),
-    ...activeTasks.map(item => ({ id: item.id, pending: true })),
+    ...activeTasks.map(item => ({ id: item.id, pending: true,
+      thumbnail: <ImagePromptGeneration state={generationState(item)} fillOnly />,
+    })),
   ];
   function edit(change: Partial<ImageComposerData>) {
     if (data.locked) return;
@@ -132,10 +148,10 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   const { output, showToolbar, toolbarHidden, ...frame } = chrome;
   return <div className="canvas-image-mount" style={{ width, height }}>
     <ImagePromptNode {...controls} {...frame} title={data.label}
-      prompt={composer.prompt} onPromptChange={prompt => edit({ prompt })}
+      prompt={prompt} promptReadOnly={Boolean(promptEdge)} onPromptChange={prompt => edit({ prompt })}
       quantity={composer.quantity} onQuantityChange={quantity => edit({ quantity })}
       onGenerate={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: id }))}
-      generation={task ? { id: task.id, startedAt: task.started || undefined, estimatedSeconds: 25 } : null}
+      generation={task ? generationState(task) : null}
       result={active ? <img src={active.url} alt={active.name} onLoad={rememberSize(active)} /> : undefined}
       variants={variants} activeVariant={task ? results.length + activeTasks.indexOf(task) : active ? results.indexOf(active) : 0}
       onVariantChange={index => {
@@ -147,11 +163,16 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
         const asset = results[index];
         if (asset) updateNodeData(id, {
           activeResultId: asset.id,
-          composer: { ...composer, prompt: savedImagePrompt(asset) ?? composer.prompt },
+          ...(promptEdge ? {} : { composer: { ...composer, prompt: savedImagePrompt(asset) ?? composer.prompt } }),
         });
       }}
       imageInputCount={references.length}
-      references={inputs.map(({ id, name, asset }) => ({ id, name, url: asset?.url, onLoad: rememberSize(asset) }))}
+      references={textInputReferences(incoming, sourceNodes).map(input => ({ ...input, onLoad: rememberSize(inputs.find(item => item.id === input.id)?.asset) }))}
+      textInput={<button type="button" className="image-node-input" data-connection-port="text" data-connected={Boolean(promptEdge) || undefined} aria-label="Prompt input" disabled={data.locked}>
+        <span className="image-node-port-label"><ImagePromptIcon name="text" />Prompt</span>
+        <svg className="image-node-port" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="3.818 4.036" transform="rotate(-100.94 12 12)" /></svg>
+        <Handle type="target" position={Position.Left} id="prompt" isConnectable={connectable} />
+      </button>}
       onRemoveReference={edgeId => {
         if (!data.locked) setEdges(current => current.filter(edge => edge.target !== id || edge.id !== edgeId));
       }}

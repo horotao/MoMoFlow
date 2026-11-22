@@ -1,0 +1,300 @@
+{
+  "generation": {
+    "network": {
+      "nativeFetchBefore": true,
+      "requests": [
+        {
+          "path": "/api/apimart/images",
+          "at": "2026-11-22T01:07:55.668Z",
+          "prompt": "高质量产品摄影，一只明亮的红色陶瓷茶壶放在纯白色桌面上，茶壶主体完整居中，短壶嘴、圆弧把手、圆形壶盖，柔和窗边自然光，浅灰色简洁背景，真实材质，不要文字，不要其他物品。",
+          "imageCount": 0,
+          "provider": "apimart"
+        },
+        {
+          "path": "/api/apimart/task",
+          "at": "2026-11-22T01:08:00.645Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP"
+        },
+        {
+          "path": "/api/apimart/task",
+          "at": "2026-11-22T01:08:05.566Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP"
+        },
+        {
+          "path": "/api/apimart/task",
+          "at": "2026-11-22T01:08:10.461Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP"
+        },
+        {
+          "path": "/api/apimart/task",
+          "at": "2026-11-22T01:08:15.486Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP"
+        },
+        {
+          "path": "/api/apimart/task",
+          "at": "2026-11-22T01:08:20.381Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP"
+        },
+        {
+          "path": "/api/apimart/task",
+          "at": "2026-11-22T01:08:25.362Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP"
+        },
+        {
+          "path": "/api/apimart/task",
+          "at": "2026-11-22T01:08:30.364Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP"
+        }
+      ],
+      "responses": [
+        {
+          "path": "/api/apimart/images",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:07:56.643Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP",
+          "hasImage": false
+        },
+        {
+          "path": "/api/apimart/task",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:08:01.565Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP",
+          "status": "processing",
+          "hasImage": false
+        },
+        {
+          "path": "/api/apimart/task",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:08:06.459Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP",
+          "status": "processing",
+          "hasImage": false
+        },
+        {
+          "path": "/api/apimart/task",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:08:11.484Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP",
+          "status": "processing",
+          "hasImage": false
+        },
+        {
+          "path": "/api/apimart/task",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:08:16.381Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP",
+          "status": "processing",
+          "hasImage": false
+        },
+        {
+          "path": "/api/apimart/task",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:08:21.361Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP",
+          "status": "processing",
+          "hasImage": false
+        },
+        {
+          "path": "/api/apimart/task",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:08:26.362Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP",
+          "status": "processing",
+          "hasImage": false
+        },
+        {
+          "path": "/api/apimart/task",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:08:31.336Z",
+          "taskId": "task_01M80CQ9WTEN43SG4MZPTE1ESP",
+          "status": "completed",
+          "format": "png",
+          "hasImage": false
+        }
+      ],
+      "startedAt": "2026-11-22T01:07:49.488Z"
+    },
+    "projectId": "4ed521a3-67d2-4953-a8b4-66fe6423528b",
+    "result": [
+      {
+        "id": "df299868-2209-496a-b0b1-b332924b55ad",
+        "name": "Sunburst-1795309713738.png",
+        "width": 1024,
+        "height": 1024,
+        "size": 1116769,
+        "generation": {
+          "version": 1,
+          "taskId": "0304fdf1-4854-4bad-8af3-c31ff49d3d61",
+          "inputSignature": "[\"model-input-v1\",\"gpt-image-2.6-ext\",{\"background\":\"auto\",\"channelModel\":\"gpt-image-2.6-ext\",\"complexity\":\"auto\",\"images\":[],\"moderation\":\"low\",\"outputFormat\":\"png\",\"prompt\":\"高质量产品摄影，一只明亮的红色陶瓷茶壶放在纯白色桌面上，茶壶主体完整居中，短壶嘴、圆弧把手、圆形壶盖，柔和窗边自然光，浅灰色简洁背景，真实材质，不要文字，不要其他物品。\",\"provider\":\"apimart\",\"quality\":\"medium\",\"resolution\":\"1K\",\"size\":\"1:1\",\"variant\":\"Sunburst\"}]",
+          "outputSignature": "df299868-2209-496a-b0b1-b332924b55ad"
+        }
+      }
+    ],
+    "textHistory": [],
+    "textOutput": ""
+  },
+  "edit": {
+    "network": {
+      "nativeFetchBefore": true,
+      "requests": [
+        {
+          "path": "/api/apimart/images",
+          "at": "2026-11-22T01:09:09.633Z",
+          "prompt": "编辑输入的参考图片：只把红色陶瓷茶壶的壶身、壶盖、壶嘴和把手统一改为深钴蓝色陶瓷釉面。完整保留参考图中茶壶的造型、大小、位置、拍摄角度、白色桌面、浅灰背景、窗边柔光、阴影和高光。不添加其他物品，不添加文字。",
+          "imageCount": 1,
+          "provider": "apimart"
+        },
+        {
+          "path": "/api/apimart/task",
+          "at": "2026-11-22T01:09:16.603Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29"
+        },
+        {
+          "path": "/api/apimart/task",
+          "at": "2026-11-22T01:09:21.544Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29"
+        },
+        {
+          "path": "/api/apimart/task",
+          "at": "2026-11-22T01:09:26.566Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29"
+        },
+        {
+          "path": "/api/apimart/task",
+          "at": "2026-11-22T01:09:31.481Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29"
+        },
+        {
+          "path": "/api/apimart/task",
+          "at": "2026-11-22T01:09:36.433Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29"
+        },
+        {
+          "path": "/api/apimart/task",
+          "at": "2026-11-22T01:09:41.444Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29"
+        },
+        {
+          "path": "/api/apimart/task",
+          "at": "2026-11-22T01:09:46.400Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29"
+        }
+      ],
+      "responses": [
+        {
+          "path": "/api/apimart/images",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:09:12.601Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29",
+          "hasImage": false
+        },
+        {
+          "path": "/api/apimart/task",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:09:17.542Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29",
+          "status": "processing",
+          "hasImage": false
+        },
+        {
+          "path": "/api/apimart/task",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:09:22.565Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29",
+          "status": "processing",
+          "hasImage": false
+        },
+        {
+          "path": "/api/apimart/task",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:09:27.480Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29",
+          "status": "processing",
+          "hasImage": false
+        },
+        {
+          "path": "/api/apimart/task",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:09:32.432Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29",
+          "status": "processing",
+          "hasImage": false
+        },
+        {
+          "path": "/api/apimart/task",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:09:37.442Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29",
+          "status": "processing",
+          "hasImage": false
+        },
+        {
+          "path": "/api/apimart/task",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:09:42.399Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29",
+          "status": "processing",
+          "hasImage": false
+        },
+        {
+          "path": "/api/apimart/task",
+          "httpStatus": 200,
+          "at": "2026-11-22T01:09:47.418Z",
+          "taskId": "task_01M80CSM207CQ1J0N4MEFP2J29",
+          "status": "completed",
+          "format": "png",
+          "hasImage": false
+        }
+      ],
+      "startedAt": "2026-11-22T01:09:07.088Z"
+    },
+    "projectId": "4ed521a3-67d2-4953-a8b4-66fe6423528b",
+    "edges": [
+      {
+        "id": "real-prompt",
+        "source": "real-text",
+        "sourceHandle": "text",
+        "target": "real-image",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "real-image-reference",
+        "source": "real-reference",
+        "sourceHandle": "result",
+        "target": "real-image",
+        "targetHandle": "image-0"
+      }
+    ],
+    "result": [
+      {
+        "id": "df299868-2209-496a-b0b1-b332924b55ad",
+        "name": "Sunburst-1795309713738.png",
+        "width": 1024,
+        "height": 1024,
+        "size": 1116769,
+        "generation": {
+          "version": 1,
+          "taskId": "0304fdf1-4854-4bad-8af3-c31ff49d3d61",
+          "inputSignature": "[\"model-input-v1\",\"gpt-image-2.6-ext\",{\"background\":\"auto\",\"channelModel\":\"gpt-image-2.6-ext\",\"complexity\":\"auto\",\"images\":[],\"moderation\":\"low\",\"outputFormat\":\"png\",\"prompt\":\"高质量产品摄影，一只明亮的红色陶瓷茶壶放在纯白色桌面上，茶壶主体完整居中，短壶嘴、圆弧把手、圆形壶盖，柔和窗边自然光，浅灰色简洁背景，真实材质，不要文字，不要其他物品。\",\"provider\":\"apimart\",\"quality\":\"medium\",\"resolution\":\"1K\",\"size\":\"1:1\",\"variant\":\"Sunburst\"}]",
+          "outputSignature": "df299868-2209-496a-b0b1-b332924b55ad"
+        }
+      },
+      {
+        "id": "716690a7-dd4d-43b9-84a6-3fc8c0cfeb7e",
+        "name": "Sunburst-1795309788560.png",
+        "width": 1024,
+        "height": 1024,
+        "size": 1155657,
+        "generation": {
+          "version": 1,
+          "taskId": "2b055330-bb2f-41b1-a085-e788b1b4fe86",
+          "inputSignature": "[\"model-input-v1\",\"gpt-image-2.6-ext\",{\"background\":\"auto\",\"channelModel\":\"gpt-image-2.6-ext\",\"complexity\":\"auto\",\"images\":[{\"id\":\"df299868-2209-496a-b0b1-b332924b55ad\"}],\"moderation\":\"low\",\"outputFormat\":\"png\",\"prompt\":\"编辑输入的参考图片：只把红色陶瓷茶壶的壶身、壶盖、壶嘴和把手统一改为深钴蓝色陶瓷釉面。完整保留参考图中茶壶的造型、大小、位置、拍摄角度、白色桌面、浅灰背景、窗边柔光、阴影和高光。不添加其他物品，不添加文字。\",\"provider\":\"apimart\",\"quality\":\"medium\",\"resolution\":\"1K\",\"size\":\"1:1\",\"variant\":\"Sunburst\"}]",
+          "outputSignature": "716690a7-dd4d-43b9-84a6-3fc8c0cfeb7e"
+        }
+      }
+    ],
+    "activeResult": "716690a7-dd4d-43b9-84a6-3fc8c0cfeb7e",
+    "textHistory": [],
+    "textOutput": ""
+  }
+}
