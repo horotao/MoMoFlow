@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { Grid3X3, Minus, Plus } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 import type { FileAsset } from '../../nodes/types';
 import { FullscreenTip } from './FullscreenImageActions';
 
@@ -10,11 +10,9 @@ export function FullscreenImageViewport({ asset }: { asset: FileAsset }) {
   const stage = useRef<HTMLDivElement>(null);
   const imageLayer = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: asset.width ?? 0, height: asset.height ?? 0 });
-  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
   const [view, setView] = useState<View>({ scale: 1, x: 0, y: 0 });
   const viewRef = useRef(view);
   const fit = useRef(1);
-  const [tiled, setTiled] = useState(false);
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const drag = useRef<{ id: number; x: number; y: number; view: View }>();
@@ -53,7 +51,6 @@ export function FullscreenImageViewport({ asset }: { asset: FileAsset }) {
     if (!element || !width || !height) return;
     const resize = () => {
       const bounds = element.getBoundingClientRect();
-      setStageSize({ width: bounds.width, height: bounds.height });
       const wasFitted = Math.abs(viewRef.current.scale - fit.current) < .001;
       fit.current = Math.min(bounds.width / width, bounds.height / height, 1);
       if (wasFitted) {
@@ -102,7 +99,6 @@ export function FullscreenImageViewport({ asset }: { asset: FileAsset }) {
     const element = stage.current;
     if (element?.hasPointerCapture(id)) element.releasePointerCapture(id);
   }
-  const tiles = (span: number, dimension: number, offset: number) => Math.max(3, Math.ceil((span + 2 * Math.abs(offset)) / Math.max(1, dimension * view.scale)) + 2) | 1;
   return <div className="image-fullscreen-stage" ref={stage} data-dragging={Boolean(drag.current) || undefined} data-unavailable={failed || undefined}
     onPointerDown={event => {
       if (failed || event.button !== 0 || (event.target as Element).closest('button')) return;
@@ -132,15 +128,13 @@ export function FullscreenImageViewport({ asset }: { asset: FileAsset }) {
       }
     }} onPointerUp={event => release(event.pointerId)} onPointerCancel={event => release(event.pointerId)} onLostPointerCapture={event => { pointers.current.delete(event.pointerId); if (drag.current?.id === event.pointerId) drag.current = undefined; if (pointers.current.size < 2) pinch.current = undefined; }}>
     <div className="image-fullscreen-image-center">
-      <div ref={imageLayer} className="image-fullscreen-image-transform" style={{ width: tiled ? width * tiles(stageSize.width, width, view.x) : width, height: tiled ? height * tiles(stageSize.height, height, view.y) : height, transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}>
-        {tiled && <div className="image-fullscreen-tiled" aria-label="Tiled image" style={{ backgroundImage: `url("${asset.url}")`, backgroundSize: `${width}px ${height}px` }} />}
-        <img src={asset.url} alt="Full screen preview" draggable={false} data-loaded={loaded && !failed || undefined} style={{ width, height, display: tiled || failed ? 'none' : undefined }}
+      <div ref={imageLayer} className="image-fullscreen-image-transform" style={{ width, height, transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}>
+        <img src={asset.url} alt="Full screen preview" draggable={false} data-loaded={loaded && !failed || undefined} style={{ width, height, display: failed ? 'none' : undefined }}
           onLoad={event => { const image = event.currentTarget; setDimensions({ width: image.naturalWidth, height: image.naturalHeight }); setFailed(false); setLoaded(true); }} onError={() => setFailed(true)} />
       </div>
     </div>
     {failed && <span className="image-fullscreen-unavailable">Asset unavailable</span>}
     {!failed && <div className="image-fullscreen-zoom">
-      <FullscreenTip label={tiled ? 'Show single image' : 'Tile image'}><button type="button" aria-label={tiled ? 'Show single image' : 'Tile image'} aria-pressed={tiled} onClick={() => setTiled(!tiled)}><Grid3X3 /></button></FullscreenTip>
       <FullscreenTip label="Zoom out"><button type="button" aria-label="Zoom out" onClick={() => zoom(1 / 1.5)}><Minus /></button></FullscreenTip>
       <FullscreenTip label="Reset view"><button type="button" aria-label="Reset view" className="image-fullscreen-zoom-value" onClick={() => change({ scale: Math.abs(viewRef.current.scale - fit.current) < .001 && Math.abs(viewRef.current.x) < 1 && Math.abs(viewRef.current.y) < 1 ? 1 : fit.current, x: 0, y: 0 }, true)}>{Math.round(view.scale * 100)}%</button></FullscreenTip>
       <FullscreenTip label="Zoom in"><button type="button" aria-label="Zoom in" onClick={() => zoom(1.5)}><Plus /></button></FullscreenTip>
