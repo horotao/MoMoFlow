@@ -7,6 +7,7 @@ import { ImagePromptGeneration } from '../components/image-prompt-node/ImageProm
 import { textOutputValue } from './textGeneration';
 import { textInputReferences, textReferenceEdges } from './textReferences';
 import { ImagePromptToolbar } from '../components/image-prompt-node/ImagePromptToolbar';
+import { ImageAssetPreview } from '../components/image-prompt-node/ImageAssetPreview';
 import { sunburstPreset } from '../components/imageNodePresets';
 import { useModelTasks } from '../components/useModelTasks';
 import { isActiveTask, type PreviewTask } from './taskQueue';
@@ -89,6 +90,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   const chosen = batch && viewing?.batch === batch ? viewing.variantId : undefined;
   const task = chosen ? activeTasks.find(item => item.id === chosen) : activeTasks[0];
   const [error, setError] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false);
   const references = useMemo(() => edges.filter(edge => edge.target === id && isImageInputHandle(edge.targetHandle))
     .sort((a, b) => imageInputHandles.indexOf(a.targetHandle ?? '') - imageInputHandles.indexOf(b.targetHandle ?? '')), [edges, id]);
   const incoming = useMemo(() => textReferenceEdges(id, edges), [edges, id]);
@@ -154,6 +156,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
       onGenerate={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: id }))}
       generation={task ? generationState(task) : null}
       result={active ? <img src={active.url} alt={active.name} onLoad={rememberSize(active)} /> : undefined}
+      onPreviewImage={active ? () => setPreviewOpen(true) : undefined}
       variants={variants} activeVariant={task ? results.length + activeTasks.indexOf(task) : active ? results.indexOf(active) : 0}
       onVariantChange={index => {
         if (data.locked) return;
@@ -190,6 +193,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
       toolbar={!showToolbar ? null : <ImagePromptToolbar className="nodrag nopan" {...controls} hidden={toolbarHidden} downloadDisabled={!active}
         onDownload={() => { if (active) void downloadAsset(active).catch(() => setError('图片下载失败。')); }} />}
     />
+    {previewOpen && active && <ImageAssetPreview asset={active} assets={results} onClose={() => setPreviewOpen(false)} />}
     {error && <button type="button" role="alert" onClick={() => setError('')}>{error}</button>}
   </div>;
 }

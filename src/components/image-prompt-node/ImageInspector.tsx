@@ -26,7 +26,7 @@ export function ImageInspector() {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') event.stopPropagation();
     }}>
     <ImageInformation key={`${selectedId}:${asset?.id ?? 'empty'}:${asset?.url ?? ''}`} asset={asset}
-      name={data.label || asset?.name || 'Image'} generated={data.imageSource !== 'imported'} />
+      name={data.label || asset?.name || 'Image'} generated={data.imageSource !== 'imported'} assets={data.results} />
     <ImageGenerationOptions />
   </aside>;
 }
@@ -37,7 +37,7 @@ const tools: { icon: ImagePromptIconName; label: string }[] = [
   { icon: 'metadata-remove-background', label: '移除背景' },
 ];
 
-function ImageInformation({ asset, name, generated }: { asset?: FileAsset; name: string; generated: boolean }) {
+function ImageInformation({ asset, name, generated, assets }: { asset?: FileAsset; name: string; generated: boolean; assets?: FileAsset[] }) {
   const [expanded, setExpanded] = useState(true);
   const [measured, setMeasured] = useState(asset);
   const [preview, setPreview] = useState(false);
@@ -101,6 +101,6 @@ function ImageInformation({ asset, name, generated }: { asset?: FileAsset; name:
         </DropdownMenu.Content></DropdownMenu.Portal>
       </DropdownMenu.Root>
     </footer>
-    {preview && asset && <ImageAssetPreview asset={asset} onClose={() => { setPreview(false); more.current?.focus({ preventScroll: true }); }} />}
+    {preview && asset && <ImageAssetPreview asset={asset} assets={assets} onClose={() => { setPreview(false); more.current?.focus({ preventScroll: true }); }} />}
   </section>;
 }

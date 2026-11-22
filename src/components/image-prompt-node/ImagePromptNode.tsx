@@ -58,6 +58,7 @@ export interface ImagePromptNodeProps {
   toolbar?: ReactNode;
   generation?: ImagePromptGenerationState | null;
   result?: ReactNode;
+  onPreviewImage?: () => void;
   /** Optional result history; the host owns which result is displayed. */
   variants?: readonly ImagePromptVariant[];
   activeVariant?: number;
@@ -86,7 +87,7 @@ export function ImagePromptNode({
   selected: selectedValue, defaultSelected = false, onSelectedChange,
   locked: lockedValue, defaultLocked = false, onLockedChange,
   title = 'Image', modelLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange,
-  suggestion = 'Oil paint macro, impasto texture', className = '', toolbar, generation = null, result, variants = [], activeVariant = 0, onVariantChange,
+  suggestion = 'Oil paint macro, impasto texture', className = '', toolbar, generation = null, result, onPreviewImage, variants = [], activeVariant = 0, onVariantChange,
   onGenerate, onCancelGeneration, canGenerateWithoutPrompt = false, onMention, onDictate, onEnhance, onImageInput, onAddConnectedNode, imageInputCount = 0,
   references = [], onRemoveReference, onReorderReferences, referenceScale = 1, outputConnected = false,
 }: ImagePromptNodeProps) {
@@ -259,7 +260,9 @@ export function ImagePromptNode({
         </header>
 
         <div className="image-node-card" onClick={event => { if (!locked && !busy && !hasResult && !(event.target as HTMLElement).closest('.text-node-output')) editor.current?.focus(); }}>
-          {hasResult && !busy && <div ref={resultElement} className="image-node-result"><ImagePromptResult variantId={activeVariantId}>{result}</ImagePromptResult></div>}
+          {hasResult && !busy && <div ref={resultElement} className="image-node-result" onDoubleClickCapture={event => {
+            if (onPreviewImage) { event.preventDefault(); event.stopPropagation(); onPreviewImage(); }
+          }}><ImagePromptResult variantId={activeVariantId}>{result}</ImagePromptResult></div>}
           {!assetOnly && <div className="image-node-surface">
             <div className="image-node-surface-body">
             {referencesAbovePrompt && referenceStrip}

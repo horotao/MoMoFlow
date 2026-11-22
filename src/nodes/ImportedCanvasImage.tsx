@@ -53,6 +53,7 @@ export function ImportedCanvasImage({ id, asset, chrome }: { id: string; asset?:
   return <div className="canvas-image-mount" style={canvasImageSize('auto', asset)}>
     <ImagePromptNode {...frame} assetOnly className="canvas-imported-image" title={asset?.name ?? '导入的图片'}
       result={asset && <img src={asset.url} alt={asset.name} />}
+      onPreviewImage={asset ? () => setPreviewOpen(true) : undefined}
       handles={{ image: null, output }}
       toolbar={showToolbar ? <ImagePromptToolbar className="nodrag nopan" hidden={toolbarHidden} locked={frame.locked}
         replaceDisabled={replacing} onReplaceImage={() => input.current?.click()} downloadDisabled={!asset}

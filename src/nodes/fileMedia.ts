@@ -36,6 +36,25 @@ function saveBlob(blob: Blob, name: string) {
 }
 export async function downloadAsset(asset: FileAsset) { saveBlob(await assetBlob(asset), asset.name); }
 
+export type ImageDownloadFormat = 'PNG' | 'JPG' | 'WEBP';
+export async function downloadImageAsset(asset: FileAsset, format: ImageDownloadFormat) {
+  const mime = format === 'JPG' ? 'image/jpeg' : `image/${format.toLowerCase()}`;
+  const original = await assetBlob(asset);
+  const name = `${asset.name.replace(/\.[^.]+$/, '')}.${format.toLowerCase()}`;
+  if (original.type === mime) { saveBlob(original, name); return; }
+  const bitmap = await createImageBitmap(original);
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = bitmap.width; canvas.height = bitmap.height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Image conversion is unavailable.');
+    context.drawImage(bitmap, 0, 0);
+    const converted = await new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not convert image.')), mime, .92));
+    if (converted.type !== mime) throw new Error('This image format is unavailable.');
+    saveBlob(converted, name);
+  } finally { bitmap.close(); }
+}
+
 // Store-only ZIP: retain original bytes and avoid separate browser downloads for every image.
 export function zipFiles(files: { name: string; bytes: Uint8Array }[]): Blob {
   const parts: ArrayBuffer[] = [];
