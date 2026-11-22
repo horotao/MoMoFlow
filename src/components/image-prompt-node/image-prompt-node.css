@@ -78,7 +78,9 @@
   transform: translateY(4px);
   transition: opacity 150ms cubic-bezier(.42, 0, .58, 1), transform 150ms cubic-bezier(.42, 0, .58, 1), visibility 150ms, backdrop-filter 150ms cubic-bezier(0, 0, .2, 1);
 }
-.image-node.has-compact-composer:is(:hover, :focus-within, .is-selected) .image-node-surface { opacity: 1; visibility: visible; transform: none; }
+.image-node.has-compact-composer[aria-busy=true]:is(:hover, :focus-within, .is-selected) .image-node-surface,
+.image-node.has-result .image-node-card:hover .image-node-surface,
+.image-node.has-result .image-node-surface:has(textarea:focus, :focus-visible) { opacity: 1; visibility: visible; transform: none; }
 .image-node.has-compact-composer .image-node-surface:is(:hover, :focus-within) { backdrop-filter: blur(24px); }
 .image-node.has-compact-composer .image-node-surface-body { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 8px; background: #0000004d; opacity: .5; }
 .image-node.has-compact-composer .image-node-surface:is(:hover, :focus-within) .image-node-surface-body { opacity: 1; }
@@ -359,8 +361,8 @@
   }
 }
 
-/* Connected prompts remain legible below results, even when the node loses selection. */
-.image-node.has-connected-prompt.has-compact-composer .image-node-surface { opacity: 1; visibility: visible; transform: none; }
+/* Connected prompts remain legible while generation is running. */
+.image-node.has-connected-prompt.has-compact-composer[aria-busy=true] .image-node-surface { opacity: 1; visibility: visible; transform: none; }
 .image-node.has-connected-prompt .image-node-composer textarea { opacity: .5; }
 /* Two 32px buttons + 8px gap, centered together on the card midpoint. */
 .image-node.has-text-input .image-node-inputs { top: calc(50% - 36px); row-gap: 8px; }
