@@ -17,8 +17,8 @@
   overscroll-behavior: contain;
   border: 1px solid #fafaf223;
   border-radius: 16px;
-  background: #191a1b;
-  box-shadow: 0 4px 12px #0000001a;
+  background: rgb(25 25 24 / 90%);
+  backdrop-filter: blur(16px);
   scrollbar-width: thin;
 }
 .image-generation-options button, .generation-option-menu button { color: inherit; font: inherit; cursor: pointer; }
