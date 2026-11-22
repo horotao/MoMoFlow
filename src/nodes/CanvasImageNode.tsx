@@ -116,7 +116,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
     const patch = referenceRatioSettings(data, { width: referenceWidth, height: referenceHeight });
     if (patch) updateNodeData(id, patch);
   }, [id, data, referenceWidth, referenceHeight, updateNodeData]);
-  const { width, height } = canvasImageSize(composer.ratio, dimensions(active), dimensions(firstReference));
+  const { width, height } = canvasImageSize(composer.ratio, dimensions(active), dimensions(firstReference), task);
   useLayoutEffect(() => { internals(id); }, [id, internals, available, edges, width, height]);
   function rememberSize(asset?: FileAsset) {
     if (!asset || hasImageDimensions(asset) || loadedSizes[asset.url]) return;

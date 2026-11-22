@@ -1,4 +1,5 @@
 import type { Node, NodeOrigin } from '@xyflow/react';
+import type { PreviewTask } from './taskQueue';
 
 export const canvasImageBaseSize = 384;
 const imageOrigin: NodeOrigin = [0.5, 0];
@@ -20,9 +21,15 @@ export function hasImageDimensions(image: ImageDimensions): image is Required<Im
     && typeof height === 'number' && Number.isFinite(height) && height > 0;
 }
 
-export function canvasImageSize(ratio: string, result?: ImageDimensions, reference?: ImageDimensions) {
-  const [width, height] = ratio.split(':').map(Number);
-  const dimensions = result ?? (ratio === 'auto' ? reference : undefined) ?? { width, height };
+export function canvasImageSize(ratio: string, result?: ImageDimensions, reference?: ImageDimensions,
+  generation?: Pick<PreviewTask, 'imageRequest' | 'nanoBananaRequest' | 'seedreamRequest'>) {
+  // A pending preview uses the submitted request, even if the next-run controls
+  // change. Historical previews keep using their own image dimensions.
+  const requestedRatio = generation
+    ? generation.imageRequest?.size ?? generation.nanoBananaRequest?.aspectRatio ?? generation.seedreamRequest?.size ?? ratio
+    : ratio;
+  const [width, height] = requestedRatio.split(/[:x]/).map(Number);
+  const dimensions = (generation ? undefined : result) ?? (requestedRatio === 'auto' ? reference : undefined) ?? { width, height };
   if (!hasImageDimensions(dimensions)) return { width: canvasImageBaseSize, height: canvasImageBaseSize };
   const scale = canvasImageBaseSize / Math.min(dimensions.width, dimensions.height);
   return { width: Math.round(dimensions.width * scale), height: Math.round(dimensions.height * scale) };
