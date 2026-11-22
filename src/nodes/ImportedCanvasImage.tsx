@@ -9,7 +9,7 @@ import { downloadAsset } from './fileMedia';
 import { readCanvasImage } from './importCanvasImage';
 import { isImportedCanvasImage, isNodeLocked, type AppNode, type FileAsset } from './types';
 
-export type CanvasImageChrome = Pick<ImagePromptNodeProps, 'selected' | 'locked' | 'onSelectedChange' | 'outputConnected'> & {
+export type CanvasImageChrome = Pick<ImagePromptNodeProps, 'title' | 'onTitleChange' | 'selected' | 'locked' | 'onSelectedChange' | 'outputConnected'> & {
   output: ReactNode;
   showToolbar: boolean;
   toolbarHidden: boolean;
@@ -42,7 +42,8 @@ export function ImportedCanvasImage({ id, asset, chrome }: { id: string; asset?:
         return;
       }
       pendingUrl.current = replacement.url;
-      updateNodeData(id, { label: replacement.name, results: [replacement], activeResultId: replacement.id });
+      updateNodeData(id, { label: node.data.label === asset?.name ? replacement.name : node.data.label,
+        results: [replacement], activeResultId: replacement.id });
     } catch (cause) {
       if (input.current === picker) setError(cause instanceof Error ? cause.message : '无法替换图片。');
     } finally {
@@ -51,7 +52,7 @@ export function ImportedCanvasImage({ id, asset, chrome }: { id: string; asset?:
   }
 
   return <div className="canvas-image-mount" style={canvasImageSize('auto', asset)}>
-    <ImagePromptNode {...frame} assetOnly className="canvas-imported-image" title={asset?.name ?? '导入的图片'}
+    <ImagePromptNode {...frame} assetOnly className="canvas-imported-image"
       result={asset && <img src={asset.url} alt={asset.name} />}
       onPreviewImage={asset ? () => setPreviewOpen(true) : undefined}
       handles={{ image: null, output }}

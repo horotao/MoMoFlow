@@ -10,6 +10,8 @@
 
 .image-node-heading {
   position: absolute;
+  /* Keep the title interactive above the toolbar's transparent hover bridge. */
+  z-index: 3;
   bottom: calc(100% + 4px);
   left: 0;
   display: flex;
@@ -31,6 +33,39 @@
 .image-node-model { gap: 4px; color: var(--node-subtle); }
 .image-node-model > span:last-child { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .image-node.is-selected h1 { color: #eeeeec; }
+
+.image-node-name {
+  display: inline-grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 calc(4 * var(--heading-px, 1px));
+  margin: 0 calc(-4 * var(--heading-px, 1px));
+  border-radius: calc(4 * var(--heading-px, 1px));
+}
+.image-node-name.is-editable { cursor: text; }
+.image-node-name:is(.is-editing, .is-editable:hover, .is-editable:focus-within) { background: #fafaf223; }
+.image-node-name.is-editing { box-shadow: inset 0 0 0 var(--heading-px, 1px) #fff; }
+.image-node-name :is(button, input, span) {
+  grid-area: 1 / 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  white-space: nowrap;
+}
+.image-node-name :is(button, input, .image-node-name-text) { overflow: hidden; text-overflow: ellipsis; }
+.image-node-name :is(button, input) { width: 100%; outline: none; cursor: text; }
+.image-node-name input { user-select: text; }
+.image-node .image-node-name input:focus-visible { outline: none; }
+.image-node-name input::selection { background: #fafaf233; color: #eeeeec; }
+.image-node-name-measure { visibility: hidden; pointer-events: none; }
 
 .image-node-card {
   position: relative;

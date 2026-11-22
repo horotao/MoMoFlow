@@ -11,6 +11,7 @@ import { ImagePromptGeneration, type ImagePromptGenerationState } from './ImageP
 import { useMagneticPorts } from './useMagneticPorts';
 import { useControllableValue } from './useControllableValue';
 import { InputPortRing } from './InputPortRing';
+import { ImageNodeTitle } from './ImageNodeTitle';
 import './image-prompt-node.css';
 
 // Match the reference handle shader's 24px plane: 22px ring and a
@@ -45,6 +46,7 @@ export interface ImagePromptNodeProps {
   defaultLocked?: boolean;
   onLockedChange?: (locked: boolean) => void;
   title?: string;
+  onTitleChange?: (title: string) => void;
   modelLabel?: string;
   modelSelection?: ImagePromptModelSelection;
   defaultModelSelection?: ImagePromptModelSelection;
@@ -86,7 +88,7 @@ export function ImagePromptNode({
   quantity: quantityValue, defaultQuantity = 1, onQuantityChange,
   selected: selectedValue, defaultSelected = false, onSelectedChange,
   locked: lockedValue, defaultLocked = false, onLockedChange,
-  title = 'Image', modelLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange,
+  title = 'Image', onTitleChange, modelLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange,
   suggestion = 'Oil paint macro, impasto texture', className = '', toolbar, generation = null, result, onPreviewImage, variants = [], activeVariant = 0, onVariantChange,
   onGenerate, onCancelGeneration, canGenerateWithoutPrompt = false, onMention, onDictate, onEnhance, onImageInput, onAddConnectedNode, imageInputCount = 0,
   references = [], onRemoveReference, onReorderReferences, referenceScale = 1, outputConnected = false,
@@ -253,7 +255,7 @@ export function ImagePromptNode({
         </div>}
 
         <header className="image-node-heading">
-          <h1 title={title}><ImagePromptIcon name={isText ? 'text' : 'image'} /><span>{title}</span></h1>
+          <h1><ImagePromptIcon name={isText ? 'text' : 'image'} /><ImageNodeTitle title={title} editable={selected} locked={locked} onChange={onTitleChange} /></h1>
           {!assetOnly && <span className="image-node-model">{busy && Number.isFinite(generation.estimatedSeconds) && (generation.estimatedSeconds ?? 0) > 0
             ? <span className="image-node-estimate">~{Math.round(generation.estimatedSeconds!)}s</span>
             : <><ImagePromptModelBrand brand={activeModel?.brand ?? 'openai'} /><span title={displayModelLabel}>{displayModelLabel}</span></>}</span>}

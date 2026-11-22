@@ -55,12 +55,13 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
       const previous = state.present.nodes.find(item => item.id === node.id);
       return previous && isSeedreamNode(previous) && node.data.size !== previous.data.size;
     })());
-    if (annotationsChanged || seedreamSizeChanged || !dataOnly || Date.now() - state.time > 750) {
+    const labelChanged = nodes.some(node => node.data.label !== state.present.nodes.find(item => item.id === node.id)?.data.label);
+    if (labelChanged || annotationsChanged || seedreamSizeChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;
     state.future = [];
-    state.time = dataOnly ? Date.now() : 0;
+    state.time = dataOnly && !labelChanged ? Date.now() : 0;
     sync();
   }, [nodes, edges, sync]);
 

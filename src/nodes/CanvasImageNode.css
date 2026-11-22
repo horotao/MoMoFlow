@@ -20,11 +20,6 @@
   touch-action: none;
 }
 .canvas-image-node .image-node-heading h1 { gap: calc(6 * var(--heading-px)); }
-.canvas-image-node .image-node-heading h1 > span:last-child {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .canvas-image-node .image-node-heading :is(.image-node-icon, .image-model-google) {
   width: 1em;
   height: 1em;

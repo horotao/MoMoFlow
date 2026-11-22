@@ -22,6 +22,7 @@ import { ImportedCanvasImage, type CanvasImageChrome } from './ImportedCanvasIma
 import { selectedImageResult } from './annotationGraph';
 import { usePublishVisibleImage } from './visibleCanvasImage';
 import type { CanvasText } from './types';
+import { isNodeLocked } from './types';
 import type { AppNode, CanvasImage, FileAsset, ImageComposerData } from './types';
 import './CanvasImageNode.css';
 
@@ -46,12 +47,17 @@ function hasMultipleSelection(nodes: readonly Node[]) {
 }
 
 export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps<CanvasImage>) {
-  const { setNodes } = useReactFlow<AppNode>();
+  const { setNodes, getNode, updateNodeData } = useReactFlow<AppNode>();
   const edges = useEdges();
   const overview = useStore(state => Math.round(state.transform[2] * 100) <= 14);
   const toolbarHidden = useStore(state => state.userSelectionActive || hasMultipleSelection(state.nodes));
   const connectable = isConnectable && !data.locked;
   const chrome: CanvasImageChrome = {
+    title: data.label,
+    onTitleChange: label => {
+      const node = getNode(id);
+      if (node && !isNodeLocked(node)) updateNodeData(id, { label });
+    },
     selected, locked: Boolean(data.locked), toolbarHidden, showToolbar: !overview || selected,
     outputConnected: edges.some(edge => edge.source === id),
     output: <Handle type="source" position={Position.Right} id="result" isConnectable={connectable} />,
@@ -150,7 +156,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   };
   const { output, showToolbar, toolbarHidden, ...frame } = chrome;
   return <div className="canvas-image-mount" style={{ width, height }}>
-    <ImagePromptNode {...controls} {...frame} title={data.label}
+    <ImagePromptNode {...controls} {...frame}
       prompt={prompt} promptReadOnly={Boolean(promptEdge)} onPromptChange={prompt => edit({ prompt })}
       quantity={composer.quantity} onQuantityChange={quantity => edit({ quantity })}
       onGenerate={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: id }))}

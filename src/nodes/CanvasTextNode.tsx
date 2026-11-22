@@ -13,7 +13,7 @@ import { prepareTextRequest, runTextBatch, type TextBatchItem } from './textGene
 import { completeTextBatchResult, selectTextResult, textGenerationInput, textHistory, textModelSelection } from './textGeneration';
 import { textModelLabel } from '../components/image-prompt-node/textModels';
 import { imageInputHandles, isImageInputHandle } from './connectionRules';
-import { isCanvasTextNode, type AppNode, type SunburstNode, type CanvasText, type TextComposerData } from './types';
+import { isCanvasTextNode, isNodeLocked, type AppNode, type SunburstNode, type CanvasText, type TextComposerData } from './types';
 import '../components/image-prompt-node/text-prompt-node.css';
 import './CanvasImageNode.css';
 
@@ -163,6 +163,10 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
   const controls = { locked: Boolean(data.locked), onLockedChange: (locked: boolean) => updateNodeData(id, { locked }) };
   return <div className="canvas-image-mount canvas-text-mount" style={{ width: 384, height: 384 }}>
     <ImagePromptNode kind="text" {...controls} title={data.label || 'Text'} modelLabel={textModelLabel(composer.selection)}
+      onTitleChange={label => {
+        const node = getNode(id);
+        if (node && !isNodeLocked(node)) updateNodeData(id, { label });
+      }}
       selected={selected} onSelectedChange={value => {
         if (selected !== value) setNodes(nodes => nodes.map(node => node.id === id ? { ...node, selected: value } : value ? { ...node, selected: false } : node));
       }}
