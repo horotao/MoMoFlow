@@ -1,3 +1,4 @@
+import { NodeColorTagButton } from '../NodeColorTagButton';
 import { ImagePromptAspectRatioMenu } from './ImagePromptAspectRatioMenu';
 import { ImagePromptModelMenu, ImagePromptModelBrand } from './ImagePromptModelMenu';
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
@@ -26,7 +27,6 @@ export interface ImagePromptToolbarProps {
   onModelClick?: () => void;
   onAspectRatioClick?: () => void;
   onToolsClick?: () => void;
-  onTagClick?: () => void;
   onReplaceImage?: () => void;
   onPreviewImage?: () => void;
   replaceDisabled?: boolean;
@@ -37,7 +37,7 @@ export interface ImagePromptToolbarProps {
 
 export function ImagePromptToolbar({
   modelLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, onModelMenuOpenChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange, onAspectRatioMenuOpenChange, locked = false,
-  hidden = false, aspectRatioChoices, onLockedChange, onModelClick, onAspectRatioClick, onToolsClick, onTagClick,
+  hidden = false, aspectRatioChoices, onLockedChange, onModelClick, onAspectRatioClick, onToolsClick,
   onDownload, downloadDisabled = true, onReplaceImage, onPreviewImage, replaceDisabled = false,
   className = '',
   textModelPicker, textHasOutput = false,
@@ -98,7 +98,7 @@ export function ImagePromptToolbar({
         <ImagePromptIcon name="expand-preview" />
       </button>
       <span className="image-node-separator" />
-      <button type="button" aria-label="标记" title="标记" disabled><span className="image-node-tag" /></button>
+      <NodeColorTagButton />
       <button type="button" aria-label="添加到素材库" title="添加到素材库" disabled>
         <ImagePromptIcon name="folder" />
       </button>
@@ -131,7 +131,7 @@ export function ImagePromptToolbar({
       {textModelPicker && !textHasOutput && <button type="button" aria-label="运行选项" aria-disabled="true"><Zap size={16} aria-hidden="true" /></button>}
       <button type="button" aria-label="Lock node" aria-pressed={locked} onClick={() => onLockedChange?.(!locked)}><ImagePromptIcon name="unlock" /></button>
       <span className="image-node-separator" />
-      <button type="button" aria-label="Tag" onClick={onTagClick}><span className="image-node-tag" /></button>
+      <NodeColorTagButton />
       {textModelPicker ? <><span className="image-node-separator" /><button type="button" aria-label="添加到素材库" aria-disabled="true"><ImagePromptIcon name="folder" /></button>{textHasOutput && <button type="button" aria-label="发送文本" aria-disabled="true"><ImagePromptIcon name="send-image" /></button>}<span className="image-node-separator" /><button type="button" aria-label="评论" aria-disabled="true"><ImagePromptIcon name="comment" /></button></>
         : <button type="button" className="image-node-download" aria-label="Download" onClick={onDownload} disabled={downloadDisabled}><ImagePromptIcon name="download" /></button>}
     </div>

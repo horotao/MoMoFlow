@@ -1,0 +1,231 @@
+{
+  "floraExit": {
+    "effects": [
+      {
+        "frames": [
+          {
+            "composite": "auto",
+            "computedOffset": 0,
+            "easing": "cubic-bezier(0.22, 1, 0.36, 1)",
+            "offset": 0,
+            "opacity": "1",
+            "scale": "1"
+          },
+          {
+            "composite": "auto",
+            "computedOffset": 1,
+            "easing": "cubic-bezier(0.22, 1, 0.36, 1)",
+            "offset": 1,
+            "opacity": "0",
+            "scale": "0.97"
+          }
+        ],
+        "name": "fds-popover-out",
+        "timing": {
+          "delay": 0,
+          "direction": "normal",
+          "duration": 80,
+          "easing": "linear",
+          "endDelay": 0,
+          "fill": "both",
+          "iterationStart": 0,
+          "iterations": 1
+        }
+      }
+    ],
+    "rows": [
+      {
+        "opacity": "1",
+        "scale": "1",
+        "state": "closed",
+        "t": 1
+      },
+      {
+        "opacity": "0.0324005",
+        "scale": "0.970972",
+        "state": "closed",
+        "t": 47
+      },
+      {
+        "opacity": "0.000802548",
+        "scale": "0.970024",
+        "state": "closed",
+        "t": 67
+      },
+      {
+        "removed": true,
+        "t": 91
+      },
+      {
+        "removed": true,
+        "t": 116
+      },
+      {
+        "removed": true,
+        "t": 140
+      },
+      {
+        "removed": true,
+        "t": 165
+      },
+      {
+        "removed": true,
+        "t": 191
+      },
+      {
+        "removed": true,
+        "t": 216
+      },
+      {
+        "removed": true,
+        "t": 240
+      },
+      {
+        "removed": true,
+        "t": 265
+      },
+      {
+        "removed": true,
+        "t": 291
+      },
+      {
+        "removed": true,
+        "t": 315
+      },
+      {
+        "removed": true,
+        "t": 340
+      }
+    ]
+  },
+  "localPointerExit": {
+    "effects": [
+      {
+        "frames": [
+          {
+            "composite": "auto",
+            "computedOffset": 0,
+            "easing": "cubic-bezier(0.22, 1, 0.36, 1)",
+            "offset": 0,
+            "opacity": "0",
+            "scale": "0.97"
+          },
+          {
+            "composite": "auto",
+            "computedOffset": 1,
+            "easing": "cubic-bezier(0.22, 1, 0.36, 1)",
+            "offset": 1,
+            "opacity": "1",
+            "scale": "1"
+          }
+        ],
+        "name": "color-tag-picker-in",
+        "timing": {
+          "delay": 0,
+          "direction": "normal",
+          "duration": 150,
+          "easing": "linear",
+          "endDelay": 0,
+          "fill": "both",
+          "iterationStart": 0,
+          "iterations": 1
+        }
+      },
+      {
+        "frames": [
+          {
+            "composite": "auto",
+            "computedOffset": 0,
+            "easing": "cubic-bezier(0.22, 1, 0.36, 1)",
+            "offset": 0,
+            "opacity": "1",
+            "scale": "1"
+          },
+          {
+            "composite": "auto",
+            "computedOffset": 1,
+            "easing": "cubic-bezier(0.22, 1, 0.36, 1)",
+            "offset": 1,
+            "opacity": "0",
+            "scale": "0.97"
+          }
+        ],
+        "name": "color-tag-picker-out",
+        "timing": {
+          "delay": 0,
+          "direction": "normal",
+          "duration": 80,
+          "easing": "linear",
+          "endDelay": 0,
+          "fill": "both",
+          "iterationStart": 0,
+          "iterations": 1
+        }
+      }
+    ],
+    "rows": [
+      {
+        "opacity": "1",
+        "scale": "1",
+        "state": "open",
+        "t": 0
+      },
+      {
+        "opacity": "1",
+        "scale": "1",
+        "state": "closed",
+        "t": 27
+      },
+      {
+        "opacity": "0.162307",
+        "scale": "0.974869",
+        "state": "closed",
+        "t": 50
+      },
+      {
+        "opacity": "0.0128831",
+        "scale": "0.970386",
+        "state": "closed",
+        "t": 76
+      },
+      {
+        "opacity": "5.62288e-05",
+        "scale": "0.970002",
+        "state": "closed",
+        "t": 100
+      },
+      {
+        "removed": true,
+        "t": 125
+      },
+      {
+        "removed": true,
+        "t": 151
+      },
+      {
+        "removed": true,
+        "t": 175
+      },
+      {
+        "removed": true,
+        "t": 200
+      },
+      {
+        "removed": true,
+        "t": 226
+      },
+      {
+        "removed": true,
+        "t": 250
+      },
+      {
+        "removed": true,
+        "t": 277
+      },
+      {
+        "removed": true,
+        "t": 301
+      }
+    ]
+  }
+}

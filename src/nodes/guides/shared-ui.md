@@ -1,6 +1,6 @@
 # Image 节点与工具栏
 
-将本地图片文件拖入画布即可导入。图片按原比例显示，悬停或单选时可在共用工具栏里替换图片、下载原图或查看大图。Tools、标记、添加到素材库、发送和评论暂为预留入口。替换保留图片的位置、输出端口和连线。导入图片只展示素材，可以拖动、框选、撤销和恢复。
+将本地图片文件拖入画布即可导入。图片按原比例显示，悬停或单选时可在共用工具栏里替换图片、下载原图、查看大图或设置颜色标记。Tools、添加到素材库、发送和评论暂为预留入口。替换保留图片的位置、输出端口和连线。导入图片只展示素材，可以拖动、框选、撤销和恢复。
 
 从空白画布右键选择「图片」会创建 384 × 384 的 Image 节点。节点和工具栏使用 [ImagePromptNode](../../components/image-prompt-node/ImagePromptNode.tsx) 及同目录的字体、图标与动效。[CanvasImageNode](../CanvasImageNode.tsx) 将标题拖动、锁定、提示词、数量、模型选择、比例、历史结果和端口接入画布。工具栏固定为屏幕像素尺寸；选中节点时缩小画布仍可操作。缩放显示为 14% 及以下时收起仅由悬停触发的工具栏。模型选择和比例弹层使用屏幕坐标。节点状态随工作流保存。
 
@@ -52,7 +52,7 @@ Image 生成中的历史缩略图复用 `ImagePromptGeneration` 的纯填充模�
 
 ## Text 节点
 
-[CanvasTextNode](../CanvasTextNode.tsx) 复用 Image 的标题、卡片、悬停、选中、端口、优化提示词与发送按钮，以及顶部工具栏和模型二级菜单。OpenAI 模型选择已接入真实 Responses API，Tools、连接应用、标记、素材库、发送、评论只展示默认和悬停状态。锁定、提示词、数量、TXT／MD 切换可用。
+[CanvasTextNode](../CanvasTextNode.tsx) 复用 Image 的标题、卡片、悬停、选中、端口、优化提示词与发送按钮，以及顶部工具栏和模型二级菜单。OpenAI 模型选择已接入真实 Responses API，Tools、连接应用、素材库、发送、评论只展示默认和悬停状态。锁定、提示词、数量、TXT／MD 切换可用。
 
 Text 的输入预览直接复用 [ImagePromptReferences](../../components/image-prompt-node/ImagePromptReferences.tsx)：Text 连入时显示灰色 T 卡片、上游节点名称和 Text 类型；Image 连入时显示当前选中图片，按图片端口顺序排列，Text 在前。首次生成前随底部操作栏在悬停、选中或聚焦时显示；生成中和有输出时移到提示词上方并常显，不随节点取消选中或移出而隐藏，按 DOM 顺序支持键盘访问。Text 参考图标使用独立的描边 SVG 样式，避免继承蒙版图标的实色背景。悬停、键盘聚焦与移出沿用 Image 的展开／收起、图标缩放、名称截断与移除按钮动效。上游改名、图片历史切换和结果更新会同步预览，文本历史切换同步更新下次请求内容（T 图标保持不变）；上游未就绪仍显示对应占位。移除仅断开该条输入连线，可撤销，不删除节点或结果；目标锁定时可展开查看，但不显示移除按钮。预览内操作与滚动不拖动或缩放画布；现有 Text／Image 输入端口、执行输入顺序和历史行为保持不变。
 
@@ -97,3 +97,34 @@ Image 与 Text 共用 [PromptMentionEditor](../../components/image-prompt-node/P
 Image 与 Text 的 @ 菜单统一按 Flora 的 Image 样式呈现：屏幕宽 256px、2px 外内边距，列表高至 272px（含边框与外内边距最多 278px）；分组内边距 4px，标题 40px 高，选项 40px 高、图片与名称间距 8px，长名截断；滚动区域为原生 15px 槽，滑块带 6px 透明边框，实际可见 3px，颜色为 `#b5b3ad`，选项可用宽度为 227px。滚动发生在内层列表，外框 16px 与内层 6px 圆角同时裁切，滚动条内缩在边框之内。各分组内按节点加入当前画布的先后倒序，新建空 Image 同样排在前面；文件完成时间及当前结果切换不影响此顺序，不改变图数据或模型输入顺序。两者共用的胶囊以 `vertical-align: -1px` 对齐正文基线，避免使用 `middle` 使后续文字向上偏移。
 
 滚轮只滚动提及列表，不关闭菜单或带动画布；列表内滚动不重新定位弹层，画布变换的重复样式写入也不触发关闭。实际平移、缩放后重新计算光标锚点。方向键与 Home／End 只调整列表自身的滚动位置，不调用会滚动外层画布的 `scrollIntoView`；指针悬停只更新高亮，不强制滚动。
+
+
+## 节点颜色标记
+
+Image、导入图片与 Text 共用 [NodeColorTagButton](../../components/NodeColorTagButton.tsx)，提供红、橙、黄、绿、蓝、紫、灰七种可叠加标记，None 清空当前节点的标记。标记保存在 `data.colorTags`，按固定色序显示在工具栏和节点标题右侧，支持撤销、重做和项目保存恢复，Image 剪贴板也保留标记；锁定节点禁止增删标记，批量清除跳过锁定节点。
+
+右上角 [CanvasColorTags](../../components/CanvasColorTags.tsx) 仅在画布存在颜色标记时显示，并按固定色序只显示实际使用的颜色；最后一个对应标记被清除或节点被删除后，移除该颜色及其会话高亮，撤销恢复标记时不自动重新开启高亮。按 Flora 实测：收起态为 16px 内容尺寸色点，后续色点增加 1px 画布色边框并重叠 4px，透明度 0.5；悬停时立即切为 12px 色点，各色左间距以 200ms ease-out 过渡至 2px，同时透明度升至 1，更多按钮从 0 展开至 18px 并淡入。七色状态下收起／展开总宽分别为 100px／116px，只有一种颜色时收起宽 16px。移出时反向收起，即使已开启颜色高亮也隐藏计数；更多菜单打开时保持展开。颜色可同时开启高亮，展开态显示各色节点数；开启新颜色时清除当前节点与连线选择，之后可重新选择节点，不改变位置、连接、模型请求或节点数据。高亮仅在当前画布会话保留，取消后恢复原描边。键盘聚焦后展开，减少动态效果和键盘操作即时切换；连续反向悬停从当前间距、宽度和透明度继续，触屏保持色组及更多按钮可见。
+
+Image 空态、结果图片、导入图片和 Text 共用 [NodeColorGlow](../../components/NodeColorGlow.tsx)。单色命中使用该颜色，同时命中两种及以上已开启颜色时使用白色。按 Flora 实际交互及其已加载渲染代码校准：向内描边保持 2px 屏幕尺寸，向外光晕保持 16px 屏幕范围、峰值透明度 0.5、二次衰减；远缩放时范围限制为节点较短屏幕边长的四分之一。选中时保留外侧光晕，彩色描边以 150ms 让位于选中描边，减少动态效果时即时切换。通过 32 层经透明度叠加校正的同心描边近似原版 shader 的衰减，不引入另一套 GL 渲染器；节点大小和缩放变化会同步更新，覆盖层不拦截节点操作、端口或画布手势。
+
+高亮复验先在 Flora 实际点击单色／双色筛选和节点选中状态，并恢复临时添加的蓝色标记；参数核对来自已加载的公开渲染代码，REA 静态分析父证据为 `ev_23c30f6186b4ec27929d11859b311e6c53657f52ea42ca97b9639b04d093645b`（覆盖范围为 partial，不代表整站完整分析）。本地主画布覆盖零标记隐藏、单色出现、双色白色命中、Image／导入图／Text、最后标记清除后立即撤销、未用色禁用、拖动与高亮层坐标同步、新连线及撤销、小地图三节点一连线、10%／55%／69%／100%／200% 缩放和减少动态效果。刷新恢复标记及可用色，高亮保持会话状态，未调用真实模型。[参数及复验记录](../../../docs/screenshots/node-color-tags/highlight-reference-measurements.json) · [Flora 单色](../../../docs/screenshots/node-color-tags/flora-highlight-red.png) · [Flora 多色](../../../docs/screenshots/node-color-tags/flora-highlight-multiple.png) · [本地主画布](../../../docs/screenshots/node-color-tags/highlight-main-canvas.png) · [无标记画布](../../../docs/screenshots/node-color-tags/filters-no-tags.png)。
+
+更多菜单提供按颜色和全部下载、清除。下载将当前 Image 输出和 Text 输出打包为 `tagged.zip`，多色节点只下载一次，重名文件自动区分；无可下载内容或失败时显示提示并可重试。保存到素材库入口禁用。菜单使用现有 Radix DropdownMenu，支持方向键、Enter、Escape、外部关闭与焦点恢复，菜单操作不触发画布手势。
+
+更多菜单保留完整七色矩阵；画布未使用的颜色透明度为 0.25，不可操作，也不显示悬停图标。清除最后一个标记使色组及更多按钮消失时，焦点回到画布，使撤销快捷键仍可使用。
+
+更多菜单按 Flora 实操校准，保留原版英文文案与中文无障碍名称：正常视口下为 317.2109375 × 224.5px，顶部位于 94px，距更多按钮 9px。三行共用网格，内边距 8px／12px、列间距 8px、行间距 12px，文字列右侧增加 16px；色点 14px。悬停可用色点时显示 8px／3px 描边的下载箭头或叉号，灰色色点使用白色图标；鼠标操作不显示焦点外圈，键盘操作保留可见焦点。下方操作行高 40px、水平内边距 12px、圆角 12px，悬停背景 `#fafaf215`，以 150ms `cubic-bezier(.4,0,.2,1)` 过渡；两处分隔线仅有 4px 水平外边距。禁用项透明度 0.5，使用禁止光标，不响应操作。面板 16px 圆角、4px 内边距、40px 模糊与两层原版阴影，定位外层再使用 16px 模糊；从定位原点以 0.97 缩放淡入，入场 150ms／退场 80ms，曲线为 `cubic-bezier(.22,1,.36,1)`，键盘和减少动态效果下即时切换。短窗口下菜单限制高度并自行滚动。
+
+更多菜单的本地主画布浏览器模拟复验覆盖色点及整行悬停、禁用项、Escape 与焦点恢复、键盘跳过禁用项、按颜色清除后单步撤销，以及实际下载 ZIP 并核对内容；减少动态效果开启后活动动画为零。69%／100% 画布缩放下菜单尺寸一致，快速反复开关后状态正确。960 × 280 窗口下菜单可滚动到末项，滚动前后画布变换不变，验收后已恢复默认视口。未调用真实模型。[Flora 参考](../../../docs/screenshots/node-color-tags/flora-actions-reference.png) · [修正后主画布](../../../docs/screenshots/node-color-tags/actions-menu-flora-match.png) · [悬停细节](../../../docs/screenshots/node-color-tags/actions-menu-hover-dot.png) · [关闭动效采样](../../../docs/screenshots/node-color-tags/actions-motion-measurements.json)。
+
+2026-11-22 本地主画布浏览器模拟验收：100%／69% 缩放下检查生成 Image 空态、Text 空态、导入图片、多色标记、颜色计数、高亮、菜单键盘操作、锁定、单步撤销与批量清除撤销。导入图经受控粘贴恢复，再通过文件选择器替换；验证拖动、参考图连线、小地图、下载 ZIP 文件与刷新后恢复标记和连线。减少动态效果下过渡为 0s。未调用真实模型，未核验生产站点，未做用户本人手动验收。[主画布截图](../../../docs/screenshots/node-color-tags/main-canvas.jpg) · [节点色板](../../../docs/screenshots/node-color-tags/node-menu.jpg) · [更多菜单](../../../docs/screenshots/node-color-tags/actions-menu.jpg)。
+
+颜色选择弹层于 2026-11-22 按 Flora 实际样式重新校准：面板 16px 圆角、4px 外内边距，内排 8px 内边距与间隔；None 使用 Geist Sans 14px／17.5px，颜色按钮 24px、色点 16px，选中底色为 `#fbfbef2a`。勾号与未选色悬停的加号使用原版 10px／3px 描边 SVG，灰色色点使用白色图标；悬停未选色不添加背景。面板使用 16px 模糊和两层原版阴影，距触发按钮 9px，从触发点以 0.97 缩放淡入，入场 150ms／退场 80ms，曲线为 `cubic-bezier(.22,1,.36,1)`。不增加色点的缩放或勾选动画。触发按钮的色点为 16px 内容尺寸，后续色点带 1px 卡片色边框并重叠 4px，七色状态下按钮宽 116px。
+
+本轮视觉复验在独立存储的实际主画布完成，覆盖未选色悬停、七色全选、连续反向开合、键盘关闭和减少动态效果。相同 CSS 尺寸下，Flora 与本地面板均为 283.96875 × 50px，选中色点底色、SVG 几何、字体、模糊与阴影已逐项核对。[Flora 色板参考](../../../docs/screenshots/node-color-tags/flora-picker-reference.jpg) · [修正后细节](../../../docs/screenshots/node-color-tags/node-picker-detail.jpg) · [修正后主画布](../../../docs/screenshots/node-color-tags/node-picker-flora-match.jpg)。
+
+右上角色组与 Image／Text 检查器共用 [右侧面板定位](../../components/canvas-right-panels.css)：色组顶部 66px、行高 24px，下方保留 16px，再从 106px 开始显示信息卡片；两者距画布右缘均为 8px。色组悬停、启用计数和信息卡片折叠不改变这段间距。短窗口保留同一顶部定位，检查器在扣除顶部和底部 80px 后的可用高度内滚动，不再提前到色组后面。
+
+间距修正的浏览器模拟验收覆盖 Image 空态、导入图片信息展开／收起、生成选项展开／收起、Text 信息模块、色组悬停与计数，以及 960 × 540 短窗口：均实测间隔 16px。短窗口检查器可滚动，滚动前后画布变换不变；验收后已恢复默认视口。[主画布截图](../../../docs/screenshots/node-color-tags/right-panel-spacing.jpg) · [右侧间距细节](../../../docs/screenshots/node-color-tags/right-panel-spacing-detail.jpg) · [短窗口](../../../docs/screenshots/node-color-tags/right-panel-short-window.jpg)。
+
+色组动效复验先在 Flora 实际操作并逐帧记录展开／收起，再在独立存储的本地主画布核对：收起宽 100px、展开宽 116px，69%／83% 画布缩放下保持固定尺寸与信息卡片 16px 间距；覆盖点击高亮后移出、更多菜单保持展开、连续反向悬停、键盘进出及系统减少动态效果在页面打开后切换。减少动态效果开启时无活动动画，立即达到目标宽度。节点颜色菜单、已有连线、缩放与小地图回归通过；未调用真实模型。[主画布截图](../../../docs/screenshots/node-color-tags/filter-hover-main-canvas.png) · [Flora 与本地动效采样](../../../docs/screenshots/node-color-tags/filter-motion-measurements.json)。

@@ -1,3 +1,4 @@
+import type { ColorTag } from './colorTags';
 import type { TextBilling, TextUsage } from './textPricing';
 import type { AnnotationHistory, InteractiveEditData } from './interactiveEdit';
 import type { GenerationRecord, OutputPolicy } from './executionGraph';
@@ -19,7 +20,7 @@ export interface TextCitation { url: string; title: string; startIndex: number; 
 export interface TextGenerationResult {
   id: string; text: string; prompt: string; model: string; responseId: string; createdAt: number; reasoningEffort?: TextReasoningEffort; webSearch?: boolean; citations?: TextCitation[]; usage?: TextUsage; billing?: TextBilling;
 }
-export type TextNode = Node<{ text: string; textComposer?: TextComposerData; textGeneration?: { model: string; responseId: string; createdAt: number }; textHistory?: TextGenerationResult[]; activeTextResultId?: string; label?: string; locked?: boolean; content?: JSONContent; variableCount?: number; displayMode?: TextDisplayMode }, 'text'>;
+export type TextNode = Node<{ text: string; colorTags?: ColorTag[]; textComposer?: TextComposerData; textGeneration?: { model: string; responseId: string; createdAt: number }; textHistory?: TextGenerationResult[]; activeTextResultId?: string; label?: string; locked?: boolean; content?: JSONContent; variableCount?: number; displayMode?: TextDisplayMode }, 'text'>;
 export type CanvasText = TextNode & { data: { textComposer: TextComposerData } };
 export const isCanvasTextNode = (node: AppNode): node is CanvasText => node.type === 'text' && 'textComposer' in node.data && Boolean(node.data.textComposer);
 export type FileAsset = {
@@ -41,7 +42,7 @@ export interface ImageComposerData {
   selection?: import('../components/image-prompt-node/imagePromptModels').ImagePromptModelSelection;
   modelSettings?: Record<string, Record<string, string>>;
 }
-export type SunburstNode = Node<SunburstSettings & OutputPolicy & ImageResults & { composer?: ImageComposerData; imageSource?: 'imported'; provider?: SunburstProvider; variant?: 'Sunburst' | 'Flare'; label?: string; locked?: boolean; imageInputs: number; exposed?: SunburstParameter[] }, 'sunburst'>;
+export type SunburstNode = Node<SunburstSettings & OutputPolicy & ImageResults & { colorTags?: ColorTag[]; composer?: ImageComposerData; imageSource?: 'imported'; provider?: SunburstProvider; variant?: 'Sunburst' | 'Flare'; label?: string; locked?: boolean; imageInputs: number; exposed?: SunburstParameter[] }, 'sunburst'>;
 export const isSunburstNode = (node: AppNode): node is SunburstNode => node.type === 'sunburst';
 export type CanvasImage = SunburstNode & { data: { composer: ImageComposerData } };
 export const isCanvasImageNode = (node: AppNode): node is CanvasImage => isSunburstNode(node) && Boolean(node.data.composer);

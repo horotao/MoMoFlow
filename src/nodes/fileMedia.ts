@@ -92,9 +92,9 @@ export function zipFiles(files: { name: string; bytes: Uint8Array }[]): Blob {
   endView.setUint32(12, directory.reduce((sum, entry) => sum + entry.byteLength, 0), true); endView.setUint32(16, offset, true);
   return new Blob([...parts, ...directory, end], { type: 'application/zip' });
 }
-export async function downloadAssets(assets: FileAsset[]) {
+export async function downloadAssets(assets: FileAsset[], { extraFiles = [], name = 'images.zip' }: { extraFiles?: { name: string; bytes: Uint8Array }[]; name?: string } = {}) {
   const files = await Promise.all(assets.map(async (asset) => ({ name: asset.name, bytes: new Uint8Array(await (await assetBlob(asset)).arrayBuffer()) })));
-  saveBlob(zipFiles(files), 'images.zip');
+  saveBlob(zipFiles([...files, ...extraFiles]), name);
 }
 export async function copyAssetImage(asset: FileAsset) {
   if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') throw new Error('Image copying is not supported by this browser.');

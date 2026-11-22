@@ -1,3 +1,7 @@
+import { CanvasColorTags } from './components/CanvasColorTags';
+import './components/canvas-right-panels.css';
+import { CanvasColorTagContext } from './components/CanvasColorTagContext';
+import { changeColorTags, nodeColorTags, type ColorTag } from './nodes/colorTags';
 import { CanvasMentionContext } from './nodes/CanvasMentionContext';
 import { editPromptMentions, pruneDisconnectedMentions } from './nodes/promptMentions';
 import { animateMentionWire } from './edges/mentionWireAnimation';
@@ -81,6 +85,20 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   const [initialGraph] = useState(() => migrateLegacyImageGraph(saved?.nodes ?? initialNodes, saved?.edges ?? initialEdges));
   const [nodes, setNodes, onNodesChange] = useNodesState(initialGraph.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialGraph.edges);
+  const [activeColorTags, setActiveColorTags] = useState<ColorTag[]>([]);
+  const colorTagContext = useMemo(() => ({
+    nodes: new Map(nodes.map(node => [node.id, { tags: nodeColorTags(node), locked: isNodeLocked(node) }])),
+    active: activeColorTags,
+    zoom: viewport.zoom,
+    change: (id: string, color?: ColorTag) => setNodes(nodes => changeColorTags(nodes, [id], color)),
+  }), [nodes, activeColorTags, viewport.zoom, setNodes]);
+  const changeActiveColorTags = useCallback((colors: ColorTag[]) => {
+    if (colors.some(color => !activeColorTags.includes(color))) {
+      setNodes(current => current.map(node => node.selected ? { ...node, selected: false } : node));
+      setEdges(current => current.map(edge => edge.selected ? { ...edge, selected: false } : edge));
+    }
+    setActiveColorTags(colors);
+  }, [activeColorTags, setNodes, setEdges]);
   const workflow = useMemo(() => ({ nodes, edges, viewport, colorMode }), [nodes, edges, viewport, colorMode]);
   const persistence = useWorkflowPersistence(storage, workflow);
   const withSavedWorkflow = async (action: (snapshot: Workflow) => Promise<void>) => {
@@ -276,7 +294,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   }), [nodes, tool]);
 
   return (
-    <CanvasMentionContext.Provider value={(id, edit, sourceId) => {
+    <CanvasColorTagContext.Provider value={colorTagContext}><CanvasMentionContext.Provider value={(id, edit, sourceId) => {
       const result = editPromptMentions(id, edit, getNodes(), getEdges(), sourceId, crypto.randomUUID());
       if (!result) return false;
       result.addedEdges.forEach(edge => animateMentionWire(edge.id));
@@ -389,6 +407,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       fitView={!saved && initialGraph.nodes.length > 0}
     >
       <CanvasBackground onGridOriginChange={updateGridOrigin} />
+      <CanvasColorTags nodes={nodes} active={activeColorTags} onActiveChange={changeActiveColorTags} setNodes={setNodes} onRestoreCanvasFocus={() => canvasRef.current?.focus({ preventScroll: true })} />
       {projectSession && <CanvasProjectHeader project={projectSession.project} projects={projectSession.projects}
         nodeCount={nodes.length} status={persistence.status}
         refresh={() => projectSession.refresh(workflow)}
@@ -432,7 +451,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       <TextInspector />
       <CanvasNavigation pendingZoom={pendingZoom} />
       <ApiSettingsDialog open={apiSettingsOpen} onClose={() => setApiSettingsOpen(false)} onTestConnection={testApiConnection} />
-    </ReactFlow></CanvasHistoryContext.Provider></CanvasMentionContext.Provider>
+    </ReactFlow></CanvasHistoryContext.Provider></CanvasMentionContext.Provider></CanvasColorTagContext.Provider>
   );
 }
 

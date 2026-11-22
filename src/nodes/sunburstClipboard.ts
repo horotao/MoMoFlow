@@ -1,3 +1,4 @@
+import { readColorTags } from './colorTags.ts';
 import { isFileAsset } from './fileCollection.ts';
 import { restoreFileAnnotations } from './interactiveEdit.ts';
 import { apimartChannelModels, apimartSvgModels, apimartSvgEfforts, imageModerations, migrateSunburstProvider, validateSunburstVariant, validateSunburstProvider, validateSunburstSettings } from './sunburst.ts';
@@ -43,6 +44,7 @@ export function restoreSunburstData(value: unknown): SunburstNode['data'] | unde
     ...(data.orderBy === 'date' || data.orderBy === 'name' ? { orderBy: data.orderBy } : {}),
     ...(data.outputMode === 'fixed' ? { outputMode: 'fixed' as const } : {}),
     ...(data.annotations !== undefined ? { annotations: restoreFileAnnotations(data.annotations, results) } : {}),
+    ...(data.colorTags !== undefined ? { colorTags: readColorTags(data.colorTags) } : {}),
     label: typeof data.label === 'string' ? data.label : undefined,
     activeResultId: typeof data.activeResultId === 'string' && results.some(result => result.id === data.activeResultId)
       ? data.activeResultId : undefined,

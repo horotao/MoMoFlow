@@ -1,0 +1,5 @@
+.canvas-selection {
+  --canvas-right-panels-top: 66px;
+  --canvas-color-tag-row-height: 24px;
+  --canvas-inspector-top: calc(var(--canvas-right-panels-top) + var(--canvas-color-tag-row-height) + 16px);
+}

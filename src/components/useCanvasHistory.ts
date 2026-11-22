@@ -1,3 +1,4 @@
+import { nodeColorTags } from '../nodes/colorTags';
 import { isFileNode } from '../nodes/types';
 import { isSeedreamNode } from '../nodes/types';
 import { isSeedreamExactSize } from '../nodes/seedream';
@@ -58,13 +59,14 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
     const mentionIds = (node: AppNode | undefined) => node && (isCanvasTextNode(node) ? node.data.textComposer.mentions
       : isCanvasImageNode(node) ? node.data.composer.mentions : undefined)?.map(item => item.nodeId).join('\n');
     const mentionsChanged = nodes.some(node => mentionIds(node) !== mentionIds(state.present.nodes.find(item => item.id === node.id)));
+    const colorTagsChanged = nodes.some(node => JSON.stringify(nodeColorTags(node)) !== JSON.stringify(nodeColorTags(state.present.nodes.find(item => item.id === node.id))));
     const labelChanged = nodes.some(node => node.data.label !== state.present.nodes.find(item => item.id === node.id)?.data.label);
-    if (mentionsChanged || labelChanged || annotationsChanged || seedreamSizeChanged || !dataOnly || Date.now() - state.time > 750) {
+    if (colorTagsChanged || mentionsChanged || labelChanged || annotationsChanged || seedreamSizeChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;
     state.future = [];
-    state.time = dataOnly && !labelChanged && !mentionsChanged ? Date.now() : 0;
+    state.time = dataOnly && !colorTagsChanged && !labelChanged && !mentionsChanged ? Date.now() : 0;
     sync();
   }, [nodes, edges, sync]);
 

@@ -1,0 +1,58 @@
+{
+  "observed_at": "2026-11-22",
+  "reference_page": "https://app.flora.ai/projects/ns783ydy5pmkn7bdt3nn68t8wd854k38",
+  "public_loaded_chunks": [
+    {
+      "url": "https://app.flora.ai/_next/static/chunks/2yqy9hpugpbjb.js?dpl=b2ea204a2cca-48219610461",
+      "sha256": "0344ef0ad1c3304bef2e8b1bc76d3d5816354581831296a987e6f9e4ca185d5d"
+    },
+    {
+      "url": "https://app.flora.ai/_next/static/chunks/1h0ynzn2kfhjs.js?dpl=b2ea204a2cca-48219610461",
+      "sha256": "063f2a076799bb1a5597b3f70827d491a044e022f0f3ad80e143ef17cf4d5673"
+    },
+    {
+      "url": "https://app.flora.ai/_next/static/chunks/3u-w5fa7nsa2t.js?dpl=b2ea204a2cca-48219610461",
+      "sha256": "1c9d8cbf679bbb1afb7f3a7f27d34aafbc630ef6e5e192092549a5f3cb5fc89f"
+    }
+  ],
+  "static_parameters": {
+    "spacing_css_px": 4,
+    "glow_reach_spacing": 4,
+    "ring_spacing": 0.5,
+    "glow_peak_alpha": 0.5,
+    "falloff_power": 2,
+    "node_half_size_cap": 0.5,
+    "derived_reach_css_px": 16,
+    "derived_ring_css_px": 2
+  },
+  "runtime_observations": {
+    "no_tags_hides_filter": true,
+    "filter_only_lists_used_colors": true,
+    "multiple_active_matches_use_white": true,
+    "selected_node_retains_glow_and_yields_color_ring": true,
+    "temporary_blue_tag_removed_after_reference_inspection": true
+  },
+  "local_browser_checks": {
+    "tested_zoom_percent": [
+      10,
+      55,
+      69,
+      100,
+      200
+    ],
+    "last_tag_clear_and_immediate_undo": true,
+    "undo_restores_tags_without_reactivating_filter": true,
+    "unused_action_color_opacity": 0.25,
+    "drag_overlay_bounds_match_node": true,
+    "new_edge_count": 2,
+    "restored_edge_count": 1,
+    "minimap_nodes": 3,
+    "minimap_edges": 1,
+    "reduced_motion_transition": "0s",
+    "real_model_calls": 0
+  },
+  "limitations": [
+    "Parameters were read from the loaded shipped renderer; static application coverage is partial.",
+    "The local implementation approximates shader falloff with 32 alpha-corrected CSS bands."
+  ]
+}

@@ -1,3 +1,6 @@
+import { useNodeColorTags } from '../CanvasColorTagContext';
+import { colorTags, nodeTagHighlight } from '../../nodes/colorTags';
+import { NodeColorGlow } from '../NodeColorGlow';
 import { PromptMentionEditor, type PromptMentionEditorHandle } from './PromptMentionEditor';
 import type { PromptMention } from '../../nodes/types';
 import type { MentionCandidate, MentionEdit, MentionSources } from '../../nodes/promptMentions';
@@ -100,6 +103,9 @@ export function ImagePromptNode({
   promptMentions, mentionCandidates, onMentionEdit,
   references = [], onRemoveReference, onReorderReferences, referenceScale = 1, outputConnected = false,
 }: ImagePromptNodeProps) {
+  const nodeTags = useNodeColorTags();
+  const tags = colorTags.filter(tag => nodeTags.tags?.includes(tag.id));
+  const highlight = nodeTagHighlight(nodeTags.tags ?? [], nodeTags.active);
   const [aspectRatio, setAspectRatio] = useControllableValue(aspectRatioValue, defaultAspectRatio, onAspectRatioChange);
   const [selection, setSelection] = useControllableValue(modelSelection, defaultModelSelection, onModelSelectionChange);
   const activeModel = imagePromptModels.find(model => model.id === selection.modelIds[0]);
@@ -254,11 +260,13 @@ export function ImagePromptNode({
           {toolbar ?? <ImagePromptToolbar modelLabel={modelLabel} modelSelection={selection} onModelSelectionChange={setSelection} aspectRatio={aspectRatio} onAspectRatioChange={setAspectRatio} locked={locked} onLockedChange={setLocked} />}
         </div>}
 
+        {highlight && <NodeColorGlow color={highlight} zoom={nodeTags.zoom} selected={selected} />}
         <header className="image-node-heading">
           <h1><ImagePromptIcon name={isText ? 'text' : 'image'} /><ImageNodeTitle title={title} editable={selected} locked={locked} onChange={onTitleChange} /></h1>
           {!assetOnly && <span className="image-node-model">{busy && Number.isFinite(generation.estimatedSeconds) && (generation.estimatedSeconds ?? 0) > 0
             ? <span className="image-node-estimate">~{Math.round(generation.estimatedSeconds!)}s</span>
             : <><ImagePromptModelBrand brand={activeModel?.brand ?? 'openai'} /><span title={displayModelLabel}>{displayModelLabel}</span></>}</span>}
+          {tags.length > 0 && <span className="node-heading-tags" aria-label="节点颜色标记">{tags.map(tag => <span key={tag.id} className="node-tag-dot" style={{ background: tag.color }} title={tag.label} />)}</span>}
         </header>
 
         <div className="image-node-card" onClick={event => { if (!locked && !busy && !hasResult && !(event.target as HTMLElement).closest('.text-node-output, .image-node-prompt-editor')) editor.current?.focus(); }}>

@@ -1,7 +1,7 @@
 .image-inspector {
-  position: absolute; z-index: 12; top: 82px; right: 8px;
+  position: absolute; z-index: 12; top: var(--canvas-inspector-top, 106px); right: 8px;
   display: flex; flex-direction: column; gap: 4px;
-  width: min(320px, calc(100% - 88px)); max-height: calc(100% - 162px);
+  width: min(320px, calc(100% - 88px)); max-height: calc(100% - var(--canvas-inspector-top, 106px) - 80px);
   overflow: auto; overscroll-behavior: contain; scrollbar-width: thin;
 }
 .image-inspector > .image-generation-options {
@@ -44,4 +44,3 @@
 .image-information-menu-icon .image-node-icon { width: 12px; height: 12px; }
 .image-information-menu kbd { margin-left: auto; padding: 4px; border-radius: 8px; background: #fafaf20d; color: #b5b3ad; font: 400 10px/12px GeistMono, monospace; }
 @media (hover: hover) and (pointer: fine) { .image-information button:not(:disabled):hover { background: #fafaf223; color: #eeeeec; } }
-@media (max-height: 600px) { .image-inspector { top: 72px; max-height: calc(100% - 148px); } }
