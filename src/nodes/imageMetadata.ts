@@ -10,6 +10,8 @@ const modelNames: Record<string, string> = {
   'seedream-5-5': 'Seedream 5.5',
 };
 
+export const imageModelName = (model: string): string => modelNames[model] ?? model;
+
 export function imageFormat(asset: FileAsset): string | undefined {
   const mime = typeof asset.mimeType === 'string' ? /^image\/([^;]+)/i.exec(asset.mimeType)?.[1]?.toLowerCase() : undefined;
   return (mime && formats[mime]) || formats[/\.([a-z]+)$/i.exec(asset.name)?.[1]?.toLowerCase() ?? ''] || undefined;
@@ -29,7 +31,7 @@ export function imageModel(asset: FileAsset): string | undefined {
   try {
     const input: unknown = JSON.parse(record.inputSignature);
     if (!Array.isArray(input) || input[0] !== modelInputSignatureVersion || typeof input[1] !== 'string') return;
-    return modelNames[input[1]] ?? input[1];
+    return imageModelName(input[1]);
   } catch { /* Incomplete legacy records remain unknown instead of using today's settings. */ }
 }
 

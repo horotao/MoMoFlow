@@ -8,7 +8,7 @@ import { defaultSunburstSettings } from './sunburst.ts';
 import { ModelRequestCancelled } from './modelRequestError.ts';
 import { isImageGeneratorNode, isImportedCanvasImage, type AppNode, type CanvasImage, type SunburstNode, type FileAsset } from './types.ts';
 import type { PreviewTask } from './taskQueue';
-import { isActiveTask } from './taskQueue.ts';
+import { isActiveTask, modelTaskLabel } from './taskQueue.ts';
 import { workflowSnapshot } from '../persistence/workflowStorage.ts';
 import { commitAnnotations, emptyAnnotationHistory } from './interactiveEdit.ts';
 import { initialTextDocument } from './textDocument.ts';
@@ -57,6 +57,40 @@ function recordedSunburstGraph(recording: 'legacy' | 'apimart' | 'openai'): Exec
   upstream.data = { ...upstream.data, results: [asset], activeResultId: asset.id };
   return JSON.parse(JSON.stringify(workflowSnapshot({ ...graph, colorMode: 'dark', viewport: { x: 0, y: 0, zoom: 1 } })));
 }
+
+test('queue names snapshot the actual composer model from waiting through completion', async () => {
+  const cases = [
+    ['gpt-image-2-6', 'openai', 'Sunburst', 'gpt-image-2.6', 'gpt-image-2.6-sunburst', 'GPT Image 2.6 Sunburst'],
+    ['gpt-image-2-6', 'openai', 'Flare', 'gpt-image-2.6', 'gpt-image-2.6-flare', 'GPT Image 2.6 Flare'],
+    ['gpt-image-2-6', 'apimart', 'Sunburst', 'gpt-image-2.6-ext', 'gpt-image-2.6-ext', 'GPT Image 2.6 EXT'],
+    ['gpt-image-2-6', 'apimart', 'Sunburst', 'gpt-image-2.6', 'gpt-image-2.6-sunburst', 'GPT Image 2.6 Sunburst'],
+    ['seedream-5-5', 'apimart', 'Sunburst', 'gpt-image-2.6-ext', 'seedream-5-5', 'Seedream 5.5'],
+    ['nano-banana-2-1', 'apimart', 'Sunburst', 'gpt-image-2.6-ext', 'gemini-nano-banana-2.1', 'Nano Banana 2.1'],
+  ] as const;
+  for (const [selection, provider, variant, channelModel, model, label] of cases) {
+    const image = createLibraryNode('image', { x: 0, y: 0 }) as CanvasImage;
+    image.data = { ...image.data, label: '自定义节点名', provider, variant, channelModel,
+      size: provider === 'openai' ? '1024x1024' : '1:1', composer: {
+      ...image.data.composer, prompt: 'queue naming regression',
+      selection: { modelIds: [selection], autoSelect: false, multiple: false },
+    } };
+    const h = harness({ nodes: [image], edges: [] });
+    try {
+      const done = h.engine.run([image.id], 2);
+      assert.deepEqual(h.store.getSnapshot().map(task => [task.state, task.model, modelTaskLabel(task)]),
+        [['Queued', model, label], ['Queued', model, label]]);
+      await done;
+      assert.deepEqual(h.requests.map(task => [task.model, task.label, modelTaskLabel(task)]),
+        [[model, label, label], [model, label, label]]);
+      assert.ok(h.store.getSnapshot().every(task => task.state === 'Done' && task.label === label && modelTaskLabel(task) === label));
+      const changed: CanvasImage = { ...image, data: { ...image.data, composer: {
+        ...image.data.composer, selection: { modelIds: ['nano-banana-2-1'], autoSelect: false, multiple: false },
+      } } };
+      h.edit(graph => ({ ...graph, nodes: [changed] }));
+      assert.ok(h.store.getSnapshot().every(task => task.model === model && modelTaskLabel(task) === label));
+    } finally { h.engine.dispose(); }
+  }
+});
 
 test('imported canvas images only supply references and replacements keep their connections', async () => {
   const original: FileAsset = { id: 'original', kind: 'image', name: 'original.png', url: 'blob:original', width: 1024, height: 1024 };
@@ -207,6 +241,7 @@ test('Seedream continues after a split request fails and retries only that origi
     ]);
     const tasks = h.store.getSnapshot();
     assert.deepEqual(tasks.map(task => task.state), ['Failed', 'Done']);
+    assert.deepEqual(tasks.map(modelTaskLabel), ['Seedream 5.5 · 原图 1/2', 'Seedream 5.5 · 原图 2/2']);
     assert.equal(tasks[0].batchId, tasks[1].batchId);
     assert.equal(selectedResult(h.node('seedream'))?.id, '1');
     const group = tasks[0].seedreamGroup;

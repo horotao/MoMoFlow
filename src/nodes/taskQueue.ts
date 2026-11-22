@@ -1,6 +1,7 @@
 import type { SeedreamRequest } from './seedream';
 import type { NanoBananaRequest } from './nanoBanana';
 import type { SunburstRequest } from './sunburst';
+import { imageModelName } from './imageMetadata.ts';
 export type TaskState = 'Queued' | 'Running' | 'Done' | 'Cancelled' | 'Failed' | 'TimedOut';
 export type PreviewTask = {
   id: string; batchId: string; nodeId: string; model: string; createdAt: number;
@@ -9,6 +10,11 @@ export type PreviewTask = {
   seedreamGroup?: { imageId: string; index: number; total: number };
 };
 export const isActiveTask = (task: PreviewTask) => task.state === 'Queued' || task.state === 'Running';
+
+export function modelTaskLabel(task: Pick<PreviewTask, 'model' | 'seedreamGroup'>): string {
+  const group = task.seedreamGroup;
+  return imageModelName(task.model) + (group ? ` · 原图 ${group.index + 1}/${group.total}` : '');
+}
 
 // The synchronous model APIs do not report progress. Ease toward 95%, and only
 // let the actual response mark a task Done. Never advance cancelled/failed tasks.

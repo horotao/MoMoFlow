@@ -34,13 +34,20 @@ export const spring = {
   },
 } as const;
 
-// BeUI Drawer spring, shared by the settings sidebar and the queue that moves beside it.
+// BeUI Drawer spring used by settings sidebars.
 // https://beui.dev/components/motion/drawer
 export const nodeSettingsSpring = {
   type: 'spring',
   stiffness: 420,
   damping: 40,
   mass: 0.5,
+} as const;
+
+// Flora's queue surface expands upward while its contents retain their size.
+export const taskQueueLayoutSpring = {
+  type: 'spring',
+  damping: 30,
+  stiffness: 300,
 } as const;
 
 // Fallback delay (ms) for deferred-unmount timers that guard an exit tween:

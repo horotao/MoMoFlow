@@ -14,6 +14,8 @@ GPT Image 的生成选项提供「渠道商」，可切换 OpenAI 官方与 APIM
 
 [CanvasImageNode](../CanvasImageNode.tsx) 将界面状态接入画布，[执行图](../executionGraph.ts) 校验输入，[工作流执行器](../workflowExecution.ts) 调度生成。结果追加到节点，可切换、下载及用于下游 Image。任务错误和手动重试通过任务队列反馈。
 
+队列名称使用本次任务的实际模型快照，区分 GPT Image 2.6 Sunburst／Flare／EXT、Seedream 5.5 和 Nano Banana 2.1，不使用 Image 的存储类型或自定义节点名称。排队时即显示所选模型，运行和结束后保持一致；之后切换节点模型不改写已有任务。Seedream 分组任务继续附带「原图 N/M」。
+
 ## Text 模型
 
 Text 支持 `gpt-6.2-sol`（GPT-6.2 Sol）、`gpt-6.1-terra`（GPT-6.1 Terra）及 `gpt-6-luna`（GPT-6 Luna）。三者均通过 OpenAI Responses API 接收文本与 PNG／JPEG／WebP 图片、输出流式文本；按右侧思考强度发送 `reasoning.effort`，不发送不兼容的 `none`、温度或 Chat Completions 参数。每次最多 16 张参考图，文本合计最多 128000 字符，最多输出 16384 tokens（含推理 tokens），服务端超时 300 秒。不提供自动模型回退或自动重试。

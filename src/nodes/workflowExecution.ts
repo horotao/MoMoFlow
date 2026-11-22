@@ -1,12 +1,15 @@
 import { annotationOutput, storedAnnotationResult } from './annotationGraph.ts';
-import { seedreamName } from './seedream.ts';
+import { seedreamModel } from './seedream.ts';
+import { nanoBananaModel } from './nanoBanana.ts';
+import { sunburstModelForProvider } from './sunburst.ts';
+import { composerExecutionNode } from './imageComposerSettings.ts';
 import type { AppNode, FileAsset } from './types';
 import type { PreviewTask } from './taskQueue';
-import { isActiveTask } from './taskQueue.ts';
+import { isActiveTask, modelTaskLabel } from './taskQueue.ts';
 import { ModelRequestCancelled, ModelRequestTimeout } from './modelRequestError.ts';
 import { isImageGeneratorNode, isNodeLocked } from './types.ts';
 import { executionInputs, executionSourceAssets, fixedOutput, graphGuard, isModelNode, nodeProblem, preflight, prepareModel, requestSignature, reusable, selectedResult, stableSignature, type ExecutionGraph } from './executionGraph.ts';
-import { imageOutput } from './sunburstRun.ts';
+import { effectiveSunburstSettings, imageOutput } from './sunburstRun.ts';
 import { mapAssets } from '../persistence/workflowStorage.ts';
 
 export type ExecutionStore = { getSnapshot: () => PreviewTask[]; update: (change: (tasks: PreviewTask[]) => PreviewTask[]) => void; subscribe: (listener: () => void) => () => void };
@@ -24,8 +27,8 @@ type Flight = { nodeId: string; tasks: string[]; controller: AbortController; co
 type ModelAttempt = { prepared: PreviewTask; signature: string };
 
 function describeAttempt(task: PreviewTask, prepared: PreviewTask): PreviewTask {
-  const group = prepared.seedreamGroup;
-  return group ? { ...task, seedreamGroup: group, label: `${task.label} · 原图 ${group.index + 1}/${group.total}` } : task;
+  const described = { ...task, model: prepared.model, seedreamGroup: prepared.seedreamGroup };
+  return { ...described, label: modelTaskLabel(described) };
 }
 export function aborted(signal: AbortSignal) { if (signal.aborted) throw new Error(typeof signal.reason === 'string' ? signal.reason : '运行已取消。'); }
 export function withAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
@@ -167,8 +170,12 @@ export class WorkflowExecution {
   }
   private placeholder(id: string, batchId: string): PreviewTask {
     const node = this.graph.nodes.find(item => item.id === id)!;
-    const label = node.data.label || ({ sunburst: 'GPT Image 2.6', 'nano-banana': 'Nano Banana', seedream: seedreamName } as Record<string, string>)[node.type!] || node.type;
-    return { id: crypto.randomUUID(), nodeId: id, batchId, label, model: node.type!, createdAt: Date.now(), state: 'Queued', progress: 0, started: 0, notice: '等待上游' };
+    if (!isModelNode(node)) nodeProblem(node, '节点已下线或不能运行。');
+    const selected = composerExecutionNode(node);
+    const settings = selected.type === 'sunburst' ? effectiveSunburstSettings(selected) : undefined;
+    const model = settings ? sunburstModelForProvider(settings.provider, settings.variant, settings.channelModel)
+      : selected.type === 'seedream' ? seedreamModel : nanoBananaModel;
+    return { id: crypto.randomUUID(), nodeId: id, batchId, label: modelTaskLabel({ model }), model, createdAt: Date.now(), state: 'Queued', progress: 0, started: 0, notice: '等待上游' };
   }
   private expandRootTasks(root: Root, attempts: ModelAttempt[]) {
     const current = this.store.getSnapshot();

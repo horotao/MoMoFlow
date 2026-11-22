@@ -1,10 +1,5 @@
 import { useLayoutEffect, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
-import { clearFinishedTasks, isActiveTask, type PreviewTask, type TaskState } from '../nodes/taskQueue';
-import { seedreamName } from '../nodes/seedream';
-import { nanoBananaName } from '../nodes/nanoBanana';
-import { sunburstName } from '../nodes/sunburst';
-import { nodeSettingsSpring } from '../lib/springs';
+import { clearFinishedTasks, isActiveTask, modelTaskLabel, type PreviewTask, type TaskState } from '../nodes/taskQueue';
 import { TaskQueue, type QueueTask } from './TaskQueue';
 import { useModelTaskStore, useModelTasks } from './useModelTasks';
 
@@ -14,7 +9,7 @@ const queueStates: Record<TaskState, QueueTask['state']> = {
 };
 
 function queueTask(task: PreviewTask): QueueTask {
-  const label = task.label || (task.seedreamRequest ? seedreamName : task.nanoBananaRequest ? nanoBananaName : sunburstName);
+  const label = modelTaskLabel(task);
   const detail = task.model;
   return { id: task.id, label, detail, progress: task.progress, state: queueStates[task.state], notice: task.notice, error: task.error };
 }
@@ -28,7 +23,6 @@ export function TaskManager({ onFocus, onRetry }: Props) {
   const tasks = useModelTasks();
   const store = useModelTaskStore();
   const [expanded, setExpanded] = useState(false);
-  const reduceMotion = useReducedMotion();
   // The store appends tasks. Reverse first so equally timed batch items also
   // show the newest additions first, independently of their execution state.
   const newestTasks = [...tasks].reverse().sort((a, b) => b.createdAt - a.createdAt);
@@ -43,9 +37,7 @@ export function TaskManager({ onFocus, onRetry }: Props) {
     return store.subscribe(openOnStart);
   }, [store]);
 
-  return <motion.div className="canvas-task-queue nodrag nopan nowheel"
-    layout={reduceMotion ? false : 'position'}
-    transition={{ layout: nodeSettingsSpring }}
+  return <div className="canvas-task-queue nodrag nopan nowheel"
     onKeyDown={event => event.stopPropagation()}>
     <TaskQueue tasks={newestTasks.map(queueTask)} expanded={expanded} onExpandedChange={setExpanded}
       canClear={clearFinishedTasks(tasks).length < tasks.length}
@@ -54,5 +46,5 @@ export function TaskManager({ onFocus, onRetry }: Props) {
       onRemove={id => store.update(all => all.filter(task => task.id !== id || isActiveTask(task)))}
       onFocus={id => { const task = tasks.find(item => item.id === id); if (task) onFocus(task.nodeId); }}
       onRetry={id => { const task = tasks.find(item => item.id === id); if (task && !isActiveTask(task)) onRetry(task); }} />
-  </motion.div>;
+  </div>;
 }

@@ -2,7 +2,7 @@ import { forwardRef, useContext, useId, useLayoutEffect, useRef, useSyncExternal
 import { AnimatePresence, MotionConfigContext, motion, useComposedRefs, useIsPresent } from 'motion/react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Cancel01Icon, Clock01Icon, ClockAlertIcon, ExclamationMarkIcon, RefreshIcon, Tick02Icon } from '@hugeicons/core-free-icons';
-import { spring } from '../lib/springs';
+import { spring, taskQueueLayoutSpring } from '../lib/springs';
 import './TaskQueue.css';
 
 type QueueState = 'queued' | 'running' | 'done' | 'failed' | 'timeout' | 'cancelled';
@@ -29,6 +29,7 @@ const stateLabels: Record<QueueState, string> = {
 
 const outcomeIcons = { done: Tick02Icon, failed: ExclamationMarkIcon, timeout: ClockAlertIcon };
 const rowExit = { ...spring.moderate.exit, ease: [0.23, 1, 0.32, 1] as const };
+const surfaceTransition = { duration: 0.2, layout: taskQueueLayoutSpring };
 const visibleTaskLimit = 3;
 const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
 const getReducedMotion = () => window.matchMedia(reducedMotionQuery).matches;
@@ -130,12 +131,9 @@ const QueueRow = forwardRef<HTMLLIElement, {
 });
 
 function QueueBody({ id, tasks, ...actions }: Pick<Props, 'tasks' | 'onCancel' | 'onRetry' | 'onFocus' | 'onRemove'> & { id: string; onExitFocus: () => void }) {
-  const isPresent = useIsPresent();
   const reducedMotion = useQueueReducedMotion();
   return <motion.div id={id} className="model-queue-body"
-    {...(!isPresent ? { inert: '', 'aria-hidden': true } : {})}
-    initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-    transition={reducedMotion ? { duration: 0 } : spring.moderate}>
+    layout={reducedMotion ? false : 'position'} initial={false} transition={surfaceTransition}>
     {tasks.length ? <ul className="model-queue-list" aria-label="任务">
       <AnimatePresence initial={false} mode="popLayout">
         {tasks.slice(0, visibleTaskLimit).map(task => <QueueRow key={task.id} task={task} {...actions} />)}
@@ -160,27 +158,27 @@ type Props = {
 export function TaskQueue({ tasks, expanded, onExpandedChange, canClear, onClear, ...actions }: Props) {
   const bodyId = useId();
   const toggle = useRef<HTMLButtonElement>(null);
+  const reducedMotion = useQueueReducedMotion();
   const active = tasks.filter(isActive);
   const progress = active.length ? active.reduce((total, task) => total + task.progress, 0) / active.length : 0;
 
-  return <section className="model-queue" aria-label="任务队列" data-expanded={expanded} onKeyDown={event => {
+  return <motion.section className="model-queue" aria-label="任务队列" data-expanded={expanded}
+    layout={!reducedMotion} initial={false} transition={surfaceTransition} onKeyDown={event => {
     if (event.key !== 'Escape' || !expanded) return;
     event.stopPropagation();
     onExpandedChange(false);
     toggle.current?.focus();
   }}>
-    <header className="model-queue-header">
+    <motion.header className="model-queue-header" layout={reducedMotion ? false : 'position'} transition={surfaceTransition}>
       {!expanded && !!active.length && <QueueProgress progress={progress} label="活动任务平均预估进度" className="model-queue-summary-progress" />}
       <button ref={toggle} className="model-queue-toggle" type="button" aria-expanded={expanded}
         aria-controls={expanded ? bodyId : undefined} onClick={() => onExpandedChange(!expanded)}>
         <span className="model-queue-title">队列 <span>{active.length} 活动</span></span>
-        <img src={asset(expanded ? 'chevron' : 'chevron-right')} alt="" />
+        <img className="model-queue-chevron" src={asset('chevron-right')} alt="" />
       </button>
       {expanded && tasks.length > 0 && <button className="model-queue-clear" type="button"
         title="清除已结束的任务" disabled={!(canClear ?? active.length < tasks.length)} onClick={onClear}>清除</button>}
-    </header>
-    <AnimatePresence initial={false}>
-      {expanded && <QueueBody key="body" id={bodyId} tasks={tasks} onExitFocus={() => toggle.current?.focus({ preventScroll: true })} {...actions} />}
-    </AnimatePresence>
-  </section>;
+    </motion.header>
+    {expanded && <QueueBody id={bodyId} tasks={tasks} onExitFocus={() => toggle.current?.focus({ preventScroll: true })} {...actions} />}
+  </motion.section>;
 }
