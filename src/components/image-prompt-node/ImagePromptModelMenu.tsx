@@ -26,9 +26,11 @@ interface ModelMenuProps<Id extends string> {
   onPinnedChange: (pinned: Id[]) => void;
   onClose: (restoreFocus?: boolean) => void;
   singleSelection?: boolean;
+  multipleHelp?: string;
 }
 
-export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, label = '选择图像模型', selection, onChange, pinned, onPinnedChange, onClose, singleSelection = false }: ModelMenuProps<Id>) {
+export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, label = '选择图像模型', selection, onChange, pinned, onPinnedChange, onClose, singleSelection = false,
+  multipleHelp = '第一个选中的模型在当前节点生成，其余模型分别新建节点。' }: ModelMenuProps<Id>) {
   const panel = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
   const pendingPinFocus = useRef<Id | null>(null);
@@ -139,7 +141,7 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
         <button id={autoSelectId} type="button" role="switch" aria-label="自动选择模型" aria-checked={selection.autoSelect} className="image-model-switch" onClick={() => onChange({ ...selection, autoSelect: !selection.autoSelect, multiple: false })}><span /></button>
       </div>
       <div className="image-model-setting">
-        <span><label htmlFor={multipleId}>使用多个模型</label><ImagePromptInfoTip label="使用多个模型">选择多个模型生成时，每个模型都会新建一个节点。</ImagePromptInfoTip></span>
+        <span><label htmlFor={multipleId}>使用多个模型</label><ImagePromptInfoTip label="使用多个模型">{multipleHelp}</ImagePromptInfoTip></span>
         <button id={multipleId} type="button" role="switch" aria-label="使用多个模型" aria-checked={selection.multiple} className="image-model-switch" onClick={() => onChange({ ...selection, autoSelect: false, multiple: !selection.multiple, modelIds: selection.multiple ? selection.modelIds.slice(0, 1) : selection.modelIds })}><span /></button>
       </div>
     </div>}

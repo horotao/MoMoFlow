@@ -16,6 +16,7 @@ import { createImportedCanvasImage } from './importCanvasImage.ts';
 import { canConnect } from './connectionRules.ts';
 import { nodeAssetUrls } from './assetResources.ts';
 import { changeComposerSettings } from './imageComposerSettings.ts';
+import { imageModelBranches } from './imageModelBranches.ts';
 
 const file = (id: string): AppNode => ({ id, type: 'file', position: { x: 0, y: 0 }, data: { assets: [{ id, name: id, kind: 'image', url: `blob:${id}` }] } });
 const generator = (id: string): AppNode => ({ id, type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, imageInputs: 1 } });
@@ -93,6 +94,89 @@ test('queue names snapshot the actual composer model from waiting through comple
       assert.ok(h.store.getSnapshot().every(task => task.model === model && modelTaskLabel(task) === label));
     } finally { h.engine.dispose(); }
   }
+});
+
+test('multi-model Image runs the first model on the original and queues new nodes for the other models', async () => {
+  const image = createLibraryNode('image', { x: 0, y: 0 }) as CanvasImage;
+  image.data = {
+    ...image.data, provider: 'apimart', channelModel: 'gpt-image-2.6-ext', variant: 'Flare',
+    results: [generatedAsset('previous')], activeResultId: 'previous',
+    ...changeComposerSettings({ ...image.data, variant: 'Flare' }, { quantity: 2, selection: {
+      modelIds: ['gpt-image-2-6', 'seedream-5-5', 'gpt-image-2-6-flare'], autoSelect: false, multiple: true,
+    } }),
+  };
+  const input = createImportedCanvasImage(generatedAsset('reference'), { x: -500, y: 0 });
+  const prompt = createLibraryNode('text', { x: 0, y: -500 });
+  prompt.data.textComposer.prompt = 'Use the same input for each model.';
+  const target = createLibraryNode('image', { x: 500, y: 0 }) as CanvasImage;
+  target.data.composer.prompt = 'Use the latest result from the original node.';
+  const graph = { nodes: [image, input, prompt, target], edges: [
+    edge(prompt.id, image.id, 'prompt', 'text'), edge(input.id, image.id, 'image-0', 'result'),
+    edge(image.id, target.id, 'image-0', 'result'),
+  ] };
+  const bounds = (id: string) => ({ ...graph.nodes.find(node => node.id === id)!.position, width: 384, height: 384 });
+  const additions = imageModelBranches(image, graph.nodes, graph.edges, bounds)!;
+  const [seedream, flare] = additions.nodes;
+  let releaseSeedream!: () => void;
+  const pendingSeedream = new Promise<void>(resolve => { releaseSeedream = resolve; });
+  const h = harness(graph, async (task) => {
+    if (task.seedreamRequest) {
+      await pendingSeedream;
+      throw new Error('Seedream failed');
+    }
+    return generatedAsset(crypto.randomUUID());
+  });
+  try {
+    const options = { additions: { sourceId: image.id, graph: additions,
+      publish: () => h.edit(current => ({ nodes: [...current.nodes, ...additions.nodes], edges: [...current.edges, ...additions.edges] })),
+    } };
+    const done = h.engine.run([image.id], 2, undefined, options);
+    assert.deepEqual(additions.nodes.map(node => node.data.composer.selection?.modelIds[0]),
+      ['seedream-5-5', 'gpt-image-2-6-flare']);
+    assert.ok(seedream.position.x > target.position.x + 384);
+    assert.equal(additions.edges.length, 4);
+    assert.deepEqual(h.store.getSnapshot().map(task => [task.nodeId, task.state, modelTaskLabel(task)]), [
+      [image.id, 'Queued', 'GPT Image 2.6 Sunburst'], [image.id, 'Queued', 'GPT Image 2.6 Sunburst'],
+      [seedream.id, 'Queued', 'Seedream 5.5'], [seedream.id, 'Queued', 'Seedream 5.5'],
+      [flare.id, 'Queued', 'GPT Image 2.6 Flare'], [flare.id, 'Queued', 'GPT Image 2.6 Flare'],
+    ]);
+    assert.equal(new Set(h.store.getSnapshot().map(task => task.batchId)).size, 1);
+    assert.throws(() => h.engine.run([image.id], 1), /已有运行中的任务/);
+    assert.equal(await done, true);
+    assert.ok(h.store.getSnapshot().some(task => task.nodeId === seedream.id && isActiveTask(task)));
+    assert.throws(() => h.engine.run([image.id], 1), /已有运行中的任务/);
+    const original = h.node(image.id) as CanvasImage;
+    assert.equal(original.data.results?.length, 3);
+    assert.deepEqual(original.data.results?.[0], image.data.results?.[0]);
+    assert.deepEqual(original.data.composer, image.data.composer);
+    assert.deepEqual(original.position, image.position);
+    assert.deepEqual(h.graph.edges.slice(0, 3), graph.edges);
+    assert.ok(await h.engine.run([target.id], 1, undefined, { existingImagesOnly: true }));
+    assert.deepEqual(h.requests.find(task => task.nodeId === target.id)?.imageRequest?.images, [selectedResult(original)?.url]);
+    releaseSeedream();
+    await until(() => h.store.getSnapshot().every(task => !isActiveTask(task)));
+    assert.deepEqual(h.requests.filter(task => task.nodeId !== target.id)
+      .map(task => task.imageRequest ?? task.seedreamRequest).map(request => [request?.prompt, request?.images]),
+      Array.from({ length: 6 }, () => [prompt.data.textComposer.prompt, ['blob:reference']]));
+    assert.deepEqual(h.requests.filter(task => task.nodeId === image.id).map(task => task.imageRequest?.variant), ['Sunburst', 'Sunburst']);
+    assert.deepEqual(h.requests.filter(task => task.nodeId === flare.id).map(task => task.imageRequest?.variant), ['Flare', 'Flare']);
+    assert.deepEqual(h.store.getSnapshot().slice(0, 6).map(task => task.state), ['Done', 'Done', 'Failed', 'Failed', 'Done', 'Done']);
+    assert.equal((h.node(seedream.id) as CanvasImage).data.results, undefined);
+    assert.equal((h.node(flare.id) as CanvasImage).data.results?.length, 2);
+  } finally { h.engine.dispose(); releaseSeedream(); }
+});
+
+test('multi-model Image validates the prompt before adding branches or submitting tasks', () => {
+  const image = createLibraryNode('image', { x: 0, y: 0 }) as CanvasImage;
+  image.data.composer.selection = { modelIds: ['gpt-image-2-6', 'seedream-5-5'], autoSelect: false, multiple: true };
+  const h = harness({ nodes: [image], edges: [] });
+  try {
+    const branches = imageModelBranches(image, h.graph.nodes, [], () => ({ x: 0, y: 0, width: 384, height: 384 }))!;
+    assert.throws(() => h.engine.run([image.id], 1, undefined, { additions: {
+      sourceId: image.id, graph: branches, publish: () => assert.fail('Invalid branches must not be published'),
+    } }), /提示词/);
+    assert.deepEqual(h.store.getSnapshot(), []);
+  } finally { h.engine.dispose(); }
 });
 
 test('imported canvas images only supply references and replacements keep their connections', async () => {

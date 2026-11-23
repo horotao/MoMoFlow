@@ -2,11 +2,13 @@ import { useWorkflowExecution } from './useWorkflowExecution';
 import { ExecutionProblem, isModelNode } from '../nodes/executionGraph';
 import { apimartExtMarkupError } from '../nodes/sunburst';
 import { useCallback, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { useReactFlow } from '@xyflow/react';
 import { TaskManager } from './TaskManager';
 import { useModelTaskStore } from './useModelTasks';
-import { isCanvasTextNode, isNodeLocked, isSunburstNode } from '../nodes/types';
+import { isCanvasImageNode, isCanvasTextNode, isNodeLocked, isSunburstNode } from '../nodes/types';
 import type { AppNode } from '../nodes/types';
+import { imageModelBranches } from '../nodes/imageModelBranches';
 import { startCanvasTextRun } from '../nodes/canvasTextRun';
 import { canvasRunSelectionEvent, generationNodes, maxSelectionGenerationNodes, runGenerationSelection, selectedGenerationNodes } from '../nodes/selectionGeneration';
 import { AnimatedToastStack, type ToastInput } from './ui/AnimatedToastStack';
@@ -29,7 +31,7 @@ function executionErrorToast(error: unknown, title: string): ToastInput {
 }
 
 export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (prompt: string) => Promise<void> }) {
-  const { setNodes, getNodes, getEdges, getNode, getNodesBounds, setCenter } = useReactFlow<AppNode>();
+  const { setNodes, setEdges, getNodes, getEdges, getNode, getNodesBounds, setCenter } = useReactFlow<AppNode>();
   const taskStore = useModelTaskStore();
   const execution = useWorkflowExecution(onImageGenerated);
   const { toasts, showToast, dismissToast, clearToasts } = useAnimatedToastStack({ limit: 4 });
@@ -39,24 +41,39 @@ export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (promp
     setNodes(nodes => nodes.map(node => ({ ...node, selected: node.id === id })));
     void setCenter(x + width / 2, y + height / 2, { zoom: .8, duration: 300 });
   }, [getNodes, getNodesBounds, setNodes, setCenter]);
+  const runImage = useCallback((ids: string[], existingImagesOnly = false) => {
+    const node = ids.length === 1 ? getNode(ids[0]) : undefined;
+    const quantity = (node && isSunburstNode(node) ? node.data.composer?.quantity : undefined) ?? taskStore.getRuns();
+    const branches = node && isCanvasImageNode(node) && isModelNode(node) && !isNodeLocked(node)
+      ? imageModelBranches(node, getNodes(), getEdges(), id => getNodesBounds([id])) : undefined;
+    if (!node || !branches) return execution.current?.run(ids, quantity, undefined, { existingImagesOnly });
+    return execution.current?.run(ids, quantity, undefined, {
+      existingImagesOnly,
+      additions: {
+        sourceId: node.id, graph: branches,
+        publish: () => flushSync(() => {
+          setNodes(current => [...current, ...branches.nodes]);
+          setEdges(current => [...current, ...branches.edges]);
+        }),
+      },
+    });
+  }, [execution, getNode, getNodes, getEdges, getNodesBounds, setNodes, setEdges, taskStore]);
   useEffect(() => {
     const run = (event: Event) => {
       const detail = (event as CustomEvent<string | string[]>).detail;
       const ids = Array.isArray(detail) ? detail : [detail];
       try {
-        const node = ids.length === 1 ? getNodes().find(item => item.id === ids[0]) : undefined;
-        const quantity = node && isSunburstNode(node) ? node.data.composer?.quantity : undefined;
-        void execution.current?.run(ids, quantity ?? taskStore.getRuns());
+        void runImage(ids);
         clearToasts();
       } catch (error) {
         showToast(executionErrorToast(error, '无法运行模型'));
-        if (error instanceof ExecutionProblem) focusNode(error.nodeId);
+        if (error instanceof ExecutionProblem) focusNode(getNode(error.nodeId) ? error.nodeId : ids[0]);
       }
     };
     window.addEventListener('describer-run', run);
     window.addEventListener('sunburst-run', run);
     return () => { window.removeEventListener('describer-run', run); window.removeEventListener('sunburst-run', run); };
-  }, [getNodes, taskStore, execution, focusNode, showToast, clearToasts]);
+  }, [getNode, runImage, focusNode, showToast, clearToasts]);
   useEffect(() => {
     const selectedRuns = new Map<string, Promise<boolean>>();
     let disposed = false;
@@ -73,8 +90,7 @@ export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (promp
         try {
           if (isCanvasTextNode(node)) return Boolean(await startCanvasTextRun(id));
           if (!isModelNode(node)) return false;
-          const quantity = isSunburstNode(node) ? node.data.composer?.quantity : undefined;
-          return Boolean(await execution.current?.run([id], quantity ?? taskStore.getRuns(), undefined, { existingImagesOnly: true }));
+          return Boolean(await runImage([id], true));
         } catch (error) {
           showToast(executionErrorToast(error, '无法运行所选节点'));
           return false;
@@ -86,7 +102,7 @@ export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (promp
       disposed = true;
       window.removeEventListener(canvasRunSelectionEvent, runSelection);
     };
-  }, [getNodes, getEdges, getNode, execution, taskStore, clearToasts, showToast]);
+  }, [getNodes, getEdges, getNode, runImage, clearToasts, showToast]);
   return <>
     <TaskManager
       onRetry={(task) => {

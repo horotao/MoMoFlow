@@ -1,19 +1,21 @@
 import type { SeedreamRequest } from './seedream';
 import type { NanoBananaRequest } from './nanoBanana';
-import type { SunburstRequest } from './sunburst';
+import type { SunburstRequest, SunburstVariant } from './sunburst';
 import { imageModelName } from './imageMetadata.ts';
 export type TaskState = 'Queued' | 'Running' | 'Done' | 'Cancelled' | 'Failed' | 'TimedOut';
 export type PreviewTask = {
   id: string; batchId: string; nodeId: string; model: string; createdAt: number;
   imageRequest?: SunburstRequest; nanoBananaRequest?: NanoBananaRequest; seedreamRequest?: SeedreamRequest;
   progress: number; state: TaskState; started: number; error?: string; notice?: string; label?: string;
+  imageVariant?: SunburstVariant;
   seedreamGroup?: { imageId: string; index: number; total: number };
 };
 export const isActiveTask = (task: PreviewTask) => task.state === 'Queued' || task.state === 'Running';
 
-export function modelTaskLabel(task: Pick<PreviewTask, 'model' | 'seedreamGroup'>): string {
+export function modelTaskLabel(task: Pick<PreviewTask, 'model' | 'seedreamGroup' | 'imageVariant'>): string {
   const group = task.seedreamGroup;
-  return imageModelName(task.model) + (group ? ` · 原图 ${group.index + 1}/${group.total}` : '');
+  const name = task.imageVariant ? `GPT Image 2.6 ${task.imageVariant}` : imageModelName(task.model);
+  return name + (group ? ` · 原图 ${group.index + 1}/${group.total}` : '');
 }
 
 // The synchronous model APIs do not report progress. Ease toward 95%, and only

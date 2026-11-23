@@ -4,7 +4,9 @@
 
 工具栏与生成选项共用比例列表：自动、1:1，横向 3:1 / 21:9 / 2:1 / 16:9 / 3:2 / 4:3 / 5:4，纵向 4:5 / 3:4 / 2:3 / 9:16 / 1:2 / 9:21 / 1:3。两处按模型与渠道筛选；APIMart EXT 不展示 2:1、1:2、3:1、1:3、9:21，APIMart 标准与 OpenAI 官方可选全部。切换到不支持当前比例的模型或渠道时恢复自动比例。OpenAI 的 9:21 与其他比例使用同一套精确比例尺寸预设，1K / 2K / 4K 分别为 768×1792、864×2016、1632×3808。
 
-节点内的生成按钮使用当前提示词、参考图、参数和数量提交任务。当前执行入口接入 GPT Image 2.6、Seedream 5.5、Nano Banana 2.1 和 Nano Banana Pro；自动选择或多模型模式会在运行前提示不支持。Seedream、Nano Banana 2.1 和 Nano Banana Pro 的高级设置按模型保存在 `composer.modelSettings`，切换模型后保留；GPT Image 沿用节点已有设置，OpenAI 官方渠道将比例和分辨率转换为像素尺寸。OpenAI 的比例为「自动」时仍可选择 1K / 2K / 4K，此操作同时将比例设为 1:1；选择固定比例后可独立调整分辨率，重新选择自动比例则恢复自动尺寸。APIMart 支持自动比例与分辨率独立选择。
+节点内的生成按钮使用当前提示词、参考图、参数和数量提交任务。当前执行入口接入 GPT Image 2.6、Seedream 5.5、Nano Banana 2.1 和 Nano Banana Pro。开启「使用多个模型」后，点击生成会让第一个选中的模型在原节点生成，其余模型各在右侧新建一个 Image 节点，所有任务立即加入队列。生成数量按每个模型计算，例如两个模型各生成两张，共四个任务。新节点复用提示词与参考图连线，使用所选模型的设置；不支持当前比例时按该模型的自动比例处理。自动选择模型暂未接入。
+
+Seedream、Nano Banana 2.1 和 Nano Banana Pro 的高级设置按模型保存在 `composer.modelSettings`，切换模型后保留；GPT Image 沿用节点已有设置，OpenAI 官方渠道将比例和分辨率转换为像素尺寸。OpenAI 的比例为「自动」时仍可选择 1K / 2K / 4K，此操作同时将比例设为 1:1；选择固定比例后可独立调整分辨率，重新选择自动比例则恢复自动尺寸。APIMart 支持自动比例与分辨率独立选择。
 
 工具栏与生成选项均可选择 GPT Image 2.6 Sunburst 或 Flare。两者共用渠道、比例、分辨率、背景、画质和输出格式设置，切换模型时沿用当前参数。OpenAI 官方渠道使用所选模型 ID，文生图请求发送至 `/v1/images/generations`，带参考图的编辑请求发送至 `/v1/images/edits`。APIMart 标准直接提交 `gpt-image-2.6-sunburst` 或 `gpt-image-2.6-flare`，APIMart EXT 提交 `gpt-image-2.6-ext` 并按选择传入 `version`。旧节点保存的 Flare 版本也会显示为 Flare。[OpenAI Flare 模型文档](https://developers.openai.com/api/docs/models/gpt-image-2.6-flare) · [APIMart 标准版文档](https://docs.apimart.ai/cn/api-reference/images/gpt-image-2.6/generation)
 

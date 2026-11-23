@@ -290,7 +290,7 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
 }
 
 export function preflight(graph: ExecutionGraph, targets: string[], runs: number) {
-  const maxRuns = targets.length === 1 && graph.nodes.some(node => node.id === targets[0] && node.type === 'sunburst' && 'composer' in node.data && node.data.composer) ? 20 : 10;
+  const maxRuns = targets.every(id => graph.nodes.some(node => node.id === id && isCanvasImageNode(node))) ? 20 : 10;
   if (!Number.isInteger(runs) || runs < 1 || runs > maxRuns) throw new Error(`运行次数必须为 1–${maxRuns}。`);
   const dependencies = new Map<string, Set<string>>();
   for (const target of targets) {

@@ -57,11 +57,12 @@ export function changeComposerSettings(data: SunburstNode['data'], change: Parti
   const composer = { ...data.composer!, ...change };
   const model = change.selection?.modelIds[0] ?? composerModelId({ ...data, composer });
   const variant = gptImageVariants[model];
-  const selectedVariant = change.selection && variant ? { variant } : {};
+  const nextVariant = change.selection?.modelIds.map(id => gptImageVariants[id]).find(Boolean);
+  const selectedVariant = nextVariant ? { variant: nextVariant } : {};
   const updated = { ...data, ...selectedVariant, composer };
   if (change.ratio !== undefined) delete composer.followReferenceRatio;
   if (change.selection && !composerAspectRatios(updated).includes(composer.ratio)) composer.ratio = 'auto';
-  if (!variant) return { composer: { ...composer, modelSettings: {
+  if (!variant) return { ...selectedVariant, composer: { ...composer, modelSettings: {
     ...composer.modelSettings, [model]: { ...savedComposerModelSettings(composer.modelSettings, model), ...settings },
   } } };
   if (change.ratio === undefined && settings.resolution === undefined && !change.selection) return { ...settings, composer };
@@ -93,8 +94,10 @@ export function changeComposerChannel(data: SunburstNode['data'], channel: Sunbu
 export function composerExecutionNode(node: ImageGeneratorNode): ImageGeneratorNode {
   if (node.type !== 'sunburst' || !node.data.composer) return node;
   const selection = composerModelSelection(node.data);
-  if (selection.autoSelect || selection.modelIds.length !== 1) throw new Error('请选择一个生成模型。');
-  const model = composerModelId(node.data);
+  const [model] = selection.modelIds;
+  if (selection.autoSelect || !model || (selection.modelIds.length > 1 && (!selection.multiple || node.data.inpaint))) {
+    throw new Error('请选择一个生成模型。');
+  }
   const variant = gptImageVariants[model];
   if (variant) return { ...node, data: { ...node.data, variant, imageInputs: node.data.inpaint ? 1 : 16 } };
   if (node.data.inpaint) throw new Error('局部重绘需要选择 GPT Image 2.6 Sunburst 或 Flare。');

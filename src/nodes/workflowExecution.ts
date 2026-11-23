@@ -22,9 +22,13 @@ export type ExecutionIO = {
   patch: (id: string, data: Record<string, unknown>, publishImmediately?: boolean) => void;
   onImageGenerated?: (prompt: string) => Promise<void>;
 };
-type Root = { refreshImages: ReadonlySet<string>; existingImagesOnly?: boolean; id: string; batchId: string; controller: AbortController; guard: string; tasks: string[]; memo: Map<string, Promise<void>>; remote: Map<string, FileAsset>; outputs: Map<string, Record<string, unknown>>; releases: (() => void)[]; done?: Promise<void> };
+type Root = { refreshImages: ReadonlySet<string>; existingImagesOnly?: boolean; id: string; sourceId?: string; batchId: string; controller: AbortController; guard: string; tasks: string[]; memo: Map<string, Promise<void>>; remote: Map<string, FileAsset>; outputs: Map<string, Record<string, unknown>>; releases: (() => void)[]; done?: Promise<void> };
 type Flight = { nodeId: string; tasks: string[]; controller: AbortController; consumers: Set<AbortSignal>; promise: Promise<Record<string, unknown>> };
 type ModelAttempt = { prepared: PreviewTask; signature: string };
+type RunOptions = {
+  existingImagesOnly?: boolean;
+  additions?: { sourceId: string; graph: ExecutionGraph; publish: () => void };
+};
 
 function describeAttempt(task: PreviewTask, prepared: PreviewTask): PreviewTask {
   const described = { ...task, model: prepared.model, seedreamGroup: prepared.seedreamGroup };
@@ -110,24 +114,39 @@ export class WorkflowExecution {
       return snapshot ? { ...asset, url: snapshot.url, contentHash: snapshot.contentHash ?? asset.contentHash } : asset;
     }) };
   }
-  run(ids: string[], runs: number, seedreamGroupId?: string, { existingImagesOnly = false } = {}) {
+  run(ids: string[], runs: number, seedreamGroupId?: string, { existingImagesOnly = false, additions }: RunOptions = {}) {
     if (this.stopped) throw new Error('执行器已关闭。');
-    const targets = [...new Set(ids)];
-    if (!targets.length) return Promise.resolve(false);
-    if (targets.some(id => [...this.roots].some(root => root.id === id) || [...this.flights.values()].some(flight => flight.nodeId === id))) throw new Error('选中节点已有运行中的任务，请等待完成后再运行。');
+    const requested = new Set(ids);
+    if (!requested.size) return Promise.resolve(false);
+    const targets = [...new Set([...requested, ...(additions?.graph.nodes.map(node => node.id) ?? [])])];
     const running = new Set([...this.roots].map(root => root.id).concat([...this.flights.values()].map(flight => flight.nodeId)));
-    const refreshImages = new Set(this.graph.nodes.filter(node => isImageGeneratorNode(node)
+    const sourceId = additions?.sourceId;
+    if (targets.some(id => running.has(id)) || [...this.roots].some(root => root.sourceId && requested.has(root.sourceId))) {
+      throw new Error('选中节点已有运行中的任务，请等待完成后再运行。');
+    }
+    const graph = additions ? { nodes: [...this.graph.nodes, ...additions.graph.nodes], edges: [...this.graph.edges, ...additions.graph.edges] } : this.graph;
+    const refreshImages = new Set(graph.nodes.filter(node => isImageGeneratorNode(node)
       && (!selectedResult(node) || targets.includes(node.id) || running.has(node.id))).map(node => node.id));
-    const plannedGraph = { ...this.graph, refreshImages, existingImagesOnly };
+    const plannedGraph = { ...graph, refreshImages, existingImagesOnly };
     preflight(plannedGraph, targets, runs);
     const batchId = crypto.randomUUID();
-    const roots = targets.map(id => {
-      const tasks = Array.from({ length: runs }, () => this.placeholder(id, batchId));
-      const root: Root = { refreshImages, existingImagesOnly, id, batchId, tasks: tasks.map(task => task.id), controller: new AbortController(), guard: graphGuard(plannedGraph, id, true), memo: new Map(), remote: new Map(), outputs: new Map(), releases: [] };
-      this.roots.add(root);
-      this.store.update(current => [...current, ...tasks]);
-      return root;
+    const planned = targets.map(id => {
+      const node = graph.nodes.find(item => item.id === id)!;
+      const tasks = Array.from({ length: runs }, () => this.placeholder(node, batchId, Boolean(additions)));
+      const root: Root = {
+        refreshImages, existingImagesOnly, id, sourceId, batchId, tasks: tasks.map(task => task.id),
+        controller: new AbortController(), guard: graphGuard(plannedGraph, id, true),
+        memo: new Map(), remote: new Map(), outputs: new Map(), releases: [],
+      };
+      return { root, tasks };
     });
+    if (additions) {
+      this.graph = graph;
+      additions.publish();
+    }
+    const roots = planned.map(({ root }) => root);
+    roots.forEach(root => this.roots.add(root));
+    this.store.update(current => [...current, ...planned.flatMap(({ tasks }) => tasks)]);
     for (const root of roots) {
       // Deferral lets every selected target register before dependency traversal.
       root.done = Promise.resolve().then(async () => {
@@ -166,20 +185,23 @@ export class WorkflowExecution {
         }
       });
     }
-    return Promise.all(roots.map(root => root.done)).then(() => roots.every(root => root.outputs.has(root.id)));
+    // A connected consumer waits for the output of the node it is wired to.
+    const requestedRoots = roots.filter(root => requested.has(root.id));
+    return Promise.all(requestedRoots.map(root => root.done)).then(() => requestedRoots.every(root => root.outputs.has(root.id)));
   }
-  private placeholder(id: string, batchId: string): PreviewTask {
-    const node = this.graph.nodes.find(item => item.id === id)!;
+  private placeholder(node: AppNode, batchId: string, distinguishVariants = false): PreviewTask {
     if (!isModelNode(node)) nodeProblem(node, '节点已下线或不能运行。');
     const selected = composerExecutionNode(node);
     let model: string;
+    let imageVariant: PreviewTask['imageVariant'];
     if (selected.type === 'sunburst') {
       const settings = effectiveSunburstSettings(selected);
       model = sunburstModelForProvider(settings.provider, settings.variant, settings.channelModel);
+      if (distinguishVariants && model === 'gpt-image-2.6-ext') imageVariant = settings.variant;
     } else {
       model = selected.type === 'seedream' ? seedreamModel : selected.data.model ?? nanoBananaModel;
     }
-    return { id: crypto.randomUUID(), nodeId: id, batchId, label: modelTaskLabel({ model }), model, createdAt: Date.now(), state: 'Queued', progress: 0, started: 0, notice: '等待上游' };
+    return { id: crypto.randomUUID(), nodeId: node.id, batchId, label: modelTaskLabel({ model, imageVariant }), model, imageVariant, createdAt: Date.now(), state: 'Queued', progress: 0, started: 0, notice: '等待上游' };
   }
   private expandRootTasks(root: Root, attempts: ModelAttempt[]) {
     const current = this.store.getSnapshot();
@@ -188,7 +210,7 @@ export class WorkflowExecution {
       const task = current.find(item => item.id === id);
       if (!task || !isActiveTask(task)) return [];
       return attempts.map((attempt, index) => {
-        const queued = describeAttempt(index ? this.placeholder(root.id, root.batchId) : task, attempt.prepared);
+        const queued = describeAttempt(index ? { ...task, id: crypto.randomUUID() } : task, attempt.prepared);
         if (index) added.push(queued);
         else if (queued !== task) updated.set(id, queued);
         return { ...attempt, taskId: queued.id };
@@ -285,7 +307,8 @@ export class WorkflowExecution {
     const key = stableSignature([id, attempts.map(attempt => attempt.signature)]);
     let flight = this.flights.get(key);
     if (!flight || flight.controller.signal.aborted) {
-      const tasks = attempts.map(attempt => describeAttempt(this.placeholder(id, root.batchId), attempt.prepared));
+      const node = this.graph.nodes.find(item => item.id === id)!;
+      const tasks = attempts.map(attempt => describeAttempt(this.placeholder(node, root.batchId), attempt.prepared));
       const controller = new AbortController();
       flight = { nodeId: id, tasks: tasks.map(task => task.id), controller, consumers: new Set(), promise: Promise.resolve({}) };
       this.flights.set(key, flight);

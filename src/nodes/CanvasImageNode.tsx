@@ -126,10 +126,11 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   const firstReference = inpaintInput?.image ?? inputs.find(input => input.asset)?.asset;
   const referenceWidth = dimensions(firstReference)?.width;
   const referenceHeight = dimensions(firstReference)?.height;
+  const generating = activeTasks.length > 0;
   useLayoutEffect(() => {
-    const patch = !inpaintInput && referenceRatioSettings(data, { width: referenceWidth, height: referenceHeight });
+    const patch = !inpaintInput && !generating && referenceRatioSettings(data, { width: referenceWidth, height: referenceHeight });
     if (patch) updateNodeData(id, patch);
-  }, [id, data, inpaintInput, referenceWidth, referenceHeight, updateNodeData]);
+  }, [id, data, inpaintInput, generating, referenceWidth, referenceHeight, updateNodeData]);
   const ratio = composerAspectRatio(data);
   const { width, height } = inpaint.size ?? crop.size ?? canvasImageSize(ratio, dimensions(active), dimensions(firstReference), task);
   useLayoutEffect(() => { internals(id); }, [id, internals, available, edges, width, height]);

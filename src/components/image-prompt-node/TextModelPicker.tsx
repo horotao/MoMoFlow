@@ -23,6 +23,7 @@ export function TextModelPicker({ selection, onChange, locked = false, hidden = 
   return <>
     {appearance === 'toolbar' ? <NodeToolbarTooltip label="选择文本模型">{modelButton}</NodeToolbarTooltip> : modelButton}
     {open && !locked && !hidden && <ImagePromptModelMenu id={id} anchor={trigger} label="选择文本模型" models={textModels}
+      multipleHelp="文本生成目前支持单个模型。"
       selection={textModelSelection(selection)} onChange={onChange} pinned={pinned} onPinnedChange={setPinned} onClose={close} />}
   </>;
 }
