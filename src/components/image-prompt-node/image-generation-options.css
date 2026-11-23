@@ -30,7 +30,7 @@
 .generation-options-heading > span:first-of-type { flex: 1; }
 .generation-options-heading > .image-node-icon { width: 12px; height: 12px; transform: rotate(0deg); }
 .generation-options-heading > .image-node-icon.is-collapsed { transform: rotate(-90deg); }
-.generation-options-content { padding: 12px 12px 4px; border-top: 1px solid #fafaf223; }
+.generation-options-content { padding: 12px; border-top: 1px solid #fafaf223; }
 .generation-options-model {
   display: flex; align-items: center; justify-content: center; gap: 4px;
   width: 100%; min-height: 32px; margin: 0 0 8px; padding: 4px 8px;

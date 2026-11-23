@@ -2,10 +2,53 @@
   position: absolute; z-index: 12; top: var(--canvas-inspector-top, 106px); right: 8px;
   display: flex; flex-direction: column; gap: 4px;
   width: min(320px, calc(100% - 88px)); max-height: calc(100% - var(--canvas-inspector-top, 106px) - 80px);
-  overflow: auto; overscroll-behavior: contain; scrollbar-width: thin;
+  overflow: visible;
 }
 .image-inspector > .image-generation-options {
-  position: relative; inset: auto; flex-shrink: 0; width: 100%; max-height: none; overflow: visible;
+  position: relative; inset: auto; flex-shrink: 1; min-height: 42px;
+  width: 100%; max-height: none; scroll-padding-top: 42px;
+}
+.image-inspector > :is(.image-information, .image-generation-options) {
+  overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: transparent transparent;
+}
+.image-inspector > :is(.image-information, .image-generation-options)::-webkit-scrollbar { width: 12px; height: 12px; background: transparent; }
+.image-inspector > :is(.image-information, .image-generation-options)::-webkit-scrollbar-track { margin-block: 8px; background: transparent; }
+.image-inspector > :is(.image-information, .image-generation-options)::-webkit-scrollbar-thumb {
+  border: 4px solid transparent; border-radius: 6px; background: transparent; background-clip: padding-box;
+}
+.image-inspector > :is(.image-information, .image-generation-options)::-webkit-scrollbar-button { display: none; }
+.image-inspector > :is(.image-information, .image-generation-options)::-webkit-scrollbar-corner { background: transparent; }
+@media (hover: hover) and (pointer: fine) {
+  .image-inspector > :is(.image-information, .image-generation-options):hover { scrollbar-color: rgb(181 179 173 / 35%) transparent; }
+  .image-inspector > :is(.image-information, .image-generation-options):hover::-webkit-scrollbar-thumb { background-color: rgb(181 179 173 / 35%); }
+}
+@supports selector(::-webkit-scrollbar) {
+  /* Let the explicit thumb style win over Chromium's native overlay scrollbar. */
+  .image-inspector > :is(.image-information, .image-generation-options),
+  .image-inspector > :is(.image-information, .image-generation-options):hover { scrollbar-width: auto; scrollbar-color: auto; }
+}
+.image-inspector > .image-information {
+  /* Keep ordinary metadata intact, while leaving room for options in short windows. */
+  max-height: max(48px, calc((100dvh - var(--canvas-inspector-top, 106px) - 84px) / 2));
+  scroll-padding-top: 46px;
+}
+.image-inspector:not(:has(> .image-generation-options)) > .image-information {
+  max-height: calc(100dvh - var(--canvas-inspector-top, 106px) - 80px);
+}
+.image-inspector:has(> .image-generation-options .generation-options-heading[aria-expanded=false]) > .image-information {
+  max-height: max(48px, calc(100dvh - var(--canvas-inspector-top, 106px) - 126px));
+}
+.image-inspector .image-information > header, .image-inspector .image-generation-options > h3 {
+  position: sticky; top: 0; z-index: 1; background: #191918;
+}
+.image-inspector .image-generation-options > h3 { box-shadow: 0 1px #fafaf223; }
+.image-inspector .generation-options-content { border-top: 0; }
+@media (max-height: 360px) {
+  /* At extreme heights the heading must also scroll so it cannot cover the whole card. */
+  .image-inspector .image-information > header, .image-inspector .image-generation-options > h3 { position: static; }
+  .image-inspector > :is(.image-information, .image-generation-options) { scroll-padding-top: 0; }
+  .image-inspector .generation-options-content { padding-bottom: 0; }
 }
 .image-information, .image-information-menu {
   box-sizing: border-box; color: #eeeeec; color-scheme: dark;

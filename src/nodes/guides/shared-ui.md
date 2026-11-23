@@ -125,7 +125,7 @@ Image 空态、结果图片、导入图片和 Text 共用 [NodeColorGlow](../../
 
 本轮视觉复验在独立存储的实际主画布完成，覆盖未选色悬停、七色全选、连续反向开合、键盘关闭和减少动态效果。相同 CSS 尺寸下，Flora 与本地面板均为 283.96875 × 50px，选中色点底色、SVG 几何、字体、模糊与阴影已逐项核对。[Flora 色板参考](../../../docs/screenshots/node-color-tags/flora-picker-reference.jpg) · [修正后细节](../../../docs/screenshots/node-color-tags/node-picker-detail.jpg) · [修正后主画布](../../../docs/screenshots/node-color-tags/node-picker-flora-match.jpg)。
 
-右上角色组与 Image／Text 检查器共用 [右侧面板定位](../../components/canvas-right-panels.css)：色组顶部 66px、行高 24px，下方保留 16px，再从 106px 开始显示信息卡片；两者距画布右缘均为 8px。色组悬停、启用计数和信息卡片折叠不改变这段间距。短窗口保留同一顶部定位，检查器在扣除顶部和底部 80px 后的可用高度内滚动，不再提前到色组后面。
+右上角色组与 Image／Text 检查器共用 [右侧面板定位](../../components/canvas-right-panels.css)：色组顶部 66px、行高 24px，下方保留 16px，再从 106px 开始显示信息卡片；两者距画布右缘均为 8px。色组悬停、启用计数和信息卡片折叠不改变这段间距。短窗口保留同一顶部定位，并扣除底部 80px。外层检查器不滚动，信息与生成选项各自在卡片内部独立滚动，使用透明轨道，滑块默认透明，仅悬停所在卡片时显示；Chromium 使用 12px 透明轨道和两侧 4px 透明边框，滑块可见宽度 4px、距卡片外缘 5px、灰色透明度 35%，不改变内容宽度或滚动位置。卡片圆角、底边与模块间距保持完整。信息卡片过高时最多占可用高度的一半，为生成选项留出操作空间；生成选项折叠或导入图片没有生成选项时，信息卡片可使用剩余高度。普通窗口固定各卡片标题，极短窗口让标题随内容滚动，避免遮住整个模块。生成选项末尾保留 12px 内边距，费用行可完整滚到。 极短窗口取消末尾内边距，确保整行仍可滚入卡片。[独立滚动验收](../../../docs/screenshots/inspector-scrollbars/README.md)。
 
 间距修正的浏览器模拟验收覆盖 Image 空态、导入图片信息展开／收起、生成选项展开／收起、Text 信息模块、色组悬停与计数，以及 960 × 540 短窗口：均实测间隔 16px。短窗口检查器可滚动，滚动前后画布变换不变；验收后已恢复默认视口。[主画布截图](../../../docs/screenshots/node-color-tags/right-panel-spacing.jpg) · [右侧间距细节](../../../docs/screenshots/node-color-tags/right-panel-spacing-detail.jpg) · [短窗口](../../../docs/screenshots/node-color-tags/right-panel-short-window.jpg)。
 
