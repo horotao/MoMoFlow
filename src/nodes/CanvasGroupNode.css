@@ -1,0 +1,136 @@
+.react-flow .react-flow__node.canvas-group-node {
+  z-index: -1 !important;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.canvas-group, .canvas-group-resize-frame {
+  --group-px: calc(1px / var(--canvas-zoom, 1));
+}
+
+.canvas-group {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: var(--group-px) solid color-mix(in srgb, var(--group-color) 22%, transparent);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--group-color) 10%, transparent);
+  cursor: inherit;
+}
+
+.canvas-group-node:is(.selected, :focus-visible) .canvas-group {
+  border-color: color-mix(in srgb, var(--group-color) 65%, transparent);
+}
+
+.canvas-group-resize-frame {
+  position: absolute;
+  z-index: 1002;
+  pointer-events: none;
+}
+
+/* Keep the frame edge usable where it meets a nearby port's hover area. */
+.canvas-group-resize-frame .canvas-group-resize {
+  border: 0;
+  background: transparent;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.canvas-group-resize-frame .canvas-group-resize.line:is(.left, .right) {
+  width: min(calc(8 * var(--group-px)), 25%);
+}
+
+.canvas-group-resize-frame .canvas-group-resize.line:is(.top, .bottom) {
+  height: min(calc(8 * var(--group-px)), 25%);
+}
+
+.canvas-group-resize-frame .canvas-group-resize.handle {
+  width: min(calc(14 * var(--group-px)), 50%);
+  height: min(calc(14 * var(--group-px)), 50%);
+}
+
+.canvas-group-member-in-selected-frame .image-node .image-node-toolbar-bridge {
+  display: none;
+}
+
+.canvas-group-title {
+  position: absolute;
+  bottom: calc(100% + 5 * var(--group-px));
+  left: 0;
+  display: flex;
+  align-items: center;
+  width: max-content;
+  max-width: 200px;
+  padding: 4px 8px;
+  transform: scale(calc(1 / var(--canvas-zoom, 1)));
+  transform-origin: bottom left;
+  border: 1px solid rgb(250 250 242 / 13.7%);
+  border-radius: 8px;
+  background: color-mix(in srgb, #171716 88%, var(--group-color));
+  color: #eeeeec;
+  font: 500 13px/17px GeistSans, var(--font-ui), sans-serif;
+}
+
+:is([data-node-heading="icon"], [data-node-heading="hidden"]) .canvas-group-title:not(:focus-within) {
+  display: none;
+}
+
+.canvas-group-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canvas-group-title input {
+  width: 135px;
+  min-width: 0;
+  appearance: none;
+  font: inherit;
+  outline: 1px solid #b5b3ad;
+  border-radius: 2px;
+}
+
+.canvas-group-toolbar-anchor::after {
+  content: '';
+  position: absolute;
+  inset: 100% 0 auto;
+  height: 33px;
+}
+
+.canvas-group-toolbar-anchor:has(> .canvas-group-toolbar[aria-hidden="true"]) {
+  pointer-events: none;
+}
+
+.canvas-group-toolbar {
+  width: 194px;
+  gap: 1px;
+}
+
+.canvas-group-color-dot {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+
+.canvas-group-color-menu { min-width: 0; }
+.canvas-group-color-menu .canvas-alignment-item { height: 36px; }
+.canvas-group-color-menu .canvas-group-color-dot { width: 22px; height: 22px; }
+.canvas-group-color-menu [data-state="checked"] .canvas-group-color-dot {
+  outline: 1px solid #eeeeec;
+  outline-offset: 2px;
+}
+
+.canvas-group-download-error {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #212120;
+  color: #eeeeec;
+  white-space: nowrap;
+}

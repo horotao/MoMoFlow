@@ -19,10 +19,10 @@ export type ExecutionIO = {
   verify: (assets: FileAsset[], signal: AbortSignal) => Promise<void>;
   retain: (graph: ExecutionGraph) => () => void;
   discard: (assets: FileAsset[]) => void;
-  patch: (id: string, data: Record<string, unknown>) => void;
+  patch: (id: string, data: Record<string, unknown>, publishImmediately?: boolean) => void;
   onImageGenerated?: (prompt: string) => Promise<void>;
 };
-type Root = { refreshImages: ReadonlySet<string>; id: string; batchId: string; controller: AbortController; guard: string; tasks: string[]; memo: Map<string, Promise<void>>; remote: Map<string, FileAsset>; outputs: Map<string, Record<string, unknown>>; releases: (() => void)[]; done?: Promise<void> };
+type Root = { refreshImages: ReadonlySet<string>; existingImagesOnly?: boolean; id: string; batchId: string; controller: AbortController; guard: string; tasks: string[]; memo: Map<string, Promise<void>>; remote: Map<string, FileAsset>; outputs: Map<string, Record<string, unknown>>; releases: (() => void)[]; done?: Promise<void> };
 type Flight = { nodeId: string; tasks: string[]; controller: AbortController; consumers: Set<AbortSignal>; promise: Promise<Record<string, unknown>> };
 type ModelAttempt = { prepared: PreviewTask; signature: string };
 
@@ -79,12 +79,12 @@ export class WorkflowExecution {
       catch { root.controller.abort('依赖节点已删除或连接失效。'); }
     }
   }
-  private commit(id: string, data: Record<string, unknown>) {
+  private commit(id: string, data: Record<string, unknown>, publishImmediately: boolean) {
     this.graph = { ...this.graph, nodes: this.graph.nodes.map(node => node.id === id ? { ...node, data: { ...node.data, ...data } } as AppNode : node) };
     // Only an engine-owned successful commit advances edit guards. Cancelled
     // roots stay cancelled, even when undo later restores the same input hash.
     for (const root of this.roots) if (!root.controller.signal.aborted) root.guard = graphGuard({ ...this.graph, refreshImages: root.refreshImages }, root.id, true);
-    this.io.patch(id, data);
+    this.io.patch(id, data, publishImmediately);
   }
   private graphFor(root: Root): ExecutionGraph {
     const graph = { ...this.graph, refreshImages: root.refreshImages, nodes: this.graph.nodes.map(node => {
@@ -110,20 +110,20 @@ export class WorkflowExecution {
       return snapshot ? { ...asset, url: snapshot.url, contentHash: snapshot.contentHash ?? asset.contentHash } : asset;
     }) };
   }
-  run(ids: string[], runs: number, seedreamGroupId?: string) {
+  run(ids: string[], runs: number, seedreamGroupId?: string, { existingImagesOnly = false } = {}) {
     if (this.stopped) throw new Error('执行器已关闭。');
     const targets = [...new Set(ids)];
-    if (!targets.length) return Promise.resolve();
+    if (!targets.length) return Promise.resolve(false);
     if (targets.some(id => [...this.roots].some(root => root.id === id) || [...this.flights.values()].some(flight => flight.nodeId === id))) throw new Error('选中节点已有运行中的任务，请等待完成后再运行。');
     const running = new Set([...this.roots].map(root => root.id).concat([...this.flights.values()].map(flight => flight.nodeId)));
     const refreshImages = new Set(this.graph.nodes.filter(node => isImageGeneratorNode(node)
       && (!selectedResult(node) || targets.includes(node.id) || running.has(node.id))).map(node => node.id));
-    const plannedGraph = { ...this.graph, refreshImages };
+    const plannedGraph = { ...this.graph, refreshImages, existingImagesOnly };
     preflight(plannedGraph, targets, runs);
     const batchId = crypto.randomUUID();
     const roots = targets.map(id => {
       const tasks = Array.from({ length: runs }, () => this.placeholder(id, batchId));
-      const root: Root = { refreshImages, id, batchId, tasks: tasks.map(task => task.id), controller: new AbortController(), guard: graphGuard(plannedGraph, id, true), memo: new Map(), remote: new Map(), outputs: new Map(), releases: [] };
+      const root: Root = { refreshImages, existingImagesOnly, id, batchId, tasks: tasks.map(task => task.id), controller: new AbortController(), guard: graphGuard(plannedGraph, id, true), memo: new Map(), remote: new Map(), outputs: new Map(), releases: [] };
       this.roots.add(root);
       this.store.update(current => [...current, ...tasks]);
       return root;
@@ -155,7 +155,7 @@ export class WorkflowExecution {
           if (!prepared.length) nodeProblem(node, '原图标注已变化，请检查提示词后重新运行。');
           const attempts = prepared.map(task => ({ prepared: task, signature: requestSignature(task, graph) }));
           const scheduled = this.expandRootTasks(root, attempts);
-          await this.executeAttempts(root.id, scheduled, signal, output => this.pinOutput(root, root.id, output));
+          await this.executeAttempts(root.id, scheduled, signal, output => this.pinOutput(root, root.id, output), existingImagesOnly);
         } catch (error) {
           const message = error instanceof Error ? error.message : '工作流执行失败。';
           const state = signal.aborted || error instanceof ModelRequestCancelled ? 'Cancelled' : error instanceof ModelRequestTimeout ? 'TimedOut' : 'Failed';
@@ -166,7 +166,7 @@ export class WorkflowExecution {
         }
       });
     }
-    return Promise.all(roots.map(root => root.done)).then(() => {});
+    return Promise.all(roots.map(root => root.done)).then(() => roots.every(root => root.outputs.has(root.id)));
   }
   private placeholder(id: string, batchId: string): PreviewTask {
     const node = this.graph.nodes.find(item => item.id === id)!;
@@ -225,6 +225,7 @@ export class WorkflowExecution {
       this.pinOutput(root, id, modelOutput(node));
       return;
     }
+    if (root.existingImagesOnly && isModelNode(node)) nodeProblem(node, '参考图片尚未就绪。');
     await Promise.all(executionInputs(node, handle, graph).map(edge => this.ensure(root, edge.source, edge.sourceHandle)));
     aborted(signal);
     graph = this.graphFor(root); node = graph.nodes.find(item => item.id === id)!;
@@ -306,13 +307,13 @@ export class WorkflowExecution {
     aborted(signal); this.modelSlots++;
     return () => { this.modelSlots--; this.slotWaiters.forEach(wake => wake()); };
   }
-  private async executeAttempts(id: string, attempts: (ModelAttempt & { taskId: string })[], signal: AbortSignal, accept?: (output: Record<string, unknown>) => void) {
+  private async executeAttempts(id: string, attempts: (ModelAttempt & { taskId: string })[], signal: AbortSignal, accept?: (output: Record<string, unknown>) => void, publishImmediately = false) {
     let latest: Record<string, unknown> = {}, failure: unknown;
     for (const { prepared, signature, taskId } of attempts) {
       aborted(signal);
       try {
         if (!this.active(taskId)) throw new ModelRequestCancelled('运行已取消。');
-        latest = await this.executeModel(id, prepared, signature, taskId, signal);
+        latest = await this.executeModel(id, prepared, signature, taskId, signal, publishImmediately);
         accept?.(latest);
       } catch (error) {
         // A failed request should not prevent independent requests in the run.
@@ -323,7 +324,7 @@ export class WorkflowExecution {
     if (failure) throw failure;
     return latest;
   }
-  private async executeModel(id: string, prepared: PreviewTask, signature: string, taskId: string, signal: AbortSignal) {
+  private async executeModel(id: string, prepared: PreviewTask, signature: string, taskId: string, signal: AbortSignal, publishImmediately: boolean) {
     const controller = new AbortController();
     const cancel = () => controller.abort(signal.reason);
     signal.addEventListener('abort', cancel, { once: true });
@@ -360,7 +361,7 @@ export class WorkflowExecution {
       if (!isImageGeneratorNode(node) || !assets.length || assets.some(asset => !asset?.url)) throw new Error('未返回有效图片。');
       const generated = assets.map(asset => ({ ...asset, createdAt: asset.createdAt ?? Date.now(), generation: { version: 1 as const, ...(node.type === 'sunburst' && node.data.composer ? { taskId } : {}), inputSignature: signature, outputSignature: asset.id } }));
       const output = { results: generated, activeResultId: generated[generated.length - 1].id, outputMode: undefined };
-      this.commit(id, { ...output, results: [...(node.data.results ?? []), ...generated] });
+      this.commit(id, { ...output, results: [...(node.data.results ?? []), ...generated] }, publishImmediately);
       attached = true;
       this.state(taskId, { state: 'Done', progress: 100, notice: undefined });
       const prompt = (task.imageRequest ?? task.seedreamRequest ?? task.nanoBananaRequest)?.prompt;

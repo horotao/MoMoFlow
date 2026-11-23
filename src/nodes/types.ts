@@ -56,6 +56,9 @@ export const isImageGeneratorNode = (node: AppNode | undefined): node is ImageGe
 export type InteractiveEditNode = Node<InteractiveEditData, 'interactive-edit'>;
 export const isInteractiveEditNode = (node: AppNode | undefined): node is InteractiveEditNode => node?.type === 'interactive-edit';
 
-export type AppNode = ImageGeneratorNode | TextNode | FileNode | InteractiveEditNode | BuiltInNode;
+export type CanvasGroup = Node<{ label: string; color?: string; locked?: boolean }, 'canvas-group'>;
+export const isCanvasGroup = (node: AppNode | undefined): node is CanvasGroup => node?.type === 'canvas-group';
+
+export type AppNode = ImageGeneratorNode | TextNode | FileNode | InteractiveEditNode | CanvasGroup | BuiltInNode;
 
 export const isNodeLocked = (node: AppNode | undefined): boolean => Boolean(node && 'locked' in node.data && node.data.locked);

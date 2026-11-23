@@ -26,6 +26,7 @@ export type ExecutionGraph = {
   edges: Edge[];
   // Keep the execution boundary stable while a batch creates its first results.
   refreshImages?: ReadonlySet<string>;
+  existingImagesOnly?: boolean;
 };
 export type GenerationRecord = { version: 1; taskId?: string; inputSignature: string; outputSignature: string };
 export type OutputPolicy = { outputMode?: 'manual' | 'fixed'; sourceSignature?: string };
@@ -295,6 +296,7 @@ export function preflight(graph: ExecutionGraph, targets: string[], runs: number
       all.add(key);
       if (storedAnnotationResult(node, handle, graph.nodes, graph.edges)) return;
       if (!targets.includes(id) && fixedOutput(node, graph)) return;
+      if (graph.existingImagesOnly && !targets.includes(id) && isModelNode(node)) nodeProblem(node, '参考图片尚未就绪。');
 
       if (id === target && (!isModelNode(node) || isNodeLocked(node))) nodeProblem(node, '节点已锁定或不能运行。');
       if (isImportedCanvasImage(node)) nodeProblem(node, '请替换无法读取的导入图片。');

@@ -223,11 +223,6 @@
 .canvas-tool-hand .react-flow__pane:active { cursor: grabbing; }
 .canvas-tool-hand .react-flow__node > * { pointer-events: none; }
 
-.canvas-selection {
-  --canvas-selection-color: #bdbdbd;
-  --canvas-selection-stroke: color-mix(in srgb, var(--canvas-selection-color) 67%, transparent);
-}
-
 .canvas-selection .react-flow__selection {
   border: 1px solid #b5b3ad;
   border-radius: 0;
@@ -235,7 +230,7 @@
   transition: none;
 }
 
-/* Keep the selection under the ports so their full circles cover its outline. */
+/* Keep React Flow's drag target under the nodes so the ports remain operable. */
 .canvas-selection .react-flow__nodesselection {
   z-index: 1;
 }
@@ -251,12 +246,14 @@
   background: transparent;
 }
 
-.canvas-selection[data-multiple="true"] .react-flow__nodesselection-rect::before {
+/* Draw the selected area above the artwork without intercepting node or port input. */
+.canvas-selection-outline {
   position: absolute;
-  inset: calc(-3px / var(--canvas-zoom, 1));
-  background: color-mix(in srgb, var(--canvas-selection-color) 4%, transparent);
-  box-shadow: inset 0 0 0 calc(1px / var(--canvas-zoom, 1)) var(--canvas-selection-stroke);
-  content: '';
+  z-index: 1001;
+  box-sizing: border-box;
+  border: 2px solid #b5b3ad;
+  background: rgb(251 251 239 / 16.5%);
+  pointer-events: none;
 }
 
 .canvas-selection:is(.canvas-tool-hand, [data-multiple="false"]) .react-flow__nodesselection-rect {

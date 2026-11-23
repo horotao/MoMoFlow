@@ -117,6 +117,23 @@ test('imported canvas images only supply references and replacements keep their 
   } finally { h.engine.dispose(); }
 });
 
+test('selection execution needs existing unselected image output and returns whether it produced a result', async () => {
+  const source = createLibraryNode('image', { x: 0, y: 0 }) as CanvasImage;
+  const target = createLibraryNode('image', { x: 500, y: 0 }) as CanvasImage;
+  source.data.composer.prompt = 'Upstream sample';
+  target.data.composer.prompt = 'Downstream sample';
+  const h = harness({ nodes: [source, target], edges: [edge(source.id, target.id, 'image-0', 'result')] });
+  const options = { existingImagesOnly: true };
+  try {
+    assert.throws(() => h.engine.run([target.id], 1, undefined, options), /参考图片尚未就绪/);
+    assert.equal(h.requests.length, 0);
+    assert.equal(await h.engine.run([source.id], 1, undefined, options), true);
+    assert.equal(await h.engine.run([target.id], 1, undefined, options), true);
+    assert.deepEqual(h.requests.map(task => task.nodeId), [source.id, target.id]);
+    assert.deepEqual(h.requests[1].imageRequest?.images, ['blob:generated']);
+  } finally { h.engine.dispose(); }
+});
+
 test('workflow sends a connected annotation through Prompt and Seedream without a model call for the editor', async () => {
   const history = commitAnnotations(emptyAnnotationHistory, 'reference', [{ id: 'mark', start: { x: .3, y: .6 } }]);
   const graph: ExecutionGraph = {

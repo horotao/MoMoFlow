@@ -2,6 +2,7 @@ import { CanvasColorTags } from './components/CanvasColorTags';
 import './components/canvas-right-panels.css';
 import { CanvasColorTagContext } from './components/CanvasColorTagContext';
 import { changeColorTags, changeSelectedColorTags, nodeColorTags, type ColorTag } from './nodes/colorTags';
+import { toggleSelectionLock } from './nodes/nodeLocks';
 import { CanvasMentionContext } from './nodes/CanvasMentionContext';
 import { editPromptMentions, pruneDisconnectedMentions } from './nodes/promptMentions';
 import { animateMentionWire } from './edges/mentionWireAnimation';
@@ -11,8 +12,10 @@ import { TextInspector } from './components/image-prompt-node/TextInspector';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasNavigation, canvasMinZoom, canvasMaxZoom, type ZoomTarget } from './components/CanvasNavigation';
 import { CanvasSidebar, type CanvasTool } from './components/CanvasSidebar';
-import { CanvasSelectionToolbar } from './components/CanvasSelectionToolbar';
-import { arrangeSelectedNodes, isArrangeShortcut } from './components/canvasLayout';
+import { CanvasSelectionOutline, CanvasSelectionToolbar } from './components/CanvasSelectionToolbar';
+import { groupSelectedNodes, settleGroupDrop } from './nodes/canvasGroups';
+import { requestCanvasRun } from './nodes/selectionGeneration';
+import { alignSelectedNodes, arrangeSelectedNodes, isArrangeShortcut } from './components/canvasLayout';
 import { CanvasBackground } from './components/CanvasBackground';
 import { canvasGridOrigin, readGridSnap, saveGridSnap, snapDragChanges, type GridDragAnchor } from './components/canvasGrid';
 import { ApiSettingsDialog } from './components/ApiSettingsDialog';
@@ -48,7 +51,7 @@ import { DescriberPanel } from './components/DescriberPanel';
 import { ModelTasksProvider } from './components/ModelTasksProvider';
 import { CanvasHistoryContext, useCanvasHistory } from './components/useCanvasHistory';
 import { initialNodes, nodeTypes } from './nodes';
-import { isNodeLocked, type AppNode } from './nodes/types';
+import { isCanvasGroup, isNodeLocked, type AppNode } from './nodes/types';
 import { initialEdges, edgeTypes } from './edges';
 import { ConnectionLine } from './edges/ConnectionLine';
 import { useConnectionGesture } from './edges/useConnectionGesture';
@@ -148,7 +151,13 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       gridDragAnchor.current = { id: node.id, offset: { x: absolute.x - node.position.x, y: absolute.y - node.position.y } };
     }
   }, [canvasStore, gridSnap]);
-  const endGridDrag = useCallback(() => { gridDragAnchor.current = null; }, []);
+  const finishCanvasDrag = useCallback<OnNodeDrag<AppNode>>((event, _node, dragged) => {
+    gridDragAnchor.current = null;
+    if (event.type === 'touchcancel') return;
+    const ids = dragged.map(node => node.id);
+    // React Flow queues the final position changes before this callback.
+    setNodes(current => settleGroupDrop(current, ids));
+  }, [setNodes]);
   const changeCanvasNodes = useCallback((changes: NodeChange<AppNode>[]) => {
     const anchor = gridDragAnchor.current;
     onNodesChange(anchor ? snapDragChanges(changes, anchor, gridOrigin.current) : changes);
@@ -288,11 +297,19 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...imported]);
   }
 
-  const canvasNodes = useMemo(() => nodes.map(node => {
-    const editable = !isNodeLocked(node) && tool === 'select';
-    return withCanvasImageDrag({ ...node, draggable: editable, deletable: !isNodeLocked(node),
-      connectable: editable, className: 'canvas-image-node' });
-  }), [nodes, tool]);
+  const canvasNodes = useMemo(() => {
+    const lockedGroups = new Set(nodes.filter(node => node.parentId && isNodeLocked(node)).map(node => node.parentId));
+    const selectedGroups = new Set(nodes.filter(node => isCanvasGroup(node) && node.selected).map(node => node.id));
+    return nodes.map(node => {
+      const locked = isNodeLocked(node) || lockedGroups.has(node.id);
+      const editable = !locked && tool === 'select';
+      if (isCanvasGroup(node)) return { ...node, draggable: editable, deletable: !locked, connectable: false,
+        className: 'canvas-group-node', ariaLabel: node.data.label };
+      const memberClass = node.parentId && selectedGroups.has(node.parentId) && !node.selected ? ' canvas-group-member-in-selected-frame' : '';
+      return withCanvasImageDrag({ ...node, draggable: editable, deletable: !locked,
+        connectable: editable, className: `canvas-image-node${memberClass}` });
+    });
+  }, [nodes, tool]);
   const arrangeSelection = () => {
     setNodes(current => arrangeSelectedNodes(current, getEdges(), gridSnap ? gridOrigin.current : undefined));
   };
@@ -328,7 +345,10 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       nodeTypes={nodeTypes}
       onNodesChange={changeCanvasNodes}
       onNodeDragStart={startGridDrag}
-      onNodeDragStop={endGridDrag}
+      onNodeDragStop={finishCanvasDrag}
+      onSelectionEnd={() => setNodes(current => current.some(node => isCanvasGroup(node) && node.selected)
+        ? current.map(node => isCanvasGroup(node) && node.selected ? { ...node, selected: false } : node)
+        : current)}
       edges={edges}
       edgeTypes={edgeTypes}
       defaultEdgeOptions={defaultEdgeOptions}
@@ -379,6 +399,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       onKeyDown={(event) => {
         if ((event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]') || event.nativeEvent.isComposing) return;
         if (!(event.metaKey || event.ctrlKey) && (event.target as HTMLElement).closest('.image-node-reference-viewport')) return;
+        if (nodes.some(node => isCanvasGroup(node) && node.resizing)) return;
         if (isArrangeShortcut({ ...event, isComposing: event.nativeEvent.isComposing })) {
           const state = canvasStore.getState();
           const blockedTarget = (event.target as HTMLElement).closest('button, select, [role="menu"], [role="dialog"], [role="listbox"], [contenteditable], .react-flow__panel');
@@ -401,7 +422,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
             node.selected ? { ...node, selected: false } : node,
           ));
           setEdges(currentEdges => currentEdges.map(edge => edge.selected ? { ...edge, selected: false } : edge));
-          if ((event.target as HTMLElement).closest('.react-flow__nodesselection-rect, .canvas-selection-toolbar')) {
+          if ((event.target as HTMLElement).closest('.react-flow__nodesselection-rect, .canvas-selection-toolbar, .canvas-group-node')) {
             canvasRef.current?.focus({ preventScroll: true });
           }
         }
@@ -411,8 +432,18 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       fitView={!saved && initialGraph.nodes.length > 0}
     >
       <CanvasBackground onGridOriginChange={updateGridOrigin} />
-      <CanvasSelectionToolbar enabled={tool === 'select'} nodes={nodes} edges={edges}
-        onArrange={arrangeSelection} onChangeTags={color => setNodes(current => changeSelectedColorTags(current, color))} />
+      <CanvasSelectionOutline />
+      <CanvasSelectionToolbar enabled={tool === 'select'} nodes={nodes}
+        onAlign={action => setNodes(current => alignSelectedNodes(current, action))}
+        onArrange={arrangeSelection} onChangeTags={color => setNodes(current => changeSelectedColorTags(current, color))}
+        onGroup={() => {
+          canvasRef.current?.focus({ preventScroll: true });
+          const id = crypto.randomUUID();
+          setNodes(current => groupSelectedNodes(current, id));
+          setEdges(current => current.map(edge => edge.selected ? { ...edge, selected: false } : edge));
+        }}
+        onToggleLock={() => setNodes(toggleSelectionLock)}
+        onRun={() => requestCanvasRun()} />
       <CanvasColorTags nodes={nodes} active={activeColorTags} onActiveChange={changeActiveColorTags} setNodes={setNodes} onRestoreCanvasFocus={() => canvasRef.current?.focus({ preventScroll: true })} />
       {projectSession && <CanvasProjectHeader project={projectSession.project} projects={projectSession.projects}
         nodeCount={nodes.length} status={persistence.status}

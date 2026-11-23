@@ -1,5 +1,6 @@
 import { useCanvasMentions } from './CanvasMentionContext';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Handle, Position, useEdges, useNodesData, useReactFlow, useStore, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { ImagePromptNode } from '../components/image-prompt-node/ImagePromptNode';
 import { ImagePromptToolbar } from '../components/image-prompt-node/ImagePromptToolbar';
@@ -15,6 +16,7 @@ import { completeTextBatchResult, selectTextResult, textGenerationInput, textHis
 import { textModelLabel } from '../components/image-prompt-node/textModels';
 import { imageInputHandles, isImageInputHandle } from './connectionRules';
 import { isCanvasTextNode, isNodeLocked, type AppNode, type SunburstNode, type CanvasText, type TextComposerData } from './types';
+import { canvasTextRunEvent, type CanvasTextRunRequest } from './canvasTextRun';
 import '../components/image-prompt-node/text-prompt-node.css';
 import './CanvasImageNode.css';
 
@@ -79,7 +81,17 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
       textComposer: { ...composer, ...change },
     });
   }
-  async function generate() {
+  const currentGenerate = useRef(generate);
+  useLayoutEffect(() => { currentGenerate.current = generate; });
+  useEffect(() => {
+    const run = (event: Event) => {
+      const detail = (event as CustomEvent<CanvasTextRunRequest>).detail;
+      if (detail.id === id) detail.completion = currentGenerate.current(true);
+    };
+    window.addEventListener(canvasTextRunEvent, run);
+    return () => window.removeEventListener(canvasTextRunEvent, run);
+  }, [id]);
+  async function generate(fromSelection = false) {
     if (request.current || batch || data.locked) return;
     let plan;
     try { plan = textGenerationInput(id, getNodes(), getEdges()); }
@@ -122,7 +134,7 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
       const chosen = viewing.current;
       const finalResultId = !chosen || (ids.includes(chosen) && !completed.some(result => result.id === chosen))
         ? completed[completed.length - 1]?.id ?? initial.previousResultId : chosen;
-      setNodes(nodes => nodes.map(node => {
+      const finish = () => setNodes(nodes => nodes.map(node => {
         if (node.id !== id || !isCanvasTextNode(node)) return node;
         // Reconcile the finished batch as well as per-item commits, including
         // an undo made while other variants were still running.
@@ -131,9 +143,12 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
         const result = completed.find(result => result.id === finalResultId) ?? textHistory(finished).find(result => result.id === finalResultId);
         return { ...node, data: { ...finished, ...(result ? selectTextResult(finished, result) : {}) } };
       }));
+      if (fromSelection) flushSync(finish);
+      else finish();
       setBatch({ ...initial, items, finished: true, finalResultId });
       const failures = items.flatMap((item, index) => item.error ? [`第 ${index + 1} 份：${item.error}`] : []);
       if (failures.length) setError(`${completed.length} 份成功，${failures.length} 份失败。不会自动重试。\n${failures.join('\n')}`);
+      return completed.length > 0;
     } catch (error) {
       if (!controller.signal.aborted) { setBatch(null); setError(error instanceof Error ? error.message : '文本生成失败，请检查网络后手动重试。'); }
     } finally {

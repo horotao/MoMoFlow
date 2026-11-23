@@ -53,7 +53,7 @@ export function CanvasMinimap({ motion, minZoom, maxZoom }: {
   } | null>(null);
 
   useLayoutEffect(() => {
-    setFocusedId(current => findMapFocus(viewport, nodes, current));
+    setFocusedId(current => findMapFocus(viewport, nodes.filter(node => node.type !== 'canvas-group'), current));
   }, [viewport, nodes]);
 
   useLayoutEffect(() => {
@@ -159,6 +159,10 @@ export function CanvasMinimap({ motion, minZoom, maxZoom }: {
     }}
     onPointerUp={event => endDrag(event)} onPointerCancel={event => endDrag(event, true)}
     onLostPointerCapture={event => endDrag(event, true)}>
+    {nodes.filter(node => node.type === 'canvas-group').map(node => {
+      const rect = mapNodes.get(node.id)!;
+      return <rect key={node.id} {...rect} rx={2} className="navigation-map-group" data-selected={node.selected} />;
+    })}
     {edges.map(edge => {
       const source = mapNodes.get(edge.source);
       const target = mapNodes.get(edge.target);
@@ -166,7 +170,8 @@ export function CanvasMinimap({ motion, minZoom, maxZoom }: {
         x1={source.x + source.width / 2} y1={source.y + source.height / 2}
         x2={target.x + target.width / 2} y2={target.y + target.height / 2} /> : null;
     })}
-    {[...nodes].sort((a, b) => Number(a.id === focusedId) - Number(b.id === focusedId)).map(node => {
+    {nodes.filter(node => node.type !== 'canvas-group')
+      .sort((a, b) => Number(a.id === focusedId) - Number(b.id === focusedId)).map(node => {
       const rect = projectMapRect(node, camera);
       const width = rect.width * 0.735;
       const height = rect.height * 0.735;

@@ -21,7 +21,8 @@ export function ColorTagPicker({ tags, disabled, onChange, forSelection = false 
     <Menu.Trigger asChild><button type="button" className="color-tag-trigger" data-tagged={showTags}
       aria-label={forSelection ? '标记所选节点' : 'Tag'} title="颜色标记" disabled={disabled}
       onPointerDown={() => setKeyboard(false)} onKeyDown={() => setKeyboard(true)}>
-      <span className="node-tag-stack" aria-hidden="true">{showTags ? colorTags.filter(tag => tags.includes(tag.id)).map(tag => <span key={tag.id} className="node-tag-dot" style={{ background: tag.color }} />) : <span className="image-node-tag" />}</span>
+      {forSelection ? <span className="canvas-selection-tag-ring" aria-hidden="true" /> :
+        <span className="node-tag-stack" aria-hidden="true">{showTags ? colorTags.filter(tag => tags.includes(tag.id)).map(tag => <span key={tag.id} className="node-tag-dot" style={{ background: tag.color }} />) : <span className="image-node-tag" />}</span>}
     </button></Menu.Trigger>
     <Menu.Portal><Menu.Content className="color-tag-menu color-tag-picker nodrag nopan nowheel" sideOffset={9} align="start" collisionPadding={8} data-keyboard={keyboard}
       aria-label="节点颜色标记" onPointerDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()} onKeyDown={event => {

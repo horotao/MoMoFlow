@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import type { AppNode, FileAsset } from '../nodes/types';
 import { WorkflowExecution, aborted } from '../nodes/workflowExecution';
@@ -18,7 +19,11 @@ export function useWorkflowExecution(onImageGenerated?: (prompt: string) => Prom
   useLayoutEffect(() => {
     const instance = new WorkflowExecution({ nodes: getNodes(), edges: getEdges() }, store, {
       onImageGenerated,
-      patch: (id, data) => updateNodeData(id, data),
+      patch: (id, data, publishImmediately) => {
+        // Other selected nodes may read this result as soon as execution resolves.
+        if (publishImmediately) flushSync(() => updateNodeData(id, data));
+        else updateNodeData(id, data);
+      },
       retain: graph => assetResources.retain(nodeAssetUrls(graph.nodes)),
       discard: assets => assetResources.discard(assets.map(asset => asset.url)),
       verify: async (assets, signal) => {

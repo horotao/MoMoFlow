@@ -7,6 +7,7 @@ import {
 import { useLayoutEffect, useRef, type CSSProperties } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CanvasBackground } from '../src/components/CanvasBackground';
+import { CanvasSelectionOutline } from '../src/components/CanvasSelectionToolbar';
 import { CanvasNavigation, canvasMaxZoom, canvasMinZoom, type ZoomTarget } from '../src/components/CanvasNavigation';
 import { edgeTypes } from '../src/edges';
 import { nodeTypes } from '../src/nodes';
@@ -70,6 +71,7 @@ function SelectionPreview() {
       )) clearSelection();
     }}>
     <CanvasBackground />
+    <CanvasSelectionOutline />
     <Panel position="top-left" className="selection-preview-heading">
       <div>MoMoFlow <span>隔离预览</span></div>
       <h1>画布框选</h1>

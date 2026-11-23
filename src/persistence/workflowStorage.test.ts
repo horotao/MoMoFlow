@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mapAssets, workflowSnapshot, WorkflowStorage, type Workflow } from './workflowStorage.ts';
 import { prepareModel } from '../nodes/executionGraph.ts';
-import { isCanvasImageNode } from '../nodes/types.ts';
-import type { FileAsset, FileNode, SunburstNode, TextNode } from '../nodes/types';
+import { isCanvasGroup, isCanvasImageNode } from '../nodes/types.ts';
+import type { CanvasGroup, FileAsset, FileNode, SunburstNode, TextNode } from '../nodes/types';
 
 const asset: FileAsset = { id: 'image', kind: 'image', name: 'local.png', url: 'blob:old', mimeType: 'image/png', createdAt: 1795246260000 };
 const file: FileNode = { id: 'file', type: 'file', position: { x: 10, y: 20 }, data: { asset, assets: [asset], activeAssetId: asset.id, locked: true } };
@@ -21,6 +21,25 @@ test('snapshot retains Image data, position and lock without transient state', (
   assert.equal(saved.nodes[0].selected, undefined);
   assert.equal(node.selected, true);
   assert.equal(saved.colorMode, 'dark');
+});
+
+test('current group frames, relative anchors and member wires survive a mixed workflow migration', () => {
+  const group: CanvasGroup = { id: 'frame', type: 'canvas-group', position: { x: 200, y: 300 },
+    data: { label: '参考图', color: '#68d6ee' }, width: 980, height: 512, selected: true };
+  const composed = { ...result.data };
+  delete composed.exposed;
+  const first: SunburstNode = { ...result, data: composed, parentId: group.id, origin: [.5, 0], position: { x: 256, y: 64 } };
+  const second = { ...first, id: 'second', position: { x: 702, y: 64 } };
+  const wire = { id: 'reference', source: first.id, target: second.id, sourceHandle: 'result', targetHandle: 'image-0' };
+  const saved = workflowSnapshot({ nodes: [first, second, group, file], edges: [wire],
+    viewport: { x: 0, y: 0, zoom: 1 }, colorMode: 'dark' });
+  const [frame, source, target] = saved.nodes;
+  assert.ok(isCanvasGroup(frame));
+  assert.deepEqual([frame.data, frame.width, frame.height, frame.selected], [group.data, 980, 512, undefined]);
+  assert.deepEqual([source.parentId, target.parentId, source.position, target.position],
+    [group.id, group.id, first.position, second.position]);
+  assert.deepEqual(saved.edges.map(edge => edge.id), [wire.id]);
+  assert.deepEqual(workflowSnapshot(saved), saved);
 });
 
 test('asset restoration covers legacy uploads, collections and generated results without mutating input', () => {

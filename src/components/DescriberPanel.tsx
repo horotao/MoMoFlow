@@ -5,8 +5,10 @@ import { useCallback, useEffect } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { TaskManager } from './TaskManager';
 import { useModelTaskStore } from './useModelTasks';
-import { isSunburstNode } from '../nodes/types';
+import { isCanvasTextNode, isNodeLocked, isSunburstNode } from '../nodes/types';
 import type { AppNode } from '../nodes/types';
+import { startCanvasTextRun } from '../nodes/canvasTextRun';
+import { canvasRunSelectionEvent, generationNodes, maxSelectionGenerationNodes, runGenerationSelection, selectedGenerationNodes } from '../nodes/selectionGeneration';
 import { AnimatedToastStack, type ToastInput } from './ui/AnimatedToastStack';
 import { useAnimatedToastStack } from './ui/useAnimatedToastStack';
 
@@ -27,7 +29,7 @@ function executionErrorToast(error: unknown, title: string): ToastInput {
 }
 
 export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (prompt: string) => Promise<void> }) {
-  const { setNodes, getNodes, getNodesBounds, setCenter } = useReactFlow<AppNode>();
+  const { setNodes, getNodes, getEdges, getNode, getNodesBounds, setCenter } = useReactFlow<AppNode>();
   const taskStore = useModelTaskStore();
   const execution = useWorkflowExecution(onImageGenerated);
   const { toasts, showToast, dismissToast, clearToasts } = useAnimatedToastStack({ limit: 4 });
@@ -55,6 +57,36 @@ export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (promp
     window.addEventListener('sunburst-run', run);
     return () => { window.removeEventListener('describer-run', run); window.removeEventListener('sunburst-run', run); };
   }, [getNodes, taskStore, execution, focusNode, showToast, clearToasts]);
+  useEffect(() => {
+    const selectedRuns = new Map<string, Promise<boolean>>();
+    let disposed = false;
+    const runSelection = (event: Event) => {
+      const ids = (event as CustomEvent<string[] | undefined>).detail;
+      const nodes = getNodes();
+      const targets = ids ? generationNodes(nodes.filter(node => ids.includes(node.id))) : selectedGenerationNodes(nodes);
+      if (!targets.length || targets.length > maxSelectionGenerationNodes) return;
+      if (targets.every(node => selectedRuns.has(node.id))) return;
+      clearToasts();
+      void runGenerationSelection(targets.map(node => node.id), getEdges(), async id => {
+        const node = getNode(id);
+        if (disposed || !node || node.hidden || isNodeLocked(node)) return false;
+        try {
+          if (isCanvasTextNode(node)) return Boolean(await startCanvasTextRun(id));
+          if (!isModelNode(node)) return false;
+          const quantity = isSunburstNode(node) ? node.data.composer?.quantity : undefined;
+          return Boolean(await execution.current?.run([id], quantity ?? taskStore.getRuns(), undefined, { existingImagesOnly: true }));
+        } catch (error) {
+          showToast(executionErrorToast(error, '无法运行所选节点'));
+          return false;
+        }
+      }, selectedRuns);
+    };
+    window.addEventListener(canvasRunSelectionEvent, runSelection);
+    return () => {
+      disposed = true;
+      window.removeEventListener(canvasRunSelectionEvent, runSelection);
+    };
+  }, [getNodes, getEdges, getNode, execution, taskStore, clearToasts, showToast]);
   return <>
     <TaskManager
       onRetry={(task) => {

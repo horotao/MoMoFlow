@@ -5,6 +5,7 @@ import { Flow } from '../src/App';
 import { useModelTaskStore } from '../src/components/useModelTasks';
 import { ModelTasksProvider } from '../src/components/ModelTasksProvider';
 import { WorkflowStorage, type Workflow } from '../src/persistence/workflowStorage';
+import { groupSelectedNodes } from '../src/nodes/canvasGroups';
 import type { AppNode } from '../src/nodes/types';
 import { canvasHistoryShortcut } from './canvasShortcuts';
 import '../src/index.css';
@@ -37,7 +38,12 @@ async function run() {
   canvas.focus(); press(); await settle();
   const arranged = positions();
   check(api.getInternalNode('c')!.internals.positionAbsolute.x === 2000 && api.getNode('c')!.position.y === 1000, 'Second workflow preserves its original area and vertical separation');
-  check(api.getInternalNode('isolated')!.internals.positionAbsolute.x === -500.3 && api.getNode('isolated')!.position.y === -600.7, 'Selected isolated node stays exactly in place');
+  const connectedBottom = Math.max(...['a', 'b', 'c', 'd'].map(id => {
+    const node = api.getInternalNode(id)!;
+    return node.internals.positionAbsolute.y + node.measured.height!;
+  }));
+  const isolated = api.getInternalNode('isolated')!.internals.positionAbsolute;
+  check(isolated.x === -500.3 && isolated.y === connectedBottom + 64, 'Selected isolated node moves below connected workflows with a 64-unit gap');
   check(arranged !== before && api.getNode('a')!.position.x < api.getNode('b')!.position.x, 'Shift+L arranges dependency left to right at 63% zoom');
   check(api.getInternalNode('fixed')!.internals.positionAbsolute.x === 1100 && JSON.stringify(api.getEdges()) === edges && JSON.stringify(api.getViewport()) === viewport, 'Unselected node, edges and viewport unchanged');
   press(); await settle(); check(positions() === arranged, 'Repeated arrange is idempotent');
@@ -123,6 +129,29 @@ async function run() {
   prompt.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
   await settle();
   check(!document.querySelector('.image-mention-menu'), 'Escape still dismisses the Image picker');
+
+  const groupId = 'auto-arrange-group';
+  const groupMembers = [
+    canvasImage('group-a', 420, 220), canvasImage('group-b', 420, 740), canvasImage('group-target', 1000, 360),
+  ].map(node => ({ ...node, selected: true }));
+  api.setNodes(groupSelectedNodes(groupMembers, groupId).map(node => ({ ...node, selected: node.id === groupId })));
+  api.setEdges(groupMembers.slice(0, 2).map((node, index) => ({
+    id: `${node.id}-target`, source: node.id, sourceHandle: 'result', target: 'group-target', targetHandle: `image-${index}`,
+  })));
+  await settle();
+  const alignment = document.querySelector<HTMLButtonElement>('.canvas-group-toolbar [aria-label="对齐与分布"]')!;
+  alignment.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  await settle();
+  const automatic = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]'))
+    .find(item => item.textContent?.trim() === '自动整理')!;
+  automatic.click();
+  await settle();
+  const [first, second, target] = groupMembers.map(node => api.getInternalNode(node.id)!);
+  const firstPosition = first.internals.positionAbsolute;
+  const secondPosition = second.internals.positionAbsolute;
+  check(firstPosition.x === secondPosition.x && secondPosition.y - firstPosition.y === first.measured.height! + 64
+    && target.internals.positionAbsolute.x - firstPosition.x === Math.max(first.measured.width!, second.measured.width!) + 64,
+    'Group Auto stacks two upstream nodes without overlap and puts their shared target to the right');
   result.dataset.result = 'passed';
 }
 void run().catch(error => { result.dataset.result = 'failed'; result.textContent += `\nFAIL ${String(error)}`; });

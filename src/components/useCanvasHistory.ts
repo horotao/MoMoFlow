@@ -8,7 +8,7 @@ import type { Edge } from '@xyflow/react';
 import { initialTextDocument } from '../nodes/textDocument';
 import { isTextNode, textInputHandles } from '../nodes/textVariables';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources';
-import { isCanvasImageNode, isCanvasTextNode, type AppNode } from '../nodes/types';
+import { isCanvasGroup, isCanvasImageNode, isCanvasTextNode, isNodeLocked, type AppNode } from '../nodes/types';
 
 export const CanvasHistoryContext = createContext({ canUndo: false, canRedo: false, undo: () => {}, redo: () => {} });
 
@@ -24,7 +24,8 @@ function snapshot(nodes: AppNode[], edges: Edge[]): Snapshot {
 
 function signature({ nodes, edges }: Snapshot) {
   return JSON.stringify({
-    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: node.data })),
+    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: node.data,
+      parentId: node.parentId, ...(isCanvasGroup(node) ? { width: node.width, height: node.height } : {}) })),
     edges: edges.map((edge) => ({ ...edge, selected: undefined })),
   }, (key, value) => key === 'content' && Array.isArray(value) && value.length === 0 ? undefined : value);
 }
@@ -38,13 +39,15 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
   }), []);
 
   useLayoutEffect(() => {
-    if (nodes.some((node) => node.dragging)) return;
+    if (nodes.some(node => node.dragging || isCanvasGroup(node) && node.resizing)) return;
     const next = snapshot(nodes, edges);
     const state = history.current;
     if (signature(next) === signature(state.present)) { state.present = next; return; }
     // Coalesce consecutive editor updates, but keep graph edits separate.
     const dataOnly = nodes.length === state.present.nodes.length
       && nodes.every((node, i) => node.id === state.present.nodes[i].id
+        && node.parentId === state.present.nodes[i].parentId
+        && (!isCanvasGroup(node) || node.width === state.present.nodes[i].width && node.height === state.present.nodes[i].height)
         && JSON.stringify(node.position) === JSON.stringify(state.present.nodes[i].position))
       && JSON.stringify(edges) === JSON.stringify(state.present.edges);
     const annotationsChanged = nodes.some(node => {
@@ -61,12 +64,17 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
     const mentionsChanged = nodes.some(node => mentionIds(node) !== mentionIds(state.present.nodes.find(item => item.id === node.id)));
     const colorTagsChanged = nodes.some(node => JSON.stringify(nodeColorTags(node)) !== JSON.stringify(nodeColorTags(state.present.nodes.find(item => item.id === node.id))));
     const labelChanged = nodes.some(node => node.data.label !== state.present.nodes.find(item => item.id === node.id)?.data.label);
-    if (colorTagsChanged || mentionsChanged || labelChanged || annotationsChanged || seedreamSizeChanged || !dataOnly || Date.now() - state.time > 750) {
+    const lockChanged = dataOnly && nodes.some((node, i) => isNodeLocked(node) !== isNodeLocked(state.present.nodes[i]));
+    const groupColorChanged = dataOnly && nodes.some((node, i) => {
+      const previous = state.present.nodes[i];
+      return isCanvasGroup(node) && isCanvasGroup(previous) && node.data.color !== previous.data.color;
+    });
+    if (colorTagsChanged || mentionsChanged || labelChanged || lockChanged || groupColorChanged || annotationsChanged || seedreamSizeChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;
     state.future = [];
-    state.time = dataOnly && !colorTagsChanged && !labelChanged && !mentionsChanged ? Date.now() : 0;
+    state.time = dataOnly && !colorTagsChanged && !labelChanged && !mentionsChanged && !lockChanged && !groupColorChanged ? Date.now() : 0;
     sync();
   }, [nodes, edges, sync]);
 

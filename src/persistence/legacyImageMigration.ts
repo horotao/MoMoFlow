@@ -7,10 +7,13 @@ import { migrateImageModelGraph } from '../nodes/sunburstMigration.ts';
 import { defaultSunburstSettings, imageSizeLabels, imageSizes, sunburstSizePreset } from '../nodes/sunburst.ts';
 import { isTextNode, resolveTextValue } from '../nodes/textVariables.ts';
 import { anchorCanvasImage } from '../nodes/canvasImageGeometry.ts';
-import { isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isFileNode, isImageGeneratorNode, type AppNode, type CanvasText, type CanvasImage, type FileAsset, type ImageGeneratorNode } from '../nodes/types.ts';
+import { isCanvasGroup, isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isFileNode, isImageGeneratorNode, type AppNode, type CanvasText, type CanvasImage, type FileAsset, type ImageGeneratorNode } from '../nodes/types.ts';
 
 export function hasLegacyImageGraph(nodes: AppNode[], edges: Edge[]) {
-  return nodes.some(node => (!isCanvasImageNode(node) && !isCanvasTextNode(node)) || node.parentId || 'exposed' in node.data) || edges.some(edge => !isCanvasWire(edge));
+  const groups = new Set(nodes.filter(isCanvasGroup).map(node => node.id));
+  return nodes.some(node => (!isCanvasGroup(node) && !isCanvasImageNode(node) && !isCanvasTextNode(node))
+    || (node.parentId && (isCanvasGroup(node) || !groups.has(node.parentId))) || 'exposed' in node.data)
+    || edges.some(edge => !isCanvasWire(edge));
 }
 
 function positionOnCanvas(node: AppNode, nodes: Map<string, AppNode>) {
@@ -62,15 +65,24 @@ function modelData(node: ImageGeneratorNode, prompt: string): CanvasImage['data'
 export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsset: (asset: FileAsset) => boolean = () => true): {
   nodes: AppNode[]; edges: Edge[];
 } {
+  const groups = nodes.filter(isCanvasGroup).map(group => group.parentId ? { ...group, parentId: undefined } : group);
+  const groupIds = new Set(groups.map(group => group.id));
   if (!hasLegacyImageGraph(nodes, edges)) {
-    const ids = new Set(nodes.map(node => node.id));
-    return { nodes: nodes.map(anchorCanvasImage), edges: edges.filter(edge => ids.has(edge.source) && ids.has(edge.target)) };
+    const blocks = nodes.filter(node => !isCanvasGroup(node));
+    const ids = new Set(blocks.map(node => node.id));
+    return { nodes: [...groups, ...blocks.map(anchorCanvasImage)], edges: edges.filter(edge => ids.has(edge.source) && ids.has(edge.target)) };
   }
   const legacy = migrateImageModelGraph(nodes, edges);
   const graph = migrateFileAnnotations(legacy.nodes, legacy.edges);
   const sources = new Map(graph.nodes.map(node => [node.id, node]));
   const copiedPrompts = new Set<string>();
-  const converted = new Map<string, CanvasImage | CanvasText>(graph.nodes.filter(isCanvasTextNode).map(node => [node.id, anchorCanvasImage(node)]));
+  const converted = new Map<string, CanvasImage | CanvasText>();
+  for (const node of graph.nodes.filter(isCanvasTextNode)) {
+    const flattened = node.parentId && !groupIds.has(node.parentId);
+    converted.set(node.id, anchorCanvasImage(flattened
+      ? { ...node, parentId: undefined, origin: undefined, position: positionOnCanvas(node, sources) }
+      : node));
+  }
   const add = (node: AppNode, data: CanvasImage['data']) => {
     converted.set(node.id, anchorCanvasImage({ id: node.id, type: 'sunburst', position: positionOnCanvas(node, sources), data }));
   };
@@ -83,7 +95,7 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
       if (prompt?.trim() && source) copiedPrompts.add(source.id);
       if (isCanvasImageNode(node)) {
         const data = prompt?.trim() ? { ...node.data, composer: { ...node.data.composer, prompt } } : node.data;
-        if (node.parentId) add(node, data);
+        if (node.parentId && !groupIds.has(node.parentId)) add(node, data);
         else converted.set(node.id, anchorCanvasImage(data === node.data ? node : { ...node, data }));
         continue;
       }
@@ -129,5 +141,5 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
       && (item.targetHandle === wire.targetHandle || item.source === wire.source)) || createsImageCycle(wire, wires)) continue;
     wires.push(wire);
   }
-  return { nodes: graph.nodes.flatMap(node => converted.get(node.id) ?? []), edges: wires };
+  return { nodes: [...groups, ...graph.nodes.filter(node => !isCanvasGroup(node)).flatMap(node => converted.get(node.id) ?? [])], edges: wires };
 }

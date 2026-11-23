@@ -3,8 +3,8 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'reac
 import { Panel } from '@xyflow/react';
 import { motion } from 'motion/react';
 import { clearColorTags, colorTags, countNodeColorTags, nodeColorTags, type ColorTag } from '../nodes/colorTags';
-import { isCanvasImageNode, isCanvasTextNode, type AppNode, type FileAsset } from '../nodes/types';
-import { selectedImageResult } from '../nodes/annotationGraph';
+import type { AppNode } from '../nodes/types';
+import { canvasDownloadContents } from '../nodes/canvasDownloads';
 import { downloadAssets } from '../nodes/fileMedia';
 import './canvas-color-tags.css';
 
@@ -45,16 +45,7 @@ export function CanvasColorTags({ nodes, active, onActiveChange, setNodes, onRes
   const tagged = (color?: ColorTag) => nodes.filter(node => color ? nodeColorTags(node).includes(color) : nodeColorTags(node).length > 0);
   async function download(color?: ColorTag) {
     if (downloading.current) return;
-    const assets: FileAsset[] = [];
-    const extraFiles: { name: string; bytes: Uint8Array }[] = [];
-    for (const node of tagged(color)) {
-      if (isCanvasImageNode(node)) {
-        const asset = selectedImageResult(node);
-        if (asset && !assets.some(item => item.url === asset.url)) assets.push(asset);
-      } else if (isCanvasTextNode(node) && node.data.text) {
-        extraFiles.push({ name: `${node.data.label || 'Text'}.${node.data.textComposer.format}`, bytes: new TextEncoder().encode(node.data.text) });
-      }
-    }
+    const { assets, extraFiles } = canvasDownloadContents(tagged(color));
     if (!assets.length && !extraFiles.length) { setError('这些标记节点还没有可下载的内容。'); return; }
     downloading.current = true; setBusy(true); setError('');
     try { await downloadAssets(assets, { extraFiles, name: 'tagged.zip' }); }
