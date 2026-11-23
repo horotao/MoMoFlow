@@ -10,6 +10,7 @@ import { imageCreatedAt, imageDateLabel, imageFormat, imageModel, imageSizeLabel
 import { ImageGenerationOptions } from './ImageGenerationOptions';
 import { ImageAssetPreview } from './ImageAssetPreview';
 import { ImagePromptIcon, type ImagePromptIconName } from './ImagePromptIcon';
+import { requestImageCrop } from '../../nodes/useCanvasImageCrop';
 import './image-inspector.css';
 
 export function ImageInspector() {
@@ -26,6 +27,7 @@ export function ImageInspector() {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') event.stopPropagation();
     }}>
     <ImageInformation key={`${selectedId}:${asset?.id ?? 'empty'}:${asset?.url ?? ''}`} asset={asset}
+      onCrop={selectedId && !data.locked ? () => requestImageCrop(selectedId) : undefined}
       name={data.label || asset?.name || 'Image'} generated={data.imageSource !== 'imported'} assets={data.results} />
     <ImageGenerationOptions />
   </aside>;
@@ -37,7 +39,7 @@ const tools: { icon: ImagePromptIconName; label: string }[] = [
   { icon: 'metadata-remove-background', label: '移除背景' },
 ];
 
-function ImageInformation({ asset, name, generated, assets }: { asset?: FileAsset; name: string; generated: boolean; assets?: FileAsset[] }) {
+function ImageInformation({ asset, name, generated, assets, onCrop }: { asset?: FileAsset; name: string; generated: boolean; assets?: FileAsset[]; onCrop?: () => void }) {
   const [expanded, setExpanded] = useState(true);
   const [measured, setMeasured] = useState(asset);
   const [preview, setPreview] = useState(false);
@@ -82,7 +84,7 @@ function ImageInformation({ asset, name, generated, assets }: { asset?: FileAsse
   const rows = asset && measured ? [
     ...(generated ? [['模型', imageModel(asset) ?? '—']] : []),
     ['格式', imageFormat(measured) ?? '—'], ['大小', imageSizeLabel(measured.size)],
-    ['分辨率', measured.width && measured.height ? `${measured.width} × ${measured.height}` : '—'],
+    ['分辨率', measured.width && measured.height ? `${measured.width} × ${measured.height}${asset.crop ? '（已裁剪）' : ''}` : '—'],
     ['创建时间', imageDateLabel(imageCreatedAt(asset))],
   ] : [];
   return <section className="image-information" aria-label="图片信息">
@@ -90,7 +92,9 @@ function ImageInformation({ asset, name, generated, assets }: { asset?: FileAsse
       disabled={!asset} aria-expanded={Boolean(asset) && expanded} aria-controls={asset ? id : undefined}
       onClick={() => setExpanded(!expanded)}><ImagePromptIcon name="metadata-info" /></button></header>
     {asset && expanded && <dl id={id}>{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd title={value}>{value}</dd></div>)}</dl>}
-    <footer>{tools.map(tool => <button key={tool.icon} type="button" disabled aria-label={`${tool.label}（预留）`} title={`${tool.label}（预留）`}><ImagePromptIcon name={tool.icon} /></button>)}
+    <footer>{tools.map(tool => <button key={tool.icon} type="button" disabled={tool.icon !== 'metadata-crop' || !asset || !onCrop}
+      onClick={tool.icon === 'metadata-crop' ? onCrop : undefined} aria-label={tool.icon === 'metadata-crop' ? tool.label : `${tool.label}（预留）`}
+      title={tool.icon === 'metadata-crop' ? tool.label : `${tool.label}（预留）`}><ImagePromptIcon name={tool.icon} /></button>)}
       <DropdownMenu.Root modal={false}><DropdownMenu.Trigger asChild><button ref={more} type="button" disabled={!asset} className="image-information-more" aria-label="更多图片操作"><ImagePromptIcon name="metadata-more" /></button></DropdownMenu.Trigger>
         <DropdownMenu.Portal><DropdownMenu.Content className="image-information-menu nodrag nopan nowheel" align="end" sideOffset={6}
           onKeyDown={event => event.stopPropagation()} onEscapeKeyDown={event => event.stopPropagation()}

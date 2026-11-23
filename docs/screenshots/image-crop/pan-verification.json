@@ -1,0 +1,130 @@
+{
+  "initial": {
+    "editor": {
+      "bottom": 476.96002197265625,
+      "height": 264.96002197265625,
+      "left": 632.8199462890625,
+      "right": 897.780029296875,
+      "top": 212,
+      "width": 264.9600830078125,
+      "x": 632.8199462890625,
+      "y": 212
+    },
+    "frame": "left: 15.2344%; top: 15.1367%; width: 84.7656%; height: 84.8633%;",
+    "nodes": [
+      {
+        "id": "831dcb1c-5628-46e5-a55c-da1497047423",
+        "style": "z-index: 0; transform: translate(91px, 260px); pointer-events: all; visibility: visible;"
+      },
+      {
+        "id": "5f5ab486-cbaa-4ac8-9020-0c491b28a643",
+        "style": "z-index: 1000; transform: translate(629.594px, 145.507px); pointer-events: all; visibility: visible;"
+      }
+    ],
+    "viewport": "transform: translate(198.4px, 111.6px) scale(0.69);"
+  },
+  "cases": [
+    {
+      "case": "middle blank",
+      "crop": true,
+      "frame": "left: 15.2344%; top: 15.1367%; width: 84.7656%; height: 84.8633%;",
+      "viewport": "transform: translate(258.4px, 141.6px) scale(0.69);"
+    },
+    {
+      "case": "space blank reverse",
+      "crop": true,
+      "frame": "left: 15.2344%; top: 15.1367%; width: 84.7656%; height: 84.8633%;",
+      "panning": null,
+      "viewport": "transform: translate(198.4px, 111.6px) scale(0.69);"
+    },
+    {
+      "case": "middle crop image",
+      "crop": true,
+      "frame": "left: 15.2344%; top: 15.1367%; width: 84.7656%; height: 84.8633%;",
+      "viewport": "transform: translate(238.4px, 91.6px) scale(0.69);"
+    },
+    {
+      "case": "space focused handle after fix",
+      "crop": true,
+      "frame": "left: 15.2344%; top: 15.1367%; width: 84.7656%; height: 84.8633%;",
+      "panning": null,
+      "viewport": "transform: translate(198.4px, 111.6px) scale(0.69);"
+    },
+    {
+      "case": "left handle resize after releasing space",
+      "frame": "left: 19.7634%; top: 18.9109%; width: 80.2366%; height: 81.0891%;",
+      "label": "裁剪区域：822 × 830 像素",
+      "viewport": "transform: translate(198.4px, 111.6px) scale(0.69);"
+    },
+    {
+      "case": "imported middle from handle at 100%",
+      "crop": true,
+      "frame": "left: 14.7786%; top: 15.1042%; width: 85.2214%; height: 84.8958%;",
+      "viewport": "transform: translate(30px, -20px) scale(1);"
+    },
+    {
+      "case": "imported space from crop interior at 100%",
+      "crop": true,
+      "frame": "left: 14.7786%; top: 15.1042%; width: 85.2214%; height: 84.8958%;",
+      "viewport": "transform: translate(60px, 1.7053e-13px) scale(1);"
+    },
+    {
+      "case": "reduced motion space blank reverse",
+      "crop": true,
+      "frame": "left: 14.7786%; top: 15.1042%; width: 85.2214%; height: 84.8958%;",
+      "reduced": true,
+      "viewport": "transform: translate(30px, -20px) scale(1);"
+    },
+    {
+      "case": "cancel and ordinary outside click",
+      "cancelSize": [
+        "PNG",
+        "2.8 MB",
+        "1319 × 978（已裁剪）",
+        "2026/11/23 17:10"
+      ],
+      "crop": 0,
+      "edgeCount": 1,
+      "nodeTransforms": [
+        {
+          "id": "831dcb1c-5628-46e5-a55c-da1497047423",
+          "transform": "translate(91px, 260px)"
+        },
+        {
+          "id": "5f5ab486-cbaa-4ac8-9020-0c491b28a643",
+          "transform": "translate(629.594px, 145.507px)"
+        }
+      ],
+      "pointerEvents": [
+        "all",
+        "all"
+      ],
+      "viewport": "transform: translate(30px, -20px) scale(1);"
+    },
+    {
+      "case": "middle and space at 14%",
+      "beforeFrame": "left: 14.1276%; top: 15.1042%; width: 85.8724%; height: 84.8958%;",
+      "middleViewport": "transform: translate(574.6px, 316.8px) scale(0.14);",
+      "crop": true,
+      "frame": "left: 14.1276%; top: 15.1042%; width: 85.8724%; height: 84.8958%;",
+      "viewport": "transform: translate(554.6px, 306.8px) scale(0.14);"
+    },
+    {
+      "case": "middle and space at 200%",
+      "beforeFrame": "left: 14.1276%; top: 15.1042%; width: 85.8724%; height: 84.8958%;",
+      "middleViewport": "transform: translate(-560px, -390px) scale(2);",
+      "crop": true,
+      "frame": "left: 14.1276%; top: 15.1042%; width: 85.8724%; height: 84.8958%;",
+      "viewport": "transform: translate(-580px, -400px) scale(2);"
+    },
+    {
+      "case": "final main canvas with minimap",
+      "crop": true,
+      "edgeCount": 1,
+      "minimap": true,
+      "viewport": "transform: translate(249.1px, 117.8px) scale(0.69);"
+    }
+  ],
+  "consoleErrors": [],
+  "finalCropEditors": 0
+}

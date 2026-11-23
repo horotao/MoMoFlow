@@ -29,7 +29,10 @@ export type FileAsset = {
   // Preserve gray-mask semantics through pass-through nodes and saved snapshots.
   maskMode?: 'luminance';
   contentHash?: string; generation?: GenerationRecord;
+  // Keep the original pixels so reopening Crop can expand beyond the last crop.
+  crop?: { source: Omit<FileAsset, 'crop'>; rect: ImageCropRect };
 };
+export interface ImageCropRect { x: number; y: number; width: number; height: number }
 export type FileNode = Node<{ label?: string; locked?: boolean; asset?: FileAsset; assets?: FileAsset[]; activeAssetId?: string; viewMode?: 'single' | 'all'; orderBy?: 'date' | 'name'; annotations?: AnnotationHistory[] }, 'file'>;
 export const isFileNode = (node: AppNode | undefined): node is FileNode => node?.type === 'file';
 type ImageResults = { results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name'; annotations?: AnnotationHistory[] };

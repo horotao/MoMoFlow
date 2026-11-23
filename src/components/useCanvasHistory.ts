@@ -64,17 +64,25 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
     const mentionsChanged = nodes.some(node => mentionIds(node) !== mentionIds(state.present.nodes.find(item => item.id === node.id)));
     const colorTagsChanged = nodes.some(node => JSON.stringify(nodeColorTags(node)) !== JSON.stringify(nodeColorTags(state.present.nodes.find(item => item.id === node.id))));
     const labelChanged = nodes.some(node => node.data.label !== state.present.nodes.find(item => item.id === node.id)?.data.label);
+    const cropsChanged = nodes.some(node => {
+      if (!isCanvasImageNode(node)) return false;
+      const previous = state.present.nodes.find(item => item.id === node.id);
+      return previous && isCanvasImageNode(previous) && (node.data.results ?? []).some(asset => {
+        const old = previous.data.results?.find(item => item.id === asset.id);
+        return Boolean(asset.crop || old?.crop) && asset.url !== old?.url;
+      });
+    });
     const lockChanged = dataOnly && nodes.some((node, i) => isNodeLocked(node) !== isNodeLocked(state.present.nodes[i]));
     const groupColorChanged = dataOnly && nodes.some((node, i) => {
       const previous = state.present.nodes[i];
       return isCanvasGroup(node) && isCanvasGroup(previous) && node.data.color !== previous.data.color;
     });
-    if (colorTagsChanged || mentionsChanged || labelChanged || lockChanged || groupColorChanged || annotationsChanged || seedreamSizeChanged || !dataOnly || Date.now() - state.time > 750) {
+    if (cropsChanged || colorTagsChanged || mentionsChanged || labelChanged || lockChanged || groupColorChanged || annotationsChanged || seedreamSizeChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;
     state.future = [];
-    state.time = dataOnly && !colorTagsChanged && !labelChanged && !mentionsChanged && !lockChanged && !groupColorChanged ? Date.now() : 0;
+    state.time = dataOnly && !cropsChanged && !colorTagsChanged && !labelChanged && !mentionsChanged && !lockChanged && !groupColorChanged ? Date.now() : 0;
     sync();
   }, [nodes, edges, sync]);
 

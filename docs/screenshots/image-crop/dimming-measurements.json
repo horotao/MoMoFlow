@@ -1,0 +1,54 @@
+{
+  "reference": {
+    "cropScreenshot": "dimming-flora-crop.jpg",
+    "normalScreenshot": "dimming-flora-normal.jpg",
+    "viewport": [
+      1405,
+      846
+    ],
+    "sampling": "JPEG RGB channel ratio; normal channels in (0.18, 0.96), median across sampled region",
+    "regions": {
+      "image": {
+        "rect": [
+          180,
+          425,
+          180,
+          200
+        ],
+        "ratio": 0.39479233739699415
+      },
+      "heading": {
+        "rect": [
+          148,
+          384,
+          250,
+          16
+        ],
+        "ratio": 1.0
+      },
+      "wire": {
+        "rect": [
+          400,
+          80,
+          330,
+          310
+        ],
+        "ratio": 0.3993866511436401
+      }
+    }
+  },
+  "local": {
+    "zoomPercent": [
+      69,
+      100
+    ],
+    "nodeOpacity": 1,
+    "headingFilter": "none",
+    "headingColor": "rgb(181, 179, 173)",
+    "modelFilter": "none",
+    "inactiveContentFilter": "brightness(0.4)",
+    "edgeFilter": "brightness(0.4)",
+    "afterCancelFilters": "none",
+    "consoleErrors": []
+  }
+}

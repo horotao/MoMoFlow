@@ -44,23 +44,28 @@ export function workflowSnapshot(workflow: Workflow): StoredWorkflow {
 }
 
 export function mapAssets(nodes: AppNode[], map: (asset: FileAsset) => FileAsset): AppNode[] {
+  const visit = (asset: FileAsset): FileAsset => {
+    // Existing visitors (including project thumbnails) see the visible asset first.
+    const mapped = map(asset);
+    return mapped.crop ? { ...mapped, crop: { ...mapped.crop, source: map(mapped.crop.source) } } : mapped;
+  };
   return nodes.map(node => {
 
     if (isFileNode(node)) {
       const { data } = node;
       return { ...node, data: {
         ...data,
-        asset: data.asset ? map(data.asset) : undefined,
-        assets: data.assets?.map(map),
+        asset: data.asset ? visit(data.asset) : undefined,
+        assets: data.assets?.map(visit),
       } } as AppNode;
     }
 
     if (isInteractiveEditNode(node)) return { ...node, data: { ...node.data,
-      baseImage: node.data.baseImage ? map(node.data.baseImage) : undefined,
+      baseImage: node.data.baseImage ? visit(node.data.baseImage) : undefined,
     } };
 
     if (isImageGeneratorNode(node)) return { ...node, data: {
-      ...node.data, results: node.data.results?.map(map),
+      ...node.data, results: node.data.results?.map(visit),
     } } as AppNode;
     return node;
   });

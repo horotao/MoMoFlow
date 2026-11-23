@@ -43,6 +43,13 @@ export function extractFileAsset(nodes: AppNode[], sourceId: string, assetId: st
 export function isFileAsset(value: unknown): value is FileAsset {
   if (!value || typeof value !== 'object') return false;
   const asset = value as Partial<FileAsset>;
-  return typeof asset.id === 'string' && typeof asset.name === 'string' && typeof asset.url === 'string'
+  const basic = typeof asset.id === 'string' && typeof asset.name === 'string' && typeof asset.url === 'string'
     && /^(blob:|https?:)/.test(asset.url) && ['image', 'video', 'audio', '3d'].includes(asset.kind ?? '');
+  if (!basic || !asset.crop) return basic;
+  const { source, rect } = asset.crop;
+  return Boolean(source && typeof source === 'object' && rect && typeof rect === 'object' && !('crop' in source) && isFileAsset(source) && source.kind === 'image'
+    && Number.isInteger(source.width) && Number.isInteger(source.height) && source.width! > 0 && source.height! > 0
+    && [rect.x, rect.y, rect.width, rect.height].every(Number.isInteger)
+    && rect.x >= 0 && rect.y >= 0 && rect.width > 0 && rect.height > 0
+    && rect.x + rect.width <= source.width! && rect.y + rect.height <= source.height!);
 }

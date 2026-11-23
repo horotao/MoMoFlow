@@ -22,6 +22,7 @@ import { referenceRatioSettings } from './imageReferenceRatio';
 import { ImportedCanvasImage, type CanvasImageChrome } from './ImportedCanvasImage';
 import { selectedImageResult } from './annotationGraph';
 import { usePublishVisibleImage } from './visibleCanvasImage';
+import { useCanvasImageCrop } from './useCanvasImageCrop';
 import type { CanvasText } from './types';
 import { isNodeLocked } from './types';
 import type { AppNode, CanvasImage, FileAsset, ImageComposerData } from './types';
@@ -116,6 +117,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
 
   const available = imageInputHandles.find(handle => !occupied.has(handle));
   const active = results.find(asset => chosen && (asset.generation?.taskId ?? asset.id) === chosen) ?? results.find(asset => asset.id === data.activeResultId) ?? results[results.length - 1];
+  const crop = useCanvasImageCrop(id, active, Boolean(data.locked) || activeTasks.length > 0);
   usePublishVisibleImage(id, active);
   const [loadedSizes, setLoadedSizes] = useState<Record<string, { width: number; height: number }>>({});
   const dimensions = (asset?: FileAsset) => asset && (hasImageDimensions(asset) ? asset : loadedSizes[asset.url] ?? asset);
@@ -126,7 +128,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
     const patch = referenceRatioSettings(data, { width: referenceWidth, height: referenceHeight });
     if (patch) updateNodeData(id, patch);
   }, [id, data, referenceWidth, referenceHeight, updateNodeData]);
-  const { width, height } = canvasImageSize(composer.ratio, dimensions(active), dimensions(firstReference), task);
+  const { width, height } = crop.size ?? canvasImageSize(composer.ratio, dimensions(active), dimensions(firstReference), task);
   useLayoutEffect(() => { internals(id); }, [id, internals, available, edges, width, height]);
   function rememberSize(asset?: FileAsset) {
     if (!asset || hasImageDimensions(asset) || loadedSizes[asset.url]) return;
@@ -200,8 +202,10 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
         output,
       }}
       toolbar={!showToolbar ? null : <ImagePromptToolbar className="nodrag nopan" {...controls} hidden={toolbarHidden} downloadDisabled={!active}
+        onCrop={crop.open} cropActive={crop.active} cropDisabled={!active || activeTasks.length > 0}
         onDownload={() => { if (active) void downloadAsset(active).catch(() => setError('图片下载失败。')); }} />}
     />
+    {crop.editor}{crop.error}
     {previewOpen && active && <ImageAssetPreview asset={active} assets={results} onClose={() => setPreviewOpen(false)} />}
     {error && <button type="button" role="alert" onClick={() => setError('')}>{error}</button>}
   </div>;

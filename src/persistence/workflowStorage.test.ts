@@ -62,6 +62,18 @@ test('an intentionally empty workflow is still a versioned snapshot', () => {
   assert.deepEqual(saved.edges, []);
 });
 
+test('cropped assets retain and restore both original and cropped blobs without changing the saved rectangle', () => {
+  const crop = { source: { ...asset, url: 'blob:original', width: 1200, height: 800 }, rect: { x: 200, y: 100, width: 600, height: 400 } };
+  const node = { ...result, data: { ...result.data, results: [{ ...asset, url: 'blob:cropped', width: 600, height: 400, crop }] } };
+  const visited: string[] = [];
+  const [restored] = mapAssets([node], item => { visited.push(item.url); return { ...item, url: `${item.url}-restored` }; }) as SunburstNode[];
+  assert.deepEqual(visited, ['blob:cropped', 'blob:original']);
+  assert.equal(restored.data.results?.[0].url, 'blob:cropped-restored');
+  assert.equal(restored.data.results?.[0].crop?.source.url, 'blob:original-restored');
+  assert.deepEqual(restored.data.results?.[0].crop?.rect, crop.rect);
+  assert.equal(node.data.results[0].crop.source.url, 'blob:original');
+});
+
 test('unavailable IndexedDB rejects restoration and remains retryable', async () => {
   const storage = new WorkflowStorage();
   await assert.rejects(storage.load(), /indexedDB/);

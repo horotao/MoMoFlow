@@ -7,6 +7,7 @@ import { assetResources } from './assetResources';
 import { canvasImageSize } from './canvasImageGeometry';
 import { downloadAsset } from './fileMedia';
 import { readCanvasImage } from './importCanvasImage';
+import { useCanvasImageCrop } from './useCanvasImageCrop';
 import { isImportedCanvasImage, isNodeLocked, type AppNode, type FileAsset } from './types';
 
 export type CanvasImageChrome = Pick<ImagePromptNodeProps, 'title' | 'onTitleChange' | 'selected' | 'locked' | 'onSelectedChange' | 'outputConnected'> & {
@@ -23,6 +24,7 @@ export function ImportedCanvasImage({ id, asset, chrome }: { id: string; asset?:
   const [error, setError] = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
   const { output, showToolbar, toolbarHidden, ...frame } = chrome;
+  const crop = useCanvasImageCrop(id, asset, Boolean(frame.locked) || replacing);
 
   useLayoutEffect(() => {
     if (pendingUrl.current === asset?.url) pendingUrl.current = undefined;
@@ -51,16 +53,18 @@ export function ImportedCanvasImage({ id, asset, chrome }: { id: string; asset?:
     }
   }
 
-  return <div className="canvas-image-mount" style={canvasImageSize('auto', asset)}>
+  return <div className="canvas-image-mount" style={crop.size ?? canvasImageSize('auto', asset)}>
     <ImagePromptNode {...frame} assetOnly className="canvas-imported-image"
       result={asset && <img src={asset.url} alt={asset.name} />}
       onPreviewImage={asset ? () => setPreviewOpen(true) : undefined}
       handles={{ image: null, output }}
       toolbar={showToolbar ? <ImagePromptToolbar className="nodrag nopan" hidden={toolbarHidden} locked={frame.locked}
+        onCrop={crop.open} cropActive={crop.active} cropDisabled={!asset || replacing}
         replaceDisabled={replacing} onReplaceImage={() => input.current?.click()} downloadDisabled={!asset}
         onPreviewImage={asset ? () => setPreviewOpen(true) : undefined}
         onDownload={() => { if (asset) void downloadAsset(asset).catch(() => setError('图片下载失败。')); }} /> : null}
     />
+    {crop.editor}{crop.error}
     <input ref={input} hidden type="file" accept="image/*" aria-label="选择替换图片"
       onChange={event => {
         const picker = event.currentTarget;

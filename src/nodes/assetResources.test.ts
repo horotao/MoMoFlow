@@ -89,3 +89,18 @@ test('cut clipboard survives history eviction; failed clipboard writes preserve 
     else Reflect.deleteProperty(globalThis, 'navigator');
   }
 });
+
+test('a cropped result keeps original pixels alive through canvas history and clipboard retention', async () => {
+  const resources = new AssetResources(), owner = Symbol();
+  const original = resources.create(new Blob(['image bytes']));
+  const cropped = resources.create(new Blob(['image bytes']));
+  const source = { id: 'a', name: 'a.png', kind: 'image' as const, url: original };
+  const node: SunburstNode = { id: 'g', type: 'sunburst', position: { x: 0, y: 0 }, data: {
+    imageInputs: 1, quality: 'medium', background: 'auto', size: 'auto', outputFormat: 'png',
+    results: [{ ...source, url: cropped, crop: { source, rect: { x: 2, y: 3, width: 4, height: 5 } } }],
+  } };
+  resources.adopt(owner, nodeAssetUrls([node])); resources.collect();
+  await readable(original); await readable(cropped);
+  resources.release(owner); resources.collect();
+  await revoked(original); await revoked(cropped);
+});

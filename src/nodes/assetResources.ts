@@ -1,6 +1,6 @@
 import { isFileNode, isImageGeneratorNode, isInteractiveEditNode } from './types.ts';
 import type { PreviewTask } from './taskQueue';
-import type { AppNode } from './types';
+import type { AppNode, FileAsset } from './types';
 
 // Only URLs created by this registry may be revoked. External links and URLs
 // received from another tab are never owned by this page's collector.
@@ -71,15 +71,19 @@ export class AssetResources {
 
 export function nodeAssetUrls(nodes: Iterable<AppNode>): Set<string> {
   const urls = new Set<string>();
+  const add = (asset: FileAsset) => {
+    urls.add(asset.url);
+    if (asset.crop) urls.add(asset.crop.source.url);
+  };
   for (const node of nodes) {
     if (isFileNode(node)) {
       const { data } = node;
-      if (data.asset) urls.add(data.asset.url);
-      for (const asset of data.assets ?? []) urls.add(asset.url);
+      if (data.asset) add(data.asset);
+      for (const asset of data.assets ?? []) add(asset);
     } else if (isInteractiveEditNode(node)) {
-      if (node.data.baseImage) urls.add(node.data.baseImage.url);
+      if (node.data.baseImage) add(node.data.baseImage);
     } else if (isImageGeneratorNode(node)) {
-      for (const asset of node.data.results ?? []) urls.add(asset.url);
+      for (const asset of node.data.results ?? []) add(asset);
     }
   }
   return urls;
