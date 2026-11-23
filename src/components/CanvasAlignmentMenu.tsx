@@ -1,3 +1,4 @@
+import { NodeToolbarTooltip } from './NodeToolbarTooltip';
 import * as Menu from '@radix-ui/react-dropdown-menu';
 import {
   AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalSpaceBetween,
@@ -31,11 +32,11 @@ export function CanvasAlignmentMenu({ disabled, count, onAlign, onArrange, open,
   onOpenChange?: (open: boolean) => void;
 }) {
   return <Menu.Root modal={false} open={open} onOpenChange={onOpenChange}>
-    <Menu.Trigger asChild>
-      <button type="button" aria-label="对齐与分布" title="对齐与分布" disabled={disabled}>
+    <NodeToolbarTooltip label="对齐与分布"><Menu.Trigger asChild disabled={disabled}>
+      <button type="button" aria-label="对齐与分布" disabled={disabled}>
         <LayoutDashboard size={16} aria-hidden="true" />
       </button>
-    </Menu.Trigger>
+    </Menu.Trigger></NodeToolbarTooltip>
     <Menu.Portal>
       <Menu.Content aria-label="对齐与分布" className="canvas-alignment-menu nodrag nopan nowheel nokey"
         sideOffset={9} align="start" collisionPadding={8}

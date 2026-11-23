@@ -1,3 +1,4 @@
+import { NodeToolbarTooltip } from './NodeToolbarTooltip';
 import * as Menu from '@radix-ui/react-dropdown-menu';
 import { useState } from 'react';
 import { colorTags, type ColorTag } from '../nodes/colorTags';
@@ -18,12 +19,12 @@ export function ColorTagPicker({ tags, disabled, onChange, forSelection = false 
   const [keyboard, setKeyboard] = useState(false);
   const showTags = !forSelection && tags.length > 0;
   return <Menu.Root modal={false}>
-    <Menu.Trigger asChild><button type="button" className="color-tag-trigger" data-tagged={showTags}
-      aria-label={forSelection ? '标记所选节点' : 'Tag'} title="颜色标记" disabled={disabled}
+    <NodeToolbarTooltip label="颜色标记"><Menu.Trigger asChild disabled={disabled}><button type="button" className="color-tag-trigger" data-tagged={showTags}
+      aria-label={forSelection ? '标记所选节点' : 'Tag'} disabled={disabled}
       onPointerDown={() => setKeyboard(false)} onKeyDown={() => setKeyboard(true)}>
       {forSelection ? <span className="canvas-selection-tag-ring" aria-hidden="true" /> :
         <span className="node-tag-stack" aria-hidden="true">{showTags ? colorTags.filter(tag => tags.includes(tag.id)).map(tag => <span key={tag.id} className="node-tag-dot" style={{ background: tag.color }} />) : <span className="image-node-tag" />}</span>}
-    </button></Menu.Trigger>
+    </button></Menu.Trigger></NodeToolbarTooltip>
     <Menu.Portal><Menu.Content className="color-tag-menu color-tag-picker nodrag nopan nowheel" sideOffset={9} align="start" collisionPadding={8} data-keyboard={keyboard}
       aria-label="节点颜色标记" onPointerDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()} onKeyDown={event => {
         event.stopPropagation();

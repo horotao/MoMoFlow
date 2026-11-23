@@ -1,3 +1,4 @@
+import { NodeToolbarTooltip, NodeToolbarTooltipScope } from './NodeToolbarTooltip';
 import { getNodesBounds, useStore, ViewportPortal, type ReactFlowState } from '@xyflow/react';
 import { Columns2, Download, FolderPlus, Group, Link, Lock, LockOpen, MessagesSquare, Play, Presentation, type LucideIcon } from 'lucide-react';
 import { AnimatePresence, motion, useIsPresent, type HTMLMotionProps } from 'motion/react';
@@ -31,9 +32,9 @@ const assetActions = [
 function PlaceholderAction({ label, icon: Icon }: {
   label: string; icon: LucideIcon;
 }) {
-  return <button type="button" aria-label={label} title={`${label}（暂未实现）`} disabled>
+  return <NodeToolbarTooltip label={`${label}（暂未实现）`}><button type="button" aria-label={label} disabled>
     <Icon size={16} aria-hidden="true" />
-  </button>;
+  </button></NodeToolbarTooltip>;
 }
 
 export function CanvasToolbarDivider() {
@@ -44,7 +45,7 @@ export function CanvasToolbarSurface({ className, ...props }: Pick<HTMLMotionPro
   'className' | 'children' | 'aria-label' | 'onFocus' | 'onBlur'>) {
   const present = useIsPresent();
   const reduce = useSyncExternalStore(subscribeReducedMotion, readReducedMotion);
-  return <motion.div {...props}
+  return <NodeToolbarTooltipScope><motion.div {...props}
     className={`canvas-selection-toolbar nodrag nopan nowheel nokey${className ? ` ${className}` : ''}`}
     role="toolbar" aria-hidden={!present || undefined} {...(!present ? { inert: '' } : {})}
     initial={reduce ? false : { opacity: 0, y: 4 }}
@@ -52,7 +53,7 @@ export function CanvasToolbarSurface({ className, ...props }: Pick<HTMLMotionPro
     transition={{ duration: reduce ? 0 : .18, ease: [.23, 1, .32, 1] }}
     onPointerDown={event => event.stopPropagation()} onClick={event => event.stopPropagation()}
     onDoubleClick={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}
-    onKeyDown={handleToolbarKeys} />;
+    onKeyDown={handleToolbarKeys} /></NodeToolbarTooltipScope>;
 }
 
 function selectedBounds(state: ReactFlowState) {
@@ -123,19 +124,19 @@ function SelectionActions({ anchor, nodes, onAlign, onArrange, onChangeTags, onG
       <CanvasToolbarDivider />
       <ColorTagPicker tags={commonTags} disabled={!present || !editable.length} onChange={onChangeTags} forSelection />
       <CanvasToolbarDivider />
-      <button type="button" aria-label="编组" title="编组" disabled={!present || !onGroup || !canGroupSelection(nodes)} onClick={onGroup}>
+      <NodeToolbarTooltip label="编组"><button type="button" aria-label="编组" disabled={!present || !onGroup || !canGroupSelection(nodes)} onClick={onGroup}>
         <Group size={16} aria-hidden="true" />
-      </button>
-      <button type="button" aria-label={lockLabel} title={lockLabel} disabled={!present || count < 2} onClick={onToggleLock}>
+      </button></NodeToolbarTooltip>
+      <NodeToolbarTooltip label={lockLabel}><button type="button" aria-label={lockLabel} disabled={!present || count < 2} onClick={onToggleLock}>
         <LockIcon size={16} aria-hidden="true" />
-      </button>
+      </button></NodeToolbarTooltip>
       <CanvasAlignmentMenu disabled={!present || alignmentCount < 2} count={alignmentCount}
         onAlign={onAlign} onArrange={onArrange} />
       <CanvasToolbarDivider />
-      <button type="button" aria-label="运行所选节点" title={runLabel}
+      <NodeToolbarTooltip label={runLabel}><button type="button" aria-label="运行所选节点"
         disabled={!present || !runCount || runCount > maxSelectionGenerationNodes} onClick={onRun}>
         <Play size={16} fill="currentColor" aria-hidden="true" />
-      </button>
+      </button></NodeToolbarTooltip>
     </CanvasToolbarSurface>
   </div>;
 }

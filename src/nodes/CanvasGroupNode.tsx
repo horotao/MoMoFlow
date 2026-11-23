@@ -1,3 +1,4 @@
+import { NodeToolbarTooltip } from '../components/NodeToolbarTooltip';
 import * as Menu from '@radix-ui/react-dropdown-menu';
 import { NodeResizer, NodeToolbar, ViewportPortal, useReactFlow, useStore, useStoreApi, type NodeProps } from '@xyflow/react';
 import { Download, Play, Ungroup } from 'lucide-react';
@@ -135,11 +136,11 @@ function GroupActions({ id, name, color, menu, onFocusChange, onMenuChange, onCo
     onFocus={event => { if (event.target.matches(':focus-visible')) onFocusChange(true); }}
     onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) onFocusChange(false); }}>
     <Menu.Root modal={false} open={present && menu === 'color'} onOpenChange={open => onMenuChange(open ? 'color' : null)}>
-      <Menu.Trigger asChild>
-        <button type="button" aria-label="群组颜色" title="群组颜色">
+      <NodeToolbarTooltip label="群组颜色"><Menu.Trigger asChild>
+        <button type="button" aria-label="群组颜色">
           <span className="canvas-group-color-dot" style={{ background: color }} />
         </button>
-      </Menu.Trigger>
+      </Menu.Trigger></NodeToolbarTooltip>
       <Menu.Portal>
         <Menu.Content className="canvas-group-color-menu canvas-alignment-menu nodrag nopan nowheel nokey"
           aria-label="群组颜色" sideOffset={9} align="start" collisionPadding={8}
@@ -155,21 +156,20 @@ function GroupActions({ id, name, color, menu, onFocusChange, onMenuChange, onCo
       </Menu.Portal>
     </Menu.Root>
     <CanvasToolbarDivider />
-    <button type="button" aria-label="解组" title="解组" onClick={onUngroup}>
+    <NodeToolbarTooltip label="解组"><button type="button" aria-label="解组" onClick={onUngroup}>
       <Ungroup size={16} aria-hidden="true" />
-    </button>
-    <button type="button" aria-label="下载群组内容" title="下载群组内容"
+    </button></NodeToolbarTooltip>
+    <NodeToolbarTooltip label="下载群组内容"><button type="button" aria-label="下载群组内容"
       disabled={busy || !contents.assets.length && !contents.extraFiles.length} onClick={() => void download()}>
       <Download size={16} aria-hidden="true" />
-    </button>
+    </button></NodeToolbarTooltip>
     <CanvasAlignmentMenu count={editable} disabled={editable < 2} onAlign={onArrange} onArrange={onArrange}
       open={present && menu === 'alignment'} onOpenChange={open => onMenuChange(open ? 'alignment' : null)} />
     <CanvasToolbarDivider />
-    <button type="button" aria-label="运行群组节点"
-      title={runnable > maxSelectionGenerationNodes ? `一次最多运行 ${maxSelectionGenerationNodes} 个节点` : '运行群组节点'}
+    <NodeToolbarTooltip label={runnable > maxSelectionGenerationNodes ? `一次最多运行 ${maxSelectionGenerationNodes} 个节点` : '运行群组节点'}><button type="button" aria-label="运行群组节点"
       disabled={!runnable || runnable > maxSelectionGenerationNodes} onClick={() => requestCanvasRun(members.map(node => node.id))}>
       <Play size={16} aria-hidden="true" />
-    </button>
+    </button></NodeToolbarTooltip>
     {error && <span className="canvas-group-download-error" role="alert">下载群组内容失败，请重试。</span>}
   </CanvasToolbarSurface>;
 }

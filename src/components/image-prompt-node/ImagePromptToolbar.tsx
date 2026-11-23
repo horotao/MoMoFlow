@@ -1,12 +1,19 @@
+import { NodeToolbarTooltip, NodeToolbarTooltipScope } from '../NodeToolbarTooltip';
 import { NodeColorTagButton } from '../NodeColorTagButton';
 import { ImagePromptAspectRatioMenu } from './ImagePromptAspectRatioMenu';
 import { ImagePromptModelMenu, ImagePromptModelBrand } from './ImagePromptModelMenu';
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useControllableValue } from './useControllableValue';
 import { imagePromptModels, defaultImagePromptModelSelection, type ImagePromptModelSelection, type ImagePromptModelId } from './imagePromptModels';
 import { ImagePromptIcon } from './ImagePromptIcon';
 import { Zap } from 'lucide-react';
 import './image-prompt-toolbar.css';
+
+function stopToolbarNavigation(event: KeyboardEvent<HTMLDivElement>) {
+  if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter', ' ', 'Escape'].includes(event.key)) {
+    event.stopPropagation();
+  }
+}
 
 export interface ImagePromptToolbarProps {
   textModelPicker?: ReactNode;
@@ -83,57 +90,57 @@ export function ImagePromptToolbar({
   }, [locked, hidden, menuOpen, aspectMenuOpen, closeMenu, closeAspectMenu]);
   if (hidden) return null;
   if (onReplaceImage) return (
-    <div className={`image-node-toolbar ${className}`} role="toolbar" aria-label={textModelPicker ? 'Text node tools' : 'Image node tools'}>
-      <button type="button" className="image-node-toolbar-label image-node-tools-label" disabled>
+    <NodeToolbarTooltipScope><div className={`image-node-toolbar ${className}`} role="toolbar" aria-label={textModelPicker ? 'Text node tools' : 'Image node tools'} onKeyDown={stopToolbarNavigation}>
+      <NodeToolbarTooltip label="工具"><button type="button" className="image-node-toolbar-label image-node-tools-label" disabled>
         <ImagePromptIcon name="tools" />Tools<ImagePromptIcon name="chevron" />
-      </button>
+      </button></NodeToolbarTooltip>
       <span className="image-node-separator" />
-      <button type="button" aria-label="替换图片" title="替换图片" disabled={locked || replaceDisabled} onClick={onReplaceImage}>
+      <NodeToolbarTooltip label="替换图片"><button type="button" aria-label="替换图片" disabled={locked || replaceDisabled} onClick={onReplaceImage}>
         <ImagePromptIcon name="replace-image" />
-      </button>
-      <button type="button" aria-label="下载原图" title="下载原图" className="image-node-download" disabled={downloadDisabled} onClick={onDownload}>
+      </button></NodeToolbarTooltip>
+      <NodeToolbarTooltip label="下载原图"><button type="button" aria-label="下载原图" className="image-node-download" disabled={downloadDisabled} onClick={onDownload}>
         <ImagePromptIcon name="download" />
-      </button>
-      <button type="button" aria-label="查看大图" title="查看大图" disabled={!onPreviewImage} onClick={onPreviewImage}>
+      </button></NodeToolbarTooltip>
+      <NodeToolbarTooltip label="查看大图"><button type="button" aria-label="查看大图" disabled={!onPreviewImage} onClick={onPreviewImage}>
         <ImagePromptIcon name="expand-preview" />
-      </button>
+      </button></NodeToolbarTooltip>
       <span className="image-node-separator" />
       <NodeColorTagButton />
-      <button type="button" aria-label="添加到素材库" title="添加到素材库" disabled>
+      <NodeToolbarTooltip label="添加到素材库"><button type="button" aria-label="添加到素材库" disabled>
         <ImagePromptIcon name="folder" />
-      </button>
-      <button type="button" aria-label="发送图片" title="发送图片" disabled>
+      </button></NodeToolbarTooltip>
+      <NodeToolbarTooltip label="发送图片"><button type="button" aria-label="发送图片" disabled>
         <ImagePromptIcon name="send-image" />
-      </button>
-      <button type="button" aria-label="评论" title="评论" disabled>
+      </button></NodeToolbarTooltip>
+      <NodeToolbarTooltip label="评论"><button type="button" aria-label="评论" disabled>
         <ImagePromptIcon name="comment" />
-      </button>
-    </div>
+      </button></NodeToolbarTooltip>
+    </div></NodeToolbarTooltipScope>
   );
   return (
-    <div className={`image-node-toolbar ${className}`} role="toolbar" aria-label={textModelPicker ? 'Text node tools' : 'Image node tools'}>
-      {textModelPicker ?? <><button ref={trigger} type="button" className="image-node-toolbar-label" aria-label={`选择图像模型：${label}`} aria-haspopup="dialog" aria-expanded={menuOpen} aria-controls={menuOpen ? menuId : undefined} disabled={locked}
+    <NodeToolbarTooltipScope><div className={`image-node-toolbar ${className}`} role="toolbar" aria-label={textModelPicker ? 'Text node tools' : 'Image node tools'} onKeyDown={stopToolbarNavigation}>
+      {textModelPicker ?? <><NodeToolbarTooltip label="选择图像模型"><button ref={trigger} type="button" className="image-node-toolbar-label" aria-label={`选择图像模型：${label}`} aria-haspopup="dialog" aria-expanded={menuOpen} aria-controls={menuOpen ? menuId : undefined} disabled={locked}
         onClick={() => { onModelClick?.(); if (menuOpen) closeMenu(); else openModelMenu(); }}
         onKeyDown={event => { if (event.key === 'ArrowDown' && !menuOpen) { event.preventDefault(); openModelMenu(); } }}>
         <ImagePromptModelBrand brand={activeModel?.brand ?? 'openai'} />{label}<ImagePromptIcon name="chevron" />
-      </button>
+      </button></NodeToolbarTooltip>
       {menuOpen && !locked && <ImagePromptModelMenu models={imagePromptModels} id={menuId} anchor={trigger} selection={selection} onChange={setSelection} pinned={pinned} onPinnedChange={setPinned} onClose={closeMenu} />}
       <span className="image-node-separator" />
-      <button ref={aspectTrigger} id={aspectTriggerId} type="button" className="image-node-toolbar-label" aria-label={`选择画面比例：${aspectRatio === 'auto' ? '自动' : aspectRatio}`} aria-haspopup="menu" aria-expanded={aspectMenuOpen} aria-controls={aspectMenuOpen ? aspectMenuId : undefined} disabled={locked}
+      <NodeToolbarTooltip label="画面比例"><button ref={aspectTrigger} id={aspectTriggerId} type="button" className="image-node-toolbar-label" aria-label={`选择画面比例：${aspectRatio === 'auto' ? '自动' : aspectRatio}`} aria-haspopup="menu" aria-expanded={aspectMenuOpen} aria-controls={aspectMenuOpen ? aspectMenuId : undefined} disabled={locked}
         onClick={() => { onAspectRatioClick?.(); if (aspectMenuOpen) closeAspectMenu(); else openAspectMenu(); }}
         onKeyDown={event => { if (event.key === 'ArrowDown' && !aspectMenuOpen) { event.preventDefault(); openAspectMenu(); } }}>
         {aspectRatio === 'auto' ? '自动' : aspectRatio}<ImagePromptIcon name="chevron" />
-      </button>
+      </button></NodeToolbarTooltip>
       {aspectMenuOpen && !locked && <ImagePromptAspectRatioMenu id={aspectMenuId} labelledBy={aspectTriggerId} anchor={aspectTrigger} value={aspectRatio} choices={aspectRatioChoices} onChange={setAspectRatio} onClose={closeAspectMenu} />}</>}
       <span className="image-node-separator" />
-      <button type="button" className="image-node-toolbar-label image-node-tools-label" aria-disabled={textModelPicker ? true : undefined} onClick={textModelPicker ? undefined : onToolsClick}><ImagePromptIcon name="tools" />Tools<ImagePromptIcon name="chevron" /></button>
+      <NodeToolbarTooltip label="工具"><button type="button" className="image-node-toolbar-label image-node-tools-label" aria-disabled={textModelPicker ? true : undefined} onClick={textModelPicker ? undefined : onToolsClick}><ImagePromptIcon name="tools" />Tools<ImagePromptIcon name="chevron" /></button></NodeToolbarTooltip>
       <span className="image-node-separator" />
-      {textModelPicker && !textHasOutput && <button type="button" aria-label="运行选项" aria-disabled="true"><Zap size={16} aria-hidden="true" /></button>}
-      <button type="button" aria-label="Lock node" aria-pressed={locked} onClick={() => onLockedChange?.(!locked)}><ImagePromptIcon name="unlock" /></button>
+      {textModelPicker && !textHasOutput && <NodeToolbarTooltip label="运行选项"><button type="button" aria-label="运行选项" aria-disabled="true"><Zap size={16} aria-hidden="true" /></button></NodeToolbarTooltip>}
+      <NodeToolbarTooltip label={locked ? '解锁节点' : '锁定节点'}><button type="button" aria-label="Lock node" aria-pressed={locked} onClick={() => onLockedChange?.(!locked)}><ImagePromptIcon name="unlock" /></button></NodeToolbarTooltip>
       <span className="image-node-separator" />
       <NodeColorTagButton />
-      {textModelPicker ? <><span className="image-node-separator" /><button type="button" aria-label="添加到素材库" aria-disabled="true"><ImagePromptIcon name="folder" /></button>{textHasOutput && <button type="button" aria-label="发送文本" aria-disabled="true"><ImagePromptIcon name="send-image" /></button>}<span className="image-node-separator" /><button type="button" aria-label="评论" aria-disabled="true"><ImagePromptIcon name="comment" /></button></>
-        : <button type="button" className="image-node-download" aria-label="Download" onClick={onDownload} disabled={downloadDisabled}><ImagePromptIcon name="download" /></button>}
-    </div>
+      {textModelPicker ? <><span className="image-node-separator" /><NodeToolbarTooltip label="添加到素材库"><button type="button" aria-label="添加到素材库" aria-disabled="true"><ImagePromptIcon name="folder" /></button></NodeToolbarTooltip>{textHasOutput && <NodeToolbarTooltip label="发送文本"><button type="button" aria-label="发送文本" aria-disabled="true"><ImagePromptIcon name="send-image" /></button></NodeToolbarTooltip>}<span className="image-node-separator" /><NodeToolbarTooltip label="评论"><button type="button" aria-label="评论" aria-disabled="true"><ImagePromptIcon name="comment" /></button></NodeToolbarTooltip></>
+        : <NodeToolbarTooltip label="下载图片"><button type="button" className="image-node-download" aria-label="Download" onClick={onDownload} disabled={downloadDisabled}><ImagePromptIcon name="download" /></button></NodeToolbarTooltip>}
+    </div></NodeToolbarTooltipScope>
   );
 }
