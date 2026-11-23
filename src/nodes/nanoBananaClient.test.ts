@@ -1,7 +1,7 @@
 import test, { type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { requestNanoBanana } from './nanoBananaClient.ts';
-import { defaultNanoBananaSettings } from './nanoBanana.ts';
+import { defaultNanoBananaSettings, nanoBananaProModel } from './nanoBanana.ts';
 import { assetResources } from './assetResources.ts';
 
 const request = { ...defaultNanoBananaSettings, prompt: 'Test', images: [] };
@@ -52,6 +52,7 @@ test('a completed task without a result URL keeps the task ID and never resubmit
 });
 
 function outputFixture(context: TestContext, format: string, onExport?: () => Blob | null) {
+  let submittedModel: string | undefined;
   const created: Blob[] = [], decoded: Blob[] = [];
   let closed = 0, exports = 0, submissions = 0, polls = 0, downloads = 0;
   let outputFormat: string;
@@ -75,7 +76,9 @@ function outputFixture(context: TestContext, format: string, onExport?: () => Bl
   context.mock.method(globalThis, 'fetch', async (url: string, init: RequestInit) => {
     if (url === '/api/nano-banana') {
       submissions++;
-      outputFormat = JSON.parse(String(init.body)).outputFormat;
+      const body = JSON.parse(String(init.body));
+      outputFormat = body.outputFormat;
+      submittedModel = body.model;
       return Response.json({ taskId: 'task_banana' });
     }
     if (url === '/api/apimart/task') {
@@ -105,7 +108,7 @@ function outputFixture(context: TestContext, format: string, onExport?: () => Bl
     assert.equal(downloads, 1);
     return pending;
   };
-  return { run, created, decoded, closed: () => closed, exports: () => exports, submissions: () => submissions };
+  return { run, created, decoded, submittedModel: () => submittedModel, closed: () => closed, exports: () => exports, submissions: () => submissions };
 }
 
 test('matching output format preserves original bytes and dimensions without re-encoding', async context => {
@@ -118,10 +121,11 @@ test('matching output format preserves original bytes and dimensions without re-
   assert.equal(f.exports(), 0); assert.equal(f.closed(), 1); assert.equal(f.submissions(), 1);
 });
 
-test('requested JPEG is encoded locally when the provider returns PNG', async context => {
+test('Pro retains its model in the submission and encodes the requested JPEG locally', async context => {
   const f = outputFixture(context, 'png');
-  const [asset] = await f.run({ ...request, outputFormat: 'jpeg' });
-  assert.match(asset.name, /\.jpeg$/);
+  const [asset] = await f.run({ ...request, model: nanoBananaProModel, outputFormat: 'jpeg' });
+  assert.equal(f.submittedModel(), nanoBananaProModel);
+  assert.match(asset.name, /^Nano-Banana-Pro-\d+\.jpeg$/);
   assert.equal(f.created[0].type, 'image/jpeg');
   assert.equal(f.exports(), 1); assert.equal(f.closed(), 1); assert.equal(f.submissions(), 1);
 });

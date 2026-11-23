@@ -172,9 +172,13 @@ export class WorkflowExecution {
     const node = this.graph.nodes.find(item => item.id === id)!;
     if (!isModelNode(node)) nodeProblem(node, '节点已下线或不能运行。');
     const selected = composerExecutionNode(node);
-    const settings = selected.type === 'sunburst' ? effectiveSunburstSettings(selected) : undefined;
-    const model = settings ? sunburstModelForProvider(settings.provider, settings.variant, settings.channelModel)
-      : selected.type === 'seedream' ? seedreamModel : nanoBananaModel;
+    let model: string;
+    if (selected.type === 'sunburst') {
+      const settings = effectiveSunburstSettings(selected);
+      model = sunburstModelForProvider(settings.provider, settings.variant, settings.channelModel);
+    } else {
+      model = selected.type === 'seedream' ? seedreamModel : selected.data.model ?? nanoBananaModel;
+    }
     return { id: crypto.randomUUID(), nodeId: id, batchId, label: modelTaskLabel({ model }), model, createdAt: Date.now(), state: 'Queued', progress: 0, started: 0, notice: '等待上游' };
   }
   private expandRootTasks(root: Root, attempts: ModelAttempt[]) {

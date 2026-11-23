@@ -2,7 +2,6 @@ import type { AnnotationMark } from './interactiveEdit.ts';
 
 export const sunburstProviders = ['openai', 'apimart'] as const;
 export type SunburstProvider = typeof sunburstProviders[number];
-export const sunburstProviderLabels: Record<SunburstProvider, string> = { openai: 'OpenAI 官方', apimart: 'APIMart' };
 
 export function migrateSunburstProvider(value: unknown) {
   // The standard APIMart model keeps support for pixel sizes, SVG and raster masks.
@@ -26,6 +25,11 @@ export function validateSunburstVariant(value: unknown): SunburstVariant {
 
 export const apimartChannelModels = ['gpt-image-2.6-ext', 'gpt-image-2.6'] as const;
 export type ApimartChannelModel = typeof apimartChannelModels[number];
+export const sunburstChannels = ['openai', 'gpt-image-2.6', 'gpt-image-2.6-ext'] as const satisfies readonly ('openai' | ApimartChannelModel)[];
+export type SunburstChannel = typeof sunburstChannels[number];
+export const sunburstChannelLabels: Record<SunburstChannel, string> = {
+  openai: 'OpenAI 官方', 'gpt-image-2.6': 'APIMart 标准', 'gpt-image-2.6-ext': 'APIMart EXT',
+};
 export function validateApimartChannelModel(value: unknown): ApimartChannelModel {
   if (value === undefined) return 'gpt-image-2.6-ext';
   if (value === 'gpt-image-2.6-ext' || value === 'gpt-image-2.6') return value;
@@ -124,7 +128,7 @@ export function validateSunburstSettings(value: unknown): SunburstSettings {
   validateSunburstVariant(input.variant);
   if (!imageQualities.some(v => v === input.quality) || ((provider !== 'apimart' || standard) && !imageBackgrounds.some(v => v === input.background))
     || !imageFormats.some(v => v === input.outputFormat)) throw new Error('不支持的图片参数。');
-  if (!sunburstFormats(provider, channelModel).some(v => v === input.outputFormat)) throw new Error(`${sunburstProviderLabels[provider]} 暂不支持此输出格式。`);
+  if (!sunburstFormats(provider, channelModel).some(v => v === input.outputFormat)) throw new Error(`${sunburstChannelLabels[channelModel ?? 'openai']} 暂不支持此输出格式。`);
   if (provider === 'apimart') {
     if (!standard && !apimartAspectRatios.some(v => v === input.size)) throw new Error('APIMart EXT 仅支持预设宽高比，不支持自定义宽高或像素尺寸。');
     const resolution = input.resolution ?? '1K';
@@ -192,7 +196,7 @@ export function sunburstPreviewAspectRatio(provider: SunburstProvider | undefine
 }
 
 export const sunburstFrameCounts = Array.from({ length: 15 }, (_, i) => String(i + 2));
-export const apimartExtMarkupError = 'APIMart GPT Image 2.6 EXT 不支持交互编辑标注。请切换到 GPT Image 2.6 标准版或 OpenAI 官方渠道。';
+export const apimartExtMarkupError = 'APIMart GPT Image 2.6 EXT 不支持交互编辑标注。请将渠道商切换为 APIMart 标准或 OpenAI 官方。';
 
 export function validateSunburstMarkup(outputFormat: string, hasImages: boolean, hasMask: boolean) {
   if (hasMask) throw new Error('交互编辑标注与 Mask 不能同时使用，请断开 Mask 后再运行。');
@@ -216,10 +220,16 @@ export function sunburstProviderSettings(data: SunburstSettings, provider: Sunbu
   const index = preset ? imageSizes.indexOf(preset.ratio) : -1;
   const ratio = index >= 0 ? imageSizeLabels[index] : data.size;
   const standard = channelModel === 'gpt-image-2.6';
+  const usesBackground = provider === 'openai' || standard;
+  const transparentIncompatible = usesBackground && data.background === 'transparent'
+    && (data.outputFormat === 'jpeg' || data.outputFormat === 'gif');
+  const outputFormat = sunburstFormats(provider, channelModel).includes(data.outputFormat) && !transparentIncompatible
+    ? data.outputFormat : 'png';
   let size = data.size;
   if (provider === 'apimart') {
-    if (standard) {
-      if (data.outputFormat === 'gif' || !(apimartStandardAspectRatios.some(item => item === size) || /^\d+x\d+$/.test(size))) size = 'auto';
+    if (outputFormat === 'gif') size = 'auto';
+    else if (standard) {
+      if (!(apimartStandardAspectRatios.some(item => item === size) || /^\d+x\d+$/.test(size))) size = 'auto';
     } else size = apimartAspectRatios.some(item => item === ratio) ? ratio : 'auto';
   } else if (apimartStandardAspectRatios.some(item => item !== 'auto' && item === size)) {
     const resolution = data.resolution ?? '1K';
@@ -228,8 +238,8 @@ export function sunburstProviderSettings(data: SunburstSettings, provider: Sunbu
     try { validateSunburstSize(size); } catch { size = 'auto'; }
   }
   return { size,
-    ...(!sunburstFormats(provider, channelModel).includes(data.outputFormat) ? { outputFormat: 'png' } : {}),
-    ...(provider === 'apimart' ? { resolution: preset?.resolution ?? data.resolution ?? '1K', ...apimartFixedSettings } : {}),
+    ...(outputFormat !== data.outputFormat ? { outputFormat } : {}),
+    ...(provider === 'apimart' ? { resolution: data.resolution ?? preset?.resolution ?? '1K', ...apimartFixedSettings } : {}),
   };
 }
 

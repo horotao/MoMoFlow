@@ -223,7 +223,7 @@ test('APIMart EXT rejects connected annotations before execution and accepts a r
   const ext: SunburstNode = { id: 'ext', type: 'sunburst', position, data: { ...defaultSunburstSettings, provider: 'apimart', channelModel: 'gpt-image-2.6-ext', imageInputs: 1 } };
   const graph = [...nodes, ext];
   const annotated = [...edges, { id: 'prompt', source: text.id, target: ext.id, targetHandle: 'prompt' }];
-  const error = /EXT 不支持交互编辑标注.*标准版/;
+  const error = /EXT 不支持交互编辑标注.*APIMart 标准/;
   const blocked = prepareSunburstRun(graph, annotated, [ext.id], 1);
   assert.match(blocked.error!, error);
   assert.deepEqual(blocked.tasks, []);

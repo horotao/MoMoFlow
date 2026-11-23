@@ -4,13 +4,13 @@ import { isCanvasImageNode } from './types.ts';
 import { selectedImageResult } from './annotationGraph.ts';
 import { imageInputHandles, isImageInputHandle } from './connectionRules.ts';
 import { hasImageDimensions } from './canvasImageGeometry.ts';
-import { changeComposerSettings, composerAspectRatios } from './imageComposerSettings.ts';
+import { changeComposerSettings, composerAspectRatio, composerAspectRatios } from './imageComposerSettings.ts';
 
 type Dimensions = { width?: number; height?: number };
 
 export function referenceRatioSettings(data: SunburstNode['data'], image?: Dimensions): Partial<SunburstNode['data']> | undefined {
   if (!data.composer || data.imageSource === 'imported' || data.locked
-    || (!data.composer.followReferenceRatio && data.composer.ratio !== 'auto') || !image || !hasImageDimensions(image)) return;
+    || (!data.composer.followReferenceRatio && composerAspectRatio(data) !== 'auto') || !image || !hasImageDimensions(image)) return;
   // Ratio-only channels need a supported preset, including for nonstandard images.
   // Log distance treats landscape and portrait deviations symmetrically.
   const requested = image.width / image.height;

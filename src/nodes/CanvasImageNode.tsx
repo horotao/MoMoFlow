@@ -15,7 +15,7 @@ import { isActiveTask, type PreviewTask } from './taskQueue';
 import { downloadAsset } from './fileMedia';
 import { savedImagePrompt } from './generationRecord';
 import { imageInputHandles, isImageInputHandle } from './connectionRules';
-import { changeComposerSettings, composerAspectRatios, composerModelSelection } from './imageComposerSettings';
+import { changeComposerSettings, composerAspectRatio, composerAspectRatios, composerModelSelection } from './imageComposerSettings';
 import { canvasImageSize, hasImageDimensions } from './canvasImageGeometry';
 import { reorderImageReferences } from './imageReferenceOrder';
 import { referenceRatioSettings } from './imageReferenceRatio';
@@ -130,7 +130,8 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
     const patch = !inpaintInput && referenceRatioSettings(data, { width: referenceWidth, height: referenceHeight });
     if (patch) updateNodeData(id, patch);
   }, [id, data, inpaintInput, referenceWidth, referenceHeight, updateNodeData]);
-  const { width, height } = inpaint.size ?? crop.size ?? canvasImageSize(composer.ratio, dimensions(active), dimensions(firstReference), task);
+  const ratio = composerAspectRatio(data);
+  const { width, height } = inpaint.size ?? crop.size ?? canvasImageSize(ratio, dimensions(active), dimensions(firstReference), task);
   useLayoutEffect(() => { internals(id); }, [id, internals, available, edges, width, height]);
   function rememberSize(asset?: FileAsset) {
     if (!asset || hasImageDimensions(asset) || loadedSizes[asset.url]) return;
@@ -154,7 +155,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   const controls = {
     modelSelection: composerModelSelection(data),
     onModelSelectionChange: (selection: NonNullable<ImageComposerData['selection']>) => edit({ selection }),
-    aspectRatio: composer.ratio,
+    aspectRatio: ratio,
     aspectRatioChoices: composerAspectRatios(data),
     onAspectRatioChange: (ratio: string) => edit({ ratio }),
     locked: Boolean(data.locked),

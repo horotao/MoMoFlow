@@ -2,11 +2,11 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useReactFlow, useStore } from '@xyflow/react';
 import { GenerationOptionsPanel } from './GenerationOptionsPanel';
 import type { AppNode, SunburstNode } from '../../nodes/types';
-import { changeComposerProvider, changeComposerSettings, composerAspectRatios, composerModelId, composerModelSelection, composerSettings } from '../../nodes/imageComposerSettings';
-import { imageQualities, imageQualityLabels, sunburstProviders, sunburstProviderLabels, type SunburstProvider } from '../../nodes/sunburst';
+import { changeComposerChannel, changeComposerSettings, composerAspectRatio, composerAspectRatios, composerChannel, composerModelId, composerModelSelection, composerSettings } from '../../nodes/imageComposerSettings';
+import { imageQualities, imageQualityLabels, sunburstChannels, sunburstChannelLabels, type SunburstChannel } from '../../nodes/sunburst';
 import { seedreamChoices } from '../../nodes/seedream';
 import { imagePromptGenerationAspectRatios } from './imagePromptAspectRatios';
-import { gptImageVariants, imagePromptModels, inpaintModels, type ImagePromptModelId } from './imagePromptModels';
+import { defaultPinnedImageModelIds, gptImageVariants, imagePromptModels, inpaintModels, type ImagePromptModelId } from './imagePromptModels';
 import { ImagePromptModelBrand, ImagePromptModelMenu } from './ImagePromptModelMenu';
 import { ImagePromptIcon } from './ImagePromptIcon';
 import { ImagePromptInfoTip } from './ImagePromptInfoTip';
@@ -40,7 +40,7 @@ export function ImageGenerationSettings({ data, onChange, inpaintOnly = false, c
   className?: string;
 }) {
   const [modelOpen, setModelOpen] = useState(false);
-  const [pinned, setPinned] = useState<ImagePromptModelId[]>(['nano-banana-2']);
+  const [pinned, setPinned] = useState<ImagePromptModelId[]>(() => [...defaultPinnedImageModelIds]);
   const trigger = useRef<HTMLButtonElement>(null);
   const id = useId();
   const locked = Boolean(data.locked);
@@ -57,7 +57,10 @@ export function ImageGenerationSettings({ data, onChange, inpaintOnly = false, c
   const settings = composerSettings(data);
   const seedream = modelId === 'seedream-5-5';
   const nano = modelId.startsWith('nano-banana');
-  const automaticSize = !seedream && !nano && (inpaintOnly || data.provider !== 'apimart') && composer.ratio === 'auto';
+  const channel = composerChannel(data);
+  const showBackground = !nano && (seedream || channel !== 'gpt-image-2.6-ext');
+  const transparent = showBackground && settings.background === 'transparent';
+  const automaticSize = !seedream && !nano && channel === 'openai' && composer.ratio === 'auto';
   const supportedRatios = composerAspectRatios(data);
   const ratios = imagePromptGenerationAspectRatios.filter(ratio => supportedRatios.includes(ratio));
   function edit(patch: Partial<SunburstNode['data']>) {
@@ -79,22 +82,22 @@ export function ImageGenerationSettings({ data, onChange, inpaintOnly = false, c
         id={`${id}-models`} anchor={trigger} selection={selection}
         pinned={pinned} onPinnedChange={setPinned} onClose={closeModel}
         onChange={selection => edit(changeComposerSettings(data, { selection }))} />}
-      {!inpaintOnly && gptImageVariants[modelId] && <div className="generation-option-row"><span>渠道商</span><GenerationOptionSelect label="渠道商" value={data.provider ?? 'openai'}
-        choices={sunburstProviders} labels={sunburstProviders.map(value => sunburstProviderLabels[value])} disabled={locked}
-        onChange={value => edit(changeComposerProvider(data, value as SunburstProvider))} /></div>}
-      <div className="generation-option-row"><span>画面比例</span><GenerationOptionSelect key={`ratio-${modelId}`} label="画面比例" value={composer.ratio} choices={ratios}
+      {!inpaintOnly && gptImageVariants[modelId] && <div className="generation-option-row"><span>渠道商</span><GenerationOptionSelect label="渠道商" value={channel}
+        choices={sunburstChannels} labels={sunburstChannels.map(value => sunburstChannelLabels[value])} disabled={locked}
+        onChange={value => edit(changeComposerChannel(data, value as SunburstChannel))} /></div>}
+      <div className="generation-option-row"><span>画面比例</span><GenerationOptionSelect key={`ratio-${modelId}`} label="画面比例" value={composerAspectRatio(data)} choices={ratios}
         labels={ratios.map(value => value === 'auto' ? '自动' : value)} disabled={locked}
         onChange={ratio => edit(changeComposerSettings(data, { ratio }))} /></div>
       <div className="generation-option-row"><span>分辨率{automaticSize && <ImagePromptInfoTip label="自动分辨率说明">OpenAI 自动比例下，选择分辨率会将画面比例设为 1:1。也可以先选择其他画面比例。</ImagePromptInfoTip>}</span><GenerationOptionSelect key={`resolution-${modelId}`} label="分辨率" value={automaticSize ? 'auto' : settings.resolution}
         choices={automaticSize ? ['auto', '1K', '2K', '4K'] : seedream ? seedreamChoices.resolution : ['1K', '2K', '4K']}
         labels={automaticSize ? ['自动', '1K', '2K', '4K'] : undefined} disabled={locked}
         onChange={value => { if (value !== 'auto') setSetting('resolution', value); }} /></div>
-      {!nano && (inpaintOnly || seedream || data.provider !== 'apimart' || data.channelModel === 'gpt-image-2.6') && <div className="generation-option-row"><span>背景</span><GenerationOptionSelect label="背景" value={settings.background ?? 'auto'}
+      {showBackground && <div className="generation-option-row"><span>背景</span><GenerationOptionSelect label="背景" value={settings.background ?? 'auto'}
         choices={['auto', 'transparent', 'opaque']} labels={['自动', '透明', '不透明']} disabled={locked} onChange={value => setSetting('background', value)} /></div>}
       {!seedream && !nano && <div className="generation-option-row"><span>画质</span><GenerationOptionSelect label="画质" value={settings.quality ?? 'medium'}
         choices={imageQualities} labels={imageQualities.map(value => imageQualityLabels[value])} disabled={locked} onChange={value => setSetting('quality', value)} /></div>}
       <div className="generation-option-row"><span>输出格式</span><GenerationOptionSelect label="输出格式" value={settings.outputFormat}
-        choices={settings.background === 'transparent' ? ['png'] : ['png', 'jpeg']} labels={settings.background === 'transparent' ? ['PNG'] : ['PNG', 'JPEG']}
+        choices={transparent ? ['png'] : ['png', 'jpeg']} labels={transparent ? ['PNG'] : ['PNG', 'JPEG']}
         disabled={locked} onChange={value => setSetting('outputFormat', value)} /></div>
       <div className="generation-options-cost"><span>费用<ImagePromptInfoTip label="生成费用">费用由当前 API 渠道按模型、参数和生成数量结算。</ImagePromptInfoTip></span><span>按实际用量</span></div>
   </GenerationOptionsPanel>;

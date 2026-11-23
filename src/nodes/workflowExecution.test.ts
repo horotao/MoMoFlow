@@ -68,6 +68,7 @@ test('queue names snapshot the actual composer model from waiting through comple
     ['gpt-image-2-6', 'apimart', 'Sunburst', 'gpt-image-2.6', 'gpt-image-2.6-sunburst', 'GPT Image 2.6 Sunburst'],
     ['seedream-5-5', 'apimart', 'Sunburst', 'gpt-image-2.6-ext', 'seedream-5-5', 'Seedream 5.5'],
     ['nano-banana-2-1', 'apimart', 'Sunburst', 'gpt-image-2.6-ext', 'gemini-nano-banana-2.1', 'Nano Banana 2.1'],
+    ['nano-banana-pro', 'openai', 'Sunburst', 'gpt-image-2.6-ext', 'gemini-3-pro-image-preview', 'Nano Banana Pro'],
   ] as const;
   for (const [selection, provider, variant, channelModel, model, label] of cases) {
     const image = createLibraryNode('image', { x: 0, y: 0 }) as CanvasImage;
@@ -494,7 +495,13 @@ test('Image composer batches use the inline prompt, with a connected Prompt taki
   assert.doesNotThrow(() => preflight(graph, ['image'], 1));
   assert.equal(prepareModel(graph, 'image')[0].seedreamRequest?.prompt, 'connected prompt');
   image.data.composer.selection = { modelIds: ['nano-banana-pro'], multiple: false, autoSelect: false };
-  assert.throws(() => preflight(graph, ['image'], 1), /请选择其中一个模型/);
+  image.data.composer.modelSettings = { 'nano-banana-pro': { resolution: '4K', outputFormat: 'jpeg' } };
+  image.data.composer.ratio = '1:8'; // Saved when Pro was a placeholder.
+  assert.doesNotThrow(() => preflight(graph, ['image'], 1));
+  assert.deepEqual(prepareModel(graph, 'image')[0].nanoBananaRequest, {
+    model: 'gemini-3-pro-image-preview', aspectRatio: 'auto', imageSize: '4K',
+    outputFormat: 'jpeg', prompt: 'connected prompt', images: [],
+  });
 });
 
 test('Seedream Image composer executes a batch and commits both results to the existing canvas node', async () => {
@@ -530,7 +537,7 @@ test('Image Prompt runs only the image with authored or selected Text output acr
   const upstream = { ...createLibraryNode('image', { x: -500, y: 0 }), id: 'unready-image' };
   const target = { ...createLibraryNode('image', { x: 500, y: 0 }), id: 'target' } as CanvasImage;
   const wires = [edge(source.id, target.id, 'prompt', 'text'), edge(upstream.id, source.id, 'image-0', 'result')];
-  for (const model of ['gpt-image-2-6', 'seedream-5-5', 'nano-banana-2-1'] as const) {
+  for (const model of ['gpt-image-2-6', 'seedream-5-5', 'nano-banana-2-1', 'nano-banana-pro'] as const) {
     for (const text of ['', '当前选中的生成结果']) {
       const selected = { ...source, data: { ...source.data, text } };
       const image: CanvasImage = { ...target, data: { ...target.data, composer: { ...target.data.composer, prompt: '保留本地草稿',

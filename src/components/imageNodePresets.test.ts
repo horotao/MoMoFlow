@@ -2,7 +2,7 @@ import test, { type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { createLibraryNode } from './libraryCatalog.ts';
 import { sunburstPreset } from './imageNodePresets.ts';
-import { changeComposerProvider, changeComposerSettings, composerModelId } from '../nodes/imageComposerSettings.ts';
+import { changeComposerChannel, changeComposerSettings, composerModelId, composerSettings } from '../nodes/imageComposerSettings.ts';
 import { defaultImagePromptModelSelection } from './image-prompt-node/imagePromptModels.ts';
 import { prepareModel } from '../nodes/executionGraph.ts';
 import { referenceRatioSettings } from '../nodes/imageReferenceRatio.ts';
@@ -37,6 +37,7 @@ test('fresh Image uses APIMart EXT, 1:1 and a request with the same parameters',
 test('new Image immediately inherits the last generation options without copying canvas content', t => {
   const values = storage(t);
   const source = image();
+  Object.assign(source.data, changeComposerChannel(source.data, 'gpt-image-2.6'));
   Object.assign(source.data, changeComposerSettings(source.data, { ratio: '16:9', quantity: 3, prompt: 'Private prompt' }, {
     resolution: '2K', quality: 'high', outputFormat: 'jpeg',
   }));
@@ -44,6 +45,7 @@ test('new Image immediately inherits the last generation options without copying
   sunburstPreset.remember(source.data);
   const node = image();
   for (const key of ['provider', 'channelModel', 'size', 'resolution', 'quality', 'outputFormat'] as const) assert.equal(node.data[key], source.data[key]);
+  assert.equal(node.data.channelModel, 'gpt-image-2.6');
   assert.equal(node.data.composer!.ratio, '16:9');
   assert.equal(node.data.composer!.quantity, 3);
   assert.equal(node.data.composer!.prompt, '');
@@ -60,7 +62,7 @@ test('new Image immediately inherits the last generation options without copying
 test('OpenAI channel and transparent background survive creating another node', t => {
   storage(t);
   const source = image();
-  Object.assign(source.data, changeComposerProvider(source.data, 'openai'));
+  Object.assign(source.data, changeComposerChannel(source.data, 'openai'));
   Object.assign(source.data, changeComposerSettings(source.data, { ratio: '9:21' }, {
     resolution: '4K', quality: 'max', background: 'transparent', outputFormat: 'png',
   }));
@@ -78,7 +80,7 @@ test('OpenAI channel and transparent background survive creating another node', 
 test('Flare shares GPT Image options and runs with its own model after preset restoration', t => {
   storage(t);
   const source = image();
-  Object.assign(source.data, changeComposerProvider(source.data, 'openai'));
+  Object.assign(source.data, changeComposerChannel(source.data, 'openai'));
   Object.assign(source.data, changeComposerSettings(source.data, {
     selection: { ...defaultImagePromptModelSelection, modelIds: ['gpt-image-2-6-flare'] },
   }));
@@ -145,6 +147,28 @@ test('model choice and model-specific options are retained across subsequent edi
   sunburstPreset.remember(node.data);
   assert.equal(image().data.composer!.ratio, 'auto');
   assert.equal(image().data.composer!.modelSettings!['seedream-5-5'].background, 'transparent');
+});
+
+test('recovering a removed Nano Banana 2 model preserves its generation options under 2.1', t => {
+  const values = storage(t);
+  const old = image();
+  const saved = { ...old.data, composer: {
+    ...old.data.composer, ratio: '21:9',
+    selection: { modelIds: ['nano-banana-2'], multiple: false, autoSelect: false },
+    modelSettings: { 'nano-banana-2': { resolution: '2K', outputFormat: 'jpeg' } },
+  } };
+  const existing = JSON.parse(JSON.stringify(saved)) as typeof old.data;
+  assert.equal(composerModelId(existing), 'nano-banana-2-1');
+  assert.equal(composerSettings(existing).resolution, '2K');
+  Object.assign(existing, changeComposerSettings(existing, {}, { outputFormat: 'png' }));
+  assert.equal(composerSettings(existing).resolution, '2K');
+
+  values.set('momoflow-sunburst-preset-v1', JSON.stringify(saved));
+  const restored = image();
+  assert.equal(composerModelId(restored.data), 'nano-banana-2-1');
+  assert.equal(restored.data.composer?.ratio, '21:9');
+  assert.equal(composerSettings(restored.data).resolution, '2K');
+  assert.equal(composerSettings(restored.data).outputFormat, 'jpeg');
 });
 
 test('legacy presets recover ratio, and corrupt or inaccessible storage uses factory defaults', t => {

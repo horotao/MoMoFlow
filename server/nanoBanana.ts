@@ -1,13 +1,14 @@
 import { apimartInputUrl } from '../src/nodes/apimartResult.ts';
 import {
   nanoBananaInputFormats, nanoBananaMaxImageBytes, nanoBananaMaxImages, nanoBananaMaxInputBytes,
-  nanoBananaModel, validateNanoBananaSettings,
+  validateNanoBananaModel, validateNanoBananaSettings,
 } from '../src/nodes/nanoBanana.ts';
 
 export function buildNanoBananaRequest(value: unknown) {
   if (!value || typeof value !== 'object') throw new Error('图片参数格式错误。');
   const input = value as Record<string, unknown>;
-  const settings = validateNanoBananaSettings(input);
+  const model = validateNanoBananaModel(input.model);
+  const settings = validateNanoBananaSettings(input, model);
   if (typeof input.prompt !== 'string' || !input.prompt.trim() || input.prompt.length > 32000) {
     throw new Error('请连接非空提示词，最多 32000 个字符。');
   }
@@ -30,6 +31,6 @@ export function buildNanoBananaRequest(value: unknown) {
   });
   return {
     images,
-    body: { model: nanoBananaModel, prompt: input.prompt.trim(), size: settings.aspectRatio, resolution: settings.imageSize, n: 1 },
+    body: { model, prompt: input.prompt.trim(), size: settings.aspectRatio, resolution: settings.imageSize, n: 1 },
   };
 }

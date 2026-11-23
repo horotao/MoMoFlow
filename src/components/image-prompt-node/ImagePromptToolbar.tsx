@@ -4,7 +4,7 @@ import { ImagePromptAspectRatioMenu } from './ImagePromptAspectRatioMenu';
 import { ImagePromptModelMenu, ImagePromptModelBrand } from './ImagePromptModelMenu';
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useControllableValue } from './useControllableValue';
-import { imagePromptModels, inpaintModels, defaultImagePromptModelSelection, type ImagePromptModelSelection, type ImagePromptModelId } from './imagePromptModels';
+import { defaultPinnedImageModelIds, imagePromptModels, inpaintModels, defaultImagePromptModelSelection, type ImagePromptModelSelection, type ImagePromptModelId } from './imagePromptModels';
 import { ImagePromptIcon } from './ImagePromptIcon';
 import { Zap } from 'lucide-react';
 import { ImageToolsMenu } from './ImageToolsMenu';
@@ -65,7 +65,7 @@ export function ImagePromptToolbar({
   const aspectTrigger = useRef<HTMLButtonElement>(null);
   const aspectMenuId = useId();
   const aspectTriggerId = useId();
-  const [pinned, setPinned] = useState<ImagePromptModelId[]>(['nano-banana-2']);
+  const [pinned, setPinned] = useState<ImagePromptModelId[]>(() => [...defaultPinnedImageModelIds]);
   const trigger = useRef<HTMLButtonElement>(null);
   const menuId = useId();
   const activeModel = imagePromptModels.find(model => model.id === selection.modelIds[0]);

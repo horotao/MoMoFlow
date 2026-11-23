@@ -1,12 +1,14 @@
 import type { FileAsset } from './types';
 import { modelInputSignatureVersion } from './generationRecord.ts';
+import { nanoBananaModel, nanoBananaProModel } from './nanoBanana.ts';
 
 const formats: Record<string, string> = { png: 'PNG', jpeg: 'JPEG', jpg: 'JPEG', webp: 'WEBP', gif: 'GIF', svg: 'SVG', 'svg+xml': 'SVG', avif: 'AVIF', bmp: 'BMP', tiff: 'TIFF', tif: 'TIFF' };
 const modelNames: Record<string, string> = {
   'gpt-image-2.6-sunburst': 'GPT Image 2.6 Sunburst',
   'gpt-image-2.6-flare': 'GPT Image 2.6 Flare',
   'gpt-image-2.6-ext': 'GPT Image 2.6 EXT',
-  'gemini-nano-banana-2.1': 'Nano Banana 2.1',
+  [nanoBananaModel]: 'Nano Banana 2.1',
+  [nanoBananaProModel]: 'Nano Banana Pro',
   'seedream-5-5': 'Seedream 5.5',
 };
 
@@ -21,7 +23,7 @@ export function imageCreatedAt(asset: FileAsset): number | undefined {
   if (typeof asset.createdAt === 'number' && Number.isFinite(asset.createdAt) && asset.createdAt > 0
     && !Number.isNaN(new Date(asset.createdAt).getTime())) return asset.createdAt;
   // Existing image clients recorded completion time in these exact filenames.
-  const time = /^(?:Sunburst|Flare|Seedream|Nano-Banana-2\.1)-(\d{13})\.[a-z]+$/i.exec(asset.name)?.[1];
+  const time = /^(?:Sunburst|Flare|Seedream|Nano-Banana-(?:2\.1|Pro))-(\d{13})\.[a-z]+$/i.exec(asset.name)?.[1];
   return time ? Number(time) : undefined;
 }
 

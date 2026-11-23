@@ -2,10 +2,10 @@ import {
   apimartFixedSettings, defaultSunburstSettings, imageSizeLabels, imageSizes, sunburstResolutions, sunburstSizePreset,
   validateApimartChannelModel, validateSunburstProvider, validateSunburstSettings, validateSunburstVariant,
 } from '../nodes/sunburst.ts';
-import { changeComposerSettings, composerAspectRatios } from '../nodes/imageComposerSettings.ts';
+import { changeComposerSettings, composerAspectRatios, savedComposerModelSettings } from '../nodes/imageComposerSettings.ts';
 import { seedreamChoices } from '../nodes/seedream.ts';
 import { nanoBananaImageSizes } from '../nodes/nanoBanana.ts';
-import { defaultImagePromptModelSelection, imagePromptModels } from './image-prompt-node/imagePromptModels.ts';
+import { defaultImagePromptModelSelection, imagePromptModels, restoreImagePromptModelSelection } from './image-prompt-node/imagePromptModels.ts';
 import type { CanvasImage, ImageComposerData, SunburstNode } from '../nodes/types';
 
 const storageKey = 'momoflow-sunburst-preset-v1';
@@ -17,7 +17,7 @@ const defaultSunburstPreset = {
 function modelSettings(value: ImageComposerData['modelSettings']) {
   const result: NonNullable<ImageComposerData['modelSettings']> = {};
   for (const model of imagePromptModels) {
-    const saved = value?.[model.id];
+    const saved = savedComposerModelSettings(value, model.id);
     if (!saved || typeof saved !== 'object') continue;
     const choices: Record<string, readonly string[]> = model.id === 'seedream-5-5'
       ? { resolution: seedreamChoices.resolution, background: seedreamChoices.background, outputFormat: ['png', 'jpeg'] }
@@ -36,10 +36,11 @@ function normalizePreset(value: unknown): CanvasImage['data'] {
   const resolution = input.resolution ?? sunburstSizePreset(settings.size)?.resolution ?? '1K';
   if (!sunburstResolutions.includes(resolution)) throw new Error('无效的分辨率预设。');
   const saved = input.composer;
-  const selection = saved?.selection ?? defaultImagePromptModelSelection;
-  if (!Array.isArray(selection.modelIds) || !selection.modelIds.length
-    || !selection.modelIds.every(id => imagePromptModels.some(model => model.id === id))
-    || typeof selection.autoSelect !== 'boolean' || typeof selection.multiple !== 'boolean') throw new Error('无效的模型预设。');
+  const savedSelection = saved?.selection ?? defaultImagePromptModelSelection;
+  if (!Array.isArray(savedSelection.modelIds) || !savedSelection.modelIds.length
+    || typeof savedSelection.autoSelect !== 'boolean' || typeof savedSelection.multiple !== 'boolean') throw new Error('无效的模型预设。');
+  const selection = restoreImagePromptModelSelection(savedSelection);
+  if (!selection.modelIds.every(id => imagePromptModels.some(model => model.id === id))) throw new Error('无效的模型预设。');
   // Older presets contain API size only; recover their toolbar ratio as well.
   const sizePreset = sunburstSizePreset(settings.size);
   const index = sizePreset ? imageSizes.indexOf(sizePreset.ratio) : -1;

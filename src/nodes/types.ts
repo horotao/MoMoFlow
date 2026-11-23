@@ -3,7 +3,7 @@ import type { TextBilling, TextUsage } from './textPricing';
 import type { AnnotationHistory, InteractiveEditData } from './interactiveEdit';
 import type { GenerationRecord, OutputPolicy } from './executionGraph';
 import type { SeedreamSettings } from './seedream';
-import type { NanoBananaSettings } from './nanoBanana';
+import type { NanoBananaModel, NanoBananaSettings } from './nanoBanana';
 import type { Node, BuiltInNode } from '@xyflow/react';
 import type { SunburstParameter, SunburstProvider, SunburstSettings } from './sunburst';
 import type { JSONContent } from '@tiptap/core';
@@ -51,7 +51,7 @@ export const isSunburstNode = (node: AppNode): node is SunburstNode => node.type
 export type CanvasImage = SunburstNode & { data: { composer: ImageComposerData } };
 export const isCanvasImageNode = (node: AppNode): node is CanvasImage => isSunburstNode(node) && Boolean(node.data.composer);
 export const isImportedCanvasImage = (node: AppNode) => isCanvasImageNode(node) && node.data.imageSource === 'imported';
-export type NanoBananaNode = Node<NanoBananaSettings & OutputPolicy & ImageResults & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof NanoBananaSettings)[] }, 'nano-banana'>;
+export type NanoBananaNode = Node<NanoBananaSettings & OutputPolicy & ImageResults & { model?: NanoBananaModel; label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof NanoBananaSettings)[] }, 'nano-banana'>;
 export type SeedreamNode = Node<SeedreamSettings & OutputPolicy & ImageResults & { label?: string; locked?: boolean; imageInputs: number; exposed?: (keyof SeedreamSettings)[] }, 'seedream'>;
 export const isSeedreamNode = (node: AppNode): node is SeedreamNode => node.type === 'seedream';
 export type ImageGeneratorNode = SunburstNode | NanoBananaNode | SeedreamNode;

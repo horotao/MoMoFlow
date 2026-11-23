@@ -14,7 +14,7 @@ export function prepareNanoBananaRun(nodes: AppNode[], edges: Edge[], ids: strin
     for (const id of new Set(ids)) {
       const node = nodes.find(item => item.id === id);
       if (!node || !isNanoBananaNode(node) || isNodeLocked(node)) continue;
-      const settings = validateNanoBananaSettings(node.data);
+      const settings = validateNanoBananaSettings(node.data, node.data.model);
       const inputs = edges.filter(edge => edge.target === id);
       const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
       const prompt = promptEdge ? resolveTextValue(promptEdge.source, nodes, edges).trim() : inlinePrompt?.trim() ?? '';
@@ -30,8 +30,8 @@ export function prepareNanoBananaRun(nodes: AppNode[], edges: Edge[], ids: strin
         });
       if (images.length > nanoBananaMaxImages) throw new Error(`最多支持 ${nanoBananaMaxImages} 张参考图片。`);
       for (let index = 0; index < runs; index++) tasks.push({
-        id: crypto.randomUUID(), batchId, createdAt, nodeId: id, model: nanoBananaModel,
-        nanoBananaRequest: { ...settings, prompt, images: [...images] }, progress: 0, state: 'Queued', started: 0,
+        id: crypto.randomUUID(), batchId, createdAt, nodeId: id, model: node.data.model ?? nanoBananaModel,
+        nanoBananaRequest: { ...settings, ...(node.data.model ? { model: node.data.model } : {}), prompt, images: [...images] }, progress: 0, state: 'Queued', started: 0,
       });
     }
     return { tasks };

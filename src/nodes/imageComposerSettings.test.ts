@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { changeComposerProvider, changeComposerSettings, composerAspectRatios, composerSettings } from './imageComposerSettings.ts';
+import { changeComposerChannel, changeComposerSettings, composerAspectRatios, composerChannel, composerSettings } from './imageComposerSettings.ts';
 import { defaultSunburstSettings } from './sunburst.ts';
 import { buildApimartRequest } from '../../server/apimart.ts';
 import { buildSunburstRequest } from '../../server/sunburst.ts';
@@ -44,11 +44,11 @@ test('choosing OpenAI resolution from auto uses an explicit matching square size
   }
 });
 
-test('channel switches preserve an existing standard choice, ratio and resolution', () => {
+test('channel switches preserve the selected model, ratio and resolution', () => {
   const node = image();
-  node.data.channelModel = 'gpt-image-2.6';
   Object.assign(node.data, changeComposerSettings(node.data, { ratio: '16:9' }, { resolution: '2K' }));
-  Object.assign(node.data, changeComposerProvider(node.data, 'apimart'));
+  Object.assign(node.data, changeComposerChannel(node.data, 'gpt-image-2.6'));
+  assert.equal(composerChannel(node.data), 'gpt-image-2.6');
   let request = prepareModel({ nodes: [node], edges: [] }, node.id)[0].imageRequest!;
   assert.equal(request.provider, 'apimart');
   assert.equal(request.channelModel, 'gpt-image-2.6');
@@ -58,22 +58,55 @@ test('channel switches preserve an existing standard choice, ratio and resolutio
   assert.equal(node.data.composer!.ratio, 'auto');
   assert.equal(node.data.size, 'auto');
   Object.assign(node.data, changeComposerSettings(node.data, { ratio: '9:16' }));
-  Object.assign(node.data, changeComposerProvider(node.data, 'openai'));
+  Object.assign(node.data, changeComposerChannel(node.data, 'openai'));
   request = prepareModel({ nodes: [node], edges: [] }, node.id)[0].imageRequest!;
   assert.equal(request.provider, 'openai');
   assert.equal(buildSunburstRequest(request).body.size, '2160x3840');
   assert.equal(composerSettings(node.data).resolution, '4K');
 });
 
-test('switching a restored EXT workflow preserves its channel model', () => {
+test('the APIMart selector routes both GPT Image variants and preserves supported parameters', () => {
   const node = image();
-  node.data.channelModel = 'gpt-image-2.6-ext';
-  Object.assign(node.data, changeComposerSettings(node.data, { ratio: '4:3' }, { resolution: '2K' }));
-  Object.assign(node.data, changeComposerProvider(node.data, 'apimart'));
-  const request = prepareModel({ nodes: [node], edges: [] }, node.id)[0].imageRequest!;
-  assert.equal(buildApimartRequest(request).body.model, 'gpt-image-2.6-ext');
-  assert.equal(buildApimartRequest(request).body.size, '4:3');
-  assert.equal(buildApimartRequest(request).body.resolution, '2k');
+  node.data.provider = 'apimart'; // Older APIMart nodes omitted the channel model.
+  assert.equal(composerChannel(node.data), 'gpt-image-2.6-ext');
+  const graph = { nodes: [node], edges: [] };
+  const payload = () => buildApimartRequest(prepareModel(graph, node.id)[0].imageRequest!).body;
+  for (const [modelId, version] of [['gpt-image-2-6', 'sunburst'], ['gpt-image-2-6-flare', 'flare']] as const) {
+    Object.assign(node.data, changeComposerChannel(node.data, 'gpt-image-2.6'));
+    Object.assign(node.data, changeComposerSettings(node.data, {
+      selection: { modelIds: [modelId], autoSelect: false, multiple: false }, ratio: '9:21',
+    }, { resolution: '2K', background: 'transparent' }));
+    assert.deepEqual(payload(), {
+      model: `gpt-image-2.6-${version}`, prompt: 'Draw a green leaf', size: '9:21', resolution: '2k',
+      quality: 'medium', output_format: 'png', n: 1, nsfw_check: false, background: 'transparent', moderation: 'low',
+    });
+
+    Object.assign(node.data, changeComposerChannel(node.data, 'gpt-image-2.6-ext'));
+    assert.equal(composerChannel(node.data), 'gpt-image-2.6-ext');
+    assert.deepEqual(payload(), {
+      model: 'gpt-image-2.6-ext', version, prompt: 'Draw a green leaf', size: 'auto', resolution: '2k',
+      quality: 'medium', output_format: 'png', n: 1, nsfw_check: false,
+    });
+    Object.assign(node.data, changeComposerSettings(node.data, { ratio: '4:3' }, { outputFormat: 'jpeg' }));
+    assert.equal(payload().output_format, 'jpeg');
+    Object.assign(node.data, changeComposerChannel(node.data, 'gpt-image-2.6'));
+    assert.equal(payload().size, '4:3');
+    assert.equal(payload().background, 'transparent');
+    assert.equal(payload().output_format, 'png');
+  }
+});
+
+test('switching APIMart variants keeps a restored GIF request valid', () => {
+  const node = image();
+  Object.assign(node.data, { provider: 'apimart', channelModel: 'gpt-image-2.6', size: '512x512', outputFormat: 'gif' });
+  const graph = { nodes: [node], edges: [] };
+  for (const channel of ['gpt-image-2.6-ext', 'gpt-image-2.6'] as const) {
+    Object.assign(node.data, changeComposerChannel(node.data, channel));
+    assert.equal(node.data.composer?.ratio, 'auto');
+    const request = prepareModel(graph, node.id)[0].imageRequest!;
+    assert.equal(buildApimartRequest(request).body.output_format, 'gif');
+    assert.equal(buildApimartRequest(request).body.size, 'auto');
+  }
 });
 
 test('expanded menu ratios create valid OpenAI and APIMart standard requests at every resolution', () => {
@@ -82,13 +115,12 @@ test('expanded menu ratios create valid OpenAI and APIMart standard requests at 
     assert.ok(imagePromptGenerationAspectRatios.some(value => value === ratio));
     for (const resolution of ['1K', '2K', '4K']) {
       const node = image();
-      node.data.channelModel = 'gpt-image-2.6';
       Object.assign(node.data, changeComposerSettings(node.data, { ratio }, { resolution }));
       const request = prepareModel({ nodes: [node], edges: [] }, node.id)[0].imageRequest!;
       const [width, height] = buildSunburstRequest(request).body.size.split('x').map(Number);
       const [x, y] = ratio.split(':').map(Number);
       assert.equal(width * y, height * x);
-      Object.assign(node.data, changeComposerProvider(node.data, 'apimart'));
+      Object.assign(node.data, changeComposerChannel(node.data, 'gpt-image-2.6'));
       const api = buildApimartRequest(prepareModel({ nodes: [node], edges: [] }, node.id)[0].imageRequest!).body;
       assert.equal(api.size, ratio);
       assert.equal(api.resolution, resolution.toLowerCase());

@@ -1,11 +1,11 @@
-import { imageSizes, imageSizeLabels, sunburstPresetSize, sunburstSizePreset, sunburstProviderSettings, apimartAspectRatios, type SunburstProvider, type SunburstResolution } from './sunburst.ts';
+import { imageSizes, imageSizeLabels, sunburstPresetSize, sunburstSizePreset, sunburstProviderSettings, apimartAspectRatios, apimartStandardAspectRatios, migrateSunburstProvider, type SunburstChannel, type SunburstProvider, type SunburstResolution } from './sunburst.ts';
 import { defaultSeedreamSettings, seedreamChoices } from './seedream.ts';
-import { defaultNanoBananaSettings, nanoBananaAspectRatios } from './nanoBanana.ts';
-import { defaultImagePromptModelSelection, gptImageVariants } from '../components/image-prompt-node/imagePromptModels.ts';
+import { defaultNanoBananaSettings, nanoBananaAspectRatios, nanoBananaProAspectRatios, nanoBananaProModel } from './nanoBanana.ts';
+import { defaultImagePromptModelSelection, gptImageVariants, restoreImagePromptModelSelection, type ImagePromptModelId } from '../components/image-prompt-node/imagePromptModels.ts';
 import type { ImageComposerData, SunburstNode, ImageGeneratorNode, NanoBananaNode, SeedreamNode } from './types';
 
 export function composerModelSelection(data: SunburstNode['data']) {
-  const selection = data.composer?.selection ?? defaultImagePromptModelSelection;
+  const selection = restoreImagePromptModelSelection(data.composer?.selection ?? defaultImagePromptModelSelection);
   // Older projects stored Flare in variant and used the shared GPT Image menu ID.
   if (data.variant !== 'Flare' || !selection.modelIds.includes('gpt-image-2-6')
     || selection.modelIds.includes('gpt-image-2-6-flare')) return selection;
@@ -14,17 +14,38 @@ export function composerModelSelection(data: SunburstNode['data']) {
 
 export const composerModelId = (data: SunburstNode['data']) => composerModelSelection(data).modelIds[0] ?? 'gpt-image-2-6';
 
+export function composerChannel(data: SunburstNode['data']): SunburstChannel {
+  if (data.inpaint) return 'openai';
+  const migrated = migrateSunburstProvider(data.provider);
+  if (migrated) return migrated.channelModel;
+  return data.provider === 'apimart' ? data.channelModel ?? 'gpt-image-2.6-ext' : 'openai';
+}
+
 export function composerAspectRatios(data: SunburstNode['data']): readonly string[] {
   const model = composerModelId(data);
   if (model === 'seedream-5-5') return seedreamChoices.size;
-  if (model.startsWith('nano-banana')) return nanoBananaAspectRatios;
-  if (!data.inpaint && data.provider === 'apimart' && data.channelModel !== 'gpt-image-2.6') return apimartAspectRatios;
+  if (model === 'nano-banana-pro') return nanoBananaProAspectRatios;
+  if (model === 'nano-banana-2-1') return nanoBananaAspectRatios;
+  const channel = composerChannel(data);
+  if (channel === 'gpt-image-2.6-ext') return apimartAspectRatios;
+  if (channel === 'gpt-image-2.6') return apimartStandardAspectRatios;
   return ['auto', ...imageSizeLabels.slice(1)];
+}
+
+export function composerAspectRatio(data: SunburstNode['data']) {
+  const ratio = data.composer?.ratio ?? 'auto';
+  // Pro could already be saved with an unsupported ratio while it was a placeholder.
+  return composerModelId(data) === 'nano-banana-pro' && !nanoBananaProAspectRatios.some(choice => choice === ratio)
+    ? 'auto' : ratio;
+}
+
+export function savedComposerModelSettings(byModel: ImageComposerData['modelSettings'], model: ImagePromptModelId) {
+  return byModel?.[model] ?? (model === 'nano-banana-2-1' ? byModel?.['nano-banana-2'] : undefined);
 }
 
 export function composerSettings(data: SunburstNode['data']) {
   const model = composerModelId(data);
-  const saved = data.composer?.modelSettings?.[model];
+  const saved = savedComposerModelSettings(data.composer?.modelSettings, model);
   if (model === 'seedream-5-5') return { ...defaultSeedreamSettings, resolution: '2K', ...saved };
   if (model.startsWith('nano-banana')) return { ...defaultNanoBananaSettings, resolution: '1K', ...saved };
   return { quality: data.quality, background: data.background, outputFormat: data.outputFormat,
@@ -41,11 +62,11 @@ export function changeComposerSettings(data: SunburstNode['data'], change: Parti
   if (change.ratio !== undefined) delete composer.followReferenceRatio;
   if (change.selection && !composerAspectRatios(updated).includes(composer.ratio)) composer.ratio = 'auto';
   if (!variant) return { composer: { ...composer, modelSettings: {
-    ...composer.modelSettings, [model]: { ...composer.modelSettings?.[model], ...settings },
+    ...composer.modelSettings, [model]: { ...savedComposerModelSettings(composer.modelSettings, model), ...settings },
   } } };
   if (change.ratio === undefined && settings.resolution === undefined && !change.selection) return { ...settings, composer };
   const next = { ...composerSettings(updated), ...settings };
-  const usesApimart = !data.inpaint && data.provider === 'apimart';
+  const usesApimart = composerChannel(data) !== 'openai';
   // OpenAI accepts a pixel size, so choosing a tier from automatic sizing also
   // chooses an explicit square ratio. Keep the toolbar and request in sync.
   if (settings.resolution !== undefined && composer.ratio === 'auto' && !usesApimart) composer.ratio = '1:1';
@@ -56,13 +77,13 @@ export function changeComposerSettings(data: SunburstNode['data'], change: Parti
   return { ...settings, ...selectedVariant, size, resolution, composer };
 }
 
-export function changeComposerProvider(data: SunburstNode['data'], provider: SunburstProvider) {
-  // Keep restored standard choices; new APIMart choices use EXT.
-  const channelModel = data.channelModel ?? 'gpt-image-2.6-ext';
+export function changeComposerChannel(data: SunburstNode['data'], channel: SunburstChannel) {
+  const provider: SunburstProvider = channel === 'openai' ? 'openai' : 'apimart';
+  const channelModel = channel === 'openai' ? data.channelModel : channel;
   const converted = sunburstProviderSettings(data, provider, channelModel);
   const next = { ...data, ...converted, provider, channelModel };
-  const ratio = provider === 'apimart' && channelModel === 'gpt-image-2.6-ext'
-    && !apimartAspectRatios.some(value => value === data.composer!.ratio) ? 'auto' : data.composer!.ratio;
+  const previousRatio = data.composer!.ratio;
+  const ratio = next.outputFormat !== 'gif' && composerAspectRatios(next).includes(previousRatio) ? previousRatio : 'auto';
   const patch = changeComposerSettings(next, { ratio });
   if (data.composer?.followReferenceRatio) patch.composer.followReferenceRatio = true;
   return { ...converted, provider, channelModel, ...patch };
@@ -71,8 +92,8 @@ export function changeComposerProvider(data: SunburstNode['data'], provider: Sun
 // Keep the canvas node stable while adapting its settings to existing clients.
 export function composerExecutionNode(node: ImageGeneratorNode): ImageGeneratorNode {
   if (node.type !== 'sunburst' || !node.data.composer) return node;
-  const selection = node.data.composer.selection;
-  if (selection && (selection.autoSelect || selection.modelIds.length !== 1)) throw new Error('请选择一个生成模型。');
+  const selection = composerModelSelection(node.data);
+  if (selection.autoSelect || selection.modelIds.length !== 1) throw new Error('请选择一个生成模型。');
   const model = composerModelId(node.data);
   const variant = gptImageVariants[model];
   if (variant) return { ...node, data: { ...node.data, variant, imageInputs: node.data.inpaint ? 1 : 16 } };
@@ -82,9 +103,10 @@ export function composerExecutionNode(node: ImageGeneratorNode): ImageGeneratorN
   if (model === 'seedream-5-5') return { ...node, type: 'seedream', data: {
     ...common, ...defaultSeedreamSettings, ...settings, size: node.data.composer.ratio,
   } } as SeedreamNode;
-  if (model === 'nano-banana-2-1') return { ...node, type: 'nano-banana', data: {
+  if (model === 'nano-banana-2-1' || model === 'nano-banana-pro') return { ...node, type: 'nano-banana', data: {
     ...common, ...defaultNanoBananaSettings, outputFormat: settings.outputFormat,
-    aspectRatio: node.data.composer.ratio, imageSize: settings.resolution,
+    aspectRatio: composerAspectRatio(node.data), imageSize: settings.resolution,
+    ...(model === 'nano-banana-pro' ? { model: nanoBananaProModel } : {}),
   } } as NanoBananaNode;
-  throw new Error('当前渠道支持 GPT Image 2.6、Seedream 5.5 和 Nano Banana 2.1，请选择其中一个模型。');
+  throw new Error('当前渠道支持 GPT Image 2.6、Seedream 5.5、Nano Banana 2.1 和 Nano Banana Pro，请选择其中一个模型。');
 }

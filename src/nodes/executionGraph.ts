@@ -284,7 +284,7 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
     } else if (model.type === 'seedream') {
       validateSeedreamSettings(knownSettings({ ...model.data, size: model.data.size ?? 'auto' }, defaultSeedreamSettings));
     } else if (model.type === 'nano-banana') {
-      validateNanoBananaSettings(knownSettings(model.data, defaultNanoBananaSettings));
+      validateNanoBananaSettings(knownSettings(model.data, defaultNanoBananaSettings), model.data.model);
     }
   } catch (error) { nodeProblem(node, error instanceof Error ? error.message : '输入参数无效。'); }
 }

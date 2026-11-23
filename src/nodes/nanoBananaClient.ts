@@ -4,7 +4,7 @@ import { uploadApimartImages } from './apimartUpload.ts';
 import { downloadApimartResult } from './apimartResult.ts';
 import { assetResources } from './assetResources.ts';
 import { readImage } from './imageGenerationClient.ts';
-import { nanoBananaInputFormats, nanoBananaMaxImageBytes, nanoBananaMaxImages, nanoBananaMaxInputBytes, validateNanoBananaSettings, type NanoBananaRequest } from './nanoBanana.ts';
+import { nanoBananaInputFormats, nanoBananaMaxImageBytes, nanoBananaMaxImages, nanoBananaMaxInputBytes, nanoBananaProModel, validateNanoBananaModel, validateNanoBananaSettings, type NanoBananaRequest } from './nanoBanana.ts';
 import type { FileAsset } from './types';
 
 async function outputImage(blob: Blob, format: NanoBananaRequest['outputFormat'], signal: AbortSignal) {
@@ -37,7 +37,8 @@ async function outputImage(blob: Blob, format: NanoBananaRequest['outputFormat']
 
 export async function requestNanoBanana(input: NanoBananaRequest, signal: AbortSignal): Promise<FileAsset[]> {
   const credentialHeaders = apiCredentialHeaders('apimart');
-  const settings = validateNanoBananaSettings(input);
+  const model = validateNanoBananaModel(input.model);
+  const settings = validateNanoBananaSettings(input, model);
   signal.throwIfAborted();
   if (!input.prompt.trim() || input.prompt.length > 32000) throw new Error('请连接非空提示词，最多 32000 个字符。');
   if (input.images.length > nanoBananaMaxImages) throw new Error(`最多支持 ${nanoBananaMaxImages} 张参考图片。`);
@@ -51,12 +52,13 @@ export async function requestNanoBanana(input: NanoBananaRequest, signal: AbortS
     blobs.push(blob);
   }
   const images = await uploadApimartImages(blobs, credentialHeaders, signal);
-  return requestApimartImage('/api/nano-banana', { ...settings, prompt: input.prompt, images }, credentialHeaders, signal, async result => {
+  const filename = model === nanoBananaProModel ? 'Nano-Banana-Pro' : 'Nano-Banana-2.1';
+  return requestApimartImage('/api/nano-banana', { ...settings, ...(input.model ? { model } : {}), prompt: input.prompt, images }, credentialHeaders, signal, async result => {
     const source = await downloadApimartResult(result, undefined, signal);
     const { blob, width, height } = await outputImage(source, settings.outputFormat, signal);
     signal.throwIfAborted();
     return [{
-      id: crypto.randomUUID(), name: `Nano-Banana-2.1-${Date.now()}.${settings.outputFormat}`,
+      id: crypto.randomUUID(), name: `${filename}-${Date.now()}.${settings.outputFormat}`,
       kind: 'image', url: assetResources.create(blob), size: blob.size, width, height,
     }];
   });
