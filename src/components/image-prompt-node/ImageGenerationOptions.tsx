@@ -6,7 +6,7 @@ import { changeComposerProvider, changeComposerSettings, composerAspectRatios, c
 import { imageQualities, imageQualityLabels, sunburstProviders, sunburstProviderLabels, type SunburstProvider } from '../../nodes/sunburst';
 import { seedreamChoices } from '../../nodes/seedream';
 import { imagePromptGenerationAspectRatios } from './imagePromptAspectRatios';
-import { gptImageVariants, imagePromptModels, type ImagePromptModelId } from './imagePromptModels';
+import { gptImageVariants, imagePromptModels, inpaintModels, type ImagePromptModelId } from './imagePromptModels';
 import { ImagePromptModelBrand, ImagePromptModelMenu } from './ImagePromptModelMenu';
 import { ImagePromptIcon } from './ImagePromptIcon';
 import { ImagePromptInfoTip } from './ImagePromptInfoTip';
@@ -18,7 +18,7 @@ export function ImageGenerationOptions() {
   const selectedId = useStore(state => {
     const selected = state.nodes.filter(node => node.selected);
     return selected.length === 1 && selected[0].type === 'sunburst' && selected[0].data.composer
-      && selected[0].data.imageSource !== 'imported' && !selected[0].data.inpaint ? selected[0].id : null;
+      && selected[0].data.imageSource !== 'imported' ? selected[0].id : null;
   });
   return selectedId ? <GenerationOptions key={selectedId} nodeId={selectedId} /> : null;
 }
@@ -26,11 +26,24 @@ export function ImageGenerationOptions() {
 function GenerationOptions({ nodeId }: { nodeId: string }) {
   const data = useStore(state => state.nodeLookup.get(nodeId)?.data) as SunburstNode['data'] | undefined;
   const { updateNodeData } = useReactFlow<AppNode>();
+  if (!data?.composer) return null;
+  return <ImageGenerationSettings data={data} inpaintOnly={Boolean(data.inpaint)} onChange={patch => {
+    if (!data.inpaint) sunburstPreset.remember({ ...data, ...patch });
+    updateNodeData(nodeId, patch);
+  }} />;
+}
+
+export function ImageGenerationSettings({ data, onChange, inpaintOnly = false, className }: {
+  data: SunburstNode['data'];
+  onChange: (patch: Partial<SunburstNode['data']>) => void;
+  inpaintOnly?: boolean;
+  className?: string;
+}) {
   const [modelOpen, setModelOpen] = useState(false);
   const [pinned, setPinned] = useState<ImagePromptModelId[]>(['nano-banana-2']);
   const trigger = useRef<HTMLButtonElement>(null);
   const id = useId();
-  const locked = Boolean(data?.locked);
+  const locked = Boolean(data.locked);
   useEffect(() => { if (locked) setModelOpen(false); }, [locked]);
   const closeModel = useCallback((restoreFocus = false) => {
     setModelOpen(false);
@@ -44,30 +57,29 @@ function GenerationOptions({ nodeId }: { nodeId: string }) {
   const settings = composerSettings(data);
   const seedream = modelId === 'seedream-5-5';
   const nano = modelId.startsWith('nano-banana');
-  const automaticSize = !seedream && !nano && data.provider !== 'apimart' && composer.ratio === 'auto';
+  const automaticSize = !seedream && !nano && (inpaintOnly || data.provider !== 'apimart') && composer.ratio === 'auto';
   const supportedRatios = composerAspectRatios(data);
   const ratios = imagePromptGenerationAspectRatios.filter(ratio => supportedRatios.includes(ratio));
   function edit(patch: Partial<SunburstNode['data']>) {
-    if (locked) return;
-    sunburstPreset.remember({ ...data!, ...patch });
-    updateNodeData(nodeId, patch);
+    if (!locked) onChange(patch);
   }
   function setSetting(key: string, value: string) {
-    edit(changeComposerSettings(data!, {}, {
+    edit(changeComposerSettings(data, {}, {
       [key]: value, ...(key === 'background' && value === 'transparent' ? { outputFormat: 'png' } : {}),
     }));
   }
-  return <GenerationOptionsPanel onCollapse={() => setModelOpen(false)}>
+  return <GenerationOptionsPanel className={className} onCollapse={() => setModelOpen(false)}>
       <button ref={trigger} type="button" className="generation-options-model" disabled={locked}
         aria-label={`选择生成模型：${model?.name ?? '自动选择模型'}`} aria-haspopup="dialog" aria-expanded={modelOpen && !locked}
         onClick={() => setModelOpen(!modelOpen)}>
         <ImagePromptModelBrand brand={model?.brand ?? 'openai'} /><span>{selection.autoSelect ? '自动选择模型'
           : selection.modelIds.length > 1 ? `${selection.modelIds.length} 个模型` : model?.name}</span><ImagePromptIcon name="chevron" />
       </button>
-      {modelOpen && !locked && <ImagePromptModelMenu models={imagePromptModels} id={`${id}-models`} anchor={trigger} selection={selection}
+      {modelOpen && !locked && <ImagePromptModelMenu models={inpaintOnly ? inpaintModels : imagePromptModels} singleSelection={inpaintOnly}
+        id={`${id}-models`} anchor={trigger} selection={selection}
         pinned={pinned} onPinnedChange={setPinned} onClose={closeModel}
         onChange={selection => edit(changeComposerSettings(data, { selection }))} />}
-      {gptImageVariants[modelId] && <div className="generation-option-row"><span>渠道商</span><GenerationOptionSelect label="渠道商" value={data.provider ?? 'openai'}
+      {!inpaintOnly && gptImageVariants[modelId] && <div className="generation-option-row"><span>渠道商</span><GenerationOptionSelect label="渠道商" value={data.provider ?? 'openai'}
         choices={sunburstProviders} labels={sunburstProviders.map(value => sunburstProviderLabels[value])} disabled={locked}
         onChange={value => edit(changeComposerProvider(data, value as SunburstProvider))} /></div>}
       <div className="generation-option-row"><span>画面比例</span><GenerationOptionSelect key={`ratio-${modelId}`} label="画面比例" value={composer.ratio} choices={ratios}
@@ -77,7 +89,7 @@ function GenerationOptions({ nodeId }: { nodeId: string }) {
         choices={automaticSize ? ['auto', '1K', '2K', '4K'] : seedream ? seedreamChoices.resolution : ['1K', '2K', '4K']}
         labels={automaticSize ? ['自动', '1K', '2K', '4K'] : undefined} disabled={locked}
         onChange={value => { if (value !== 'auto') setSetting('resolution', value); }} /></div>
-      {!nano && (seedream || data.provider !== 'apimart' || data.channelModel === 'gpt-image-2.6') && <div className="generation-option-row"><span>背景</span><GenerationOptionSelect label="背景" value={settings.background ?? 'auto'}
+      {!nano && (inpaintOnly || seedream || data.provider !== 'apimart' || data.channelModel === 'gpt-image-2.6') && <div className="generation-option-row"><span>背景</span><GenerationOptionSelect label="背景" value={settings.background ?? 'auto'}
         choices={['auto', 'transparent', 'opaque']} labels={['自动', '透明', '不透明']} disabled={locked} onChange={value => setSetting('background', value)} /></div>}
       {!seedream && !nano && <div className="generation-option-row"><span>画质</span><GenerationOptionSelect label="画质" value={settings.quality ?? 'medium'}
         choices={imageQualities} labels={imageQualities.map(value => imageQualityLabels[value])} disabled={locked} onChange={value => setSetting('quality', value)} /></div>}

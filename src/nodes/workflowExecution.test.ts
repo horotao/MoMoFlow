@@ -15,6 +15,7 @@ import { initialTextDocument } from './textDocument.ts';
 import { createImportedCanvasImage } from './importCanvasImage.ts';
 import { canConnect } from './connectionRules.ts';
 import { nodeAssetUrls } from './assetResources.ts';
+import { changeComposerSettings } from './imageComposerSettings.ts';
 
 const file = (id: string): AppNode => ({ id, type: 'file', position: { x: 0, y: 0 }, data: { assets: [{ id, name: id, kind: 'image', url: `blob:${id}` }] } });
 const generator = (id: string): AppNode => ({ id, type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, imageInputs: 1 } });
@@ -118,7 +119,7 @@ test('imported canvas images only supply references and replacements keep their 
   } finally { h.engine.dispose(); }
 });
 
-test('inpaint runs with a saved image and mask after the source changes or is deleted', async () => {
+test('both inpaint models use OpenAI with the saved image and mask', async () => {
   const image: FileAsset = { id: 'original', kind: 'image', name: 'original.png', url: 'blob:original' };
   const mask: FileAsset = { ...image, id: 'mask', name: 'mask.png', url: 'blob:mask' };
   const original = createLibraryNode('image', { x: 0, y: 0 }) as CanvasImage;
@@ -136,12 +137,25 @@ test('inpaint runs with a saved image and mask after the source changes or is de
   const h = harness({ nodes, edges: saved.edges });
   try {
     assert.ok(await h.engine.run([variant.id], 1));
-    h.edit(graph => ({ nodes: graph.nodes.filter(node => node.id !== original.id), edges: [] }));
+    h.edit(() => {
+      const current = h.node(variant.id) as CanvasImage;
+      const data = { ...current.data, provider: 'apimart' as const };
+      const patch = changeComposerSettings(data, {
+        selection: { modelIds: ['gpt-image-2-6-flare'], multiple: false, autoSelect: false },
+      }, { resolution: '2K', quality: 'high' });
+      return { nodes: [{ ...current, data: { ...data, ...patch } }], edges: [] };
+    });
     assert.ok(await h.engine.run([variant.id], 1));
-    assert.deepEqual(h.requests.map(task => [task.nodeId, task.model, task.imageRequest?.images, task.imageRequest?.mask]), [
-      [variant.id, 'gpt-image-2.6-sunburst', ['blob:original-restored'], 'blob:mask-restored'],
-      [variant.id, 'gpt-image-2.6-sunburst', ['blob:original-restored'], 'blob:mask-restored'],
+    assert.deepEqual(h.requests.map(task => [task.nodeId, task.model, task.imageRequest?.provider, task.imageRequest?.images, task.imageRequest?.mask]), [
+      [variant.id, 'gpt-image-2.6-sunburst', 'openai', ['blob:original-restored'], 'blob:mask-restored'],
+      [variant.id, 'gpt-image-2.6-flare', 'openai', ['blob:original-restored'], 'blob:mask-restored'],
     ]);
+    assert.equal(h.requests[1].imageRequest?.size, '2048x2048');
+    assert.equal(h.requests[1].imageRequest?.quality, 'high');
+    const current = h.node(variant.id) as CanvasImage;
+    const incompatible: CanvasImage = { ...current, data: { ...current.data, composer: { ...current.data.composer,
+      selection: { modelIds: ['seedream-5-5'], multiple: false, autoSelect: false } } } };
+    assert.throws(() => prepareModel({ nodes: [incompatible], edges: [] }, variant.id), /局部重绘需要选择/);
   } finally { h.engine.dispose(); }
 });
 

@@ -206,9 +206,9 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
             isConnectable={connectable && handle === available} style={{ pointerEvents: handle === available ? undefined : 'none' }} />),
         output,
       }}
-      toolbar={!showToolbar ? null : <ImagePromptToolbar className="nodrag nopan" {...controls} hidden={toolbarHidden} downloadDisabled={!active}
+      toolbar={!showToolbar ? null : <ImagePromptToolbar className="nodrag nopan" {...controls} {...(inpaint.active ? inpaint.controls : {})} hidden={toolbarHidden} downloadDisabled={!active}
         onCrop={crop.open} cropActive={crop.active} cropDisabled={!active || activeTasks.length > 0}
-        onInpaint={inpaint.open} inpaintActive={inpaint.active} fixedImageSettings={Boolean(inpaintInput)}
+        onInpaint={inpaint.open} inpaintActive={inpaint.active} inpaintOnly={inpaint.active || Boolean(inpaintInput)}
         onDownload={() => { if (active) void downloadAsset(active).catch(() => setError('图片下载失败。')); }} />}
     />
     {crop.editor}{crop.error}{inpaint.editor}{inpaint.error}

@@ -25,9 +25,10 @@ interface ModelMenuProps<Id extends string> {
   pinned: Id[];
   onPinnedChange: (pinned: Id[]) => void;
   onClose: (restoreFocus?: boolean) => void;
+  singleSelection?: boolean;
 }
 
-export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, label = '选择图像模型', selection, onChange, pinned, onPinnedChange, onClose }: ModelMenuProps<Id>) {
+export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, label = '选择图像模型', selection, onChange, pinned, onPinnedChange, onClose, singleSelection = false }: ModelMenuProps<Id>) {
   const panel = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
   const pendingPinFocus = useRef<Id | null>(null);
@@ -78,12 +79,13 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
 
   function select(modelId: Id) {
     const selected = selection.modelIds.includes(modelId);
-    const modelIds = selection.multiple
+    const multiple = !singleSelection && selection.multiple;
+    const modelIds = multiple
       ? selected ? selection.modelIds.filter(id => id !== modelId) : [...selection.modelIds, modelId]
       : [modelId];
     if (!modelIds.length) return;
-    onChange({ ...selection, autoSelect: false, modelIds });
-    if (!selection.multiple) onClose(true);
+    onChange({ modelIds, autoSelect: false, multiple });
+    if (!multiple) onClose(true);
   }
 
   function section(label: string, description: string, models: typeof filtered) {
@@ -131,7 +133,7 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
       <input ref={search} aria-label="搜索兼容模型" placeholder="搜索兼容模型" value={query} onChange={event => setQuery(event.target.value)} />
       <button type="button" aria-label="清空搜索" style={{ visibility: query ? 'visible' : 'hidden' }} onClick={() => { setQuery(''); search.current?.focus(); }}><ImagePromptIcon name="close" /></button>
     </div>
-    <div className="image-model-settings">
+    {!singleSelection && <div className="image-model-settings">
       <div className="image-model-setting">
         <span><label htmlFor={autoSelectId}>自动选择模型</label><ImagePromptInfoTip label="自动选择模型">根据工作流自动选择最合适的模型。</ImagePromptInfoTip></span>
         <button id={autoSelectId} type="button" role="switch" aria-label="自动选择模型" aria-checked={selection.autoSelect} className="image-model-switch" onClick={() => onChange({ ...selection, autoSelect: !selection.autoSelect, multiple: false })}><span /></button>
@@ -140,7 +142,7 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
         <span><label htmlFor={multipleId}>使用多个模型</label><ImagePromptInfoTip label="使用多个模型">选择多个模型生成时，每个模型都会新建一个节点。</ImagePromptInfoTip></span>
         <button id={multipleId} type="button" role="switch" aria-label="使用多个模型" aria-checked={selection.multiple} className="image-model-switch" onClick={() => onChange({ ...selection, autoSelect: false, multiple: !selection.multiple, modelIds: selection.multiple ? selection.modelIds.slice(0, 1) : selection.modelIds })}><span /></button>
       </div>
-    </div>
+    </div>}
     <div className="image-model-scroll">
       {section('已置顶模型', '收藏置顶的模型会显示在这里。', filtered.filter(model => pinned.includes(model.id)))}
       {section('推荐模型', '精选的推荐模型。', filtered.filter(model => !pinned.includes(model.id)))}

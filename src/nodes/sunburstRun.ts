@@ -18,7 +18,8 @@ export function imageOutput(node: AppNode | undefined, handle?: string | null): 
 }
 
 export function effectiveSunburstSettings({ data }: SunburstNode) {
-  return { ...sunburstParameterDefaults, ...data, ...migrateSunburstProvider(data.provider), ...apimartFixedSettings };
+  return { ...sunburstParameterDefaults, ...data, ...migrateSunburstProvider(data.provider), ...apimartFixedSettings,
+    ...(data.inpaint && { provider: 'openai' as const }) };
 }
 
 export function resolveSunburstEditPrompt(id: string, nodes: AppNode[], edges: Edge[], isApimartExt: boolean) {

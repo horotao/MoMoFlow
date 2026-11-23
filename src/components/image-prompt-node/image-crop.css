@@ -36,8 +36,6 @@
 .canvas-image-mount:has(> .image-edit-mode) > .image-node .image-node-toolbar-bridge { opacity: 1; visibility: visible; pointer-events: auto; }
 /* Flora dims the rendered content, while names, model labels and tags stay readable. */
 .react-flow:has(.image-edit-mode) .react-flow__node:not(:has(.image-edit-mode)) .image-node > :not(.image-node-heading) { filter: brightness(.4); }
-.react-flow:has(.image-edit-mode) .canvas-background > canvas,
-.react-flow:has(.image-edit-mode) .canvas-background > .react-flow__background { opacity: .08; }
 .react-flow:has(.image-edit-mode) .react-flow__edges { filter: brightness(.4); }
 .react-flow:has(.image-edit-mode) .react-flow__node:has(.image-edit-mode) { z-index: 1002 !important; }
 body:has(.image-edit-mode) .node-toolbar-tooltip { display: none; }

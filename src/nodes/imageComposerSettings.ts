@@ -18,7 +18,7 @@ export function composerAspectRatios(data: SunburstNode['data']): readonly strin
   const model = composerModelId(data);
   if (model === 'seedream-5-5') return seedreamChoices.size;
   if (model.startsWith('nano-banana')) return nanoBananaAspectRatios;
-  if (data.provider === 'apimart' && data.channelModel !== 'gpt-image-2.6') return apimartAspectRatios;
+  if (!data.inpaint && data.provider === 'apimart' && data.channelModel !== 'gpt-image-2.6') return apimartAspectRatios;
   return ['auto', ...imageSizeLabels.slice(1)];
 }
 
@@ -45,12 +45,13 @@ export function changeComposerSettings(data: SunburstNode['data'], change: Parti
   } } };
   if (change.ratio === undefined && settings.resolution === undefined && !change.selection) return { ...settings, composer };
   const next = { ...composerSettings(updated), ...settings };
+  const usesApimart = !data.inpaint && data.provider === 'apimart';
   // OpenAI accepts a pixel size, so choosing a tier from automatic sizing also
   // chooses an explicit square ratio. Keep the toolbar and request in sync.
-  if (settings.resolution !== undefined && composer.ratio === 'auto' && data.provider !== 'apimart') composer.ratio = '1:1';
+  if (settings.resolution !== undefined && composer.ratio === 'auto' && !usesApimart) composer.ratio = '1:1';
   const ratio = composer.ratio;
   const resolution = next.resolution as SunburstResolution;
-  const size = data.provider === 'apimart' ? ratio : ratio === 'auto' ? 'auto'
+  const size = usesApimart ? ratio : ratio === 'auto' ? 'auto'
     : sunburstPresetSize(imageSizes[imageSizeLabels.indexOf(ratio)] ?? 'auto', resolution);
   return { ...settings, ...selectedVariant, size, resolution, composer };
 }
@@ -74,7 +75,8 @@ export function composerExecutionNode(node: ImageGeneratorNode): ImageGeneratorN
   if (selection && (selection.autoSelect || selection.modelIds.length !== 1)) throw new Error('请选择一个生成模型。');
   const model = composerModelId(node.data);
   const variant = gptImageVariants[model];
-  if (variant) return { ...node, data: { ...node.data, variant, imageInputs: 16 } };
+  if (variant) return { ...node, data: { ...node.data, variant, imageInputs: node.data.inpaint ? 1 : 16 } };
+  if (node.data.inpaint) throw new Error('局部重绘需要选择 GPT Image 2.6 Sunburst 或 Flare。');
   const settings = composerSettings(node.data);
   const common = { locked: node.data.locked, label: node.data.label, imageInputs: 16, results: node.data.results, activeResultId: node.data.activeResultId };
   if (model === 'seedream-5-5') return { ...node, type: 'seedream', data: {

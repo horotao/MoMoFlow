@@ -14,6 +14,7 @@ export const gptImageVariants: Partial<Record<ImagePromptModelId, SunburstVarian
   'gpt-image-2-6': 'Sunburst',
   'gpt-image-2-6-flare': 'Flare',
 };
+export const inpaintModels = imagePromptModels.filter(model => gptImageVariants[model.id]);
 
 export interface ImagePromptModelSelection {
   modelIds: ImagePromptModelId[];

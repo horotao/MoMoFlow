@@ -1,4 +1,4 @@
-import { useContext, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
+import { useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { defaultInpaintBrushSize, hasInpaintSelection, type InpaintBrushMode, type InpaintStroke } from '../../nodes/imageInpaint';
 import type { FileAsset } from '../../nodes/types';
@@ -11,12 +11,14 @@ const suggestion = '将选中的物体替换成一个红苹果';
 const dot = (x: number, y: number) => `M${x} ${y}h.01`;
 type Point = { x: number; y: number };
 const strokeColor = { paint: 'white', erase: 'black' };
+const inpaintMenus = '.image-node-tools-menu, .image-model-menu, .image-aspect-menu, .generation-option-menu';
 
-export function ImageInpaintEditor({ source, size, saving, error, onSubmit, onCancel, onError }: {
+export function ImageInpaintEditor({ source, size, saving, error, generationOptions, onSubmit, onCancel, onError }: {
   source: FileAsset;
   size: { width: number; height: number };
   saving: boolean;
   error: string;
+  generationOptions: ReactNode;
   onSubmit: (prompt: string, strokes: readonly InpaintStroke[], quantity: number) => void;
   onCancel: (restoreFocus?: boolean) => void;
   onError: () => void;
@@ -41,11 +43,33 @@ export function ImageInpaintEditor({ source, size, saving, error, onSubmit, onCa
   const id = useId();
   const ready = Boolean(hasSelection && prompt.trim() && !saving);
 
+  useLayoutEffect(() => {
+    if (!inspector) return;
+    const updateFade = () => {
+      const { scrollTop, scrollHeight, clientHeight } = inspector;
+      // Scroll offsets may be fractional while the measured heights are integers.
+      inspector.toggleAttribute('data-inpaint-scroll-fade-top', scrollTop > 1);
+      inspector.toggleAttribute('data-inpaint-scroll-fade-bottom', scrollHeight - clientHeight - scrollTop > 1);
+    };
+    const observer = new ResizeObserver(updateFade);
+    observer.observe(inspector);
+    for (const card of inspector.children) observer.observe(card);
+    inspector.addEventListener('scroll', updateFade, { passive: true });
+    updateFade();
+    return () => {
+      observer.disconnect();
+      inspector.removeEventListener('scroll', updateFade);
+      inspector.removeAttribute('data-inpaint-scroll-fade-top');
+      inspector.removeAttribute('data-inpaint-scroll-fade-bottom');
+    };
+  }, [inspector]);
+
   useEffect(() => {
     surface.current?.focus({ preventScroll: true });
     function key(event: globalThis.KeyboardEvent) {
       const target = event.target;
       if (document.querySelector('[role="menu"]:not([data-state="closed"]), dialog[open]')) return;
+      if (target instanceof Element && target.closest(inpaintMenus)) return;
       if (event.key === 'Escape') {
         event.preventDefault(); event.stopImmediatePropagation();
         actions.current.onCancel();
@@ -66,7 +90,7 @@ export function ImageInpaintEditor({ source, size, saving, error, onSubmit, onCa
     function outside(event: globalThis.PointerEvent) {
       if (event.button !== 0 || root.current?.hasAttribute('data-panning') || actions.current.saving) return;
       if (!(event.target instanceof Element) || root.current?.contains(event.target)) return;
-      if (event.target.closest('.image-node-tools-menu, .image-inspector, .canvas-navigation')) return;
+      if (event.target.closest(inpaintMenus) || event.target.closest('.image-inspector, .canvas-navigation')) return;
       if (event.target.closest('.image-node-toolbar') && root.current?.closest('.react-flow__node')?.contains(event.target)) return;
       actions.current.onCancel(false);
     }
@@ -202,8 +226,11 @@ export function ImageInpaintEditor({ source, size, saving, error, onSubmit, onCa
         canSend={ready} sendType="submit" sendLabel="生成局部重绘" />
       {error && <p className="image-inpaint-error" role="alert">{error}</p>}
     </form>
-    {inspector && createPortal(<ImageInpaintOptions diameter={diameter} mode={mode} disabled={saving}
-      onDiameterChange={setDiameter} onModeChange={setMode}
-      onClear={() => { if (hasSelection) setEdits(previous => [...previous, 'clear']); }} />, inspector)}
+    {inspector && createPortal(<>
+      {generationOptions}
+      <ImageInpaintOptions diameter={diameter} mode={mode} disabled={saving}
+        onDiameterChange={setDiameter} onModeChange={setMode}
+        onClear={() => { if (hasSelection) setEdits(previous => [...previous, 'clear']); }} />
+    </>, inspector)}
   </div>;
 }

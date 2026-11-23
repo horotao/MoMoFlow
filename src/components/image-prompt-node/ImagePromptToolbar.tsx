@@ -4,7 +4,7 @@ import { ImagePromptAspectRatioMenu } from './ImagePromptAspectRatioMenu';
 import { ImagePromptModelMenu, ImagePromptModelBrand } from './ImagePromptModelMenu';
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useControllableValue } from './useControllableValue';
-import { imagePromptModels, defaultImagePromptModelSelection, type ImagePromptModelSelection, type ImagePromptModelId } from './imagePromptModels';
+import { imagePromptModels, inpaintModels, defaultImagePromptModelSelection, type ImagePromptModelSelection, type ImagePromptModelId } from './imagePromptModels';
 import { ImagePromptIcon } from './ImagePromptIcon';
 import { Zap } from 'lucide-react';
 import { ImageToolsMenu } from './ImageToolsMenu';
@@ -40,7 +40,7 @@ export interface ImagePromptToolbarProps {
   cropActive?: boolean;
   inpaintActive?: boolean;
   cropDisabled?: boolean;
-  fixedImageSettings?: boolean;
+  inpaintOnly?: boolean;
   onReplaceImage?: () => void;
   onPreviewImage?: () => void;
   replaceDisabled?: boolean;
@@ -55,7 +55,7 @@ export function ImagePromptToolbar({
   onDownload, downloadDisabled = true, onReplaceImage, onPreviewImage, replaceDisabled = false,
   className = '',
   textModelPicker, textHasOutput = false,
-  onCrop, onInpaint, cropActive = false, inpaintActive = false, cropDisabled = false, fixedImageSettings = false,
+  onCrop, onInpaint, cropActive = false, inpaintActive = false, cropDisabled = false, inpaintOnly = false,
 }: ImagePromptToolbarProps) {
   const [selection, setSelection] = useControllableValue(modelSelection, defaultModelSelection, onModelSelectionChange);
   const [aspectRatio, setAspectRatio] = useControllableValue(aspectRatioValue, defaultAspectRatio, onAspectRatioChange);
@@ -99,8 +99,17 @@ export function ImagePromptToolbar({
   if (hidden) return null;
   const imageTools = <ImageToolsMenu onCrop={onCrop} onInpaint={onInpaint}
     active={cropActive ? 'crop' : inpaintActive ? 'inpaint' : undefined} disabled={locked || cropDisabled} />;
+  const modelPicker = <><NodeToolbarTooltip label="选择图像模型"><button ref={trigger} type="button" className="image-node-toolbar-label" aria-label={`选择图像模型：${label}`} aria-haspopup="dialog" aria-expanded={menuOpen} aria-controls={menuOpen ? menuId : undefined} disabled={locked}
+    onClick={() => { onModelClick?.(); if (menuOpen) closeMenu(); else openModelMenu(); }}
+    onKeyDown={event => { if (event.key === 'ArrowDown' && !menuOpen) { event.preventDefault(); openModelMenu(); } }}>
+    <ImagePromptModelBrand brand={activeModel?.brand ?? 'openai'} />{label}<ImagePromptIcon name="chevron" />
+  </button></NodeToolbarTooltip>
+    {menuOpen && !locked && <ImagePromptModelMenu models={inpaintOnly ? inpaintModels : imagePromptModels}
+      singleSelection={inpaintOnly} id={menuId} anchor={trigger} selection={selection} onChange={setSelection}
+      pinned={pinned} onPinnedChange={setPinned} onClose={closeMenu} />}</>;
   if (onReplaceImage) return (
     <NodeToolbarTooltipScope><div className={`image-node-toolbar ${className}`} role="toolbar" aria-label={textModelPicker ? 'Text node tools' : 'Image node tools'} onKeyDown={stopToolbarNavigation}>
+      {inpaintOnly && <>{modelPicker}<span className="image-node-separator" /></>}
       {imageTools}
       <span className="image-node-separator" />
       <NodeToolbarTooltip label="替换图片"><button type="button" aria-label="替换图片" disabled={locked || replaceDisabled} onClick={onReplaceImage}>
@@ -127,14 +136,9 @@ export function ImagePromptToolbar({
   );
   return (
     <NodeToolbarTooltipScope><div className={`image-node-toolbar ${className}`} role="toolbar" aria-label={textModelPicker ? 'Text node tools' : 'Image node tools'} onKeyDown={stopToolbarNavigation}>
-      {textModelPicker ?? <><NodeToolbarTooltip label="选择图像模型"><button ref={trigger} type="button" className="image-node-toolbar-label" aria-label={`选择图像模型：${label}`} aria-haspopup="dialog" aria-expanded={menuOpen} aria-controls={menuOpen ? menuId : undefined} disabled={locked || fixedImageSettings}
-        onClick={() => { onModelClick?.(); if (menuOpen) closeMenu(); else openModelMenu(); }}
-        onKeyDown={event => { if (event.key === 'ArrowDown' && !menuOpen) { event.preventDefault(); openModelMenu(); } }}>
-        <ImagePromptModelBrand brand={activeModel?.brand ?? 'openai'} />{label}<ImagePromptIcon name="chevron" />
-      </button></NodeToolbarTooltip>
-      {menuOpen && !locked && <ImagePromptModelMenu models={imagePromptModels} id={menuId} anchor={trigger} selection={selection} onChange={setSelection} pinned={pinned} onPinnedChange={setPinned} onClose={closeMenu} />}
+      {textModelPicker ?? <>{modelPicker}
       <span className="image-node-separator" />
-      <NodeToolbarTooltip label="画面比例"><button ref={aspectTrigger} id={aspectTriggerId} type="button" className="image-node-toolbar-label" aria-label={`选择画面比例：${aspectRatio === 'auto' ? '自动' : aspectRatio}`} aria-haspopup="menu" aria-expanded={aspectMenuOpen} aria-controls={aspectMenuOpen ? aspectMenuId : undefined} disabled={locked || fixedImageSettings}
+      <NodeToolbarTooltip label="画面比例"><button ref={aspectTrigger} id={aspectTriggerId} type="button" className="image-node-toolbar-label" aria-label={`选择画面比例：${aspectRatio === 'auto' ? '自动' : aspectRatio}`} aria-haspopup="menu" aria-expanded={aspectMenuOpen} aria-controls={aspectMenuOpen ? aspectMenuId : undefined} disabled={locked}
         onClick={() => { onAspectRatioClick?.(); if (aspectMenuOpen) closeAspectMenu(); else openAspectMenu(); }}
         onKeyDown={event => { if (event.key === 'ArrowDown' && !aspectMenuOpen) { event.preventDefault(); openAspectMenu(); } }}>
         {aspectRatio === 'auto' ? '自动' : aspectRatio}<ImagePromptIcon name="chevron" />

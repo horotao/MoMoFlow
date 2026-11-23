@@ -1,9 +1,25 @@
 .image-inspector:has(> .image-inpaint-options) {
-  overflow: auto;
+  overflow: hidden auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
 }
-.image-inspector > .image-generation-options.image-inpaint-options { flex-shrink: 0; }
+.image-inspector:has(> .image-inpaint-options)::-webkit-scrollbar { display: none; }
+.image-inspector:is([data-inpaint-scroll-fade-top], [data-inpaint-scroll-fade-bottom]) {
+  --inpaint-scroll-fade-size: 56px;
+  mask-image: linear-gradient(to bottom,
+    var(--inpaint-scroll-top, #000),
+    #000 var(--inpaint-scroll-fade-size),
+    #000 calc(100% - var(--inpaint-scroll-fade-size)),
+    var(--inpaint-scroll-bottom, #000));
+}
+.image-inspector[data-inpaint-scroll-fade-top] { --inpaint-scroll-top: transparent; }
+.image-inspector[data-inpaint-scroll-fade-bottom] { --inpaint-scroll-bottom: transparent; }
+.image-inspector:has(> .image-inpaint-options) > .image-generation-options:not(.image-inpaint-options, .image-inpaint-draft-options) { display: none; }
+.image-inspector:has(> .image-inpaint-options) > :is(.image-information, .image-generation-options) {
+  flex-shrink: 0;
+  overflow: clip;
+}
+.image-inspector:has(> .image-inpaint-options) > :is(.image-information, .image-generation-options) > :is(header, h3) { position: static; }
 .image-inspector > .image-inpaint-options > h3 { box-shadow: none; }
 .image-inpaint-options .generation-options-heading { font-size: 12px; }
 .image-inpaint-options .generation-options-content { display: flex; flex-direction: column; padding: 8px 0; }

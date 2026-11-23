@@ -60,9 +60,9 @@ export function ImportedCanvasImage({ id, asset, chrome }: { id: string; asset?:
       result={asset && <img src={asset.url} alt={asset.name} />}
       onPreviewImage={asset ? () => setPreviewOpen(true) : undefined}
       handles={{ image: null, output }}
-      toolbar={showToolbar ? <ImagePromptToolbar className="nodrag nopan" hidden={toolbarHidden} locked={frame.locked}
+      toolbar={showToolbar ? <ImagePromptToolbar className="nodrag nopan" {...(inpaint.active ? inpaint.controls : {})} hidden={toolbarHidden} locked={frame.locked}
         onCrop={crop.open} cropActive={crop.active} cropDisabled={!asset || replacing}
-        onInpaint={inpaint.open} inpaintActive={inpaint.active}
+        onInpaint={inpaint.open} inpaintActive={inpaint.active} inpaintOnly={inpaint.active}
         replaceDisabled={replacing} onReplaceImage={() => input.current?.click()} downloadDisabled={!asset}
         onPreviewImage={asset ? () => setPreviewOpen(true) : undefined}
         onDownload={() => { if (asset) void downloadAsset(asset).catch(() => setError('图片下载失败。')); }} /> : null}

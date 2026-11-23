@@ -2,18 +2,27 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useReactFlow, useUpdateNodeInternals } from '@xyflow/react';
 import { ImageInpaintEditor } from '../components/image-prompt-node/ImageInpaintEditor';
+import { ImageGenerationSettings } from '../components/image-prompt-node/ImageGenerationOptions';
+import { defaultImagePromptModelSelection, type ImagePromptModelSelection } from '../components/image-prompt-node/imagePromptModels';
 import { createLibraryNode } from '../components/libraryCatalog';
 import { selectedImageResult } from './annotationGraph';
 import { assetResources } from './assetResources';
 import { canvasImageBaseSize, canvasImageSize, hasImageDimensions } from './canvasImageGeometry';
 import { measureAsset } from './fileMedia';
 import { inpaintSettings, prepareInpaintInput, type InpaintStroke } from './imageInpaint';
-import { isCanvasImageNode, isNodeLocked, type AppNode, type FileAsset, type ImageInpaintInput } from './types';
+import { changeComposerSettings, composerAspectRatios, composerModelSelection } from './imageComposerSettings';
+import { isCanvasImageNode, isNodeLocked, type AppNode, type CanvasImage, type FileAsset, type ImageInpaintInput } from './types';
+
+const initialSettings: CanvasImage['data'] = {
+  ...inpaintSettings, imageInputs: 1,
+  composer: { prompt: '', quantity: 1, ratio: 'auto', selection: defaultImagePromptModelSelection },
+};
 
 export function useCanvasImageInpaint(id: string, asset?: FileAsset, disabled = false) {
   const flow = useReactFlow<AppNode>();
   const internals = useUpdateNodeInternals();
   const [source, setSource] = useState<FileAsset>();
+  const [settings, setSettings] = useState(initialSettings);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const operation = useRef<AbortController>();
@@ -53,6 +62,7 @@ export function useCanvasImageInpaint(id: string, asset?: FileAsset, disabled = 
     if (controller.signal.aborted || !matches(asset)) return;
     if (!hasImageDimensions(measured)) { setError('无法读取重绘图片，请重试。'); return; }
     flow.setNodes(nodes => nodes.map(node => ({ ...node, selected: node.id === id })));
+    setSettings(initialSettings);
     setSource(measured);
   }
 
@@ -87,8 +97,8 @@ export function useCanvasImageInpaint(id: string, asset?: FileAsset, disabled = 
       }
       const node = createLibraryNode('image', { x: x + (size.width - canvasImageBaseSize) / 2, y });
       node.data = {
-        ...inpaintSettings, label: '局部重绘', imageInputs: 1, inpaint: prepared,
-        composer: { prompt, ratio: 'auto', quantity, selection: { modelIds: ['gpt-image-2-6'], multiple: false, autoSelect: false } },
+        ...settings, label: '局部重绘', inpaint: prepared,
+        composer: { ...settings.composer, prompt, quantity },
       };
       flushSync(() => {
         close(false);
@@ -108,7 +118,20 @@ export function useCanvasImageInpaint(id: string, asset?: FileAsset, disabled = 
 
   return {
     open, active, size,
+    controls: {
+      modelSelection: composerModelSelection(settings),
+      onModelSelectionChange: (selection: ImagePromptModelSelection) => {
+        if (!saving) setSettings(current => ({ ...current, ...changeComposerSettings(current, { selection }) }));
+      },
+      aspectRatio: settings.composer.ratio,
+      aspectRatioChoices: composerAspectRatios(settings),
+      onAspectRatioChange: (ratio: string) => {
+        if (!saving) setSettings(current => ({ ...current, ...changeComposerSettings(current, { ratio }) }));
+      },
+    },
     editor: active && source && size ? <ImageInpaintEditor source={source} size={size} saving={saving} error={error}
+      generationOptions={<ImageGenerationSettings className="image-inpaint-draft-options" inpaintOnly data={{ ...settings, locked: saving }}
+        onChange={patch => setSettings(current => ({ ...current, ...patch }))} />}
       onSubmit={(prompt, strokes, quantity) => void submit(prompt, strokes, quantity)} onCancel={close}
       onError={() => { close(); setError('无法显示重绘图片，请重试。'); }} /> : null,
     error: !active && error ? <button className="nodrag nopan" type="button" role="alert" onClick={() => setError('')}>{error}</button> : null,

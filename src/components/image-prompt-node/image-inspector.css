@@ -28,7 +28,7 @@
   .image-inspector > :is(.image-information, .image-generation-options),
   .image-inspector > :is(.image-information, .image-generation-options):hover { scrollbar-width: auto; scrollbar-color: auto; }
 }
-.image-inspector > .image-information {
+.image-inspector:not(:has(> .image-inpaint-options)) > .image-information {
   /* Keep ordinary metadata intact, while leaving room for options in short windows. */
   max-height: max(48px, calc((100dvh - var(--canvas-inspector-top, 106px) - 84px) / 2));
   scroll-padding-top: 46px;
@@ -36,7 +36,7 @@
 .image-inspector:not(:has(> .image-generation-options)) > .image-information {
   max-height: calc(100dvh - var(--canvas-inspector-top, 106px) - 80px);
 }
-.image-inspector:has(> .image-generation-options .generation-options-heading[aria-expanded=false]) > .image-information {
+.image-inspector:has(> .image-generation-options .generation-options-heading[aria-expanded=false]):not(:has(> .image-inpaint-options)) > .image-information {
   max-height: max(48px, calc(100dvh - var(--canvas-inspector-top, 106px) - 126px));
 }
 .image-inspector .image-information > header, .image-inspector .image-generation-options > h3 {
