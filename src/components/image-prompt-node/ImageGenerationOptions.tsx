@@ -2,11 +2,11 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useReactFlow, useStore } from '@xyflow/react';
 import { GenerationOptionsPanel } from './GenerationOptionsPanel';
 import type { AppNode, SunburstNode } from '../../nodes/types';
-import { changeComposerProvider, changeComposerSettings, composerAspectRatios, composerModelId, composerSettings } from '../../nodes/imageComposerSettings';
+import { changeComposerProvider, changeComposerSettings, composerAspectRatios, composerModelId, composerModelSelection, composerSettings } from '../../nodes/imageComposerSettings';
 import { imageQualities, imageQualityLabels, sunburstProviders, sunburstProviderLabels, type SunburstProvider } from '../../nodes/sunburst';
 import { seedreamChoices } from '../../nodes/seedream';
 import { imagePromptGenerationAspectRatios } from './imagePromptAspectRatios';
-import { defaultImagePromptModelSelection, imagePromptModels, type ImagePromptModelId } from './imagePromptModels';
+import { gptImageVariants, imagePromptModels, type ImagePromptModelId } from './imagePromptModels';
 import { ImagePromptModelBrand, ImagePromptModelMenu } from './ImagePromptModelMenu';
 import { ImagePromptIcon } from './ImagePromptIcon';
 import { ImagePromptInfoTip } from './ImagePromptInfoTip';
@@ -38,6 +38,7 @@ function GenerationOptions({ nodeId }: { nodeId: string }) {
   }, []);
   if (!data?.composer) return null;
   const composer = data.composer;
+  const selection = composerModelSelection(data);
   const modelId = composerModelId(data);
   const model = imagePromptModels.find(item => item.id === modelId);
   const settings = composerSettings(data);
@@ -60,13 +61,13 @@ function GenerationOptions({ nodeId }: { nodeId: string }) {
       <button ref={trigger} type="button" className="generation-options-model" disabled={locked}
         aria-label={`选择生成模型：${model?.name ?? '自动选择模型'}`} aria-haspopup="dialog" aria-expanded={modelOpen && !locked}
         onClick={() => setModelOpen(!modelOpen)}>
-        <ImagePromptModelBrand brand={model?.brand ?? 'openai'} /><span>{composer.selection?.autoSelect ? '自动选择模型'
-          : (composer.selection?.modelIds.length ?? 0) > 1 ? `${composer.selection!.modelIds.length} 个模型` : model?.name}</span><ImagePromptIcon name="chevron" />
+        <ImagePromptModelBrand brand={model?.brand ?? 'openai'} /><span>{selection.autoSelect ? '自动选择模型'
+          : selection.modelIds.length > 1 ? `${selection.modelIds.length} 个模型` : model?.name}</span><ImagePromptIcon name="chevron" />
       </button>
-      {modelOpen && !locked && <ImagePromptModelMenu models={imagePromptModels} id={`${id}-models`} anchor={trigger} selection={composer.selection ?? defaultImagePromptModelSelection}
+      {modelOpen && !locked && <ImagePromptModelMenu models={imagePromptModels} id={`${id}-models`} anchor={trigger} selection={selection}
         pinned={pinned} onPinnedChange={setPinned} onClose={closeModel}
         onChange={selection => edit(changeComposerSettings(data, { selection }))} />}
-      {modelId === 'gpt-image-2-6' && <div className="generation-option-row"><span>渠道商</span><GenerationOptionSelect label="渠道商" value={data.provider ?? 'openai'}
+      {gptImageVariants[modelId] && <div className="generation-option-row"><span>渠道商</span><GenerationOptionSelect label="渠道商" value={data.provider ?? 'openai'}
         choices={sunburstProviders} labels={sunburstProviders.map(value => sunburstProviderLabels[value])} disabled={locked}
         onChange={value => edit(changeComposerProvider(data, value as SunburstProvider))} /></div>}
       <div className="generation-option-row"><span>画面比例</span><GenerationOptionSelect key={`ratio-${modelId}`} label="画面比例" value={composer.ratio} choices={ratios}

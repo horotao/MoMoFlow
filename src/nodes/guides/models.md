@@ -6,7 +6,9 @@
 
 节点内的生成按钮使用当前提示词、参考图、参数和数量提交任务。当前执行入口接入 GPT Image 2.6、Seedream 5.5 和 Nano Banana 2.1；选择器内其他模型、自动选择或多模型模式仍由运行前校验提示不支持。Seedream 与 Nano Banana 的设置分别保存在 `composer.modelSettings`，切换模型后保留；GPT Image 沿用节点已有设置，官方渠道将比例和分辨率转换为像素尺寸。OpenAI 的比例为「自动」时仍可选择 1K / 2K / 4K，此操作同时将比例设为 1:1；选择固定比例后可独立调整分辨率，重新选择自动比例则恢复自动尺寸。APIMart 支持自动比例与分辨率独立选择。
 
-GPT Image 的生成选项提供「渠道商」，可切换 OpenAI 官方与 APIMart。切换时同步转换尺寸并保留分辨率，随节点保存且可撤销；运行时只使用所选渠道的接口与凭据，不自动回退。新建 Image 的初始配置为 APIMart、EXT、Sunburst、1:1、1K、中等画质、PNG；切换到 APIMart 时默认使用 EXT，已有项目保存的标准版选择保留。Seedream 与 Nano Banana 继续使用原有 APIMart 接口，不展示此切换项。渠道凭据在左侧「更多 → API 设置」配置。
+工具栏与生成选项均可选择 GPT Image 2.6 Sunburst 或 Flare。两者共用渠道、比例、分辨率、背景、画质和输出格式设置，切换模型时沿用当前参数。OpenAI 官方渠道使用所选模型 ID，文生图请求发送至 `/v1/images/generations`，带参考图的编辑请求发送至 `/v1/images/edits`。APIMart EXT 按所选模型传入 `version`，标准版使用所选模型 ID。旧节点保存的 Flare 版本也会显示为 Flare。[OpenAI Flare 模型文档](https://developers.openai.com/api/docs/models/gpt-image-2.6-flare)
+
+GPT Image 的生成选项可切换 OpenAI 官方与 APIMart 渠道。切换时同步转换尺寸并保留分辨率，随节点保存且可撤销；运行时只使用所选渠道的接口与凭据，不自动回退。新建 Image 的初始配置为 APIMart、EXT、Sunburst、1:1、1K、中等画质、PNG；切换到 APIMart 时默认使用 EXT，已有项目保存的标准版选择保留。Seedream 与 Nano Banana 继续使用原有 APIMart 接口，不展示此切换项。渠道凭据在左侧「更多 → API 设置」配置。
 
 用户修改工具栏或生成选项中的模型、渠道、比例、分辨率、背景、画质、输出格式，以及生成数量时，同步将生成偏好保存到当前浏览器的本地存储。之后通过各创建入口添加 Image，使用最近一次修改的参数，并保留各模型的高级设置；刷新或切换项目后仍生效。仅查看、选中或恢复已有节点不覆盖偏好。新节点的提示词为空，不复制图片、连线、锁定或其他画布状态。旧预设可从已有 API 尺寸恢复比例；存储不可用或预设损坏时回退到初始配置，不影响节点创建和编辑。
 

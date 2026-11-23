@@ -2,9 +2,11 @@ import test, { type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { createLibraryNode } from './libraryCatalog.ts';
 import { sunburstPreset } from './imageNodePresets.ts';
-import { changeComposerProvider, changeComposerSettings } from '../nodes/imageComposerSettings.ts';
+import { changeComposerProvider, changeComposerSettings, composerModelId } from '../nodes/imageComposerSettings.ts';
+import { defaultImagePromptModelSelection } from './image-prompt-node/imagePromptModels.ts';
 import { prepareModel } from '../nodes/executionGraph.ts';
 import { referenceRatioSettings } from '../nodes/imageReferenceRatio.ts';
+import { modelTaskLabel } from '../nodes/taskQueue.ts';
 
 function storage(t: TestContext) {
   const previous = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
@@ -71,6 +73,40 @@ test('OpenAI channel and transparent background survive creating another node', 
   assert.equal(node.data.quality, 'max');
   assert.equal(node.data.size, '1632x3808');
   assert.equal(node.data.composer!.ratio, '9:21');
+});
+
+test('Flare shares GPT Image options and runs with its own model after preset restoration', t => {
+  storage(t);
+  const source = image();
+  Object.assign(source.data, changeComposerProvider(source.data, 'openai'));
+  Object.assign(source.data, changeComposerSettings(source.data, {
+    selection: { ...defaultImagePromptModelSelection, modelIds: ['gpt-image-2-6-flare'] },
+  }));
+  Object.assign(source.data, changeComposerSettings(source.data, { ratio: '16:9' }, {
+    resolution: '2K', quality: 'high', background: 'transparent', outputFormat: 'png',
+  }));
+  sunburstPreset.remember(source.data);
+
+  const restored = image();
+  restored.data.composer!.prompt = 'A green leaf';
+  assert.equal(composerModelId(restored.data), 'gpt-image-2-6-flare');
+  const run = () => prepareModel({ nodes: [restored], edges: [] }, restored.id)[0];
+  const flareTask = run();
+  assert.equal(flareTask.model, 'gpt-image-2.6-flare');
+  assert.match(modelTaskLabel(flareTask), /Flare/);
+  assert.equal(flareTask.imageRequest!.size, '2048x1152');
+  assert.equal(flareTask.imageRequest!.quality, 'high');
+  assert.equal(flareTask.imageRequest!.background, 'transparent');
+  assert.equal(flareTask.imageRequest!.outputFormat, 'png');
+
+  Object.assign(restored.data, changeComposerSettings(restored.data, { selection: defaultImagePromptModelSelection }));
+  const sunburstTask = run();
+  assert.equal(sunburstTask.model, 'gpt-image-2.6-sunburst');
+  assert.deepEqual(sunburstTask.imageRequest, { ...flareTask.imageRequest, variant: 'Sunburst' });
+
+  restored.data.variant = 'Flare'; // Projects from before Flare had its own menu entry.
+  assert.equal(composerModelId(restored.data), 'gpt-image-2-6-flare');
+  assert.deepEqual(run().imageRequest, flareTask.imageRequest);
 });
 
 test('advanced edits on reference-following nodes preserve the last manually chosen default ratio', t => {

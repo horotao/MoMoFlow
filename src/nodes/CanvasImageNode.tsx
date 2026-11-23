@@ -15,7 +15,7 @@ import { isActiveTask, type PreviewTask } from './taskQueue';
 import { downloadAsset } from './fileMedia';
 import { savedImagePrompt } from './generationRecord';
 import { imageInputHandles, isImageInputHandle } from './connectionRules';
-import { changeComposerSettings, composerAspectRatios } from './imageComposerSettings';
+import { changeComposerSettings, composerAspectRatios, composerModelSelection } from './imageComposerSettings';
 import { canvasImageSize, hasImageDimensions } from './canvasImageGeometry';
 import { reorderImageReferences } from './imageReferenceOrder';
 import { referenceRatioSettings } from './imageReferenceRatio';
@@ -152,7 +152,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
     updateNodeData(id, patch);
   }
   const controls = {
-    modelSelection: composer.selection,
+    modelSelection: composerModelSelection(data),
     onModelSelectionChange: (selection: NonNullable<ImageComposerData['selection']>) => edit({ selection }),
     aspectRatio: composer.ratio,
     aspectRatioChoices: composerAspectRatios(data),
