@@ -28,6 +28,8 @@
   .image-inspector > :is(.image-information, .image-generation-options),
   .image-inspector > :is(.image-information, .image-generation-options):hover { scrollbar-width: auto; scrollbar-color: auto; }
 }
+.image-inspector:not(.text-inspector) > .image-generation-options { scrollbar-width: none; }
+.image-inspector:not(.text-inspector) > .image-generation-options::-webkit-scrollbar { display: none; }
 .image-inspector:not(:has(> .image-inpaint-options)) > .image-information {
   /* Keep ordinary metadata intact, while leaving room for options in short windows. */
   max-height: max(48px, calc((100dvh - var(--canvas-inspector-top, 106px) - 84px) / 2));
