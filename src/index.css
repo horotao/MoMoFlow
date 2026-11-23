@@ -229,8 +229,10 @@
 }
 
 .canvas-selection .react-flow__selection {
-  border: 1px solid var(--canvas-selection-color);
-  background: color-mix(in srgb, var(--canvas-selection-color) 12%, transparent);
+  border: 1px solid #b5b3ad;
+  border-radius: 0;
+  background: rgb(181 179 173 / 15%);
+  transition: none;
 }
 
 /* Keep the selection under the ports so their full circles cover its outline. */

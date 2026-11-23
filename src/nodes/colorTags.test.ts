@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { changeColorTags, clearColorTags, countNodeColorTags, nodeColorTags, nodeTagHighlight, readColorTags } from './colorTags.ts';
+import { changeColorTags, changeSelectedColorTags, clearColorTags, countNodeColorTags, nodeColorTags, nodeTagHighlight, readColorTags } from './colorTags.ts';
 import { defaultSunburstSettings } from './sunburst.ts';
 import { restoreSunburstData } from './sunburstClipboard.ts';
 import { isCanvasImageNode, type AppNode, type CanvasImage, type CanvasText } from './types.ts';
@@ -35,6 +35,20 @@ test('bulk clear removes only matching tags and respects locked nodes', () => {
   assert.deepEqual(cleared.map(nodeColorTags), [['blue'], [], ['red']]);
   assert.equal(cleared[2], locked);
   assert.deepEqual(clearColorTags(cleared).map(nodeColorTags), [[], [], ['red']]);
+});
+
+test('the selection picker fills mixed tags, removes common tags, and skips locked and unselected nodes', () => {
+  const locked = image('locked', true);
+  locked.data.colorTags = ['red'];
+  const nodes = changeColorTags([image('a'), { ...text, selected: true }, locked, { ...image('other'), selected: false }], ['a', 'other'], 'red');
+  const added = changeSelectedColorTags(nodes, 'red');
+  assert.deepEqual(added.map(nodeColorTags), [['red'], ['red'], ['red'], ['red']]);
+  assert.equal(added[0], nodes[0]);
+  const removed = changeSelectedColorTags(added, 'red');
+  assert.deepEqual(removed.map(nodeColorTags), [[], [], ['red'], ['red']]);
+  assert.deepEqual(changeSelectedColorTags(added).map(nodeColorTags), removed.map(nodeColorTags));
+  assert.equal(removed[2], nodes[2]);
+  assert.equal(removed[3], nodes[3]);
 });
 
 test('saved and copied tags normalize unknown or duplicate values and retain a gray tag', () => {

@@ -2,6 +2,7 @@ import type { Edge, Node, XYPosition } from '@xyflow/react';
 import { canvasGridGap } from './canvasGrid.ts';
 
 type LayoutNode = Node;
+type LayoutLink = Pick<Edge, 'source' | 'target'>;
 const gap = 64;
 const size = (node: LayoutNode) => ({
   width: node.measured?.width ?? node.width ?? 288,
@@ -13,12 +14,23 @@ export function isArrangeShortcut(event: Pick<KeyboardEvent, 'key' | 'shiftKey' 
     && !event.altKey && !event.repeat && !event.isComposing && !event.defaultPrevented;
 }
 
-// Layout is selection-scoped. Nested nodes keep their parent-relative coordinate system untouched.
-export function arrangeSelectedNodes<T extends LayoutNode>(nodes: T[], edges: Pick<Edge, 'source' | 'target'>[], gridOrigin?: number): T[] {
+function layoutSelection<T extends LayoutNode>(nodes: T[], edges: LayoutLink[]) {
+  // Nested nodes keep their parent-relative coordinate system untouched.
   const selected = nodes.filter(node => node.selected && !node.data.locked && !node.hidden && !node.parentId);
-  if (selected.length < 2 || nodes.some(node => node.dragging)) return nodes;
   const ids = new Set(selected.map(node => node.id));
-  const links = edges.filter(edge => edge.source !== edge.target && ids.has(edge.source) && ids.has(edge.target));
+  const links = selected.length < 2 || nodes.some(node => node.dragging)
+    ? []
+    : edges.filter(edge => edge.source !== edge.target && ids.has(edge.source) && ids.has(edge.target));
+  return { selected, links };
+}
+
+export function canArrangeSelectedNodes(nodes: LayoutNode[], edges: LayoutLink[]) {
+  return layoutSelection(nodes, edges).links.length > 0;
+}
+
+export function arrangeSelectedNodes<T extends LayoutNode>(nodes: T[], edges: LayoutLink[], gridOrigin?: number): T[] {
+  const { selected, links } = layoutSelection(nodes, edges);
+  if (!links.length) return nodes;
   const ordered = [...selected].sort((a, b) => a.id.localeCompare(b.id));
   const step = (value: number) => gridOrigin === undefined ? value : Math.ceil(value / canvasGridGap) * canvasGridGap;
   const snap = (value: number) => gridOrigin === undefined ? value : gridOrigin + Math.round((value - gridOrigin) / canvasGridGap) * canvasGridGap;
