@@ -9,11 +9,12 @@ import { ModelRequestCancelled } from './modelRequestError.ts';
 import { isImageGeneratorNode, isImportedCanvasImage, type AppNode, type CanvasImage, type SunburstNode, type FileAsset } from './types.ts';
 import type { PreviewTask } from './taskQueue';
 import { isActiveTask, modelTaskLabel } from './taskQueue.ts';
-import { workflowSnapshot } from '../persistence/workflowStorage.ts';
+import { mapAssets, workflowSnapshot } from '../persistence/workflowStorage.ts';
 import { commitAnnotations, emptyAnnotationHistory } from './interactiveEdit.ts';
 import { initialTextDocument } from './textDocument.ts';
 import { createImportedCanvasImage } from './importCanvasImage.ts';
 import { canConnect } from './connectionRules.ts';
+import { nodeAssetUrls } from './assetResources.ts';
 
 const file = (id: string): AppNode => ({ id, type: 'file', position: { x: 0, y: 0 }, data: { assets: [{ id, name: id, kind: 'image', url: `blob:${id}` }] } });
 const generator = (id: string): AppNode => ({ id, type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, imageInputs: 1 } });
@@ -114,6 +115,33 @@ test('imported canvas images only supply references and replacements keep their 
     assert.deepEqual(h.requests.map(task => [task.nodeId, task.imageRequest?.images]),
       [[target.id, ['blob:original']], [target.id, ['blob:replacement']]]);
     assert.deepEqual(h.graph.edges, saved.edges);
+  } finally { h.engine.dispose(); }
+});
+
+test('inpaint runs with a saved image and mask after the source changes or is deleted', async () => {
+  const image: FileAsset = { id: 'original', kind: 'image', name: 'original.png', url: 'blob:original' };
+  const mask: FileAsset = { ...image, id: 'mask', name: 'mask.png', url: 'blob:mask' };
+  const original = createLibraryNode('image', { x: 0, y: 0 }) as CanvasImage;
+  const variant: CanvasImage = {
+    id: 'inpaint', type: 'sunburst', position: { x: 500, y: 0 }, data: {
+      ...defaultSunburstSettings, provider: 'openai', imageInputs: 1, inpaint: { image, mask },
+      composer: { prompt: 'Change the highlighted area', quantity: 1, ratio: 'auto' },
+    },
+  };
+  const wire = edge(original.id, variant.id, 'image-0', 'result');
+  const saved = workflowSnapshot({ nodes: [original, variant], edges: [wire], viewport: { x: 0, y: 0, zoom: 1 }, colorMode: 'dark' });
+  assert.deepEqual(saved.edges, [{ ...wire, selected: undefined }]);
+  const nodes = mapAssets(saved.nodes, asset => ({ ...asset, url: asset.url + '-restored' }));
+  assert.deepEqual([...nodeAssetUrls(nodes)], ['blob:original-restored', 'blob:mask-restored']);
+  const h = harness({ nodes, edges: saved.edges });
+  try {
+    assert.ok(await h.engine.run([variant.id], 1));
+    h.edit(graph => ({ nodes: graph.nodes.filter(node => node.id !== original.id), edges: [] }));
+    assert.ok(await h.engine.run([variant.id], 1));
+    assert.deepEqual(h.requests.map(task => [task.nodeId, task.model, task.imageRequest?.images, task.imageRequest?.mask]), [
+      [variant.id, 'gpt-image-2.6-sunburst', ['blob:original-restored'], 'blob:mask-restored'],
+      [variant.id, 'gpt-image-2.6-sunburst', ['blob:original-restored'], 'blob:mask-restored'],
+    ]);
   } finally { h.engine.dispose(); }
 });
 

@@ -50,16 +50,17 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
       const provider = validateSunburstProvider(effective.provider);
       const variant = validateSunburstVariant(effective.variant);
       const settings = validateSunburstSettings(effective);
-      const inputs = edges.filter(edge => edge.target === id);
+      const inpaint = node.data.inpaint;
+      const inputs = inpaint ? [] : edges.filter(edge => edge.target === id);
       const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
       const edit = promptEdge ? resolveSunburstEditPrompt(promptEdge.source, nodes, edges, settings.channelModel === 'gpt-image-2.6-ext') : undefined;
       const prompt = edit?.prompt ?? node.data.composer?.prompt.trim() ?? '';
       if (!prompt || prompt.length > 32000) throw new Error('请为每个选中节点连接非空 Prompt，最多 32000 个字符。');
       const imageEdges = inputs.filter(edge => edge.targetHandle?.startsWith('image-')).sort((a, b) => Number(a.targetHandle?.slice(6)) - Number(b.targetHandle?.slice(6)));
       const maskEdge = inputs.find(edge => edge.targetHandle === 'mask');
-      const original = edit?.original;
+      const original = inpaint?.image ?? edit?.original;
       if (edit?.markupMarks) validateSunburstMarkup(settings.outputFormat, true, Boolean(maskEdge));
-      validateSunburstImageInputs(settings.outputFormat, Boolean(original || imageEdges.length), Boolean(maskEdge), provider, settings.channelModel);
+      validateSunburstImageInputs(settings.outputFormat, Boolean(original || imageEdges.length), Boolean(inpaint || maskEdge), provider, settings.channelModel);
       const references = imageEdges.flatMap(edge => {
         const input = pinnedResultInput(edge, promptEdge?.source, nodes, edges) ?? edge;
         const assets = imageOutput(nodes.find(item => item.id === input.source), input.sourceHandle);
@@ -68,7 +69,7 @@ export function prepareSunburstRun(nodes: AppNode[], edges: Edge[], ids: string[
       });
       const images = (original ? [original, ...references.filter(asset => !sameAnnotationImage(asset, original))] : references).map(asset => asset.url);
       if (images.length > 16) throw new Error('最多支持 16 张参考图片。');
-      let mask: string | undefined;
+      let mask = inpaint?.mask.url;
       let maskMode: SunburstRequest['maskMode'];
       if (maskEdge) {
         const origin = resolveOutputSource(nodes.find(item => item.id === maskEdge.source), maskEdge.sourceHandle);

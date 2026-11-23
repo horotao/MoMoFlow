@@ -32,6 +32,7 @@ export function canConnect(connection: Connection | Edge, nodes: AppNode[], edge
   const source = nodes.find(node => node.id === connection.source);
   const target = nodes.find(node => node.id === connection.target);
   if (!source || !target || isImportedCanvasImage(target) || isNodeLocked(source) || isNodeLocked(target)) return false;
+  if (isCanvasImageNode(target) && target.data.inpaint) return false;
   const imageWire = isCanvasImageNode(source) && (isCanvasImageNode(target) || isCanvasTextNode(target)) && isImageWire(connection);
   const textWire = isCanvasTextNode(source) && connection.sourceHandle === 'text'
     && (isCanvasTextNode(target) && connection.targetHandle === 'text' || isCanvasImageNode(target) && connection.targetHandle === 'prompt');

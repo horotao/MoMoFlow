@@ -30,6 +30,7 @@ export function choiceConnection(pending: PendingConnection, choice: ConnectionC
 export function connectionChoices(pending: PendingConnection, nodes: AppNode[]): ConnectionChoice[] {
   const node = nodes.find(item => item.id === pending.nodeId);
   if (!node || (!isCanvasImageNode(node) && !isCanvasTextNode(node)) || isNodeLocked(node)) return [];
+  if (pending.direction === 'target' && isCanvasImageNode(node) && node.data.inpaint) return [];
   if (isCanvasTextNode(node) && pending.direction === 'source' && pending.handleId === 'text') {
     return [{ id: 'image:prompt', itemId: 'image', handleId: 'prompt', portX: -24, portY: 192 },
       { id: 'text:text', itemId: 'text', handleId: 'text', portX: -24, portY: 192 }];

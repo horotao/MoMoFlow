@@ -98,7 +98,7 @@ export function ImageCropEditor({ source, initial, saving, onApply, onCancel, on
     root.current?.removeAttribute('data-dragging');
     if (root.current?.hasPointerCapture(event.pointerId)) root.current.releasePointerCapture(event.pointerId);
   }
-  return <div ref={root} className="image-crop-editor nodrag nowheel" role="group" aria-label="裁剪图片"
+  return <div ref={root} className="image-crop-editor image-edit-mode nodrag nowheel" role="group" aria-label="裁剪图片"
     aria-describedby={help} aria-busy={saving} tabIndex={-1}
     onPointerDown={event => { if (event.button !== 1 && !spaceHeld.current) { event.preventDefault(); event.stopPropagation(); } }}
     onDoubleClick={event => { event.preventDefault(); event.stopPropagation(); }}

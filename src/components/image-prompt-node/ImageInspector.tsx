@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type Ref } from 'react';
 import { useStore } from '@xyflow/react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import type { FileAsset, SunburstNode } from '../../nodes/types';
@@ -13,7 +13,7 @@ import { ImagePromptIcon, type ImagePromptIconName } from './ImagePromptIcon';
 import { requestImageCrop } from '../../nodes/useCanvasImageCrop';
 import './image-inspector.css';
 
-export function ImageInspector() {
+export function ImageInspector({ panelRef }: { panelRef?: Ref<HTMLElement> }) {
   const selectedId = useStore(state => {
     const selected = state.nodes.filter(node => node.selected);
     return selected.length === 1 && selected[0].type === 'sunburst' && selected[0].data.composer ? selected[0].id : null;
@@ -21,7 +21,7 @@ export function ImageInspector() {
   const data = useStore(state => selectedId ? state.nodeLookup.get(selectedId)?.data : undefined) as SunburstNode['data'] | undefined;
   const asset = useVisibleCanvasImage(selectedId, data ? selectedImageResult({ data }) : undefined);
   if (!data) return null;
-  return <aside className="image-inspector nodrag nopan nowheel" aria-label="图片检查器" data-has-image={Boolean(asset)}
+  return <aside ref={panelRef} className="image-inspector nodrag nopan nowheel" aria-label="图片检查器" data-has-image={Boolean(asset)}
     onPointerDown={event => event.stopPropagation()} onDoubleClick={event => event.stopPropagation()}
     onWheel={event => event.stopPropagation()} onKeyDown={event => {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z') event.stopPropagation();

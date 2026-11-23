@@ -84,6 +84,10 @@ export function nodeAssetUrls(nodes: Iterable<AppNode>): Set<string> {
       if (node.data.baseImage) add(node.data.baseImage);
     } else if (isImageGeneratorNode(node)) {
       for (const asset of node.data.results ?? []) add(asset);
+      if (node.type === 'sunburst' && node.data.inpaint) {
+        add(node.data.inpaint.image);
+        add(node.data.inpaint.mask);
+      }
     }
   }
   return urls;

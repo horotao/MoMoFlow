@@ -8,6 +8,7 @@ import { editPromptMentions, pruneDisconnectedMentions } from './nodes/promptMen
 import { animateMentionWire } from './edges/mentionWireAnimation';
 import { preventCanvasImageDrag, withCanvasImageDrag } from './components/canvasImageDrag';
 import { ImageInspector } from './components/image-prompt-node/ImageInspector';
+import { ImageInspectorElement } from './components/image-prompt-node/ImageInspectorContext';
 import { TextInspector } from './components/image-prompt-node/TextInspector';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasNavigation, canvasMinZoom, canvasMaxZoom, type ZoomTarget } from './components/CanvasNavigation';
@@ -77,6 +78,7 @@ type ProjectSession = {
 };
 
 export function Flow({ storage, saved, projectSession }: { storage: WorkflowStorage; saved: Workflow | null; projectSession?: ProjectSession }) {
+  const [imageInspector, setImageInspector] = useState<HTMLElement | null>(null);
   const [apiSettingsOpen, setApiSettingsOpen] = useState(false);
   const [imageImportError, setImageImportError] = useState('');
   const [gridSnap, setGridSnap] = useState(() => readGridSnap());
@@ -321,7 +323,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       result.addedEdges.forEach(edge => animateMentionWire(edge.id));
       setNodes(result.nodes); setEdges(result.edges);
       return true;
-    }}><CanvasHistoryContext.Provider value={history}><ReactFlow
+    }}><CanvasHistoryContext.Provider value={history}><ImageInspectorElement.Provider value={imageInspector}><ReactFlow
       ref={canvasRef}
       tabIndex={0}
       onDragStartCapture={preventCanvasImageDrag}
@@ -484,11 +486,11 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
             position: screenToFlowPosition({ x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 }) });
         }} />
       <DescriberPanel onImageGenerated={projectSession?.autoName} />
-      <ImageInspector />
+      <ImageInspector panelRef={setImageInspector} />
       <TextInspector />
       <CanvasNavigation pendingZoom={pendingZoom} />
       <ApiSettingsDialog open={apiSettingsOpen} onClose={() => setApiSettingsOpen(false)} onTestConnection={testApiConnection} />
-    </ReactFlow></CanvasHistoryContext.Provider></CanvasMentionContext.Provider></CanvasColorTagContext.Provider>
+    </ReactFlow></ImageInspectorElement.Provider></CanvasHistoryContext.Provider></CanvasMentionContext.Provider></CanvasColorTagContext.Provider>
   );
 }
 

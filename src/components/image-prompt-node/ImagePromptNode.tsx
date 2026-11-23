@@ -14,6 +14,7 @@ import { ImagePromptResult } from './ImagePromptResult';
 import { ImagePromptToolbar } from './ImagePromptToolbar';
 import { imagePromptModels, defaultImagePromptModelSelection, type ImagePromptModelSelection } from './imagePromptModels';
 import { ImagePromptGeneration, type ImagePromptGenerationState } from './ImagePromptGeneration';
+import { ImagePromptGenerateControl } from './ImagePromptGenerateControl';
 import { useMagneticPorts } from './useMagneticPorts';
 import { useControllableValue } from './useControllableValue';
 import { InputPortRing } from './InputPortRing';
@@ -54,6 +55,7 @@ export interface ImagePromptNodeProps {
   title?: string;
   onTitleChange?: (title: string) => void;
   modelLabel?: string;
+  editModeLabel?: string;
   modelSelection?: ImagePromptModelSelection;
   defaultModelSelection?: ImagePromptModelSelection;
   onModelSelectionChange?: (selection: ImagePromptModelSelection) => void;
@@ -84,6 +86,7 @@ export interface ImagePromptNodeProps {
   onAddConnectedNode?: () => void;
   /** Frontend connection hosts may report their current port occupancy. */
   imageInputCount?: number;
+  imageInputLimit?: number;
   references?: readonly ImagePromptReference[];
   onRemoveReference?: (id: string) => void;
   onReorderReferences?: (ids: string[]) => void;
@@ -97,9 +100,9 @@ export function ImagePromptNode({
   quantity: quantityValue, defaultQuantity = 1, onQuantityChange,
   selected: selectedValue, defaultSelected = false, onSelectedChange,
   locked: lockedValue, defaultLocked = false, onLockedChange,
-  title = 'Image', onTitleChange, modelLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange,
+  title = 'Image', onTitleChange, modelLabel, editModeLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange,
   suggestion = 'Oil paint macro, impasto texture', className = '', toolbar, generation = null, result, onPreviewImage, variants = [], activeVariant = 0, onVariantChange,
-  onGenerate, onCancelGeneration, canGenerateWithoutPrompt = false, onMention, onDictate, onEnhance, onImageInput, onAddConnectedNode, imageInputCount = 0,
+  onGenerate, onCancelGeneration, canGenerateWithoutPrompt = false, onMention, onDictate, onEnhance, onImageInput, onAddConnectedNode, imageInputCount = 0, imageInputLimit = 16,
   promptMentions, mentionCandidates, onMentionEdit,
   references = [], onRemoveReference, onReorderReferences, referenceScale = 1, outputConnected = false,
 }: ImagePromptNodeProps) {
@@ -114,7 +117,6 @@ export function ImagePromptNode({
   const [selected, setSelected] = useControllableValue(selectedValue, defaultSelected, onSelectedChange);
   const [locked, setLocked] = useControllableValue(lockedValue, defaultLocked, onLockedChange);
   const [quantity, updateQuantity] = useControllableValue(quantityValue, defaultQuantity, onQuantityChange);
-  function setQuantity(value: number) { updateQuantity(Math.max(1, Math.min(20, Math.trunc(value) || 1))); }
   const [toolbarHovered, setToolbarHovered] = useState(false);
   const toolbarHideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const editor = useRef<PromptMentionEditorHandle>(null);
@@ -128,6 +130,7 @@ export function ImagePromptNode({
   const hasPrompt = Boolean(prompt.trim());
   const busy = generation !== null;
   const canGenerate = hasPrompt || canGenerateWithoutPrompt;
+  const cancelGeneration = busy ? onCancelGeneration : undefined;
   const hasResult = Boolean(result);
   const resultElement = useRef<HTMLDivElement>(null);
   const activeVariantId = variants[activeVariant]?.id;
@@ -263,7 +266,7 @@ export function ImagePromptNode({
         {highlight && <NodeColorGlow color={highlight} zoom={nodeTags.zoom} selected={selected} />}
         <header className="image-node-heading">
           <h1><ImagePromptIcon name={isText ? 'text' : 'image'} /><ImageNodeTitle title={title} editable={selected} locked={locked} onChange={onTitleChange} /></h1>
-          {!assetOnly && <span className="image-node-model">{busy && Number.isFinite(generation.estimatedSeconds) && (generation.estimatedSeconds ?? 0) > 0
+          {editModeLabel ? <span className="image-node-model"><span title={editModeLabel}>{editModeLabel}</span></span> : !assetOnly && <span className="image-node-model">{busy && Number.isFinite(generation.estimatedSeconds) && (generation.estimatedSeconds ?? 0) > 0
             ? <span className="image-node-estimate">~{Math.round(generation.estimatedSeconds!)}s</span>
             : <><ImagePromptModelBrand brand={activeModel?.brand ?? 'openai'} /><span title={displayModelLabel}>{displayModelLabel}</span></>}</span>}
           {tags.length > 0 && <span className="node-heading-tags" aria-label="节点颜色标记">{tags.map(tag => <span key={tag.id} className="node-tag-dot" style={{ background: tag.color }} title={tag.label} />)}</span>}
@@ -309,14 +312,11 @@ export function ImagePromptNode({
                   {(['txt', 'md'] as const).map(format => <button type="button" key={format} aria-pressed={format === textFormat} disabled={locked} onClick={() => onTextFormatChange?.(format)}>{format.toUpperCase()}</button>)}
                 </div> : <button type="button" aria-label="Dictate prompt" onClick={onDictate} {...tooltipProps('Dictate prompt')} disabled={locked || promptReadOnly}><ImagePromptIcon name="mic" /></button>}
                 <button type="button" aria-label="Enhance prompt" onClick={onEnhance} {...tooltipProps('Enhance prompt')} disabled={!hasPrompt || locked || promptReadOnly}><ImagePromptIcon name="enhance" /></button>
-                <div className={`image-node-generate-group${quantity > 1 ? ' is-expanded' : ''}${canGenerate && !locked ? '' : ' is-disabled'}`}>
-                  <div className="image-node-quantity">
-                    <button type="button" aria-label="Decrease quantity" disabled={!quantityEnabled || locked || quantity <= 1} onClick={() => setQuantity(quantity - 1)}><ImagePromptIcon name="minus" /></button>
-                    <input aria-label="Quantity" role="spinbutton" aria-valuemin={1} aria-valuemax={20} aria-valuenow={quantity} inputMode="numeric" value={quantity} disabled={!quantityEnabled || locked} onChange={event => setQuantity(Math.max(1, Math.min(20, Number(event.currentTarget.value) || 1)))} />
-                    <button type="button" aria-label="Increase quantity" disabled={!quantityEnabled || locked || quantity >= 20} onClick={() => setQuantity(quantity + 1)}><ImagePromptIcon name="plus" /></button>
-                  </div>
-                  <button className="image-node-generate" type="button" aria-label={busy && onCancelGeneration ? 'Cancel generation' : 'Generate'} onClick={() => busy && onCancelGeneration ? onCancelGeneration() : onGenerate?.({ prompt, quantity })} disabled={(!canGenerate || locked) && !(busy && onCancelGeneration)}><ImagePromptIcon name="generate" /></button>
-                </div>
+                <ImagePromptGenerateControl quantity={quantity} onQuantityChange={updateQuantity}
+                  canChangeQuantity={quantityEnabled && !locked} canExpand={canGenerate && !locked}
+                  canSend={(canGenerate && !locked) || Boolean(cancelGeneration)}
+                  sendLabel={cancelGeneration ? 'Cancel generation' : 'Generate'}
+                  onSend={() => cancelGeneration ? cancelGeneration() : onGenerate?.({ prompt, quantity })} />
               </div>
             </div>
             </div>
@@ -331,7 +331,7 @@ export function ImagePromptNode({
           {!assetOnly && <div className="image-node-inputs">
             {textInput && <div ref={element => { ports.textInput.current = element?.querySelector('button') ?? null; }}>{textInput}</div>}
             <button ref={ports.input} data-connection-port="image" data-connected={imageInputCount > 0 || undefined} disabled={locked} type="button" className="image-node-input" aria-label="Image input" onClick={onImageInput}>
-              <span className="image-node-port-label"><span className="image-node-port-icon image-node-port-icon-image" aria-hidden="true" />Image <span className="image-node-port-count">{imageInputCount}/16</span></span><InputPortRing />{handles?.image}
+              <span className="image-node-port-label"><span className="image-node-port-icon image-node-port-icon-image" aria-hidden="true" />Image <span className="image-node-port-count">{imageInputCount}/{imageInputLimit}</span></span><InputPortRing />{handles?.image}
             </button>
           </div>}
           <button ref={ports.output} data-connection-port="output" data-connected={outputConnected || undefined} disabled={locked} type="button" className="image-node-output" aria-label="Add connected node" onClick={onAddConnectedNode}>

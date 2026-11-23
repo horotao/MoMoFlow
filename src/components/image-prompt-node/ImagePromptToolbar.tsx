@@ -36,8 +36,11 @@ export interface ImagePromptToolbarProps {
   onAspectRatioClick?: () => void;
   onToolsClick?: () => void;
   onCrop?: () => void;
+  onInpaint?: () => void;
   cropActive?: boolean;
+  inpaintActive?: boolean;
   cropDisabled?: boolean;
+  fixedImageSettings?: boolean;
   onReplaceImage?: () => void;
   onPreviewImage?: () => void;
   replaceDisabled?: boolean;
@@ -52,7 +55,7 @@ export function ImagePromptToolbar({
   onDownload, downloadDisabled = true, onReplaceImage, onPreviewImage, replaceDisabled = false,
   className = '',
   textModelPicker, textHasOutput = false,
-  onCrop, cropActive = false, cropDisabled = false,
+  onCrop, onInpaint, cropActive = false, inpaintActive = false, cropDisabled = false, fixedImageSettings = false,
 }: ImagePromptToolbarProps) {
   const [selection, setSelection] = useControllableValue(modelSelection, defaultModelSelection, onModelSelectionChange);
   const [aspectRatio, setAspectRatio] = useControllableValue(aspectRatioValue, defaultAspectRatio, onAspectRatioChange);
@@ -94,9 +97,11 @@ export function ImagePromptToolbar({
     }
   }, [locked, hidden, menuOpen, aspectMenuOpen, closeMenu, closeAspectMenu]);
   if (hidden) return null;
+  const imageTools = <ImageToolsMenu onCrop={onCrop} onInpaint={onInpaint}
+    active={cropActive ? 'crop' : inpaintActive ? 'inpaint' : undefined} disabled={locked || cropDisabled} />;
   if (onReplaceImage) return (
     <NodeToolbarTooltipScope><div className={`image-node-toolbar ${className}`} role="toolbar" aria-label={textModelPicker ? 'Text node tools' : 'Image node tools'} onKeyDown={stopToolbarNavigation}>
-      <ImageToolsMenu onCrop={onCrop} active={cropActive} disabled={locked || cropDisabled} />
+      {imageTools}
       <span className="image-node-separator" />
       <NodeToolbarTooltip label="替换图片"><button type="button" aria-label="替换图片" disabled={locked || replaceDisabled} onClick={onReplaceImage}>
         <ImagePromptIcon name="replace-image" />
@@ -122,14 +127,14 @@ export function ImagePromptToolbar({
   );
   return (
     <NodeToolbarTooltipScope><div className={`image-node-toolbar ${className}`} role="toolbar" aria-label={textModelPicker ? 'Text node tools' : 'Image node tools'} onKeyDown={stopToolbarNavigation}>
-      {textModelPicker ?? <><NodeToolbarTooltip label="选择图像模型"><button ref={trigger} type="button" className="image-node-toolbar-label" aria-label={`选择图像模型：${label}`} aria-haspopup="dialog" aria-expanded={menuOpen} aria-controls={menuOpen ? menuId : undefined} disabled={locked}
+      {textModelPicker ?? <><NodeToolbarTooltip label="选择图像模型"><button ref={trigger} type="button" className="image-node-toolbar-label" aria-label={`选择图像模型：${label}`} aria-haspopup="dialog" aria-expanded={menuOpen} aria-controls={menuOpen ? menuId : undefined} disabled={locked || fixedImageSettings}
         onClick={() => { onModelClick?.(); if (menuOpen) closeMenu(); else openModelMenu(); }}
         onKeyDown={event => { if (event.key === 'ArrowDown' && !menuOpen) { event.preventDefault(); openModelMenu(); } }}>
         <ImagePromptModelBrand brand={activeModel?.brand ?? 'openai'} />{label}<ImagePromptIcon name="chevron" />
       </button></NodeToolbarTooltip>
       {menuOpen && !locked && <ImagePromptModelMenu models={imagePromptModels} id={menuId} anchor={trigger} selection={selection} onChange={setSelection} pinned={pinned} onPinnedChange={setPinned} onClose={closeMenu} />}
       <span className="image-node-separator" />
-      <NodeToolbarTooltip label="画面比例"><button ref={aspectTrigger} id={aspectTriggerId} type="button" className="image-node-toolbar-label" aria-label={`选择画面比例：${aspectRatio === 'auto' ? '自动' : aspectRatio}`} aria-haspopup="menu" aria-expanded={aspectMenuOpen} aria-controls={aspectMenuOpen ? aspectMenuId : undefined} disabled={locked}
+      <NodeToolbarTooltip label="画面比例"><button ref={aspectTrigger} id={aspectTriggerId} type="button" className="image-node-toolbar-label" aria-label={`选择画面比例：${aspectRatio === 'auto' ? '自动' : aspectRatio}`} aria-haspopup="menu" aria-expanded={aspectMenuOpen} aria-controls={aspectMenuOpen ? aspectMenuId : undefined} disabled={locked || fixedImageSettings}
         onClick={() => { onAspectRatioClick?.(); if (aspectMenuOpen) closeAspectMenu(); else openAspectMenu(); }}
         onKeyDown={event => { if (event.key === 'ArrowDown' && !aspectMenuOpen) { event.preventDefault(); openAspectMenu(); } }}>
         {aspectRatio === 'auto' ? '自动' : aspectRatio}<ImagePromptIcon name="chevron" />
@@ -137,7 +142,7 @@ export function ImagePromptToolbar({
       {aspectMenuOpen && !locked && <ImagePromptAspectRatioMenu id={aspectMenuId} labelledBy={aspectTriggerId} anchor={aspectTrigger} value={aspectRatio} choices={aspectRatioChoices} onChange={setAspectRatio} onClose={closeAspectMenu} />}</>}
       <span className="image-node-separator" />
       {textModelPicker ? <NodeToolbarTooltip label="工具"><button type="button" className="image-node-toolbar-label image-node-tools-label" aria-disabled="true" onClick={onToolsClick}><ImagePromptIcon name="tools" />Tools<ImagePromptIcon name="chevron" /></button></NodeToolbarTooltip>
-        : <ImageToolsMenu onCrop={onCrop} active={cropActive} disabled={locked || cropDisabled} />}
+        : imageTools}
       <span className="image-node-separator" />
       {textModelPicker && !textHasOutput && <NodeToolbarTooltip label="运行选项"><button type="button" aria-label="运行选项" aria-disabled="true"><Zap size={16} aria-hidden="true" /></button></NodeToolbarTooltip>}
       <NodeToolbarTooltip label={locked ? '解锁节点' : '锁定节点'}><button type="button" aria-label="Lock node" aria-pressed={locked} onClick={() => onLockedChange?.(!locked)}><ImagePromptIcon name="unlock" /></button></NodeToolbarTooltip>

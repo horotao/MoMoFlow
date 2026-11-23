@@ -5,8 +5,8 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { ImagePromptIcon } from './ImagePromptIcon';
 import './image-generation-options.css';
 
-export function GenerationOptionsPanel({ children, label = '生成选项', className = '', onCollapse }: {
-  children: ReactNode; label?: string; className?: string; onCollapse?: () => void;
+export function GenerationOptionsPanel({ children, label = '生成选项', icon, className = '', onCollapse }: {
+  children: ReactNode; label?: string; icon?: ReactNode; className?: string; onCollapse?: () => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const id = useId();
@@ -17,7 +17,7 @@ export function GenerationOptionsPanel({ children, label = '生成选项', class
     }}>
     <h3><button type="button" className="generation-options-heading" aria-expanded={expanded} aria-controls={id}
       onClick={() => { setExpanded(!expanded); if (expanded) onCollapse?.(); }}>
-      <HugeiconsIcon icon={CircleArrowUp01Icon} size={14} /><span>{label}</span>
+      {icon ?? <HugeiconsIcon icon={CircleArrowUp01Icon} size={14} />}<span className="generation-options-label">{label}</span>
       <ImagePromptIcon name="chevron" className={expanded ? '' : 'is-collapsed'} />
     </button></h3>
     {expanded && <div id={id} className="generation-options-content">{children}</div>}

@@ -6,8 +6,8 @@
 .image-crop-editor[data-panning], .image-crop-editor[data-panning] :is(.image-crop-frame, .image-crop-handle) { cursor: grab; }
 .image-crop-editor[data-panning]:active, .image-crop-editor[data-panning]:active :is(.image-crop-frame, .image-crop-handle) { cursor: grabbing; }
 /* Space drags must reach the pane: React Flow marks draggable node wrappers nopan. */
-.react-flow:has(.image-crop-editor[data-panning]) .react-flow__viewport,
-.react-flow:has(.image-crop-editor[data-panning]) .react-flow__viewport * { pointer-events: none !important; }
+.react-flow:has(.image-edit-mode[data-panning]) .react-flow__viewport,
+.react-flow:has(.image-edit-mode[data-panning]) .react-flow__viewport * { pointer-events: none !important; }
 .image-crop-mask { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; fill: rgb(0 0 0 / 65%); }
 .image-crop-frame { position: absolute; box-shadow: inset 0 0 0 var(--crop-px) #fff; cursor: move; touch-action: none; }
 .image-crop-handle {
@@ -32,12 +32,12 @@
 .image-crop-grid { position: absolute; inset: 0; opacity: 0; pointer-events: none; background: linear-gradient(to right, transparent calc(100% / 3 - .5px), #ffffff60 calc(100% / 3), transparent calc(100% / 3 + .5px), transparent calc(200% / 3 - .5px), #ffffff60 calc(200% / 3), transparent calc(200% / 3 + .5px)), linear-gradient(to bottom, transparent calc(100% / 3 - .5px), #ffffff60 calc(100% / 3), transparent calc(100% / 3 + .5px), transparent calc(200% / 3 - .5px), #ffffff60 calc(200% / 3), transparent calc(200% / 3 + .5px)); }
 .image-crop-editor[data-dragging] .image-crop-grid { opacity: 1; }
 .image-crop-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.canvas-image-mount:has(> .image-crop-editor) > .image-node :is(.image-node-card, .image-node-history) { visibility: hidden; pointer-events: none; }
-.canvas-image-mount:has(> .image-crop-editor) > .image-node .image-node-toolbar-bridge { opacity: 1; visibility: visible; pointer-events: auto; }
+.canvas-image-mount:has(> .image-edit-mode) > .image-node :is(.image-node-card, .image-node-history) { visibility: hidden; pointer-events: none; }
+.canvas-image-mount:has(> .image-edit-mode) > .image-node .image-node-toolbar-bridge { opacity: 1; visibility: visible; pointer-events: auto; }
 /* Flora dims the rendered content, while names, model labels and tags stay readable. */
-.react-flow:has(.image-crop-editor) .react-flow__node:not(:has(.image-crop-editor)) .image-node > :not(.image-node-heading) { filter: brightness(.4); }
-.react-flow:has(.image-crop-editor) .canvas-background > canvas,
-.react-flow:has(.image-crop-editor) .canvas-background > .react-flow__background { opacity: .08; }
-.react-flow:has(.image-crop-editor) .react-flow__edges { filter: brightness(.4); }
-.react-flow:has(.image-crop-editor) .react-flow__node:has(.image-crop-editor) { z-index: 1002 !important; }
-body:has(.image-crop-editor) .node-toolbar-tooltip { display: none; }
+.react-flow:has(.image-edit-mode) .react-flow__node:not(:has(.image-edit-mode)) .image-node > :not(.image-node-heading) { filter: brightness(.4); }
+.react-flow:has(.image-edit-mode) .canvas-background > canvas,
+.react-flow:has(.image-edit-mode) .canvas-background > .react-flow__background { opacity: .08; }
+.react-flow:has(.image-edit-mode) .react-flow__edges { filter: brightness(.4); }
+.react-flow:has(.image-edit-mode) .react-flow__node:has(.image-edit-mode) { z-index: 1002 !important; }
+body:has(.image-edit-mode) .node-toolbar-tooltip { display: none; }

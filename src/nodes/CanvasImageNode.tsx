@@ -23,6 +23,7 @@ import { ImportedCanvasImage, type CanvasImageChrome } from './ImportedCanvasIma
 import { selectedImageResult } from './annotationGraph';
 import { usePublishVisibleImage } from './visibleCanvasImage';
 import { useCanvasImageCrop } from './useCanvasImageCrop';
+import { useCanvasImageInpaint } from './useCanvasImageInpaint';
 import type { CanvasText } from './types';
 import { isNodeLocked } from './types';
 import type { AppNode, CanvasImage, FileAsset, ImageComposerData } from './types';
@@ -78,7 +79,7 @@ export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps
 function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   id: string; data: CanvasImage['data']; edges: Edge[]; connectable: boolean; chrome: CanvasImageChrome;
 }) {
-  const composer = data.composer;
+  const { composer, inpaint: inpaintInput } = data;
   const mentions = useCanvasMentions(id);
   const zoom = useStore(state => state.transform[2]);
   const { setEdges, updateNodeData } = useReactFlow<AppNode>();
@@ -115,20 +116,21 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   });
   const occupied = new Set(references.map(edge => edge.targetHandle));
 
-  const available = imageInputHandles.find(handle => !occupied.has(handle));
+  const available = inpaintInput ? undefined : imageInputHandles.find(handle => !occupied.has(handle));
   const active = results.find(asset => chosen && (asset.generation?.taskId ?? asset.id) === chosen) ?? results.find(asset => asset.id === data.activeResultId) ?? results[results.length - 1];
   const crop = useCanvasImageCrop(id, active, Boolean(data.locked) || activeTasks.length > 0);
+  const inpaint = useCanvasImageInpaint(id, active, Boolean(data.locked) || activeTasks.length > 0 || crop.active);
   usePublishVisibleImage(id, active);
   const [loadedSizes, setLoadedSizes] = useState<Record<string, { width: number; height: number }>>({});
   const dimensions = (asset?: FileAsset) => asset && (hasImageDimensions(asset) ? asset : loadedSizes[asset.url] ?? asset);
-  const firstReference = inputs.find(input => input.asset)?.asset;
+  const firstReference = inpaintInput?.image ?? inputs.find(input => input.asset)?.asset;
   const referenceWidth = dimensions(firstReference)?.width;
   const referenceHeight = dimensions(firstReference)?.height;
   useLayoutEffect(() => {
-    const patch = referenceRatioSettings(data, { width: referenceWidth, height: referenceHeight });
+    const patch = !inpaintInput && referenceRatioSettings(data, { width: referenceWidth, height: referenceHeight });
     if (patch) updateNodeData(id, patch);
-  }, [id, data, referenceWidth, referenceHeight, updateNodeData]);
-  const { width, height } = crop.size ?? canvasImageSize(composer.ratio, dimensions(active), dimensions(firstReference), task);
+  }, [id, data, inpaintInput, referenceWidth, referenceHeight, updateNodeData]);
+  const { width, height } = inpaint.size ?? crop.size ?? canvasImageSize(composer.ratio, dimensions(active), dimensions(firstReference), task);
   useLayoutEffect(() => { internals(id); }, [id, internals, available, edges, width, height]);
   function rememberSize(asset?: FileAsset) {
     if (!asset || hasImageDimensions(asset) || loadedSizes[asset.url]) return;
@@ -146,7 +148,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   function edit(change: Partial<ImageComposerData>) {
     if (data.locked) return;
     const patch = changeComposerSettings(data, change);
-    if (change.ratio !== undefined || change.selection !== undefined || change.quantity !== undefined) sunburstPreset.remember({ ...data, ...patch });
+    if (!inpaintInput && (change.ratio !== undefined || change.selection !== undefined || change.quantity !== undefined)) sunburstPreset.remember({ ...data, ...patch });
     updateNodeData(id, patch);
   }
   const controls = {
@@ -160,8 +162,8 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   };
   const { output, showToolbar, toolbarHidden, ...frame } = chrome;
   return <div className="canvas-image-mount" style={{ width, height }}>
-    <ImagePromptNode {...controls} {...frame}
-      promptMentions={promptEdge ? [] : composer.mentions} mentionCandidates={mentions.candidates} onMentionEdit={promptEdge ? undefined : mentions.onEdit}
+    <ImagePromptNode {...controls} {...frame} editModeLabel={inpaint.active ? '局部重绘中' : undefined}
+      promptMentions={promptEdge || inpaintInput ? [] : composer.mentions} mentionCandidates={inpaintInput ? [] : mentions.candidates} onMentionEdit={promptEdge || inpaintInput ? undefined : mentions.onEdit}
       prompt={prompt} promptReadOnly={Boolean(promptEdge)} onPromptChange={prompt => edit({ prompt })}
       quantity={composer.quantity} onQuantityChange={quantity => edit({ quantity })}
       onGenerate={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: id }))}
@@ -181,31 +183,35 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
           ...(promptEdge ? {} : { composer: { ...composer, mentions: !savedImagePrompt(asset) || savedImagePrompt(asset) === composer.prompt ? composer.mentions : undefined, prompt: savedImagePrompt(asset) ?? composer.prompt } }),
         });
       }}
-      imageInputCount={references.length}
-      references={textInputReferences(incoming, sourceNodes).map(input => ({ ...input, onLoad: rememberSize(inputs.find(item => item.id === input.id)?.asset) }))}
-      textInput={<button type="button" className="image-node-input" data-connection-port="text" data-connected={Boolean(promptEdge) || undefined} aria-label="Prompt input" disabled={data.locked}>
+      imageInputCount={inpaintInput ? 1 : references.length}
+      imageInputLimit={inpaintInput ? 1 : undefined}
+      references={inpaintInput ? [{ id: inpaintInput.image.id, kind: 'image', name: inpaintInput.image.name, url: inpaintInput.image.url }]
+        : textInputReferences(incoming, sourceNodes).map(input => ({ ...input, onLoad: rememberSize(inputs.find(item => item.id === input.id)?.asset) }))}
+      textInput={!inpaintInput && <button type="button" className="image-node-input" data-connection-port="text" data-connected={Boolean(promptEdge) || undefined} aria-label="Prompt input" disabled={data.locked}>
         <span className="image-node-port-label"><ImagePromptIcon name="text" />Prompt</span>
         <InputPortRing />
         <Handle type="target" position={Position.Left} id="prompt" isConnectable={connectable} />
       </button>}
-      onRemoveReference={edgeId => {
+      onRemoveReference={inpaintInput ? undefined : edgeId => {
         if (!data.locked) setEdges(current => current.filter(edge => edge.target !== id || edge.id !== edgeId));
       }}
       referenceScale={zoom}
-      onReorderReferences={order => {
+      onReorderReferences={inpaintInput ? undefined : order => {
         if (!data.locked) setEdges(current => reorderImageReferences(current, id, order));
       }}
       handles={{
-        image: [...(available ? [available] : []), ...imageInputHandles.filter(handle => occupied.has(handle))].map(handle =>
+        image: inpaintInput ? <Handle type="target" position={Position.Left} id="image-0" isConnectable={false} />
+          : [...(available ? [available] : []), ...imageInputHandles.filter(handle => occupied.has(handle))].map(handle =>
           <Handle key={handle} type="target" position={Position.Left} id={handle}
             isConnectable={connectable && handle === available} style={{ pointerEvents: handle === available ? undefined : 'none' }} />),
         output,
       }}
       toolbar={!showToolbar ? null : <ImagePromptToolbar className="nodrag nopan" {...controls} hidden={toolbarHidden} downloadDisabled={!active}
         onCrop={crop.open} cropActive={crop.active} cropDisabled={!active || activeTasks.length > 0}
+        onInpaint={inpaint.open} inpaintActive={inpaint.active} fixedImageSettings={Boolean(inpaintInput)}
         onDownload={() => { if (active) void downloadAsset(active).catch(() => setError('图片下载失败。')); }} />}
     />
-    {crop.editor}{crop.error}
+    {crop.editor}{crop.error}{inpaint.editor}{inpaint.error}
     {previewOpen && active && <ImageAssetPreview asset={active} assets={results} onClose={() => setPreviewOpen(false)} />}
     {error && <button type="button" role="alert" onClick={() => setError('')}>{error}</button>}
   </div>;

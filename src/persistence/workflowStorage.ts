@@ -66,6 +66,9 @@ export function mapAssets(nodes: AppNode[], map: (asset: FileAsset) => FileAsset
 
     if (isImageGeneratorNode(node)) return { ...node, data: {
       ...node.data, results: node.data.results?.map(visit),
+      ...(node.type === 'sunburst' && node.data.inpaint ? {
+        inpaint: { image: visit(node.data.inpaint.image), mask: visit(node.data.inpaint.mask) },
+      } : {}),
     } } as AppNode;
     return node;
   });

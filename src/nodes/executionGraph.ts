@@ -45,6 +45,8 @@ export function fixedOutput(node: AppNode, graph: ExecutionGraph) {
 export function executionInputs(node: AppNode, _handle: string | null | undefined, graph: ExecutionGraph): Edge[] {
   // Text exposes its selected completed result (or authored prompt), never its dependencies.
   if (isCanvasTextNode(node)) return [];
+  // The incoming visual connection identifies the origin of a pinned edit.
+  if (isCanvasImageNode(node) && node.data.inpaint) return [];
   const edges = graph.edges.filter(edge => edge.target === node.id
     && (!isTextNode(node) || !isAnnotationInput(edge.targetHandle)
       || annotationOutput(graph.nodes.find(source => source.id === edge.source), edge.sourceHandle, graph.nodes, graph.edges)));
@@ -77,6 +79,11 @@ export function executionSourceAssets(graph: ExecutionGraph, target: string, tar
     const annotation = storedAnnotationResult(node, handle, graph.nodes, graph.edges);
     if (annotation) { add(annotation.image); return; }
     if (!targets.includes(id) && fixedOutput(node, graph)) { add(selectedResult(node)); return; }
+    if (isCanvasImageNode(node) && node.data.inpaint) {
+      add(node.data.inpaint.image);
+      add(node.data.inpaint.mask);
+      return;
+    }
     const inputs = executionInputs(node, handle, graph);
     const connected = (port: string) => inputs.some(edge => edge.targetHandle === port);
     if (node.type === 'file') {
@@ -262,7 +269,8 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
       const prompt = edit?.prompt ?? (promptEdge ? resolveTextValue(promptEdge.source, graph.nodes, graph.edges).trim() : composer?.prompt.trim() ?? '');
       if (!prompt || prompt.length > 32000) throw new Error('请连接非空提示词，最多 32000 个字符。');
     }
-    const masked = inputs.some(edge => edge.targetHandle === 'mask');
+    const inpaint = isCanvasImageNode(node) && node.data.inpaint;
+    const masked = Boolean(inpaint) || inputs.some(edge => edge.targetHandle === 'mask');
     const images = inputs.filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''));
     if (sunburst) {
       const settings = knownSettings(sunburst, { ...defaultSunburstSettings, ...sunburstParameterDefaults });
@@ -271,8 +279,8 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
       if (unknown.has('channelModel') && settings.provider === 'apimart') settings.channelModel = 'gpt-image-2.6';
       const validated = validateSunburstSettings(settings);
       if (edit?.markupMarks) validateSunburstMarkup(validated.outputFormat, true, masked);
-      validateSunburstImageInputs(String(settings.outputFormat), Boolean(edit?.original || images.length), masked, validateSunburstProvider(settings.provider), validated.channelModel);
-      if (masked && !images.length) throw new Error('使用 Mask 时必须连接 Image。');
+      validateSunburstImageInputs(String(settings.outputFormat), Boolean(inpaint || edit?.original || images.length), masked, validateSunburstProvider(settings.provider), validated.channelModel);
+      if (masked && !inpaint && !images.length) throw new Error('使用 Mask 时必须连接 Image。');
     } else if (model.type === 'seedream') {
       validateSeedreamSettings(knownSettings({ ...model.data, size: model.data.size ?? 'auto' }, defaultSeedreamSettings));
     } else if (model.type === 'nano-banana') {

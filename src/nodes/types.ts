@@ -33,6 +33,7 @@ export type FileAsset = {
   crop?: { source: Omit<FileAsset, 'crop'>; rect: ImageCropRect };
 };
 export interface ImageCropRect { x: number; y: number; width: number; height: number }
+export interface ImageInpaintInput { image: FileAsset; mask: FileAsset }
 export type FileNode = Node<{ label?: string; locked?: boolean; asset?: FileAsset; assets?: FileAsset[]; activeAssetId?: string; viewMode?: 'single' | 'all'; orderBy?: 'date' | 'name'; annotations?: AnnotationHistory[] }, 'file'>;
 export const isFileNode = (node: AppNode | undefined): node is FileNode => node?.type === 'file';
 type ImageResults = { results?: FileAsset[]; activeResultId?: string; orderBy?: 'date' | 'name'; annotations?: AnnotationHistory[] };
@@ -45,7 +46,7 @@ export interface ImageComposerData {
   selection?: import('../components/image-prompt-node/imagePromptModels').ImagePromptModelSelection;
   modelSettings?: Record<string, Record<string, string>>;
 }
-export type SunburstNode = Node<SunburstSettings & OutputPolicy & ImageResults & { colorTags?: ColorTag[]; composer?: ImageComposerData; imageSource?: 'imported'; provider?: SunburstProvider; variant?: 'Sunburst' | 'Flare'; label?: string; locked?: boolean; imageInputs: number; exposed?: SunburstParameter[] }, 'sunburst'>;
+export type SunburstNode = Node<SunburstSettings & OutputPolicy & ImageResults & { colorTags?: ColorTag[]; composer?: ImageComposerData; imageSource?: 'imported'; inpaint?: ImageInpaintInput; provider?: SunburstProvider; variant?: 'Sunburst' | 'Flare'; label?: string; locked?: boolean; imageInputs: number; exposed?: SunburstParameter[] }, 'sunburst'>;
 export const isSunburstNode = (node: AppNode): node is SunburstNode => node.type === 'sunburst';
 export type CanvasImage = SunburstNode & { data: { composer: ImageComposerData } };
 export const isCanvasImageNode = (node: AppNode): node is CanvasImage => isSunburstNode(node) && Boolean(node.data.composer);
