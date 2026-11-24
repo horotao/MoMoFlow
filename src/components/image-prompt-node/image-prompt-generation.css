@@ -34,7 +34,14 @@
 .image-node-result { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
 .image-node-result-layers, .image-node-result-layer { position: absolute; inset: 0; }
 .image-node-result-layer[aria-hidden=true] { pointer-events: none; }
-.image-node-result-layer > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.image-node-result-layer > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Put the checkerboard below the pixels so it fades with this result. */
+  background: conic-gradient(#646462 25%, #565654 0 50%, #646462 0 75%, #565654 0) 0 0 / 16px 16px;
+}
 @keyframes image-node-generation-sweep { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   .image-node-generation-light { animation: none; }
