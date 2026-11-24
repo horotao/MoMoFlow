@@ -11,7 +11,7 @@ import { useModelTaskStore } from './useModelTasks';
 import { isCanvasImageNode, isCanvasTextNode, isNodeLocked, isSunburstNode } from '../nodes/types';
 import type { AppNode } from '../nodes/types';
 import { imageModelBranches } from '../nodes/imageModelBranches';
-import { startCanvasTextRun } from '../nodes/canvasTextRun';
+import { startCanvasComposerRun } from '../nodes/canvasComposerRun';
 import { canvasRunSelectionEvent, generationNodes, maxSelectionGenerationNodes, runGenerationSelection, selectedGenerationNodes } from '../nodes/selectionGeneration';
 import { AnimatedToastStack, type ToastInput } from './ui/AnimatedToastStack';
 import { useAnimatedToastStack } from './ui/useAnimatedToastStack';
@@ -90,7 +90,8 @@ export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (promp
         const node = getNode(id);
         if (disposed || !node || node.hidden || isNodeLocked(node)) return false;
         try {
-          if (isCanvasTextNode(node)) return Boolean(await startCanvasTextRun(id));
+          if (isCanvasTextNode(node)) return Boolean(await startCanvasComposerRun('text', id));
+          if (node.type === 'video') return Boolean(await startCanvasComposerRun('video', id));
           if (!isModelNode(node)) return false;
           return Boolean(await runImage([id], true));
         } catch (error) {

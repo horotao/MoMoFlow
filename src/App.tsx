@@ -21,11 +21,13 @@ import { CanvasBackground } from './components/CanvasBackground';
 import { canvasGridOrigin, readGridSnap, saveGridSnap, snapDragChanges, type GridDragAnchor } from './components/canvasGrid';
 import { ApiSettingsDialog } from './components/ApiSettingsDialog';
 import { testApiConnection } from './components/apiSettings';
+import { addNodeEntries } from './components/add-node-menu/useAddNodePreview';
 import { AddNodeMenu, type AddNodeRequest } from './components/add-node-menu/AddNodeMenu';
 import { canConnect, withoutReplacedInput } from './nodes/connectionRules';
 import { connectionChoices, choiceConnection, type PendingConnection } from './nodes/connectionRecommendations';
 import { createLibraryNode } from './components/libraryCatalog';
-import { clipboardImageFiles, createImportedCanvasImage, readCanvasImage } from './nodes/importCanvasImage';
+import { createImportedVideo, isMp4File, readCanvasVideo } from './nodes/importCanvasVideo';
+import { clipboardMediaFiles, createImportedCanvasImage, readCanvasImage } from './nodes/importCanvasImage';
 import { assetResources } from './nodes/assetResources';
 import { canvasImageSize } from './nodes/canvasImageGeometry';
 import { composerAspectRatio } from './nodes/imageComposerSettings';
@@ -53,7 +55,7 @@ import { DescriberPanel } from './components/DescriberPanel';
 import { ModelTasksProvider } from './components/ModelTasksProvider';
 import { CanvasHistoryContext, useCanvasHistory } from './components/useCanvasHistory';
 import { initialNodes, nodeTypes } from './nodes';
-import { isCanvasGroup, isNodeLocked, type AppNode } from './nodes/types';
+import { isCanvasGroup, isCanvasMediaNode, isNodeLocked, type AppNode } from './nodes/types';
 import { initialEdges, edgeTypes } from './edges';
 import { ConnectionLine } from './edges/ConnectionLine';
 import { useConnectionGesture } from './edges/useConnectionGesture';
@@ -82,7 +84,7 @@ type ProjectSession = {
 export function Flow({ storage, saved, projectSession }: { storage: WorkflowStorage; saved: Workflow | null; projectSession?: ProjectSession }) {
   const [imageInspector, setImageInspector] = useState<HTMLElement | null>(null);
   const [apiSettingsOpen, setApiSettingsOpen] = useState(false);
-  const [imageImportError, setImageImportError] = useState('');
+  const [mediaImportError, setMediaImportError] = useState('');
   const [gridSnap, setGridSnap] = useState(() => readGridSnap());
   const colorMode = 'dark' as const;
   const [viewport, setViewport] = useState(saved?.viewport ?? { x: 0, y: 0, zoom: 1 });
@@ -150,8 +152,8 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     // The pointer scopes these shortcuts even when a canvas control still has focus.
     const addNodeShortcut = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.repeat || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
-      const key = event.key.toLowerCase();
-      if (key !== 'i' && key !== 't') return;
+      const entry = addNodeEntries.find(item => item.key === event.key.toUpperCase());
+      if (!entry) return;
 
       const canvas = canvasRef.current;
       const pointer = canvasPointer.current;
@@ -166,7 +168,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         || state.nodes.some(node => node.dragging || node.resizing)) return;
 
       const position = screenToFlowPosition(pointer);
-      const node = createLibraryNode(key === 'i' ? 'image' : 'text', position);
+      const node = createLibraryNode(entry.type, position);
       if (!node) return;
       // The factory stores a top-center anchor. Match the actual preset width.
       if (node.type === 'sunburst') node.position.x = position.x + canvasImageSize(composerAspectRatio(node.data)).width / 2;
@@ -256,7 +258,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     [screenToFlowPosition, openNodeMenu, connectionCancelled, endConnectionGesture, getNodes],
   );
 
-  function addImages({ type, quantity }: AddNodeRequest) {
+  function addNodes({ type, quantity }: AddNodeRequest) {
     if (!pendingNodeMenu) return;
     const pending = 'nodeId' in pendingNodeMenu ? pendingNodeMenu : null;
     const currentNodes = getNodes(), currentEdges = getEdges();
@@ -285,9 +287,9 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     if (connections.length) setEdges(nextEdges);
   }
 
-  const addImageFiles = useCallback(async (files: File[], position: XYPosition, canvas: HTMLDivElement) => {
-    setImageImportError('');
-    const settled = await Promise.allSettled(files.map(readCanvasImage));
+  const addMediaFiles = useCallback(async (files: File[], position: XYPosition, canvas: HTMLDivElement) => {
+    setMediaImportError('');
+    const settled = await Promise.allSettled(files.map(file => isMp4File(file) ? readCanvasVideo(file) : readCanvasImage(file)));
     const assets = settled.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
     if (canvasRef.current !== canvas || canvas.hasAttribute('inert')) {
       assetResources.discard(assets.map(asset => asset.url));
@@ -296,13 +298,13 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     const failures = files.length - assets.length;
     if (failures) {
       const only = settled.length === 1 ? settled[0] : undefined;
-      setImageImportError(only?.status === 'rejected' && only.reason instanceof Error
-        ? only.reason.message : `${failures} 个文件无法导入。请选择浏览器支持的图片文件。`);
+      setMediaImportError(only?.status === 'rejected' && only.reason instanceof Error
+        ? only.reason.message : `${failures} 个文件无法导入。请选择浏览器支持的图片或 MP4 视频。`);
     }
     if (!assets.length) return;
     let x = position.x;
     const imported = assets.map(asset => {
-      const item = createImportedCanvasImage(asset, { x, y: position.y });
+      const item = asset.kind === 'video' ? createImportedVideo(asset, { x, y: position.y }) : createImportedCanvasImage(asset, { x, y: position.y });
       x += canvasImageSize('auto', asset).width + 64;
       return item;
     });
@@ -341,7 +343,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         } catch { /* Clipboard text can accompany an image. */ }
       }
 
-      const files = clipboardImageFiles(clipboard);
+      const files = clipboardMediaFiles(clipboard);
       if (!files.length) return;
       const pointer = canvasPointer.current;
       const surface = pointer && document.elementFromPoint(pointer.x, pointer.y)?.closest('.react-flow__pane, .react-flow__node');
@@ -350,11 +352,11 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         ? pointer : { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
       event.preventDefault();
       canvas.focus({ preventScroll: true });
-      void addImageFiles(files, screenToFlowPosition(screen), canvas);
+      void addMediaFiles(files, screenToFlowPosition(screen), canvas);
     };
     window.addEventListener('paste', paste);
     return () => window.removeEventListener('paste', paste);
-  }, [addImageFiles, screenToFlowPosition, setNodes]);
+  }, [addMediaFiles, screenToFlowPosition, setNodes]);
 
   const canvasNodes = useMemo(() => {
     const lockedGroups = new Set(nodes.filter(node => node.parentId && isNodeLocked(node)).map(node => node.parentId));
@@ -365,6 +367,8 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       if (isCanvasGroup(node)) return { ...node, draggable: editable, deletable: !locked, connectable: false,
         className: 'canvas-group-node', ariaLabel: node.data.label };
       const memberClass = node.parentId && selectedGroups.has(node.parentId) && !node.selected ? ' canvas-group-member-in-selected-frame' : '';
+      if (isCanvasMediaNode(node) && node.type === 'audio') return { ...node, draggable: editable, deletable: !locked, connectable: false,
+        className: `canvas-media-placeholder${memberClass}`, ariaLabel: node.data.label };
       return withCanvasImageDrag({ ...node, draggable: editable, deletable: !locked,
         connectable: editable, className: `canvas-image-node${memberClass}` });
     });
@@ -437,7 +441,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         if (files.length) {
           if (event.target.closest('.react-flow__pane, .react-flow__node')) {
             dismissNodeMenu();
-            void addImageFiles(files, screenToFlowPosition({ x: event.clientX, y: event.clientY }), event.currentTarget);
+            void addMediaFiles(files, screenToFlowPosition({ x: event.clientX, y: event.clientY }), event.currentTarget);
           }
           return;
         }
@@ -478,7 +482,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
           event.preventDefault();
           if (event.shiftKey) history.redo(); else history.undo();
         } else if (!event.metaKey && !event.ctrlKey && !event.altKey) {
-          if (event.key.toLowerCase() === 'v') setTool('select');
+          if (event.key.toLowerCase() === 's') setTool('select');
           if (event.key.toLowerCase() === 'h') setTool('hand');
         }
         if (event.key === 'Escape' && !event.defaultPrevented) {
@@ -516,10 +520,10 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         create={() => withSavedWorkflow(projectSession.create)} rename={projectSession.rename}
         remove={project => withSavedWorkflow(snapshot => projectSession.remove(project, snapshot))} />}
       {pendingNodeMenu && <AddNodeMenu key={menuGeneration} position={pendingNodeMenu.screen}
-        allowedTypes={'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes).map(choice => choice.itemId as 'image' | 'text') : undefined}
+        allowedTypes={'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes).map(choice => choice.itemId as 'image' | 'text' | 'video') : undefined}
         triggerRef={'origin' in pendingNodeMenu ? addTrigger : undefined}
         allowQuantity={!('direction' in pendingNodeMenu) || pendingNodeMenu.direction === 'source'}
-        onSelect={addImages}
+        onSelect={addNodes}
         onClose={restoreFocus => {
           dismissNodeMenu();
           if (restoreFocus) ('origin' in pendingNodeMenu ? addTrigger.current : canvasRef.current)?.focus({ preventScroll: true });
@@ -528,9 +532,9 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         <span>{persistence.error}</span>
         <button type="button" onClick={persistence.retry}>重试保存</button>
       </Panel>}
-      {!persistence.error && imageImportError && <Panel position="top-left" className="canvas-save-status" role="alert">
-        <span>{imageImportError}</span>
-        <button type="button" onClick={() => setImageImportError('')}>关闭</button>
+      {!persistence.error && mediaImportError && <Panel position="top-left" className="canvas-save-status" role="alert">
+        <span>{mediaImportError}</span>
+        <button type="button" onClick={() => setMediaImportError('')}>关闭</button>
       </Panel>}
       <CanvasSidebar tool={tool} onToolChange={setTool} addTrigger={addTrigger}
         gridSnap={{ enabled: gridSnap, toggle: toggleGridSnap }}

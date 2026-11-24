@@ -31,12 +31,14 @@ function OutputPortIcon() {
 }
 
 export interface ImagePromptNodeProps {
-  kind?: 'image' | 'text';
+  kind?: 'image' | 'text' | 'video';
+  videoInput?: ReactNode;
+  playbackSlot?: (element: HTMLDivElement | null) => void;
   textResult?: ReactNode;
   textFormat?: 'txt' | 'md';
   onTextFormatChange?: (format: 'txt' | 'md') => void;
   textInput?: ReactNode;
-  assetOnly?: boolean;
+  assetKind?: 'image' | 'video';
   /** Canvas connection handles share the visual port hit areas. */
   handles?: { image: ReactNode; output: ReactNode };
   promptReadOnly?: boolean;
@@ -97,8 +99,8 @@ export interface ImagePromptNodeProps {
 }
 
 export function ImagePromptNode({
-  kind = 'image', textResult, textFormat = 'txt', onTextFormatChange, textInput,
-  assetOnly = false, handles, promptReadOnly, prompt: promptValue, defaultPrompt = '', onPromptChange,
+  kind = 'image', videoInput, playbackSlot, textResult, textFormat = 'txt', onTextFormatChange, textInput,
+  assetKind, handles, promptReadOnly, prompt: promptValue, defaultPrompt = '', onPromptChange,
   quantity: quantityValue, defaultQuantity = 1, onQuantityChange, quantityRange,
   selected: selectedValue, defaultSelected = false, onSelectedChange,
   locked: lockedValue, defaultLocked = false, onLockedChange,
@@ -161,8 +163,8 @@ export function ImagePromptNode({
   const compactComposer = !isText && (busy || hasResult);
   const referencesAbovePrompt = compactComposer || hasTextOutput;
   const quantityEnabled = hasPrompt || (isText && canGenerateWithoutPrompt);
-  const hasReferences = !assetOnly && references.length > 0;
-  const ports = useMagneticPorts();
+  const hasReferences = !assetKind && references.length > 0;
+  const ports = useMagneticPorts(Boolean(videoInput));
   const referenceStrip = hasReferences && <ImagePromptReferences references={references} onRemove={locked ? undefined : onRemoveReference}
     onReorder={locked ? undefined : onReorderReferences} scale={referenceScale}
     restoreFocus={() => ports.node.current?.focus({ preventScroll: true })} />;
@@ -267,8 +269,8 @@ export function ImagePromptNode({
 
         {highlight && <NodeColorGlow color={highlight} zoom={nodeTags.zoom} selected={selected} />}
         <header className="image-node-heading">
-          <h1><ImagePromptIcon name={isText ? 'text' : 'image'} /><ImageNodeTitle title={title} editable={selected} locked={locked} onChange={onTitleChange} /></h1>
-          {editModeLabel ? <span className="image-node-model"><span title={editModeLabel}>{editModeLabel}</span></span> : !assetOnly && <span className="image-node-model">{busy && Number.isFinite(generation.estimatedSeconds) && (generation.estimatedSeconds ?? 0) > 0
+          <h1><ImagePromptIcon name={assetKind ?? kind} /><ImageNodeTitle title={title} editable={selected} locked={locked} onChange={onTitleChange} /></h1>
+          {editModeLabel ? <span className="image-node-model"><span title={editModeLabel}>{editModeLabel}</span></span> : !assetKind && <span className="image-node-model">{busy && Number.isFinite(generation.estimatedSeconds) && (generation.estimatedSeconds ?? 0) > 0
             ? <span className="image-node-estimate">~{Math.round(generation.estimatedSeconds!)}s</span>
             : <><ImagePromptModelBrand brand={modelBrand ?? activeModel?.brand ?? 'openai'} /><span title={displayModelLabel}>{displayModelLabel}</span></>}</span>}
           {tags.length > 0 && <span className="node-heading-tags" aria-label="节点颜色标记">{tags.map(tag => <span key={tag.id} className="node-tag-dot" style={{ background: tag.color }} title={tag.label} />)}</span>}
@@ -278,11 +280,11 @@ export function ImagePromptNode({
           {hasResult && !busy && <div ref={resultElement} className="image-node-result" onDoubleClickCapture={event => {
             if (onPreviewImage) { event.preventDefault(); event.stopPropagation(); onPreviewImage(); }
           }}><ImagePromptResult variantId={activeVariantId}>{result}</ImagePromptResult></div>}
-          {!assetOnly && <div className="image-node-surface">
+          {!assetKind && <div className="image-node-surface">
             <div className="image-node-surface-body">
             {referencesAbovePrompt && referenceStrip}
             <div ref={promptScroll} className="image-node-composer nowheel" onWheel={event => event.stopPropagation()}>
-              <PromptMentionEditor ref={editor} kind={kind} prompt={prompt} mentions={promptMentions} candidates={mentionCandidates}
+              <PromptMentionEditor ref={editor} kind={kind === 'text' ? 'text' : 'image'} prompt={prompt} mentions={promptMentions} candidates={mentionCandidates}
                 readOnly={locked || promptReadOnly} suggestion={suggestion} onChange={setPrompt} onEdit={onMentionEdit} />
               {!prompt && !promptReadOnly && <div className="image-node-suggestion" aria-hidden="true"><span className="image-node-suggestion-label">Try "{suggestion}"</span><kbd>tab</kbd></div>}
             </div>
@@ -308,6 +310,7 @@ export function ImagePromptNode({
             >
               <button type="button" aria-label="Mention node" onPointerDown={event => event.preventDefault()} onClick={() => { hideTooltip(); editor.current?.mention(); onMention?.(); }} {...tooltipProps('Mention node')} disabled={locked || promptReadOnly}><ImagePromptIcon name="mention" /></button>
               {isText ? <button type="button" aria-label="Connected apps" aria-disabled="true" {...tooltipProps('Connected apps')}><ImagePromptIcon name="plug" /></button>
+                : kind === 'video' ? (hasResult && !busy && <div className="video-composer-playback" ref={playbackSlot} />)
                 : <button type="button" aria-label="Reference Element" {...tooltipProps('No Elements available')} disabled><ImagePromptIcon name="hash" /></button>}
               <div className="image-node-actions-right">
                 {isText ? <div className="text-node-formats" role="group" aria-label="Output format">
@@ -315,7 +318,7 @@ export function ImagePromptNode({
                 </div> : <button type="button" aria-label="Dictate prompt" onClick={onDictate} {...tooltipProps('Dictate prompt')} disabled={locked || promptReadOnly}><ImagePromptIcon name="mic" /></button>}
                 <button type="button" aria-label="Enhance prompt" onClick={onEnhance} {...tooltipProps('Enhance prompt')} disabled={!hasPrompt || locked || promptReadOnly}><ImagePromptIcon name="enhance" /></button>
                 <ImagePromptGenerateControl quantity={quantity} quantityRange={quantityRange} onQuantityChange={updateQuantity}
-                  canChangeQuantity={quantityEnabled && !locked} canExpand={canGenerate && !locked}
+                  canChangeQuantity={kind !== 'video' && quantityEnabled && !locked} canExpand={kind !== 'video' && canGenerate && !locked}
                   canSend={(canGenerate && !locked) || Boolean(cancelGeneration)}
                   sendLabel={cancelGeneration ? 'Cancel generation' : 'Generate'}
                   onSend={() => cancelGeneration ? cancelGeneration() : onGenerate?.({ prompt, quantity })} />
@@ -324,22 +327,23 @@ export function ImagePromptNode({
             </div>
             </div>
           </div>}
-          <ImagePromptGeneration state={generation} borderOnly={isText} />
+          <ImagePromptGeneration state={generation} label={kind === 'video' ? 'Generating video' : undefined} borderOnly={isText} />
         </div>
 
         <ImagePromptHistory variants={variants} activeVariant={activeVariant} onVariantChange={onVariantChange} />
 
-        <div className="image-node-ports">
-          {!assetOnly && <div className="image-node-inputs">
+        {(assetKind !== 'video' || handles?.output) && <div className="image-node-ports">
+          {!assetKind && <div className="image-node-inputs">
             {textInput && <div ref={element => { ports.textInput.current = element?.querySelector('button') ?? null; }}>{textInput}</div>}
             <button ref={ports.input} data-connection-port="image" data-connected={imageInputCount > 0 || undefined} disabled={locked} type="button" className="image-node-input" aria-label="Image input" onClick={onImageInput}>
               <span className="image-node-port-label"><span className="image-node-port-icon image-node-port-icon-image" aria-hidden="true" />Image <span className="image-node-port-count">{imageInputCount}/{imageInputLimit}</span></span><InputPortRing />{handles?.image}
             </button>
+            {videoInput && <div ref={element => { ports.videoInput.current = element?.querySelector('button') ?? null; }}>{videoInput}</div>}
           </div>}
           <button ref={ports.output} data-connection-port="output" data-connected={outputConnected || undefined} disabled={locked} type="button" className="image-node-output" aria-label="Add connected node" onClick={onAddConnectedNode}>
             <span className="image-node-output-visual"><OutputPortIcon /></span>{handles?.output}
           </button>
-        </div>
+        </div>}
       </section>
       {tooltip && createPortal(
         <div className="image-node-tooltip-position" style={{ left: tooltip.x, top: tooltip.y }}>

@@ -1,6 +1,7 @@
 import './image-prompt-shared.css';
 
 const icons = {
+  video: new URL('../add-node-menu/assets/video.svg', import.meta.url).href,
   'history-text': new URL('./assets/history-text.svg', import.meta.url).href,
   'plug': new URL('./assets/plug.svg', import.meta.url).href,
   'metadata-info': new URL('./assets/metadata-info.svg', import.meta.url).href,

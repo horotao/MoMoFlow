@@ -9,14 +9,14 @@ import { InputPortRing } from '../components/image-prompt-node/InputPortRing';
 import { ImagePromptGeneration } from '../components/image-prompt-node/ImagePromptGeneration';
 import { TextOutput } from '../components/image-prompt-node/TextOutput';
 import { TextModelPicker } from '../components/image-prompt-node/TextModelPicker';
-import { usePublishTextGeneration, usePublishVisibleText } from './visibleCanvasText';
+import { usePublishNodeGeneration, usePublishVisibleText } from './visibleCanvasText';
 import { textInputReferences, textReferenceEdges } from './textReferences';
 import { prepareTextRequest, runTextBatch, type TextBatchItem } from './textGenerationClient';
 import { completeTextBatchResult, selectTextResult, textGenerationInput, textHistory, textModelSelection } from './textGeneration';
 import { textModelDisplay } from '../components/image-prompt-node/textModels';
 import { imageInputHandles, isImageInputHandle } from './connectionRules';
 import { isCanvasTextNode, isNodeLocked, type AppNode, type SunburstNode, type CanvasText, type TextComposerData } from './types';
-import { canvasTextRunEvent, type CanvasTextRunRequest } from './canvasTextRun';
+import { composerRunEvent, type ComposerRunRequest } from './canvasComposerRun';
 import '../components/image-prompt-node/text-prompt-node.css';
 import './CanvasImageNode.css';
 
@@ -50,7 +50,7 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
   const item = batch && (viewingId ? batch.items.find(item => item.id === viewingId)
     : batch.items.find(pending) ?? [...batch.items].reverse().find(item => item.result) ?? batch.items[0]);
   const showingRun = Boolean(item && pending(item));
-  usePublishTextGeneration(id, Boolean(batch?.items.some(pending)));
+  usePublishNodeGeneration(id, Boolean(batch?.items.some(pending)));
   const outputId = item?.id ?? active?.id;
   usePublishVisibleText(id, item ? item.result : active);
   const referenceEdges = useMemo(() => textReferenceEdges(id, edges), [id, edges]);
@@ -85,11 +85,11 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
   useLayoutEffect(() => { currentGenerate.current = generate; });
   useEffect(() => {
     const run = (event: Event) => {
-      const detail = (event as CustomEvent<CanvasTextRunRequest>).detail;
+      const detail = (event as CustomEvent<ComposerRunRequest>).detail;
       if (detail.id === id) detail.completion = currentGenerate.current(true);
     };
-    window.addEventListener(canvasTextRunEvent, run);
-    return () => window.removeEventListener(canvasTextRunEvent, run);
+    window.addEventListener(composerRunEvent.text, run);
+    return () => window.removeEventListener(composerRunEvent.text, run);
   }, [id]);
   async function generate(fromSelection = false) {
     if (request.current || batch || data.locked) return;

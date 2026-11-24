@@ -56,7 +56,7 @@ export function ImportedCanvasImage({ id, asset, chrome }: { id: string; asset?:
   }
 
   return <div className="canvas-image-mount" style={inpaint.size ?? crop.size ?? canvasImageSize('auto', asset)}>
-    <ImagePromptNode {...frame} assetOnly className="canvas-imported-image" editModeLabel={inpaint.active ? '局部重绘中' : undefined}
+    <ImagePromptNode {...frame} assetKind="image" className="canvas-imported-image" editModeLabel={inpaint.active ? '局部重绘中' : undefined}
       result={asset && <img src={asset.url} alt={asset.name} />}
       onPreviewImage={asset ? () => setPreviewOpen(true) : undefined}
       handles={{ image: null, output }}

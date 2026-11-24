@@ -1,0 +1,44 @@
+.react-flow .react-flow__node.canvas-media-placeholder {
+  width: 384px;
+  padding: 0;
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  box-shadow: none;
+}
+.media-placeholder-card {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 216px;
+  border: 1px solid #fafaf223;
+  border-radius: inherit;
+  background: #111110;
+  color: #989790;
+  font: 400 14px/1.25 var(--font-ui);
+}
+.media-placeholder-card[data-media="audio"] { --media-icon: url('../components/add-node-menu/assets/audio.svg'); }
+.canvas-media-placeholder:hover .media-placeholder-card { border-color: #fafaf247; }
+.canvas-media-placeholder.selected .media-placeholder-card { border-color: #b5b3ad; }
+.media-placeholder-icon {
+  width: 28px;
+  height: 28px;
+  background: currentColor;
+  mask: var(--media-icon) center / contain no-repeat;
+}
+.media-placeholder-heading {
+  position: absolute;
+  bottom: calc(100% + 4px / var(--canvas-zoom, 1));
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: .5em;
+  color: #b5b3ad;
+  font-size: calc(12px / var(--canvas-zoom, 1));
+}
+.media-placeholder-heading .media-placeholder-icon { width: 1em; height: 1em; }
+[data-node-heading="icon"] .media-placeholder-heading > :last-child,
+[data-node-heading="hidden"] .media-placeholder-heading { display: none; }

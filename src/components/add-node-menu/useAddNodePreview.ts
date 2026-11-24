@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export type AddNodeType = 'image' | 'text';
+export const addNodeEntries = [
+  { type: 'image', label: '图片', description: '生成和编辑图片', key: 'I' },
+  { type: 'text', label: '文本', description: '生成文本与 Markdown', key: 'T' },
+  { type: 'video', label: '视频', description: '生成和编辑视频', key: 'V' },
+  { type: 'audio', label: '音频', description: '生成和编辑音频', key: 'A' },
+] as const;
+export type AddNodeType = typeof addNodeEntries[number]['type'];
 
 export const nodePreviewDescription = {
   image: '输入提示词生成图片，也可以用参考图引导构图、风格和后续编辑。',
+  video: '连接文字、图片或视频，选择模型、比例和时长后运行本地预览，也可直接导入 MP4。',
+  audio: '在画布上放置音频占位节点。音频生成与编辑尚未开放。',
   text: '撰写或生成提示词、文案和 Markdown，并将结果连到下游节点。',
 };
 

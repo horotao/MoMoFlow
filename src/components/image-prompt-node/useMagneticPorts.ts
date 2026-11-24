@@ -4,18 +4,20 @@ import { inputPortMinimumSpacing, inputPortSpacing, separateInputPorts } from '.
 // FLORA's rendered handle geometry: 160-unit attraction radius, 35% pull,
 // capped at 20 units, retargeted from the current position over 500ms (easeOutCubic).
 // Magnetic movement and the separate 150ms reveal never share a transform.
-export function useMagneticPorts() {
+export function useMagneticPorts(hasVideoInput = false) {
   const node = useRef<HTMLElement>(null);
   const input = useRef<HTMLButtonElement>(null);
   const output = useRef<HTMLButtonElement>(null);
   const textInput = useRef<HTMLButtonElement | null>(null);
+
+  const videoInput = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     const host = node.current;
     if (!host) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
-    const elements = [input, output, textInput];
+    const elements = hasVideoInput ? [input, output, textInput, videoInput] : [input, output, textInput];
     const tracks = elements.map(() => ({
       x: 0, y: 0, fromX: 0, fromY: 0, toX: 0, toY: 0, started: 0,
     }));
@@ -41,9 +43,12 @@ export function useMagneticPorts() {
       const [topY, bottomY] = top && bottom
         ? separateInputPorts(tracks[2].y, tracks[0].y, inputPortSpacing, inputPortMinimumSpacing)
         : [tracks[2].y, tracks[0].y];
+      const [middleY, videoY] = videoInput.current
+        ? separateInputPorts(bottomY, tracks[3].y, inputPortSpacing, inputPortMinimumSpacing)
+        : [bottomY, 0];
       tracks.forEach((track, index) => {
         const element = elements[index].current;
-        const y = index === 0 ? bottomY : index === 2 ? topY : track.y;
+        const y = index === 0 ? middleY : index === 2 ? topY : index === 3 ? videoY : track.y;
         const transform = `translate3d(${track.x}px, ${y}px, 0px)`;
         if (element && element.style.transform !== transform) element.style.transform = transform;
       });
@@ -55,7 +60,8 @@ export function useMagneticPorts() {
       const rect = host.getBoundingClientRect();
       const width = host.offsetWidth, height = host.offsetHeight;
       const scale = rect.width / width;
-      const anchors = [{ x: -24, y: height / 2 + 20 }, { x: width + 28, y: height / 2 }, { x: -24, y: height / 2 - inputPortSpacing / 2 }];
+      const offset = videoInput.current ? inputPortSpacing : inputPortSpacing / 2;
+      const anchors = [{ x: -24, y: height / 2 + (videoInput.current ? 0 : 20) }, { x: width + 28, y: height / 2 }, { x: -24, y: height / 2 - offset }, { x: -24, y: height / 2 + inputPortSpacing }];
       const now = performance.now();
       tracks.forEach((track, index) => {
         advance(track, now);
@@ -76,7 +82,7 @@ export function useMagneticPorts() {
         }
         // Reveal on the same fixed-anchor field as the pull, before the pointer
         // reaches the port hit area. Keep CSS reveal and magnetic transforms separate.
-        const attribute = index === 0 ? 'data-input-port-near' : index === 1 ? 'data-output-port-near' : 'data-text-port-near';
+        const attribute = index === 0 ? 'data-input-port-near' : index === 1 ? 'data-output-port-near' : index === 2 ? 'data-text-port-near' : 'data-video-port-near';
         if (host.hasAttribute(attribute) !== near) host.toggleAttribute(attribute, near);
         if (track.toX === x && track.toY === y) return;
         track.fromX = track.x;
@@ -118,6 +124,7 @@ export function useMagneticPorts() {
       host.removeAttribute('data-input-port-near');
       host.removeAttribute('data-output-port-near');
       host.removeAttribute('data-text-port-near');
+      host.removeAttribute('data-video-port-near');
       cancelAnimationFrame(frame);
       window.removeEventListener('pointermove', move);
       window.removeEventListener('blur', leave);
@@ -127,7 +134,7 @@ export function useMagneticPorts() {
       reduced.removeEventListener('change', retarget);
       finePointer.removeEventListener('change', retarget);
     };
-  }, []);
+  }, [hasVideoInput]);
 
-  return { node, input, output, textInput };
+  return { node, input, output, textInput, videoInput };
 }

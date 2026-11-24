@@ -3,18 +3,19 @@ import { assetResources } from './assetResources.ts';
 import { anchorCanvasImage, hasImageDimensions } from './canvasImageGeometry.ts';
 import { measureAsset } from './fileMedia.ts';
 import { defaultSunburstSettings } from './sunburst.ts';
+import { isMp4File } from './importCanvasVideo.ts';
 import type { CanvasImage, FileAsset } from './types';
 
-export function clipboardImageFiles(clipboard: DataTransfer): File[] {
-  const isImage = (file: File) => file.type.startsWith('image/')
+export function clipboardMediaFiles(clipboard: DataTransfer): File[] {
+  const isSupported = (file: File) => isMp4File(file) || file.type.startsWith('image/')
     || ((!file.type || file.type === 'application/octet-stream')
       && /\.(avif|bmp|gif|ico|jpe?g|png|svg|webp)$/i.test(file.name));
-  const files = Array.from(clipboard.files).filter(isImage);
+  const files = Array.from(clipboard.files).filter(isSupported);
   if (files.length) return files;
 
   return Array.from(clipboard.items).flatMap(item => {
     const file = item.kind === 'file' ? item.getAsFile() : null;
-    return file && isImage(file) ? [file] : [];
+    return file && isSupported(file) ? [file] : [];
   });
 }
 

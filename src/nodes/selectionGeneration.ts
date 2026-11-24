@@ -1,6 +1,6 @@
 import type { Edge } from '@xyflow/react';
 import { isModelNode } from './executionGraph.ts';
-import { isCanvasTextNode, isNodeLocked, type AppNode } from './types.ts';
+import { isCanvasTextNode, isVideoComposerNode, isNodeLocked, type AppNode } from './types.ts';
 
 export const maxSelectionGenerationNodes = 50;
 
@@ -11,7 +11,7 @@ export function requestCanvasRun(ids?: string[]) {
 }
 
 export function generationNodes(nodes: AppNode[]) {
-  return nodes.filter(node => !node.hidden && !isNodeLocked(node) && (isModelNode(node) || isCanvasTextNode(node)));
+  return nodes.filter(node => !node.hidden && !isNodeLocked(node) && (isModelNode(node) || isCanvasTextNode(node) || isVideoComposerNode(node)));
 }
 
 export function selectedGenerationNodes(nodes: AppNode[]) {

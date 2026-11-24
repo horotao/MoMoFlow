@@ -1,5 +1,5 @@
 import type { Edge } from '@xyflow/react';
-import { createsImageCycle, isImageWire, isCanvasWire } from '../nodes/connectionRules.ts';
+import { createsImageCycle, isVideoInputWire, isImageWire, isCanvasWire } from '../nodes/connectionRules.ts';
 import { migrateFileAnnotations } from '../nodes/annotationMigration.ts';
 import { activeFileAsset, orderedAssets } from '../nodes/fileCollection.ts';
 import { savedImagePrompt } from '../nodes/generationRecord.ts';
@@ -7,11 +7,11 @@ import { migrateImageModelGraph } from '../nodes/sunburstMigration.ts';
 import { defaultSunburstSettings, imageSizeLabels, imageSizes, sunburstSizePreset } from '../nodes/sunburst.ts';
 import { isTextNode, resolveTextValue } from '../nodes/textVariables.ts';
 import { anchorCanvasImage } from '../nodes/canvasImageGeometry.ts';
-import { isCanvasGroup, isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isFileNode, isImageGeneratorNode, type AppNode, type CanvasText, type CanvasImage, type FileAsset, type ImageGeneratorNode } from '../nodes/types.ts';
+import { isCanvasGroup, isCanvasMediaNode, type CanvasMediaNode, isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isFileNode, isImageGeneratorNode, type AppNode, type CanvasText, type CanvasImage, type FileAsset, type ImageGeneratorNode } from '../nodes/types.ts';
 
 export function hasLegacyImageGraph(nodes: AppNode[], edges: Edge[]) {
   const groups = new Set(nodes.filter(isCanvasGroup).map(node => node.id));
-  return nodes.some(node => (!isCanvasGroup(node) && !isCanvasImageNode(node) && !isCanvasTextNode(node))
+  return nodes.some(node => (!isCanvasGroup(node) && !isCanvasImageNode(node) && !isCanvasTextNode(node) && !isCanvasMediaNode(node))
     || (node.parentId && (isCanvasGroup(node) || !groups.has(node.parentId))) || 'exposed' in node.data)
     || edges.some(edge => !isCanvasWire(edge));
 }
@@ -69,15 +69,19 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
   const groupIds = new Set(groups.map(group => group.id));
   if (!hasLegacyImageGraph(nodes, edges)) {
     const blocks = nodes.filter(node => !isCanvasGroup(node));
-    const ids = new Set(blocks.map(node => node.id));
-    return { nodes: [...groups, ...blocks.map(anchorCanvasImage)], edges: edges.filter(edge => ids.has(edge.source) && ids.has(edge.target)) };
+    const byId = new Map(blocks.filter(node => node.type !== 'audio').map(node => [node.id, node]));
+    return { nodes: [...groups, ...blocks.map(anchorCanvasImage)], edges: edges.filter(edge => {
+      const source = byId.get(edge.source), target = byId.get(edge.target);
+      return source && target && (source.type !== 'video' && target.type !== 'video' || isVideoInputWire(edge, source, target));
+    }) };
   }
   const legacy = migrateImageModelGraph(nodes, edges);
   const graph = migrateFileAnnotations(legacy.nodes, legacy.edges);
   const sources = new Map(graph.nodes.map(node => [node.id, node]));
   const copiedPrompts = new Set<string>();
-  const converted = new Map<string, CanvasImage | CanvasText>();
-  for (const node of graph.nodes.filter(isCanvasTextNode)) {
+  const converted = new Map<string, CanvasImage | CanvasText | CanvasMediaNode>();
+  for (const node of graph.nodes) {
+    if (!isCanvasTextNode(node) && !isCanvasMediaNode(node)) continue;
     const flattened = node.parentId && !groupIds.has(node.parentId);
     converted.set(node.id, anchorCanvasImage(flattened
       ? { ...node, parentId: undefined, origin: undefined, position: positionOnCanvas(node, sources) }
@@ -127,7 +131,7 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
     const source = sources.get(edge.source);
     const target = sources.get(edge.target);
     if (source && target && converted.has(source.id) && converted.has(target.id)
-      && (isCanvasTextNode(target) && isCanvasImageNode(source) && isImageWire(edge)
+      && (isVideoInputWire(edge, source, target) || isCanvasTextNode(target) && isCanvasImageNode(source) && isImageWire(edge)
         || isCanvasTextNode(source) && edge.sourceHandle === 'text'
           && (isCanvasTextNode(target) && edge.targetHandle === 'text' || isCanvasImageNode(target) && !isImportedCanvasImage(target) && edge.targetHandle === 'prompt'))) {
       if (!wires.some(item => item.target === edge.target && (item.source === edge.source || item.targetHandle === edge.targetHandle)) && !createsImageCycle(edge, wires)) wires.push(edge);

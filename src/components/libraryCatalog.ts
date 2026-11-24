@@ -1,11 +1,20 @@
+import { defaultVideoComposer } from '../nodes/videoComposer.ts';
 import { sunburstPreset } from './imageNodePresets.ts';
-import { anchorCanvasImage } from '../nodes/canvasImageGeometry.ts';
-import type { SunburstNode, CanvasText } from '../nodes/types';
+import { anchorCanvasImage, canvasImageSize } from '../nodes/canvasImageGeometry.ts';
+import type { SunburstNode, CanvasText, CanvasMediaNode } from '../nodes/types';
 
 export function createLibraryNode(id: 'image', position: { x: number; y: number }): SunburstNode;
 export function createLibraryNode(id: 'text', position: { x: number; y: number }): CanvasText;
-export function createLibraryNode(id: string, position: { x: number; y: number }): SunburstNode | CanvasText | undefined;
-export function createLibraryNode(id: string, position: { x: number; y: number }): SunburstNode | CanvasText | undefined {
+export function createLibraryNode(id: 'video' | 'audio', position: { x: number; y: number }): CanvasMediaNode;
+export function createLibraryNode(id: string, position: { x: number; y: number }): SunburstNode | CanvasText | CanvasMediaNode | undefined;
+export function createLibraryNode(id: string, position: { x: number; y: number }): SunburstNode | CanvasText | CanvasMediaNode | undefined {
+  if (id === 'video' || id === 'audio') {
+    const base = { id: crypto.randomUUID(), position, selected: true };
+    if (id === 'video') return { ...base, type: id, origin: [.5, 0],
+      position: { x: position.x + canvasImageSize(defaultVideoComposer.ratio).width / 2, y: position.y },
+      data: { label: 'Video', videoComposer: { ...defaultVideoComposer } } };
+    return anchorCanvasImage<CanvasMediaNode>({ ...base, type: id, data: { label: 'Audio' } });
+  }
   if (id === 'text') return anchorCanvasImage<CanvasText>({ id: crypto.randomUUID(), type: 'text', position, selected: true,
     data: { text: '', label: 'Text', textComposer: { prompt: '', format: 'txt', quantity: 1, reasoningEffort: 'medium', webSearch: false,
       selection: { modelIds: ['gpt-6.2-sol'], autoSelect: false, multiple: false } } } });

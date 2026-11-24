@@ -2,6 +2,14 @@ import { useLayoutEffect, type ReactNode, type RefObject } from 'react';
 import { nodePreviewDescription, supportsNodePreview, type AddNodeType } from './useAddNodePreview';
 
 const nodeScreenshots = {
+  video: {
+    src: new URL('./assets/video-preview.png', import.meta.url).href,
+    alt: '主画布上的 Video 生成结果、编辑框及播放时间轴',
+  },
+  audio: {
+    src: new URL('./assets/audio-preview.png', import.meta.url).href,
+    alt: '主画布中的 Audio 占位节点',
+  },
   image: {
     src: new URL('./assets/image-preview.jpg', import.meta.url).href,
     alt: '主画布中的 Image 节点，展示市集照片结果',

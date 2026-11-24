@@ -1,3 +1,4 @@
+import { ImportedMediaToolbar } from './ImportedMediaToolbar';
 import { NodeToolbarTooltip, NodeToolbarTooltipScope } from '../NodeToolbarTooltip';
 import { NodeColorTagButton } from '../NodeColorTagButton';
 import { ImagePromptAspectRatioMenu } from './ImagePromptAspectRatioMenu';
@@ -107,33 +108,10 @@ export function ImagePromptToolbar({
     {menuOpen && !locked && <ImagePromptModelMenu models={inpaintOnly ? inpaintModels : imagePromptModels}
       singleSelection={inpaintOnly} id={menuId} anchor={trigger} selection={selection} onChange={setSelection}
       pinned={pinned} onPinnedChange={setPinned} onClose={closeMenu} />}</>;
-  if (onReplaceImage) return (
-    <NodeToolbarTooltipScope><div className={`image-node-toolbar ${className}`} role="toolbar" aria-label={textModelPicker ? 'Text node tools' : 'Image node tools'} onKeyDown={stopToolbarNavigation}>
-      {inpaintOnly && <>{modelPicker}<span className="image-node-separator" /></>}
-      {imageTools}
-      <span className="image-node-separator" />
-      <NodeToolbarTooltip label="替换图片"><button type="button" aria-label="替换图片" disabled={locked || replaceDisabled} onClick={onReplaceImage}>
-        <ImagePromptIcon name="replace-image" />
-      </button></NodeToolbarTooltip>
-      <NodeToolbarTooltip label="下载原图"><button type="button" aria-label="下载原图" className="image-node-download" disabled={downloadDisabled} onClick={onDownload}>
-        <ImagePromptIcon name="download" />
-      </button></NodeToolbarTooltip>
-      <NodeToolbarTooltip label="查看大图"><button type="button" aria-label="查看大图" disabled={!onPreviewImage} onClick={onPreviewImage}>
-        <ImagePromptIcon name="expand-preview" />
-      </button></NodeToolbarTooltip>
-      <span className="image-node-separator" />
-      <NodeColorTagButton />
-      <NodeToolbarTooltip label="添加到素材库"><button type="button" aria-label="添加到素材库" disabled>
-        <ImagePromptIcon name="folder" />
-      </button></NodeToolbarTooltip>
-      <NodeToolbarTooltip label="发送图片"><button type="button" aria-label="发送图片" disabled>
-        <ImagePromptIcon name="send-image" />
-      </button></NodeToolbarTooltip>
-      <NodeToolbarTooltip label="评论"><button type="button" aria-label="评论" disabled>
-        <ImagePromptIcon name="comment" />
-      </button></NodeToolbarTooltip>
-    </div></NodeToolbarTooltipScope>
-  );
+  if (onReplaceImage) return <ImportedMediaToolbar kind="image" className={className}
+    tools={<>{inpaintOnly && <>{modelPicker}<span className="image-node-separator" /></>}{imageTools}</>}
+    onReplace={onReplaceImage} replaceDisabled={locked || replaceDisabled} onPreview={onPreviewImage}
+    onDownload={downloadDisabled ? undefined : onDownload} />;
   return (
     <NodeToolbarTooltipScope><div className={`image-node-toolbar ${className}`} role="toolbar" aria-label={textModelPicker ? 'Text node tools' : 'Image node tools'} onKeyDown={stopToolbarNavigation}>
       {textModelPicker ?? <>{modelPicker}

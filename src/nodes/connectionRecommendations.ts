@@ -1,6 +1,7 @@
 import type { Connection, XYPosition } from '@xyflow/react';
 import type { AppNode } from './types';
-import { isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isNodeLocked } from './types.ts';
+import { videoInputHandles } from './videoComposer.ts';
+import { isCanvasVideo, isVideoComposerNode, isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isNodeLocked } from './types.ts';
 import { isImageInputHandle } from './connectionRules.ts';
 import { selectedImageResult } from './annotationGraph.ts';
 import { canvasImageBaseSize, canvasImageSize } from './canvasImageGeometry.ts';
@@ -29,21 +30,28 @@ export function choiceConnection(pending: PendingConnection, choice: ConnectionC
 
 export function connectionChoices(pending: PendingConnection, nodes: AppNode[]): ConnectionChoice[] {
   const node = nodes.find(item => item.id === pending.nodeId);
-  if (!node || (!isCanvasImageNode(node) && !isCanvasTextNode(node)) || isNodeLocked(node)) return [];
-  if (pending.direction === 'target' && isCanvasImageNode(node) && node.data.inpaint) return [];
+  if (!node || (!isCanvasImageNode(node) && !isCanvasTextNode(node) && !isCanvasVideo(node)) || isNodeLocked(node)) return [];
+  if (pending.direction === 'target' && (isCanvasImageNode(node) && node.data.inpaint || isCanvasVideo(node) && !isVideoComposerNode(node))) return [];
+  // The new node is anchored by its top center, like Image, with three inputs spaced 40 units apart.
+  const videoWidth = canvasImageSize('16:9').width;
+  const videoTarget = (handleId: string, portY: number) => ({ id: `video:${handleId}`, itemId: 'video', handleId, portX: -24, portY });
+  if (isCanvasVideo(node) && pending.direction === 'source' && pending.handleId === 'video') return [videoTarget('video-0', 232)];
+  if (isVideoComposerNode(node) && pending.direction === 'target' && videoInputHandles.includes(pending.handleId ?? '')) {
+    return [{ id: 'video:output', itemId: 'video', handleId: 'video', portX: videoWidth + 28, portY: 192 }];
+  }
   if (isCanvasTextNode(node) && pending.direction === 'source' && pending.handleId === 'text') {
     return [{ id: 'image:prompt', itemId: 'image', handleId: 'prompt', portX: -24, portY: 192 },
-      { id: 'text:text', itemId: 'text', handleId: 'text', portX: -24, portY: 192 }];
+      { id: 'text:text', itemId: 'text', handleId: 'text', portX: -24, portY: 192 }, videoTarget('prompt', 152)];
   }
   if (pending.direction === 'target' && (isCanvasTextNode(node) && pending.handleId === 'text'
-    || isCanvasImageNode(node) && !isImportedCanvasImage(node) && pending.handleId === 'prompt')) {
+    || (isVideoComposerNode(node) || isCanvasImageNode(node) && !isImportedCanvasImage(node)) && pending.handleId === 'prompt')) {
     return [{ id: 'text:text-output', itemId: 'text', handleId: 'text', portX: 412, portY: 192 }];
   }
   if (isCanvasImageNode(node) && pending.direction === 'source' && pending.handleId === 'result') {
     const { width, height } = canvasImageSize('auto', undefined, selectedImageResult(node));
     return [{ id: 'image:image-0', itemId: 'image', handleId: 'image-0',
       portX: -24 - (width - canvasImageBaseSize) / 2, portY: height / 2 + 32 },
-      { id: 'text:image-0', itemId: 'text', handleId: 'image-0', portX: -24, portY: 224 }];
+      { id: 'text:image-0', itemId: 'text', handleId: 'image-0', portX: -24, portY: 224 }, videoTarget('image-0', 192)];
   }
   if (pending.direction === 'target' && !isImportedCanvasImage(node) && isImageInputHandle(pending.handleId)) {
     return [{ id: 'image:result', itemId: 'image', handleId: 'result', portX: 412, portY: 192 }];

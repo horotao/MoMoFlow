@@ -25,19 +25,19 @@ async function run() {
     pane.dispatchEvent(new MouseEvent('mousedown', { ...options, buttons: 2 }));
     pane.dispatchEvent(new MouseEvent('mouseup', options));
   };
-  for (const [type, open] of [['image', () => dock.click()], ['text', openContextMenu]] as const) {
+  for (const [type, open] of [['image', () => dock.click()], ['text', openContextMenu], ['video', () => dock.click()], ['audio', openContextMenu]] as const) {
     open();
     const menu = await element('#canvas-node-menu');
     const rows = menu.querySelectorAll<HTMLElement>('[data-type]');
-    if (rows.length !== 2 || !menu.querySelector('[data-type="image"]') || !menu.querySelector('[data-type="text"]')) {
-      throw new Error('Expected the Image and Text menu entries');
+    if (Array.from(rows, row => row.dataset.type).join(',') !== 'image,text,video,audio') {
+      throw new Error('Expected the Image, Text, Video and Audio menu entries');
     }
     menu.querySelector<HTMLButtonElement>(`[data-type="${type}"] [role=menuitem]`)!.click();
-    await element(`.react-flow__node-${type === 'image' ? 'sunburst' : 'text'}`);
+    await element(`.react-flow__node-${type === 'image' ? 'sunburst' : type}`);
     await new Promise(requestAnimationFrame);
   }
-  if (document.querySelectorAll('.canvas-image-node').length !== 2) throw new Error('Node creation failed');
+  if (document.querySelectorAll('.react-flow__node').length !== 4) throw new Error('Node creation failed');
   result.dataset.result = 'passed';
-  result.textContent = 'PASS · 左侧和右键入口均包含 Image 和 Text，可分别创建节点';
+  result.textContent = 'PASS · 左侧和右键入口均包含 四个选项，均可创建对应节点';
 }
 void run().catch(error => { result.dataset.result = 'failed'; result.textContent = String(error); });

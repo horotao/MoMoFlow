@@ -25,7 +25,7 @@ export type CanvasText = TextNode & { data: { textComposer: TextComposerData } }
 export const isCanvasTextNode = (node: AppNode): node is CanvasText => node.type === 'text' && 'textComposer' in node.data && Boolean(node.data.textComposer);
 export type FileAsset = {
   id: string; name: string; url: string; kind: 'image' | 'video' | 'audio' | '3d'; size?: number; width?: number; height?: number;
-  mimeType?: string; createdAt?: number;
+  mimeType?: string; duration?: number; createdAt?: number;
   // Preserve gray-mask semantics through pass-through nodes and saved snapshots.
   maskMode?: 'luminance';
   contentHash?: string; generation?: GenerationRecord;
@@ -60,9 +60,21 @@ export const isImageGeneratorNode = (node: AppNode | undefined): node is ImageGe
 export type InteractiveEditNode = Node<InteractiveEditData, 'interactive-edit'>;
 export const isInteractiveEditNode = (node: AppNode | undefined): node is InteractiveEditNode => node?.type === 'interactive-edit';
 
+export type VideoModelId = 'seedance' | 'kling' | 'minimax';
+export interface VideoComposer {
+  prompt: string; mentions?: PromptMention[];
+  model: VideoModelId; ratio: string; seconds: number;
+  selection?: { modelIds: VideoModelId[]; autoSelect: boolean; multiple: boolean };
+}
+export type CanvasVideo = Node<{ videoComposer?: VideoComposer; label: string; locked?: boolean; colorTags?: ColorTag[]; asset?: FileAsset }, 'video'>;
+export const isCanvasVideo = (node?: AppNode): node is CanvasVideo => node?.type === 'video';
+export const isVideoComposerNode = (node?: AppNode): node is CanvasVideo => isCanvasVideo(node) && Boolean(node.data.videoComposer || !node.data.asset);
+export type CanvasMediaNode = CanvasVideo | Node<{ label: string; locked?: boolean }, 'audio'>;
+export const isCanvasMediaNode = (node: AppNode): node is CanvasMediaNode => node.type === 'video' || node.type === 'audio';
+
 export type CanvasGroup = Node<{ label: string; color?: string; locked?: boolean }, 'canvas-group'>;
 export const isCanvasGroup = (node: AppNode | undefined): node is CanvasGroup => node?.type === 'canvas-group';
 
-export type AppNode = ImageGeneratorNode | TextNode | FileNode | InteractiveEditNode | CanvasGroup | BuiltInNode;
+export type AppNode = ImageGeneratorNode | TextNode | FileNode | InteractiveEditNode | CanvasGroup | CanvasMediaNode | BuiltInNode;
 
 export const isNodeLocked = (node: AppNode | undefined): boolean => Boolean(node && 'locked' in node.data && node.data.locked);

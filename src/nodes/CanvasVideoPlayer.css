@@ -1,0 +1,95 @@
+.canvas-imported-video.image-node .image-node-card::after { box-shadow: none; }
+.canvas-imported-video .image-node-toolbar button:disabled { opacity: 1; }
+.canvas-imported-video.is-locked .image-node-toolbar button:disabled { opacity: .5; }
+.canvas-imported-video[data-toolbar-hovered=true] .image-node-heading { color: #eeeeec; }
+.canvas-video-player { position: relative; width: 100%; height: 100%; background: #000; color: #eeeeec; }
+.canvas-video-player video { display: block; width: 100%; height: 100%; object-fit: contain; cursor: pointer; }
+.canvas-video-player .canvas-video-center {
+  position: absolute; left: 50%; top: 50%; translate: -50% -50%;
+  display: grid; place-items: center; width: 64px; height: 64px;
+  border: 1px solid #fafaf223; border-radius: 50%; background: #0000004d;
+  backdrop-filter: blur(16px); box-shadow: 0 2px 6px #0004;
+}
+.canvas-video-controls {
+  position: absolute; inset: auto 8px 8px; overflow: hidden;
+  border: 1px solid #fafaf223; border-radius: 16px; background: #0000004d;
+  box-shadow: 0 4px 6px -1px #0005, 0 2px 4px -2px #0005;
+  opacity: 0; visibility: hidden; transition: opacity 150ms ease, visibility 150ms;
+}
+.canvas-imported-video:is([data-toolbar-hovered=true], .is-selected, :focus-within) .canvas-video-controls,
+.react-flow__node-video:focus-visible .canvas-video-controls,
+.canvas-video-player:fullscreen .canvas-video-controls { opacity: 1; visibility: visible; }
+.canvas-video-controls-body {
+  display: flex; align-items: center; min-height: 38px; padding: 4px;
+  opacity: .5; background: #0000004d; color: #b5b3ad;
+}
+.canvas-video-controls:is(:hover, :focus-within) { backdrop-filter: blur(24px); }
+.canvas-video-controls:is(:hover, :focus-within) .canvas-video-controls-body { opacity: 1; }
+.canvas-video-controls button {
+  display: grid; place-items: center; flex: none; width: 30px; height: 30px;
+  padding: 8px; border: 0; border-radius: 12px; color: inherit; background: transparent; cursor: pointer;
+}
+.canvas-video-controls button:hover { background: #fafaf223; }
+.canvas-video-controls button svg { width: 14px; height: 14px; }
+.canvas-video-player :is(button,input):focus-visible { outline: 1px solid #eeeeec; outline-offset: -1px; }
+.canvas-video-volume {
+  display: flex; flex: none; align-items: center; border-radius: 12px;
+}
+.canvas-video-volume-slider {
+  position: relative; display: flex; align-items: center; overflow: hidden;
+  width: 0; height: 24px; border-radius: 8px;
+}
+.canvas-video-volume:is(:hover, :active, :has(:focus-visible)) {
+  background: #fafaf223;
+}
+.canvas-video-volume:is(:hover, :active, :has(:focus-visible)) .canvas-video-volume-slider {
+  width: 60px; margin-inline: 8px 16px;
+}
+.canvas-video-volume-slider .canvas-video-track { inset-inline: 0; }
+.canvas-video-volume-slider input[type="range"]::-webkit-slider-thumb { cursor: grab; }
+.canvas-video-volume-slider input[type="range"]::-moz-range-thumb { cursor: grab; box-sizing: border-box; }
+.canvas-video-volume-slider input[type="range"]:active::-webkit-slider-thumb { cursor: grabbing; }
+.canvas-video-volume-slider input[type="range"]:active::-moz-range-thumb { cursor: grabbing; }
+.canvas-video-clock { margin: 0 8px; font: 500 12px/15px GeistSans, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.canvas-video-scrubber { position: relative; display: flex; align-items: center; flex: 1; min-width: 0; height: 24px; }
+.canvas-video-track { position: absolute; inset-inline: 5px; height: 2px; overflow: hidden; border-radius: 2px; background: #fafaf223; }
+.canvas-video-track span { display: block; height: 100%; width: 100%; transform-origin: left; background: #eeeeec; }
+.canvas-video-controls input[type="range"] { position: relative; appearance: none; width: 100%; height: 24px; margin: 0; padding: 0; background: transparent; cursor: pointer; touch-action: none; }
+.canvas-video-volume .canvas-video-volume-slider input[type="range"] { cursor: default; }
+.canvas-video-controls input[type="range"]::-webkit-slider-runnable-track { height: 2px; background: transparent; }
+.canvas-video-controls input[type="range"]::-webkit-slider-thumb { appearance: none; margin-top: -4px; width: 10px; height: 10px; border: 1px solid #fafaf223; border-radius: 50%; background: #eeeeec; }
+.canvas-video-controls input[type="range"]::-moz-range-track { height: 2px; background: transparent; }
+.canvas-video-controls input[type="range"]::-moz-range-thumb { width: 10px; height: 10px; border: 1px solid #fafaf223; border-radius: 50%; background: #eeeeec; }
+.canvas-video-error { position: absolute; top: 50%; inset-inline: 8px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { .canvas-video-controls { transition: none; } }
+
+.video-toolbar-duration { min-width: 24px; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; }
+.canvas-generated-video.has-text-input .image-node-inputs { top: calc(50% - 56px); }
+.canvas-generated-video[data-video-port-near] .image-node-inputs { opacity: 1; visibility: visible; transform: none; }
+.canvas-generated-video.has-result.is-selected .image-node-surface { opacity: 1; visibility: visible; transform: none; }
+.canvas-generated-video .image-node-generate-group:has(.image-node-generate:enabled) { opacity: 1; }
+.canvas-generated-video .image-node-reference-media video { width: 100%; height: 100%; object-fit: cover; }
+.video-composer-playback { flex: 1; min-width: 0; border-inline: 1px solid var(--node-fill); }
+.video-composer-playback .canvas-video-controls {
+  position: static; border: 0; border-radius: 0; opacity: 1; visibility: inherit;
+  background: transparent; box-shadow: none; backdrop-filter: none;
+}
+.video-composer-playback .canvas-video-controls-body { min-height: 30px; padding: 0 8px; background: transparent; opacity: 1; }
+.canvas-generated-video .image-node-actions .canvas-video-controls button {
+  width: 26px; height: 30px; padding: 6px; border-radius: 10px;
+}
+.canvas-generated-video .image-node-actions .canvas-video-controls button:hover { background: #fafaf223; }
+.canvas-generated-video .canvas-video-volume button { min-width: 30px; }
+.video-composer-playback .canvas-video-clock { margin-inline: 4px 8px; }
+.video-composer-playback .canvas-video-scrubber { min-width: 12px; }
+.image-information footer .video-inspector-import { width: auto; padding: 0 8px; color: #b5b3ad; }
+.canvas-generated-video.has-compact-composer .image-node-surface-body { container-type: inline-size; }
+/* Leave room for the full volume control and the seek thumb on square and portrait cards. */
+@container (max-width: 400px) {
+  .canvas-generated-video .image-node-actions,
+  .canvas-generated-video .image-node-actions-right { gap: 0; }
+  .canvas-generated-video .image-node-actions > button,
+  .canvas-generated-video .image-node-actions-right > button { width: 24px; }
+  .video-composer-playback .canvas-video-controls-body { padding-inline: 2px; }
+  .video-composer-playback .canvas-video-clock { margin-inline: 3px; }
+}

@@ -12,7 +12,7 @@ type DockId = 'add' | 'files' | CanvasTool | 'search' | 'more';
 const dockItems: { id: DockId; label: string; asset: string; shortcut?: string; divider?: boolean }[] = [
   { id: 'add', label: '添加节点', asset: 'add01' },
   { id: 'files', label: '文件', asset: 'folder01' },
-  { id: 'select', label: '选择工具', asset: 'cursor02', shortcut: 'V', divider: true },
+  { id: 'select', label: '选择工具', asset: 'cursor02', shortcut: 'S', divider: true },
   { id: 'hand', label: '抓手工具', asset: 'hand', shortcut: 'H' },
   { id: 'search', label: '搜索', asset: 'search-dock' },
   { id: 'more', label: '更多', asset: 'more-horizontal', divider: true },

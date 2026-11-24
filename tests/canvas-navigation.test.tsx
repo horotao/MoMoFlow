@@ -86,7 +86,7 @@ function Preview() {
       onKeyDown={event => {
         if (event.altKey || event.ctrlKey || event.metaKey || event.nativeEvent.isComposing
           || (event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return;
-        if (event.key.toLowerCase() === 'v') setTool('select');
+        if (event.key.toLowerCase() === 's') setTool('select');
         if (event.key.toLowerCase() === 'h') setTool('hand');
       }}
       onMoveStart={event => { if (event) pendingZoom.current = null; }}

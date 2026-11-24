@@ -2,7 +2,7 @@ import { takeMentionWireAnimation } from './mentionWireAnimation';
 import { useId, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 import { useStore, useStoreApi, type EdgeProps } from '@xyflow/react';
 import { useModelTaskStore } from '../components/useModelTasks';
-import { useTextGenerationRunning } from '../nodes/visibleCanvasText';
+import { useNodeGenerationRunning } from '../nodes/visibleCanvasText';
 import { portCenter, workflowPort } from './workflowPort';
 import { wireCurve, wirePacket, wirePacketCenter } from './wireGeometry';
 import './workflowWire.css';
@@ -12,8 +12,8 @@ export function WorkflowEdge({ id, source, target, sourceHandleId, targetHandleI
   const tasks = useModelTaskStore();
   const imageRunning = useSyncExternalStore(tasks.subscribe,
     () => tasks.getSnapshot().some(task => task.nodeId === target && task.state === 'Running'));
-  const textRunning = useTextGenerationRunning(target);
-  const running = imageRunning || textRunning;
+  const nodeRunning = useNodeGenerationRunning(target);
+  const running = imageRunning || nodeRunning;
   const connectedNodeSelected = useStore(state => Boolean(
     state.nodeLookup.get(source)?.selected || state.nodeLookup.get(target)?.selected,
   ));

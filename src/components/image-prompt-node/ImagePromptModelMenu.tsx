@@ -13,6 +13,7 @@ export function ImagePromptModelBrand({ brand }: { brand: string }) {
 
 const modelBrandSources: Record<string, string> = {
   deepseek: new URL('./assets/deepseek.svg', import.meta.url).href,
+  minimax: new URL('./assets/minimax.svg', import.meta.url).href,
   bytedance: new URL('./assets/bytedance.svg', import.meta.url).href,
   google: new URL('./assets/google.svg', import.meta.url).href,
   grok: new URL('./assets/grok.svg', import.meta.url).href,
@@ -100,10 +101,10 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
     if (!multiple) onClose(true);
   }
 
-  function section(label: string, description: string, models: typeof filtered) {
+  function section(heading: string, description: string, models: typeof filtered) {
     if (!models.length) return null;
-    return <section className="image-model-section" aria-label={label}>
-      <div className="image-model-section-heading">{label}<ImagePromptInfoTip label={label}>{description}</ImagePromptInfoTip></div>
+    return <section className="image-model-section" aria-label={heading}>
+      <div className="image-model-section-heading">{heading}<ImagePromptInfoTip label={heading}>{description}</ImagePromptInfoTip></div>
       {models.map(model => <div className="image-model-row" key={model.id}>
         <button type="button" className="image-model-option" data-model-option aria-pressed={!selection.autoSelect && selection.modelIds.includes(model.id)}
           onClick={() => select(model.id)} title={model.description}>
@@ -113,8 +114,8 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
               {model.isNew && <span className="image-model-new">新</span>}
               {model.time && <span className="image-model-time" title="预计生成时间">{model.time}</span>}
               {!model.time && model.channel && <span className="image-model-time">{model.channel}</span>}
-              <span className="image-model-capability" title={label === '选择文本模型' ? '文本输入' : '文生图'}><ImagePromptIcon name="model-text" /></span>
-              <span className="image-model-capability" title={label === '选择文本模型' ? '图片输入' : '图生图'}><ImagePromptIcon name="model-image" /></span>
+              <span className="image-model-capability" title={label === '选择图像模型' ? '文生图' : '文本输入'}><ImagePromptIcon name="model-text" /></span>
+              <span className="image-model-capability" title={label === '选择图像模型' ? '图生图' : '图片输入'}><ImagePromptIcon name="model-image" /></span>
             </span>
             <span className="image-model-description">{model.description}</span>
           </span>

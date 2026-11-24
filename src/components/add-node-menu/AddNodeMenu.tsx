@@ -1,10 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { AddNodePreview } from './AddNodePreview';
-import { nodePreviewDescription, supportsNodePreview, useAddNodePreview, type AddNodeType } from './useAddNodePreview';
+import { addNodeEntries, nodePreviewDescription, supportsNodePreview, useAddNodePreview, type AddNodeType } from './useAddNodePreview';
 import './add-node-menu.css';
 
-const imageEntry = { id: 'image', type: 'image', label: '图片', description: '生成和编辑图片', key: 'I' } as const;
 export interface AddNodeRequest { type: AddNodeType; quantity: number }
 export interface AddNodeMenuProps {
   /** Viewport coordinates, unaffected by canvas zoom. Mount only while open. */
@@ -20,6 +19,8 @@ export interface AddNodeMenuProps {
 const icons = {
   text: new URL('../image-prompt-node/assets/text.svg', import.meta.url).href,
   image: new URL('./assets/image.svg', import.meta.url).href,
+  video: new URL('./assets/video.svg', import.meta.url).href,
+  audio: new URL('./assets/audio.svg', import.meta.url).href,
   search: new URL('./assets/search.svg', import.meta.url).href,
   close: new URL('./assets/close.svg', import.meta.url).href,
   minus: new URL('./assets/minus.svg', import.meta.url).href,
@@ -40,7 +41,7 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
   const [query, setQuery] = useState('');
   const [counts, setCounts] = useState<Partial<Record<AddNodeType, string>>>({});
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
-  const rows = [imageEntry, { id: 'text', type: 'text', label: '文本', description: '生成文本与 Markdown', key: 'T' } as const]
+  const rows = addNodeEntries
     .filter(entry => !allowedTypes || allowedTypes.includes(entry.type)).map(entry => ({ ...entry, quantity: allowQuantity }));
   const filtered = rows.filter(entry => `${entry.type} ${entry.label} ${entry.description}`.toLowerCase().includes(query.trim().toLowerCase()));
   const previewEntry = preview && filtered.find(entry => entry.type === preview.type);
@@ -117,10 +118,10 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
       <button type="button" aria-label="清空搜索" className="flora-add-node-clear" style={{ visibility: query ? 'visible' : 'hidden' }} onClick={() => { changeQuery(''); search.current?.focus(); }}><Icon name="close" /></button>
     </div>
     <div className="flora-add-node-list" role="menu" aria-label="节点和操作" onScroll={reset}>
-      {groups.map(group => <div role="group" className="flora-add-node-group" key={group[0].id}>
+      {groups.map(group => <div role="group" className="flora-add-node-group" key={group[0].type}>
         {group.map(entry => {
           const quantity = normalizeQuantity(counts[entry.type] ?? '1');
-          return <div className="flora-add-node-row" data-type={entry.type} key={entry.id}
+          return <div className="flora-add-node-row" data-type={entry.type} key={entry.type}
             onPointerEnter={event => {
               if (!event.buttons && supportsNodePreview(event.pointerType)) enter(entry.type, event.currentTarget);
             }}
@@ -134,7 +135,7 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
               if (event.target instanceof Element && !event.target.closest('button, .flora-add-node-quantity')) select(entry);
             }}>
             <button type="button" role="menuitem" className="flora-add-node-item" aria-label={`${entry.label} ${entry.description}`}
-              aria-description={nodePreviewDescription[entry.type]} onClick={() => select(entry)}>
+              aria-keyshortcuts={entry.key} aria-description={nodePreviewDescription[entry.type]} onClick={() => select(entry)}>
               <span className="flora-add-node-badge"><Icon name={entry.type} /></span>
               <span className="flora-add-node-copy"><span className="flora-add-node-title">{entry.label}</span><span className="flora-add-node-description" title={entry.description}>{entry.description}</span></span>
             </button>

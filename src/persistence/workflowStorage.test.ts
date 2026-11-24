@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { mapAssets, workflowSnapshot, WorkflowStorage, type Workflow } from './workflowStorage.ts';
+import { createImportedVideo } from '../nodes/importCanvasVideo.ts';
+import { nodeAssetUrls } from '../nodes/assetResources.ts';
+import { isCanvasVideo } from '../nodes/types.ts';
+import { createLibraryNode } from '../components/libraryCatalog.ts';
 import { prepareModel } from '../nodes/executionGraph.ts';
 import { isCanvasGroup, isCanvasImageNode } from '../nodes/types.ts';
 import type { CanvasGroup, FileAsset, FileNode, SunburstNode, TextNode } from '../nodes/types';
@@ -40,6 +44,32 @@ test('current group frames, relative anchors and member wires survive a mixed wo
     [group.id, group.id, first.position, second.position]);
   assert.deepEqual(saved.edges.map(edge => edge.id), [wire.id]);
   assert.deepEqual(workflowSnapshot(saved), saved);
+});
+
+test('media placeholders keep their anchors in current and mixed legacy workflows', () => {
+  const nodes = [createLibraryNode('video', { x: 23, y: 47 }), createLibraryNode('audio', { x: -107, y: 68 })];
+  for (const extra of [[], [file]]) {
+    const saved = workflowSnapshot({ nodes: [...nodes, ...extra], edges: [], viewport: { x: 0, y: 0, zoom: 1 }, colorMode: 'dark' });
+    for (const expected of nodes) {
+      const restored = saved.nodes.find(node => node.id === expected.id);
+      assert.equal(restored?.type, expected.type);
+      assert.deepEqual(restored.position, expected.position);
+      assert.deepEqual(restored.origin, expected.origin);
+    }
+    assert.deepEqual(workflowSnapshot(saved), saved);
+  }
+});
+
+test('imported MP4 bytes stay referenced through snapshot migration and URL restoration', () => {
+  const clip = { ...asset, name: 'clip.mp4', kind: 'video' as const, mimeType: 'video/mp4', width: 1280, height: 720 };
+  const video = createImportedVideo(clip, { x: 12, y: -70 });
+  const saved = workflowSnapshot({ nodes: [video, file], edges: [], viewport: { x: 0, y: 0, zoom: 1 }, colorMode: 'dark' });
+  const [restored] = mapAssets(saved.nodes, value => ({ ...value, url: 'blob:restored' }));
+  assert.ok(isCanvasVideo(restored));
+  assert.equal(restored.data.asset?.name, clip.name);
+  assert.equal(restored.data.asset?.url, 'blob:restored');
+  assert.deepEqual([...nodeAssetUrls([restored])], ['blob:restored']);
+  assert.deepEqual(restored.position, video.position);
 });
 
 test('asset restoration covers legacy uploads, collections and generated results without mutating input', () => {

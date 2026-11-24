@@ -20,7 +20,7 @@ export function useVisibleCanvasText(nodeId: string | null, fallback?: TextGener
 }
 
 /** The whole batch drives incoming wires, even while viewing a completed variant. */
-export function usePublishTextGeneration(nodeId: string, running: boolean) {
+export function usePublishNodeGeneration(nodeId: string, running: boolean) {
   useLayoutEffect(() => {
     if (!running) return;
     generating.add(nodeId); notify();
@@ -28,6 +28,6 @@ export function usePublishTextGeneration(nodeId: string, running: boolean) {
   }, [nodeId, running]);
 }
 
-export function useTextGenerationRunning(nodeId: string) {
+export function useNodeGenerationRunning(nodeId: string) {
   return useSyncExternalStore(subscribe, () => generating.has(nodeId));
 }

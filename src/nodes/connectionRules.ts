@@ -1,5 +1,6 @@
 import type { Connection, Edge } from '@xyflow/react';
-import { isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isNodeLocked, type AppNode } from './types.ts';
+import { videoImageHandles, videoInputHandles } from './videoComposer.ts';
+import { isCanvasVideo, isVideoComposerNode, isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isNodeLocked, type AppNode } from './types.ts';
 
 export const imageInputHandles = Array.from({ length: 16 }, (_, index) => `image-${index}`);
 export const isImageInputHandle = (handle?: string | null) => !!handle && imageInputHandles.includes(handle);
@@ -8,7 +9,7 @@ export function isImageWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandl
   return connection.sourceHandle === 'result' && isImageInputHandle(connection.targetHandle);
 }
 export function isCanvasWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandle'>) {
-  return isImageWire(connection) || connection.sourceHandle === 'text' && (connection.targetHandle === 'text' || connection.targetHandle === 'prompt');
+  return connection.sourceHandle === 'video' && videoInputHandles.includes(connection.targetHandle ?? '') || isImageWire(connection) || connection.sourceHandle === 'text' && (connection.targetHandle === 'text' || connection.targetHandle === 'prompt');
 }
 
 export function withoutReplacedInput(connection: Pick<Edge, 'target' | 'targetHandle'>, edges: Edge[]) {
@@ -28,6 +29,13 @@ export function createsImageCycle(connection: Pick<Edge, 'source' | 'target'>, e
   return false;
 }
 
+export function isVideoInputWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandle'>, source: AppNode, target: AppNode) {
+  if (!isVideoComposerNode(target)) return false;
+  return isCanvasTextNode(source) && connection.sourceHandle === 'text' && connection.targetHandle === 'prompt'
+    || isCanvasImageNode(source) && connection.sourceHandle === 'result' && videoImageHandles.includes(connection.targetHandle ?? '')
+    || isCanvasVideo(source) && connection.sourceHandle === 'video' && videoInputHandles.includes(connection.targetHandle ?? '');
+}
+
 export function canConnect(connection: Connection | Edge, nodes: AppNode[], edges: Edge[]): boolean {
   const source = nodes.find(node => node.id === connection.source);
   const target = nodes.find(node => node.id === connection.target);
@@ -36,7 +44,7 @@ export function canConnect(connection: Connection | Edge, nodes: AppNode[], edge
   const imageWire = isCanvasImageNode(source) && (isCanvasImageNode(target) || isCanvasTextNode(target)) && isImageWire(connection);
   const textWire = isCanvasTextNode(source) && connection.sourceHandle === 'text'
     && (isCanvasTextNode(target) && connection.targetHandle === 'text' || isCanvasImageNode(target) && connection.targetHandle === 'prompt');
-  if (!imageWire && !textWire) return false;
+  if (!imageWire && !textWire && !isVideoInputWire(connection, source, target)) return false;
   if (edges.some(edge => edge.source === source.id && edge.target === target.id)) return false;
   return !createsImageCycle(connection, withoutReplacedInput(connection, edges));
 }

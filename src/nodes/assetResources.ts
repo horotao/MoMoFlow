@@ -1,4 +1,4 @@
-import { isFileNode, isImageGeneratorNode, isInteractiveEditNode } from './types.ts';
+import { isCanvasVideo, isFileNode, isImageGeneratorNode, isInteractiveEditNode } from './types.ts';
 import { imageTaskRequest, type PreviewTask } from './taskQueue.ts';
 import type { AppNode, FileAsset } from './types';
 
@@ -80,6 +80,8 @@ export function nodeAssetUrls(nodes: Iterable<AppNode>): Set<string> {
       const { data } = node;
       if (data.asset) add(data.asset);
       for (const asset of data.assets ?? []) add(asset);
+    } else if (isCanvasVideo(node) && node.data.asset) {
+      add(node.data.asset);
     } else if (isInteractiveEditNode(node)) {
       if (node.data.baseImage) add(node.data.baseImage);
     } else if (isImageGeneratorNode(node)) {

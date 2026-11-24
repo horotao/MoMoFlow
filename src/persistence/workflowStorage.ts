@@ -1,4 +1,4 @@
-import { isFileNode, isImageGeneratorNode, isInteractiveEditNode } from '../nodes/types.ts';
+import { isCanvasVideo, isFileNode, isImageGeneratorNode, isInteractiveEditNode } from '../nodes/types.ts';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources.ts';
 import { hasLegacyImageGraph, migrateLegacyImageGraph } from './legacyImageMigration.ts';
 import type { Edge, Viewport } from '@xyflow/react';
@@ -60,6 +60,7 @@ export function mapAssets(nodes: AppNode[], map: (asset: FileAsset) => FileAsset
       } } as AppNode;
     }
 
+    if (isCanvasVideo(node) && node.data.asset) return { ...node, data: { ...node.data, asset: visit(node.data.asset) } };
     if (isInteractiveEditNode(node)) return { ...node, data: { ...node.data,
       baseImage: node.data.baseImage ? visit(node.data.baseImage) : undefined,
     } };

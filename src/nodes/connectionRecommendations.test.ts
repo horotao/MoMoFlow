@@ -26,7 +26,7 @@ test('empty Image composers wire together and recommend compatible Image or Text
   for (const [origin, direction, handle] of [[first.id, 'source', 'result'], [second.id, 'target', 'image-0']] as const) {
     const start = pending(origin, direction, handle);
     const choices = connectionChoices(start, nodes);
-    assert.deepEqual(choices.map(choice => choice.itemId), direction === 'source' ? ['image', 'text'] : ['image']);
+    assert.deepEqual(choices.map(choice => choice.itemId), direction === 'source' ? ['image', 'text', 'video'] : ['image']);
     assert.deepEqual(choiceConnection(start, choices[0], origin === first.id ? second.id : first.id), link);
   }
   assert.deepEqual(connectionChoices(pending(second.id, 'target', 'prompt'), nodes).map(choice => choice.itemId), ['text']);
@@ -41,5 +41,27 @@ test('quick-created targets align their input with the drop using the source ima
   for (const [width, height, portX, portY] of [[3, 4, -24, 288], [2, 1, -216, 224]]) {
     const [choice] = connectionChoices(start, [size(width, height)]);
     assert.deepEqual([choice.portX, choice.portY], [portX, portY]);
+  }
+});
+
+test('Video enforces three typed inputs, slot limits and compatible forward and reverse recommendations', async () => {
+  const { createLibraryNode } = await import('../components/libraryCatalog.ts');
+  const { migrateLegacyImageGraph } = await import('../persistence/legacyImageMigration.ts');
+  const position = { x: 0, y: 0 };
+  const target = createLibraryNode('video', position);
+  const movie = { ...target, id: 'import', data: { label: 'example.mp4', asset: { id: 'asset', kind: 'video' as const, name: 'example.mp4', url: 'blob:test' } } };
+  const still = createLibraryNode('image', position), prompt = createLibraryNode('text', position);
+  const nodes = [target, movie, still, prompt];
+  const wire = (source: string, sourceHandle: string, targetHandle: string) => ({ id: source, source, sourceHandle, target: target.id, targetHandle });
+  const inputs = [wire(prompt.id, 'text', 'prompt'), wire(still.id, 'result', 'image-8'), wire(movie.id, 'video', 'video-2')];
+  for (const edge of inputs) assert.ok(canConnect(edge, nodes, []));
+  for (const edge of [wire(prompt.id, 'text', 'video-0'), wire(still.id, 'result', 'image-9'), wire(movie.id, 'video', 'video-3'),
+    { ...inputs[2], target: movie.id }, { ...inputs[0], target: movie.id }]) assert.equal(canConnect(edge, nodes, []), false);
+  assert.equal(canConnect(inputs[2], nodes, inputs), false);
+  assert.deepEqual(connectionChoices(pending(movie.id, 'source', 'video'), nodes).map(choice => choice.handleId), ['video-0']);
+  assert.deepEqual(connectionChoices(pending(target.id, 'target', 'video-0'), nodes).map(choice => choice.handleId), ['video']);
+  for (const legacy of [[], [text]]) {
+    const restored = migrateLegacyImageGraph([...nodes, ...legacy], inputs);
+    assert.deepEqual(new Set(restored.edges.map(edge => edge.id)), new Set(inputs.map(edge => edge.id)));
   }
 });
