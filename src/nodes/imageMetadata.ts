@@ -1,6 +1,7 @@
 import type { FileAsset } from './types';
 import { modelInputSignatureVersion } from './generationRecord.ts';
 import { nanoBananaModel, nanoBananaProModel } from './nanoBanana.ts';
+import { klingImageModel, klingImageName } from './klingImage.ts';
 
 const formats: Record<string, string> = { png: 'PNG', jpeg: 'JPEG', jpg: 'JPEG', webp: 'WEBP', gif: 'GIF', svg: 'SVG', 'svg+xml': 'SVG', avif: 'AVIF', bmp: 'BMP', tiff: 'TIFF', tif: 'TIFF' };
 const modelNames: Record<string, string> = {
@@ -10,6 +11,7 @@ const modelNames: Record<string, string> = {
   [nanoBananaModel]: 'Nano Banana 2.1',
   [nanoBananaProModel]: 'Nano Banana Pro',
   'seedream-5-5': 'Seedream 5.5',
+  [klingImageModel]: klingImageName,
 };
 
 export const imageModelName = (model: string): string => modelNames[model] ?? model;

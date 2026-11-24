@@ -1,6 +1,8 @@
 import { useWorkflowExecution } from './useWorkflowExecution';
 import { ExecutionProblem, isModelNode } from '../nodes/executionGraph';
 import { apimartExtMarkupError } from '../nodes/sunburst';
+import { composerModelId } from '../nodes/imageComposerSettings';
+import { klingImageModel } from '../nodes/klingImage';
 import { useCallback, useEffect } from 'react';
 import { flushSync } from 'react-dom';
 import { useReactFlow } from '@xyflow/react';
@@ -109,7 +111,9 @@ export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (promp
         const node = getNodes().find((item) => item.id === task.nodeId);
         if (!node || !isModelNode(node) || node.data.locked) return;
         try {
-          void execution.current?.run([task.nodeId], 1, task.seedreamGroup?.imageId);
+          const count = isCanvasImageNode(node) && composerModelId(node.data) === klingImageModel
+            ? task.klingImageRequest?.count ?? node.data.composer.quantity : 1;
+          void execution.current?.run([task.nodeId], count, task.seedreamGroup?.imageId);
           clearToasts();
         } catch (error) { showToast(executionErrorToast(error, '无法重试任务')); }
       }}

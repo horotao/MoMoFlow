@@ -1,16 +1,18 @@
 import type { SeedreamRequest } from './seedream';
 import type { NanoBananaRequest } from './nanoBanana';
 import type { SunburstRequest, SunburstVariant } from './sunburst';
+import type { KlingImageRequest } from './klingImage';
 import { imageModelName } from './imageMetadata.ts';
 export type TaskState = 'Queued' | 'Running' | 'Done' | 'Cancelled' | 'Failed' | 'TimedOut';
 export type PreviewTask = {
   id: string; batchId: string; nodeId: string; model: string; createdAt: number;
-  imageRequest?: SunburstRequest; nanoBananaRequest?: NanoBananaRequest; seedreamRequest?: SeedreamRequest;
+  imageRequest?: SunburstRequest; nanoBananaRequest?: NanoBananaRequest; seedreamRequest?: SeedreamRequest; klingImageRequest?: KlingImageRequest;
   progress: number; state: TaskState; started: number; error?: string; notice?: string; label?: string;
   imageVariant?: SunburstVariant;
   seedreamGroup?: { imageId: string; index: number; total: number };
 };
 export const isActiveTask = (task: PreviewTask) => task.state === 'Queued' || task.state === 'Running';
+export const imageTaskRequest = (task: PreviewTask) => task.imageRequest ?? task.seedreamRequest ?? task.nanoBananaRequest ?? task.klingImageRequest;
 
 export function modelTaskLabel(task: Pick<PreviewTask, 'model' | 'seedreamGroup' | 'imageVariant'>): string {
   const group = task.seedreamGroup;

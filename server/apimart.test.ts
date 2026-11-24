@@ -34,6 +34,38 @@ test('APIMart uses only the documented Ext parameters for both versions and ever
 });
 
 const standardInput = { ...input, channelModel: 'gpt-image-2.6' };
+
+test('Kling submits normal and series counts using the documented APIMart fields', async () => {
+  const path = '/api/apimart/kling';
+  const reference = 'https://cdn.example/reference.png';
+  const input = { prompt: 'Use @Image1', size: '21:9', resolution: '8K', outputFormat: 'png', images: [reference] };
+  for (const [mode, count, fields] of [
+    ['standard', 9, { n: 9 }],
+    ['series', 4, { sequential_image_generation: 'auto', sequential_image_generation_options: { max_images: 4 } }],
+  ] as const) {
+    const result = await invoke({ ...input, mode, count }, async (url, init) => {
+      assert.equal(url, 'https://api.apimart.ai/v1/images/generations');
+      assert.deepEqual(JSON.parse(String(init?.body)), { model: 'kling-v4-image', prompt: input.prompt,
+        size: input.size, resolution: input.resolution, image_urls: [reference], ...fields });
+      return Response.json({ code: 200, data: [{ task_id: 'task_kling' }] });
+    }, { path });
+    assert.deepEqual(result, { status: 200, body: { taskId: 'task_kling' } });
+  }
+  for (const bad of [{ count: 10 }, { count: '3' }, { mode: 'series', count: 1 }, { mode: 'series', count: 5 },
+    { resolution: '1K' }, { size: '2048x2048' }, { outputFormat: 'jpeg' }, { images: Array(11).fill(reference) }, { prompt: '图'.repeat(21001) }]) {
+    const result = await invoke({ ...input, count: 2, mode: 'standard', ...bad }, async () => assert.fail('Must not call APIMart'), { path });
+    assert.equal(result.status, 400);
+  }
+});
+
+test('APIMart polling returns every Kling output in provider order when requested', async () => {
+  const urls = ['https://cdn.example/kling-1.png', 'https://cdn.example/kling-2.png', 'https://cdn.example/kling-3.png'];
+  const result = await invoke({ taskId: 'task_kling', outputFormat: 'png', allImages: true }, async () => Response.json({
+    data: { status: 'completed', result: { images: [{ url: urls.slice(0, 2) }, { url: urls.slice(2) }] } },
+  }), { path: '/api/apimart/task' });
+  assert.deepEqual(result, { status: 200, body: { status: 'completed', taskId: 'task_kling', imageUrls: urls, format: 'png' } });
+});
+
 test('APIMart standard submits the uploaded overlay as markup_url, including local-key uploads', async () => {
   const imageUrl = 'https://cdn.example/original.png';
   const overlayUrl = 'https://cdn.example/overlay.png';

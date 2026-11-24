@@ -45,6 +45,6 @@ API 设置按模型渠道读取 OpenAI 或 APIMart 的 Key 与 Base URL。本地
 
 ## Image 使用 Text Prompt
 
-Image 的 `prompt` 输入读取 Text 当前选中的已完成结果（含引用 URL），尚未生成时读取手写提示词，完全替代 Image 自己的草稿。连接未提供非空文字时阻止运行；断开后使用保留的本地草稿。GPT Image 2.6、Seedream 5.5、Nano Banana 2.1 和 Nano Banana Pro 共用这条规则。
+Image 的 `prompt` 输入读取 Text 当前选中的已完成结果（含引用 URL），尚未生成时读取手写提示词，完全替代 Image 自己的草稿。连接未提供非空文字时阻止运行；断开后使用保留的本地草稿。所有 Image 生成模型共用这条规则。
 
 运行 Image 只读取 Text 的输出，不运行 Text，也不遍历 Text 的上游图片或文本依赖。Text 锁定仍可提供现有文字；流式生成中仅使用上次已完成结果或手写提示词。Image 自己的参考图仍按既有依赖流程处理。Prompt 连线和本地草稿一起保存，混合旧项目迁移时保留新版 Text 到 Image 的连接。

@@ -17,6 +17,7 @@ import { canConnect } from './connectionRules.ts';
 import { nodeAssetUrls } from './assetResources.ts';
 import { changeComposerSettings } from './imageComposerSettings.ts';
 import { imageModelBranches } from './imageModelBranches.ts';
+import { imageModel } from './imageMetadata.ts';
 
 const file = (id: string): AppNode => ({ id, type: 'file', position: { x: 0, y: 0 }, data: { assets: [{ id, name: id, kind: 'image', url: `blob:${id}` }] } });
 const generator = (id: string): AppNode => ({ id, type: 'sunburst', position: { x: 0, y: 0 }, data: { ...defaultSunburstSettings, imageInputs: 1 } });
@@ -176,6 +177,34 @@ test('multi-model Image validates the prompt before adding branches or submittin
       sourceId: image.id, graph: branches, publish: () => assert.fail('Invalid branches must not be published'),
     } }), /提示词/);
     assert.deepEqual(h.store.getSnapshot(), []);
+  } finally { h.engine.dispose(); }
+});
+
+test('Kling uses one queue task for a series, orders reference mentions and publishes each result', async () => {
+  const image = createLibraryNode('image', { x: 0, y: 0 }) as CanvasImage;
+  const referenceA = createImportedCanvasImage(generatedAsset('first'), { x: 0, y: 0 });
+  const referenceB = createImportedCanvasImage(generatedAsset('second'), { x: 0, y: 0 });
+  const prompt = createLibraryNode('text', { x: 0, y: 0 });
+  prompt.data.textComposer.prompt = 'Paint First with Second.';
+  prompt.data.textComposer.mentions = [{ nodeId: referenceA.id, from: 6, to: 11 }, { nodeId: referenceB.id, from: 17, to: 23 }];
+  image.data = { ...image.data, ...changeComposerSettings(image.data, { quantity: 3, ratio: '2:3', selection: {
+    modelIds: ['kling-v4-image'], autoSelect: false, multiple: false,
+  } }, { mode: 'series', resolution: '8K' }) };
+  const expectedIds = ['kling-first', 'kling-second', 'kling-third'];
+  const h = harness({ nodes: [image, referenceA, referenceB, prompt], edges: [edge(prompt.id, image.id, 'prompt', 'text'),
+    edge(referenceA.id, image.id, 'image-4', 'result'), edge(referenceB.id, image.id, 'image-2', 'result')] },
+  async () => expectedIds.map(generatedAsset));
+  try {
+    const done = h.engine.run([image.id], 3);
+    assert.deepEqual(h.store.getSnapshot().map(modelTaskLabel), ['Kling V4 Image']);
+    assert.equal(await done, true);
+    assert.equal(h.requests.length, 1);
+    assert.deepEqual(h.requests[0].klingImageRequest, { size: '2:3', resolution: '8K', mode: 'series',
+      outputFormat: 'png', count: 3, prompt: 'Paint @Image2 with @Image1.', images: ['blob:second', 'blob:first'] });
+    const node = h.node(image.id) as CanvasImage;
+    assert.deepEqual(node.data.results?.map(asset => asset.id), expectedIds);
+    assert.deepEqual(node.data.results?.map(imageModel), expectedIds.map(() => 'Kling V4 Image'));
+    assert.equal(selectedResult(node)?.id, 'kling-third');
   } finally { h.engine.dispose(); }
 });
 

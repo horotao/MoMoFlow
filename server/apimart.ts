@@ -7,6 +7,7 @@ import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestErro
 import { apimartExtMarkupError, imageFormats, sunburstModelForProvider, validateSunburstImageInputs, validateSunburstMarkup, validateSunburstSettings, validateSunburstVariant } from '../src/nodes/sunburst.ts';
 import { buildNanoBananaRequest } from './nanoBanana.ts';
 import { buildSeedreamRequest } from './seedream.ts';
+import { klingImageMaxReferenceBytes, klingImageModel, validateKlingImageRequest } from '../src/nodes/klingImage.ts';
 
 const maxBody = 64 * 1024 * 1024;
 const taskIdPattern = /^[a-zA-Z0-9_-]{1,200}$/;
@@ -74,6 +75,22 @@ export function buildApimartRequest(value: unknown): GenerationRequest {
   return { images, markup, body };
 }
 
+function buildKlingImageRequest(input: Record<string, unknown>): GenerationRequest {
+  const { size, resolution, mode, prompt, count, images: sources } = validateKlingImageRequest(input);
+  const images: InputImage[] = sources.map((source, index) => {
+    if (!source.startsWith('data:')) return apimartInputUrl(source);
+    const match = /^data:(image\/(png|jpeg|gif));base64,([A-Za-z0-9+/]+={0,2})$/.exec(source);
+    if (!match || match[3].length % 4 !== 0) throw new Error('Kling V4 Image 参考图需为 PNG、JPEG 或 GIF。');
+    const bytes = Buffer.from(match[3], 'base64');
+    if (!bytes.length || bytes.length > klingImageMaxReferenceBytes) throw new Error('Kling V4 Image 参考图须非空且不超过 30 MiB。');
+    return { blob: new Blob([new Uint8Array(bytes)], { type: match[1] }), filename: `reference-${index + 1}.${match[2]}` };
+  });
+  const quantity = mode === 'series'
+    ? { sequential_image_generation: 'auto', sequential_image_generation_options: { max_images: count } }
+    : { n: count };
+  return { images, body: { model: klingImageModel, prompt, size, resolution, ...quantity } };
+}
+
 async function readLimited(response: Response, limit: number): Promise<Buffer> {
   const reader = response.body?.getReader();
   if (!reader) throw new Error('APIMart 未返回有效内容。');
@@ -93,7 +110,7 @@ async function readLimited(response: Response, limit: number): Promise<Buffer> {
 export function createApimartMiddleware(defaultKey: string, providerFetch: typeof fetch = fetch) {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const path = req.url?.split('?')[0];
-    if (path !== '/api/apimart/images' && path !== '/api/apimart/seedream' && path !== '/api/apimart/task' && path !== '/api/nano-banana') return next();
+    if (path !== '/api/apimart/images' && path !== '/api/apimart/seedream' && path !== '/api/apimart/kling' && path !== '/api/apimart/task' && path !== '/api/nano-banana') return next();
     const send = (status: number, value: object) => {
       if (res.destroyed || res.writableEnded) return;
       res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(value));
@@ -119,6 +136,7 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
         input = JSON.parse(Buffer.concat(chunks).toString());
         if (path === '/api/apimart/images') generation = buildApimartRequest(input);
         else if (path === '/api/apimart/seedream') generation = buildSeedreamRequest(input);
+        else if (path === '/api/apimart/kling') generation = buildKlingImageRequest(input);
         else if (path === '/api/nano-banana') generation = buildNanoBananaRequest(input);
         else {
           if (!input || typeof input.taskId !== 'string' || !taskIdPattern.test(input.taskId)) throw new Error('无效的 APIMart 任务编号。');
@@ -176,6 +194,11 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
       if (['submitted', 'pending', 'processing', 'cancelled'].includes(task.status ?? '')) return send(200, { status: task.status, taskId });
       if (task.status === 'failed') return send(502, { error: `APIMart 任务失败：${diagnosticText(task.error?.message, apiKey) ?? '请检查请求记录。'}`, taskId });
       if (task.status !== 'completed') throw new Error('APIMart 返回了未知任务状态。');
+      if (input.allImages === true) {
+        const imageUrls = task.result?.images?.flatMap(({ url }) => Array.isArray(url) ? url.map(apimartResultUrl) : [apimartResultUrl(url)]);
+        if (!imageUrls?.length) throw new Error('APIMart 未返回图片结果。');
+        return send(200, { status: 'completed', taskId, imageUrls, format: input.outputFormat });
+      }
       const urls = task.result?.images?.[0]?.url;
       const url = Array.isArray(urls) ? urls[0] : urls;
       const imageUrl = apimartResultUrl(url);

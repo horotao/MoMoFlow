@@ -1,11 +1,12 @@
 import { annotationOutput, storedAnnotationResult } from './annotationGraph.ts';
 import { seedreamModel } from './seedream.ts';
 import { nanoBananaModel } from './nanoBanana.ts';
+import { klingImageModel } from './klingImage.ts';
 import { sunburstModelForProvider } from './sunburst.ts';
-import { composerExecutionNode } from './imageComposerSettings.ts';
+import { composerExecutionNode, composerModelId } from './imageComposerSettings.ts';
 import type { AppNode, FileAsset } from './types';
 import type { PreviewTask } from './taskQueue';
-import { isActiveTask, modelTaskLabel } from './taskQueue.ts';
+import { imageTaskRequest, isActiveTask, modelTaskLabel } from './taskQueue.ts';
 import { ModelRequestCancelled, ModelRequestTimeout } from './modelRequestError.ts';
 import { isImageGeneratorNode, isNodeLocked } from './types.ts';
 import { executionInputs, executionSourceAssets, fixedOutput, graphGuard, isModelNode, nodeProblem, preflight, prepareModel, requestSignature, reusable, selectedResult, stableSignature, type ExecutionGraph } from './executionGraph.ts';
@@ -132,7 +133,9 @@ export class WorkflowExecution {
     const batchId = crypto.randomUUID();
     const planned = targets.map(id => {
       const node = graph.nodes.find(item => item.id === id)!;
-      const tasks = Array.from({ length: runs }, () => this.placeholder(node, batchId, Boolean(additions)));
+      const firstTask = this.placeholder(node, batchId, Boolean(additions));
+      const tasks = firstTask.model === klingImageModel ? [firstTask]
+        : [firstTask, ...Array.from({ length: runs - 1 }, () => this.placeholder(node, batchId, Boolean(additions)))];
       const root: Root = {
         refreshImages, existingImagesOnly, id, sourceId, batchId, tasks: tasks.map(task => task.id),
         controller: new AbortController(), guard: graphGuard(plannedGraph, id, true),
@@ -169,7 +172,7 @@ export class WorkflowExecution {
           await Promise.all(executionInputs(node, undefined, this.graphFor(root)).map(edge => this.ensure(root, edge.source, edge.sourceHandle)));
           aborted(signal);
           const graph = this.graphFor(root);
-          const prepared = prepareModel(graph, root.id)
+          const prepared = prepareModel(graph, root.id, runs)
             .filter(task => !seedreamGroupId || task.seedreamGroup?.imageId === seedreamGroupId);
           if (!prepared.length) nodeProblem(node, '原图标注已变化，请检查提示词后重新运行。');
           const attempts = prepared.map(task => ({ prepared: task, signature: requestSignature(task, graph) }));
@@ -194,7 +197,9 @@ export class WorkflowExecution {
     const selected = composerExecutionNode(node);
     let model: string;
     let imageVariant: PreviewTask['imageVariant'];
-    if (selected.type === 'sunburst') {
+    if (selected.type === 'sunburst' && composerModelId(selected.data) === klingImageModel) {
+      model = klingImageModel;
+    } else if (selected.type === 'sunburst') {
       const settings = effectiveSunburstSettings(selected);
       model = sunburstModelForProvider(settings.provider, settings.variant, settings.channelModel);
       if (distinguishVariants && model === 'gpt-image-2.6-ext') imageVariant = settings.variant;
@@ -365,7 +370,7 @@ export class WorkflowExecution {
       releaseSlot = await this.acquireModelSlot(controller.signal);
       aborted(controller.signal);
       // APIMart owns its polling deadline.
-      if (prepared.imageRequest?.provider !== 'apimart' && !prepared.seedreamRequest && !prepared.nanoBananaRequest) {
+      if (prepared.imageRequest?.provider !== 'apimart' && !prepared.seedreamRequest && !prepared.nanoBananaRequest && !prepared.klingImageRequest) {
         const deadline = 310000;
         timeout = setTimeout(() => controller.abort(new ModelRequestTimeout('请求超时；不会自动重试。')), deadline);
       }
@@ -391,7 +396,7 @@ export class WorkflowExecution {
       this.commit(id, { ...output, results: [...(node.data.results ?? []), ...generated] }, publishImmediately);
       attached = true;
       this.state(taskId, { state: 'Done', progress: 100, notice: undefined });
-      const prompt = (task.imageRequest ?? task.seedreamRequest ?? task.nanoBananaRequest)?.prompt;
+      const prompt = imageTaskRequest(task)?.prompt;
       if (prompt?.trim() && this.io.onImageGenerated) {
         // Project metadata is written independently of the completed image task.
         const notify = this.io.onImageGenerated;

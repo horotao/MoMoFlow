@@ -12,11 +12,12 @@ export function apimartResultUrl(value: unknown): string {
 
 // Download directly from the CDN, without the user's provider credentials.
 // Keep the original bytes as a Blob so existing asset persistence still works.
-export async function downloadApimartResult(result: { imageUrl?: unknown; format?: unknown }, format: string | undefined, signal: AbortSignal): Promise<Blob> {
+export async function downloadApimartResult(result: { imageUrl?: unknown; format?: unknown }, format: string | undefined, signal: AbortSignal,
+  { maxMiB = 32, timeoutMs = 60000 } = {}): Promise<Blob> {
   signal.throwIfAborted();
   if (format && result.format !== format) throw new Error('APIMart 返回的图片格式与请求不符。');
   const url = apimartResultUrl(result.imageUrl);
-  const downloadSignal = AbortSignal.any([signal, AbortSignal.timeout(60000)]);
+  const downloadSignal = AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]);
   let response: Response;
   try {
     response = await fetch(url, { signal: downloadSignal, credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'error', mode: 'cors' });
@@ -31,8 +32,8 @@ export async function downloadApimartResult(result: { imageUrl?: unknown; format
     const allowed = format ? [`image/${format === 'svg' ? 'svg+xml' : format}`] : ['image/png', 'image/jpeg'];
     if (!mime || !allowed.includes(mime)) throw new Error('APIMart 返回的图片格式与请求不符。');
     if (!reader) throw new Error('APIMart 返回空图片。');
-    const limit = 32 * 1024 * 1024;
-    if (Number(response.headers.get('content-length')) > limit) throw new Error('APIMart 返回图片超过 32 MiB。');
+    const limit = maxMiB * 1024 * 1024;
+    if (Number(response.headers.get('content-length')) > limit) throw new Error(`APIMart 返回图片超过 ${maxMiB} MiB。`);
     const chunks: Uint8Array<ArrayBuffer>[] = [];
     let size = 0;
     for (;;) {
@@ -40,7 +41,7 @@ export async function downloadApimartResult(result: { imageUrl?: unknown; format
       const { done, value } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > limit) throw new Error('APIMart 返回图片超过 32 MiB。');
+      if (size > limit) throw new Error(`APIMart 返回图片超过 ${maxMiB} MiB。`);
       chunks.push(new Uint8Array(value));
     }
     downloadSignal.throwIfAborted();

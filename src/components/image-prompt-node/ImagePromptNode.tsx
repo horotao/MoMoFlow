@@ -44,6 +44,7 @@ export interface ImagePromptNodeProps {
   defaultPrompt?: string;
   onPromptChange?: (prompt: string) => void;
   quantity?: number;
+  quantityRange?: { min: number; max: number };
   defaultQuantity?: number;
   onQuantityChange?: (quantity: number) => void;
   selected?: boolean;
@@ -98,7 +99,7 @@ export interface ImagePromptNodeProps {
 export function ImagePromptNode({
   kind = 'image', textResult, textFormat = 'txt', onTextFormatChange, textInput,
   assetOnly = false, handles, promptReadOnly, prompt: promptValue, defaultPrompt = '', onPromptChange,
-  quantity: quantityValue, defaultQuantity = 1, onQuantityChange,
+  quantity: quantityValue, defaultQuantity = 1, onQuantityChange, quantityRange,
   selected: selectedValue, defaultSelected = false, onSelectedChange,
   locked: lockedValue, defaultLocked = false, onLockedChange,
   title = 'Image', onTitleChange, modelLabel, modelBrand, editModeLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange,
@@ -313,7 +314,7 @@ export function ImagePromptNode({
                   {(['txt', 'md'] as const).map(format => <button type="button" key={format} aria-pressed={format === textFormat} disabled={locked} onClick={() => onTextFormatChange?.(format)}>{format.toUpperCase()}</button>)}
                 </div> : <button type="button" aria-label="Dictate prompt" onClick={onDictate} {...tooltipProps('Dictate prompt')} disabled={locked || promptReadOnly}><ImagePromptIcon name="mic" /></button>}
                 <button type="button" aria-label="Enhance prompt" onClick={onEnhance} {...tooltipProps('Enhance prompt')} disabled={!hasPrompt || locked || promptReadOnly}><ImagePromptIcon name="enhance" /></button>
-                <ImagePromptGenerateControl quantity={quantity} onQuantityChange={updateQuantity}
+                <ImagePromptGenerateControl quantity={quantity} quantityRange={quantityRange} onQuantityChange={updateQuantity}
                   canChangeQuantity={quantityEnabled && !locked} canExpand={canGenerate && !locked}
                   canSend={(canGenerate && !locked) || Boolean(cancelGeneration)}
                   sendLabel={cancelGeneration ? 'Cancel generation' : 'Generate'}

@@ -26,4 +26,4 @@ Image 使用 `data.composer` 保存提示词、生成数量、比例和模型选
 
 创建与连接见[连接约定](guides/connections.md)，外观见[节点和工具栏](guides/shared-ui.md)，模型与运行见[图片生成](guides/models.md)和[工作流](guides/workflow.md)。自动检查运行 `npm run check`。在独立浏览器存储中的实际主画布核对创建、拖动、正反向连接、锁定、缩放、撤销及刷新恢复，详细说明见[代码质量检查](../../docs/code-quality.md)。
 
-Image 与 Text 的提示词支持 [@ 提及画布图片](guides/shared-ui.md#提及画布图片)，胶囊偏移和来源 ID 随 composer 保存，选择操作与真实图片连线一起撤销。请求中按模型实际图片输入顺序将胶囊序列化为 `image 1`、`image 2` 等，编辑器保留原名称。
+Image 与 Text 的提示词支持 [@ 提及画布图片](guides/shared-ui.md#提及画布图片)，胶囊偏移和来源 ID 随 composer 保存，选择操作与真实图片连线一起撤销。请求中按模型实际图片输入顺序将胶囊序列化为 `image 1`、`image 2` 等，Kling V4 Image 使用 `@Image1`、`@Image2` 等，编辑器保留原名称。

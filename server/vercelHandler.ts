@@ -13,7 +13,7 @@ const handlers = [
   createSunburstMiddleware(''),
 ];
 const paths = new Set([
-  '/api/settings/test', '/api/apimart/images', '/api/apimart/seedream', '/api/apimart/task',
+  '/api/settings/test', '/api/apimart/images', '/api/apimart/seedream', '/api/apimart/kling', '/api/apimart/task',
   '/api/nano-banana', '/api/sunburst', '/api/text',
 ]);
 

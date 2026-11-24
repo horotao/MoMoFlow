@@ -7,11 +7,16 @@ import './image-prompt-model-menu.css';
 
 export function ImagePromptModelBrand({ brand }: { brand: string }) {
   if (brand === 'openai') return <ImagePromptIcon name="model-openai" />;
-  const src = brand === 'deepseek' ? new URL('./assets/deepseek.svg', import.meta.url).href
-    : brand === 'bytedance' ? new URL('./assets/bytedance.svg', import.meta.url).href
-      : new URL('./assets/google.svg', import.meta.url).href;
+  const src = modelBrandSources[brand] ?? modelBrandSources.google;
   return <img className="image-model-logo" src={src} alt="" />;
 }
+
+const modelBrandSources: Record<string, string> = {
+  deepseek: new URL('./assets/deepseek.svg', import.meta.url).href,
+  bytedance: new URL('./assets/bytedance.svg', import.meta.url).href,
+  google: new URL('./assets/google.svg', import.meta.url).href,
+  kling: new URL('./assets/kling.svg', import.meta.url).href,
+};
 
 export interface PromptModelOption<Id extends string = string> {
   id: Id; name: string; brand: string; time?: string; channel?: string; description: string; isNew?: boolean;

@@ -1,5 +1,5 @@
 import { isFileNode, isImageGeneratorNode, isInteractiveEditNode } from './types.ts';
-import type { PreviewTask } from './taskQueue';
+import { imageTaskRequest, type PreviewTask } from './taskQueue.ts';
 import type { AppNode, FileAsset } from './types';
 
 // Only URLs created by this registry may be revoked. External links and URLs
@@ -94,7 +94,7 @@ export function nodeAssetUrls(nodes: Iterable<AppNode>): Set<string> {
 }
 
 export function taskAssetUrls(task: PreviewTask): string[] {
-  return [...(task.nanoBananaRequest?.images ?? []), ...(task.seedreamRequest?.images ?? []), ...(task.imageRequest?.images ?? []),
+  return [...(imageTaskRequest(task)?.images ?? []),
     ...(task.imageRequest?.mask ? [task.imageRequest.mask] : [])];
 }
 

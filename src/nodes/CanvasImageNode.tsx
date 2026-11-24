@@ -15,7 +15,8 @@ import { isActiveTask, type PreviewTask } from './taskQueue';
 import { downloadAsset } from './fileMedia';
 import { savedImagePrompt } from './generationRecord';
 import { imageInputHandles, isImageInputHandle } from './connectionRules';
-import { changeComposerSettings, composerAspectRatio, composerAspectRatios, composerModelSelection } from './imageComposerSettings';
+import { klingImageModel } from './klingImage';
+import { changeComposerSettings, composerAspectRatio, composerAspectRatios, composerModelSelection, composerQuantityRange } from './imageComposerSettings';
 import { canvasImageSize, hasImageDimensions } from './canvasImageGeometry';
 import { reorderImageReferences } from './imageReferenceOrder';
 import { referenceRatioSettings } from './imageReferenceRatio';
@@ -32,7 +33,7 @@ import './CanvasImageNode.css';
 // All Image nodes share the selection check for the same React Flow nodes array.
 const multipleSelection = new WeakMap<readonly Node[], boolean>();
 const generationState = (task: PreviewTask) => ({
-  id: task.id, startedAt: task.started || undefined, estimatedSeconds: 25,
+  id: task.id, startedAt: task.started || undefined, estimatedSeconds: task.model === klingImageModel ? undefined : 25,
   progress: task.state === 'Queued' ? 0 : undefined,
 });
 
@@ -117,7 +118,11 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   const occupied = new Set(references.map(edge => edge.targetHandle));
 
   const available = inpaintInput ? undefined : imageInputHandles.find(handle => !occupied.has(handle));
-  const active = results.find(asset => chosen && (asset.generation?.taskId ?? asset.id) === chosen) ?? results.find(asset => asset.id === data.activeResultId) ?? results[results.length - 1];
+  // The last result takes over the pending thumbnail when one task produces several images.
+  const lastResultByTask = new Map<string, string>();
+  for (const asset of results) if (asset.generation?.taskId) lastResultByTask.set(asset.generation.taskId, asset.id);
+  const chosenAssetId = chosen && (lastResultByTask.get(chosen) ?? chosen);
+  const active = results.find(asset => asset.id === chosenAssetId) ?? results.find(asset => asset.id === data.activeResultId) ?? results[results.length - 1];
   const crop = useCanvasImageCrop(id, active, Boolean(data.locked) || activeTasks.length > 0);
   const inpaint = useCanvasImageInpaint(id, active, Boolean(data.locked) || activeTasks.length > 0 || crop.active);
   usePublishVisibleImage(id, active);
@@ -142,7 +147,10 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
     };
   }
   const variants = [
-    ...results.map(asset => ({ id: asset.generation?.taskId ?? asset.id, thumbnail: <img src={asset.url} alt="" /> })),
+    ...results.map(asset => {
+      const taskId = asset.generation?.taskId;
+      return { id: taskId && lastResultByTask.get(taskId) === asset.id ? taskId : asset.id, thumbnail: <img src={asset.url} alt="" /> };
+    }),
     ...activeTasks.map(item => ({ id: item.id, pending: true,
       thumbnail: <ImagePromptGeneration state={generationState(item)} fillOnly />,
     })),
@@ -167,7 +175,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
     <ImagePromptNode {...controls} {...frame} editModeLabel={inpaint.active ? '局部重绘中' : undefined}
       promptMentions={promptEdge || inpaintInput ? [] : composer.mentions} mentionCandidates={inpaintInput ? [] : mentions.candidates} onMentionEdit={promptEdge || inpaintInput ? undefined : mentions.onEdit}
       prompt={prompt} promptReadOnly={Boolean(promptEdge)} onPromptChange={prompt => edit({ prompt })}
-      quantity={composer.quantity} onQuantityChange={quantity => edit({ quantity })}
+      quantity={composer.quantity} quantityRange={composerQuantityRange(data)} onQuantityChange={quantity => edit({ quantity })}
       onGenerate={() => window.dispatchEvent(new CustomEvent('describer-run', { detail: id }))}
       generation={task ? generationState(task) : null}
       result={active ? <img src={active.url} alt={active.name} onLoad={rememberSize(active)} /> : undefined}

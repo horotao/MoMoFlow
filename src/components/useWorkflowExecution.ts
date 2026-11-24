@@ -8,6 +8,7 @@ import { assetResources, nodeAssetUrls } from '../nodes/assetResources';
 import { requestSunburst } from '../nodes/sunburstClient';
 import { requestSeedream } from '../nodes/seedreamClient';
 import { requestNanoBanana } from '../nodes/nanoBananaClient';
+import { requestKlingImage } from '../nodes/klingImageClient';
 import { advanceEstimatedProgress } from '../nodes/taskQueue';
 import { useModelTaskStore } from './useModelTasks';
 
@@ -47,7 +48,13 @@ export function useWorkflowExecution(onImageGenerated?: (prompt: string) => Prom
           return { assets, release: () => { release(); assetResources.discard(urls); } };
         } catch (error) { assetResources.discard(urls); throw error; }
       },
-      request: (task, signal) => task.seedreamRequest ? requestSeedream(task.seedreamRequest, signal) : task.nanoBananaRequest ? requestNanoBanana(task.nanoBananaRequest, signal) : task.imageRequest ? requestSunburst(task.imageRequest, signal) : Promise.reject(new Error('任务缺少图像请求。')),
+      request: (task, signal) => {
+        if (task.klingImageRequest) return requestKlingImage(task.klingImageRequest, signal);
+        if (task.seedreamRequest) return requestSeedream(task.seedreamRequest, signal);
+        if (task.nanoBananaRequest) return requestNanoBanana(task.nanoBananaRequest, signal);
+        if (task.imageRequest) return requestSunburst(task.imageRequest, signal);
+        return Promise.reject(new Error('任务缺少图像请求。'));
+      },
     });
     engine.current = instance;
     return () => { instance.dispose(); engine.current = undefined; };

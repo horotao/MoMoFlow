@@ -5,6 +5,7 @@ import type { AppNode, SunburstNode } from '../../nodes/types';
 import { changeComposerChannel, changeComposerSettings, composerAspectRatio, composerAspectRatios, composerChannel, composerModelId, composerModelSelection, composerSettings } from '../../nodes/imageComposerSettings';
 import { imageQualities, imageQualityLabels, sunburstChannels, sunburstChannelLabels, type SunburstChannel } from '../../nodes/sunburst';
 import { seedreamChoices } from '../../nodes/seedream';
+import { klingImageModel, klingImageModes, klingImageOutputCredits, klingImageResolutions } from '../../nodes/klingImage';
 import { imagePromptGenerationAspectRatios } from './imagePromptAspectRatios';
 import { defaultPinnedImageModelIds, gptImageVariants, imagePromptModels, inpaintModels, type ImagePromptModelId } from './imagePromptModels';
 import { ImagePromptModelBrand, ImagePromptModelMenu } from './ImagePromptModelMenu';
@@ -57,10 +58,13 @@ export function ImageGenerationSettings({ data, onChange, inpaintOnly = false, c
   const settings = composerSettings(data);
   const seedream = modelId === 'seedream-5-5';
   const nano = modelId.startsWith('nano-banana');
+  const kling = modelId === klingImageModel;
+  const klingResolution = kling ? klingImageResolutions.find(resolution => resolution === settings.resolution) : undefined;
+  const outputCredits = klingResolution ? klingImageOutputCredits[klingResolution] : undefined;
   const channel = composerChannel(data);
-  const showBackground = !nano && (seedream || channel !== 'gpt-image-2.6-ext');
+  const showBackground = !nano && !kling && (seedream || channel !== 'gpt-image-2.6-ext');
   const transparent = showBackground && settings.background === 'transparent';
-  const automaticSize = !seedream && !nano && channel === 'openai' && composer.ratio === 'auto';
+  const automaticSize = Boolean(gptImageVariants[modelId]) && channel === 'openai' && composer.ratio === 'auto';
   const supportedRatios = composerAspectRatios(data);
   const ratios = imagePromptGenerationAspectRatios.filter(ratio => supportedRatios.includes(ratio));
   function edit(patch: Partial<SunburstNode['data']>) {
@@ -89,16 +93,26 @@ export function ImageGenerationSettings({ data, onChange, inpaintOnly = false, c
         labels={ratios.map(value => value === 'auto' ? '自动' : value)} disabled={locked}
         onChange={ratio => edit(changeComposerSettings(data, { ratio }))} /></div>
       <div className="generation-option-row"><span>分辨率{automaticSize && <ImagePromptInfoTip label="自动分辨率说明">OpenAI 自动比例下，选择分辨率会将画面比例设为 1:1。也可以先选择其他画面比例。</ImagePromptInfoTip>}</span><GenerationOptionSelect key={`resolution-${modelId}`} label="分辨率" value={automaticSize ? 'auto' : settings.resolution}
-        choices={automaticSize ? ['auto', '1K', '2K', '4K'] : seedream ? seedreamChoices.resolution : ['1K', '2K', '4K']}
+        choices={automaticSize ? ['auto', '1K', '2K', '4K'] : seedream ? seedreamChoices.resolution : kling ? klingImageResolutions : ['1K', '2K', '4K']}
         labels={automaticSize ? ['自动', '1K', '2K', '4K'] : undefined} disabled={locked}
         onChange={value => { if (value !== 'auto') setSetting('resolution', value); }} /></div>
       {showBackground && <div className="generation-option-row"><span>背景</span><GenerationOptionSelect label="背景" value={settings.background ?? 'auto'}
         choices={['auto', 'transparent', 'opaque']} labels={['自动', '透明', '不透明']} disabled={locked} onChange={value => setSetting('background', value)} /></div>}
-      {!seedream && !nano && <div className="generation-option-row"><span>画质</span><GenerationOptionSelect label="画质" value={settings.quality ?? 'medium'}
+      {!seedream && !nano && !kling && <div className="generation-option-row"><span>画质</span><GenerationOptionSelect label="画质" value={settings.quality ?? 'medium'}
         choices={imageQualities} labels={imageQualities.map(value => imageQualityLabels[value])} disabled={locked} onChange={value => setSetting('quality', value)} /></div>}
+      {kling && <div className="generation-option-row"><span>生成模式<ImagePromptInfoTip label="Kling 生成模式说明">普通生成支持 1–9 张。关联组图支持 2–4 张，张数在节点生成按钮旁调整。</ImagePromptInfoTip></span>
+        <GenerationOptionSelect label="生成模式" value={settings.mode ?? 'standard'} choices={klingImageModes} labels={['普通生成', '关联组图']}
+          disabled={locked} onChange={value => setSetting('mode', value)} /></div>}
       <div className="generation-option-row"><span>输出格式</span><GenerationOptionSelect label="输出格式" value={settings.outputFormat}
-        choices={transparent ? ['png'] : ['png', 'jpeg']} labels={transparent ? ['PNG'] : ['PNG', 'JPEG']}
+        choices={transparent || kling ? ['png'] : ['png', 'jpeg']} labels={transparent || kling ? ['PNG'] : ['PNG', 'JPEG']}
         disabled={locked} onChange={value => setSetting('outputFormat', value)} /></div>
-      <div className="generation-options-cost"><span>费用<ImagePromptInfoTip label="生成费用">费用由当前 API 渠道按模型、参数和生成数量结算。</ImagePromptInfoTip></span><span>按实际用量</span></div>
+      <div className="generation-options-cost">
+        <span>费用<ImagePromptInfoTip label="生成费用">{outputCredits !== undefined
+          ? '按 APIMart 黄金价显示每张输出图片的参考单价。输入参考图另计，实际费用以 APIMart 结算为准。'
+          : '费用由当前 API 渠道按模型、参数和生成数量结算。'}</ImagePromptInfoTip></span>
+        {outputCredits !== undefined ? <span className="generation-options-unit-price" aria-live="polite" aria-atomic="true">
+          {outputCredits.toFixed(4)} Credits/张
+        </span> : <span>按实际用量</span>}
+      </div>
   </GenerationOptionsPanel>;
 }

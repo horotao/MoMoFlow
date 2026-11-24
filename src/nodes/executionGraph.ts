@@ -1,7 +1,7 @@
 import { mapAssets } from '../persistence/workflowStorage.ts';
 import { isTextNode } from './textVariables.ts';
 import type { Edge } from '@xyflow/react';
-import type { AppNode, FileAsset, ImageGeneratorNode } from './types';
+import type { AppNode, FileAsset, ImageGeneratorNode, SunburstNode } from './types';
 import { isImageGeneratorNode, isImportedCanvasImage, isCanvasImageNode, isCanvasTextNode, isNodeLocked } from './types.ts';
 import { numberedMentionPrompt } from './promptMentionText.ts';
 import { annotationOutput, pinnedResultAsset, pinnedResultInput, selectedImageResult, storedAnnotationResult } from './annotationGraph.ts';
@@ -17,8 +17,9 @@ import { resolveTextValue } from './textVariables.ts';
 import { effectiveSunburstSettings, prepareSunburstRun, resolveSunburstEditPrompt } from './sunburstRun.ts';
 import { prepareNanoBananaRun } from './nanoBananaRun.ts';
 import { outputKind } from './outputPort.ts';
-import type { PreviewTask } from './taskQueue';
-import { composerExecutionNode } from './imageComposerSettings.ts';
+import { imageTaskRequest, type PreviewTask } from './taskQueue.ts';
+import { composerAspectRatio, composerExecutionNode, composerKlingSettings, composerModelId } from './imageComposerSettings.ts';
+import { klingImageMaxReferences, klingImageModel, klingImageQuantityRange, validateKlingImagePrompt, validateKlingImageRequest, validateKlingImageSettings } from './klingImage.ts';
 import { modelInputSignatureVersion, savedImagePrompt } from './generationRecord.ts';
 
 export type ExecutionGraph = {
@@ -158,7 +159,27 @@ export function graphGuard(graph: ExecutionGraph, id: string, force = false, han
   // A flat adjacency list avoids exponential escaping of nested JSON strings.
   return stableSignature([...records].sort(([a], [b]) => a.localeCompare(b)));
 }
-export function prepareModel(graph: ExecutionGraph, id: string): PreviewTask[] {
+function prepareKlingImage(graph: ExecutionGraph, node: SunburstNode, runs?: number): PreviewTask {
+  if (isNodeLocked(node)) throw new Error('节点已锁定或不能运行。');
+  const inputs = executionInputs(node, undefined, graph);
+  const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
+  const prompt = promptEdge ? resolveTextValue(promptEdge.source, graph.nodes, graph.edges) : node.data.composer?.prompt;
+  const images = inputs.filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''))
+    .sort((a, b) => Number(a.targetHandle!.slice(6)) - Number(b.targetHandle!.slice(6)))
+    .flatMap(edge => {
+      const assets = imageOutput(graph.nodes.find(item => item.id === edge.source), edge.sourceHandle);
+      if (!assets.length) throw new Error('连接的 Image 尚无图片，上游未提供可用输出。');
+      return assets.map(asset => asset.url);
+    });
+  const settings = composerKlingSettings(node.data);
+  const { min, max } = klingImageQuantityRange(settings.mode);
+  const count = Math.max(min, Math.min(max, runs ?? (settings.mode === 'series' ? node.data.composer?.quantity ?? min : 1)));
+  const klingImageRequest = validateKlingImageRequest({ ...settings, size: composerAspectRatio(node.data), prompt, images, count });
+  return { id: crypto.randomUUID(), batchId: crypto.randomUUID(), createdAt: Date.now(), nodeId: node.id,
+    model: klingImageModel, klingImageRequest, state: 'Queued', progress: 0, started: 0 };
+}
+
+export function prepareModel(graph: ExecutionGraph, id: string, runs?: number): PreviewTask[] {
   const original = graph.nodes.find(item => item.id === id);
   if (!original) throw new ExecutionProblem(id, '节点已删除。');
   if (!isModelNode(original)) nodeProblem(original, '节点已下线或不能运行。');
@@ -168,9 +189,14 @@ export function prepareModel(graph: ExecutionGraph, id: string): PreviewTask[] {
 
   const nodes = node === original ? graph.nodes : graph.nodes.map(item => item.id === id ? node : item);
   const prompt = original.type === 'sunburst' ? original.data.composer?.prompt : undefined;
-  const result = node.type === 'sunburst' ? prepareSunburstRun(nodes, graph.edges, [id], 1)
-    : node.type === 'nano-banana' ? prepareNanoBananaRun(nodes, graph.edges, [id], 1, prompt)
-    : prepareSeedreamRun(nodes, graph.edges, [id], 1, prompt);
+  let result: { tasks: PreviewTask[]; error?: string };
+  try {
+    const kling = node.type === 'sunburst' && composerModelId(node.data) === klingImageModel ? node : undefined;
+    result = kling ? { tasks: [prepareKlingImage(graph, kling, runs)] }
+      : node.type === 'sunburst' ? prepareSunburstRun(nodes, graph.edges, [id], 1)
+      : node.type === 'nano-banana' ? prepareNanoBananaRun(nodes, graph.edges, [id], 1, prompt)
+      : prepareSeedreamRun(nodes, graph.edges, [id], 1, prompt);
+  } catch (error) { nodeProblem(node, error instanceof Error ? error.message : '输入参数无效。'); }
   if (result.error || !result.tasks[0]) nodeProblem(node, result.error ?? '节点已锁定或不能运行。');
 
   for (const edge of executionInputs(node, undefined, graph).filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''))) {
@@ -188,15 +214,17 @@ export function prepareModel(graph: ExecutionGraph, id: string): PreviewTask[] {
       return imageOutput(graph.nodes.find(item => item.id === input.source), input.sourceHandle).map(asset => ({ nodeId: edge.source, url: asset.url }));
     });
   return result.tasks.map(task => {
-    const request = task.imageRequest ?? task.seedreamRequest ?? task.nanoBananaRequest;
+    const request = imageTaskRequest(task);
     // Annotation-generated instructions have their own image/coordinate syntax.
     if (!request || request.prompt !== authored.prompt.trim()) return task;
     try {
-      const prompt = numberedMentionPrompt(authored.prompt, authored.mentions, references, request.images).trim();
+      const prompt = numberedMentionPrompt(authored.prompt, authored.mentions, references, request.images,
+        task.klingImageRequest ? position => `@Image${position}` : undefined).trim();
       return { ...task,
         ...(task.imageRequest ? { imageRequest: { ...task.imageRequest, prompt } } : {}),
         ...(task.seedreamRequest ? { seedreamRequest: { ...task.seedreamRequest, prompt } } : {}),
         ...(task.nanoBananaRequest ? { nanoBananaRequest: { ...task.nanoBananaRequest, prompt } } : {}),
+        ...(task.klingImageRequest ? { klingImageRequest: { ...task.klingImageRequest, prompt } } : {}),
       };
     } catch (error) { nodeProblem(original, error instanceof Error ? error.message : '无法解析引用图片。'); }
   });
@@ -206,7 +234,7 @@ export function requestSignature(task: PreviewTask, graph: ExecutionGraph) {
   mapAssets(graph.nodes, asset => { assets.set(asset.url, assetIdentity(asset)); return asset; });
   const replace = (value: unknown): unknown => typeof value === 'string' && assets.has(value) ? assets.get(value)
     : Array.isArray(value) ? value.map(replace) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, replace(item)])) : value;
-  return stableSignature([modelInputSignatureVersion, task.model, replace(task.seedreamRequest ?? task.imageRequest ?? task.nanoBananaRequest)]);
+  return stableSignature([modelInputSignatureVersion, task.model, replace(imageTaskRequest(task))]);
 }
 
 export function earliestSavedImagePrompt(nodes: AppNode[]): string | undefined {
@@ -255,7 +283,8 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
     const composer = node.type === 'sunburst' ? node.data.composer : undefined;
     const model = composerExecutionNode(node);
     const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
-    const sunburst = model.type === 'sunburst' ? effectiveSunburstSettings(model) : undefined;
+    const kling = model.type === 'sunburst' && composerModelId(model.data) === klingImageModel;
+    const sunburst = model.type === 'sunburst' && !kling ? effectiveSunburstSettings(model) : undefined;
     const edit = sunburst && promptEdge && !unknown.has('prompt')
       ? resolveSunburstEditPrompt(promptEdge.source, graph.nodes, graph.edges,
         sunburst.provider === 'apimart' && sunburst.channelModel !== 'gpt-image-2.6') : undefined;
@@ -267,12 +296,17 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
         return;
       }
       const prompt = edit?.prompt ?? (promptEdge ? resolveTextValue(promptEdge.source, graph.nodes, graph.edges).trim() : composer?.prompt.trim() ?? '');
-      if (!prompt || prompt.length > 32000) throw new Error('请连接非空提示词，最多 32000 个字符。');
+      if (kling) validateKlingImagePrompt(prompt);
+      else if (!prompt || prompt.length > 32000) throw new Error('请连接非空提示词，最多 32000 个字符。');
     }
     const inpaint = isCanvasImageNode(node) && node.data.inpaint;
     const masked = Boolean(inpaint) || inputs.some(edge => edge.targetHandle === 'mask');
     const images = inputs.filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''));
-    if (sunburst) {
+    if (kling) {
+      validateKlingImageSettings({ ...composerKlingSettings(model.data), size: composerAspectRatio(model.data) });
+      if (images.length > klingImageMaxReferences) throw new Error(`Kling V4 Image 最多支持 ${klingImageMaxReferences} 张参考图。`);
+      if (masked) throw new Error('Kling V4 Image 不支持 Mask。');
+    } else if (sunburst) {
       const settings = knownSettings(sunburst, { ...defaultSunburstSettings, ...sunburstParameterDefaults });
       // A model-produced channel choice is unknown until execution. Use the
       // broader capabilities here, then validate its real value before submit.

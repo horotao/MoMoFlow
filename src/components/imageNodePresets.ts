@@ -5,6 +5,7 @@ import {
 import { changeComposerSettings, composerAspectRatios, savedComposerModelSettings } from '../nodes/imageComposerSettings.ts';
 import { seedreamChoices } from '../nodes/seedream.ts';
 import { nanoBananaImageSizes } from '../nodes/nanoBanana.ts';
+import { klingImageModes, klingImageModel, klingImageResolutions } from '../nodes/klingImage.ts';
 import { defaultImagePromptModelSelection, imagePromptModels, restoreImagePromptModelSelection } from './image-prompt-node/imagePromptModels.ts';
 import type { CanvasImage, ImageComposerData, SunburstNode } from '../nodes/types';
 
@@ -21,7 +22,8 @@ function modelSettings(value: ImageComposerData['modelSettings']) {
     if (!saved || typeof saved !== 'object') continue;
     const choices: Record<string, readonly string[]> = model.id === 'seedream-5-5'
       ? { resolution: seedreamChoices.resolution, background: seedreamChoices.background, outputFormat: ['png', 'jpeg'] }
-      : model.id.startsWith('nano-banana') ? { resolution: nanoBananaImageSizes, outputFormat: ['png', 'jpeg'] } : {};
+      : model.id === klingImageModel ? { resolution: klingImageResolutions, mode: klingImageModes }
+        : model.id.startsWith('nano-banana') ? { resolution: nanoBananaImageSizes, outputFormat: ['png', 'jpeg'] } : {};
     result[model.id] = Object.fromEntries(Object.entries(choices)
       .filter(([key, options]) => options.includes(saved[key])).map(([key]) => [key, saved[key]]));
   }
