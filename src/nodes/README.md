@@ -16,7 +16,7 @@ Image 使用 `data.composer` 保存提示词、生成数量、比例和模型选
 
 生成界面复用 [ImagePromptNode](../components/image-prompt-node/ImagePromptNode.tsx)，[图片检查器](../components/image-prompt-node/ImageInspector.tsx) 在图片信息下方展示[生成选项](../components/image-prompt-node/ImageGenerationOptions.tsx)。素材元信息规则见[节点和工具栏](guides/shared-ui.md)。
 
-拖入画布的本地图片由 [ImportedCanvasImage](ImportedCanvasImage.tsx) 呈现，沿用 Image 的存储类型和 `result` 输出。导入图片用作其他 Image 的参考图。
+拖入画布的本地图片和从剪贴板粘贴的图片均由 [ImportedCanvasImage](ImportedCanvasImage.tsx) 呈现，沿用 Image 的存储类型和 `result` 输出。导入图片用作其他 Image 的参考图。
 
 ## 新增或扩展节点
 

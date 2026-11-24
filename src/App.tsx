@@ -25,7 +25,7 @@ import { AddNodeMenu, type AddNodeRequest } from './components/add-node-menu/Add
 import { canConnect, withoutReplacedInput } from './nodes/connectionRules';
 import { connectionChoices, choiceConnection, type PendingConnection } from './nodes/connectionRecommendations';
 import { createLibraryNode } from './components/libraryCatalog';
-import { createImportedCanvasImage, readCanvasImage } from './nodes/importCanvasImage';
+import { clipboardImageFiles, createImportedCanvasImage, readCanvasImage } from './nodes/importCanvasImage';
 import { assetResources } from './nodes/assetResources';
 import { canvasImageSize } from './nodes/canvasImageGeometry';
 import { composerAspectRatio } from './nodes/imageComposerSettings';
@@ -222,30 +222,6 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     });
   }, [canvasStore]);
   const pendingZoom = useRef<ZoomTarget | null>(null);
-  useEffect(() => {
-    const pasteNode = (event: ClipboardEvent) => {
-      if (event.defaultPrevented || (event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return;
-      try {
-        const saved = JSON.parse(event.clipboardData?.getData('text/plain') ?? '');
-
-        if (saved.format === 'momoflow-sunburst-node' && saved.node?.type === 'sunburst'
-          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-          const data = restoreSunburstData(saved.node.data);
-          if (!data) return;
-          event.preventDefault();
-          const { nodes: pasted } = migrateLegacyImageGraph([{
-            id: crypto.randomUUID(), type: 'sunburst', position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 },
-            origin: saved.node.origin?.[0] === 0.5 && saved.node.origin?.[1] === 0 ? [0.5, 0] : undefined, data,
-          }], []);
-          setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...pasted.map(node => ({ ...node, selected: true }))]);
-          return;
-        }
-
-      } catch { /* Ordinary clipboard text belongs to the text editor. */ }
-    };
-    window.addEventListener('paste', pasteNode);
-    return () => window.removeEventListener('paste', pasteNode);
-  }, [setNodes]);
   const onConnect: OnConnect = useCallback(connection => {
     if (connectionCancelled.current || !withinConnectionRadius(connection) || !canConnect(connection, getNodes(), getEdges())) return;
     const previous = getEdges();
@@ -308,7 +284,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     if (connections.length) setEdges(nextEdges);
   }
 
-  async function addImageFiles(files: File[], position: XYPosition, canvas: HTMLDivElement) {
+  const addImageFiles = useCallback(async (files: File[], position: XYPosition, canvas: HTMLDivElement) => {
     setImageImportError('');
     const settled = await Promise.allSettled(files.map(readCanvasImage));
     const assets = settled.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
@@ -330,7 +306,54 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       return item;
     });
     setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...imported]);
-  }
+  }, [setNodes]);
+
+  useEffect(() => {
+    const paste = (event: ClipboardEvent) => {
+      const canvas = canvasRef.current;
+      const clipboard = event.clipboardData;
+      const target = event.target;
+      if (!canvas || !clipboard || event.defaultPrevented || canvas.hasAttribute('inert')) return;
+      if (target instanceof Element) {
+        if (target.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="menu"], [role="dialog"]')) return;
+        if (target !== document.body && target !== document.documentElement && !canvas.contains(target)) return;
+      }
+      if (document.querySelector('dialog[open]') || canvas.querySelector('.image-edit-mode')) return;
+
+      const plain = clipboard.getData('text/plain');
+      if (plain) {
+        try {
+          const saved = JSON.parse(plain);
+          if (saved?.format === 'momoflow-sunburst-node' && saved.node?.type === 'sunburst'
+            && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
+            const data = restoreSunburstData(saved.node.data);
+            if (data) {
+              const { nodes: pasted } = migrateLegacyImageGraph([{
+                id: crypto.randomUUID(), type: 'sunburst', position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 },
+                origin: saved.node.origin?.[0] === 0.5 && saved.node.origin?.[1] === 0 ? [0.5, 0] : undefined, data,
+              }], []);
+              event.preventDefault();
+              setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...pasted.map(node => ({ ...node, selected: true }))]);
+              return;
+            }
+          }
+        } catch { /* Clipboard text can accompany an image. */ }
+      }
+
+      const files = clipboardImageFiles(clipboard);
+      if (!files.length) return;
+      const pointer = canvasPointer.current;
+      const surface = pointer && document.elementFromPoint(pointer.x, pointer.y)?.closest('.react-flow__pane, .react-flow__node');
+      const bounds = canvas.getBoundingClientRect();
+      const screen = pointer && canvas.contains(surface || null)
+        ? pointer : { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
+      event.preventDefault();
+      canvas.focus({ preventScroll: true });
+      void addImageFiles(files, screenToFlowPosition(screen), canvas);
+    };
+    window.addEventListener('paste', paste);
+    return () => window.removeEventListener('paste', paste);
+  }, [addImageFiles, screenToFlowPosition, setNodes]);
 
   const canvasNodes = useMemo(() => {
     const lockedGroups = new Set(nodes.filter(node => node.parentId && isNodeLocked(node)).map(node => node.parentId));
