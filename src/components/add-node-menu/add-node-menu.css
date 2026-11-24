@@ -47,7 +47,7 @@
 .flora-add-node-title { display: flex; align-items: center; gap: 4px; height: 17.5px; white-space: nowrap; }
 .flora-add-node-new { flex: none; width: 6px; height: 6px; border-radius: 50%; background: #71d083; }
 .flora-add-node-description { overflow: hidden; color: #7c7b74; font-size: 12px; line-height: 13.5px; text-overflow: ellipsis; white-space: nowrap; }
-.flora-add-node-menu .flora-add-node-shortcut { display: inline-flex; flex: none; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 6px; color: #b5b3ad; background: #fafaf223; font-size: 12px; line-height: 12px; user-select: none; }
+:is(.flora-add-node-menu, .add-node-preview) .flora-add-node-shortcut { display: inline-flex; flex: none; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 6px; color: #b5b3ad; background: #fafaf223; font-family: inherit; font-size: 12px; line-height: 12px; user-select: none; }
 .flora-add-node-quantity { display: none; flex: none; align-items: center; gap: 2px; height: 32px; padding: 4px 8px; border-radius: 8px; background: color-mix(in srgb, #191918 90%, transparent); }
 .flora-add-node-row:is(:hover, :focus-within) .flora-add-node-replaceable { display: none; }
 .flora-add-node-row:is(:hover, :focus-within) .flora-add-node-quantity { display: flex; }
@@ -57,6 +57,107 @@
 .flora-add-node-quantity .flora-add-node-icon-plus { width: 12px; height: 12px; }
 .flora-add-node-menu .flora-add-node-quantity input { width: 24px; height: 24px; flex: none; border: 1px solid transparent; border-radius: 8px; font-size: 12px; line-height: 12px; text-align: center; }
 .flora-add-node-empty { padding: 24px 16px; color: #7c7b74; text-align: center; }
+
+.add-node-preview {
+  --node-preview-ease: cubic-bezier(.22, 1, .36, 1);
+  --node-preview-scale: .97;
+  box-sizing: border-box;
+  position: fixed;
+  z-index: 1200;
+  top: 8px;
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--canvas-overlay-background);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 10px 28px #0006, 0 2px 6px #0004;
+  color: var(--card-foreground);
+  font: 400 14px/1.25 var(--font-ui);
+  opacity: 0;
+  transform: scale(var(--node-preview-scale));
+  transition: opacity 80ms var(--node-preview-ease), transform 80ms var(--node-preview-ease);
+}
+.add-node-preview[data-state="open"] {
+  opacity: 1;
+  transform: scale(1);
+  transition-duration: 150ms;
+}
+@starting-style {
+  .add-node-preview[data-state="open"] {
+    opacity: 0;
+    transform: scale(var(--node-preview-scale));
+  }
+}
+.add-node-preview-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.add-node-preview-header > div {
+  display: grid;
+  gap: 2px;
+}
+.add-node-preview-header :is(h2, p) {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+.add-node-preview-header h2 {
+  font-weight: 600;
+}
+.add-node-preview-header p { color: var(--muted-foreground); }
+.add-node-preview-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  color: #eeeeec;
+}
+.add-node-preview-icon > span { width: 16px; height: 16px; }
+.add-node-preview-key {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #7c7b74;
+  font-size: 12px;
+  line-height: 13.5px;
+}
+.add-node-preview-help {
+  display: grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: #b5b3ad;
+  font-size: 9px;
+  line-height: 1;
+}
+.add-node-preview-description { min-height: 2lh; margin: 0; color: var(--muted-foreground); }
+.add-node-preview-example { display: grid; gap: 8px; min-width: 0; margin: 0; }
+.add-node-preview-example figcaption {
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+.add-node-preview-sample {
+  display: grid;
+  min-height: 158px;
+  aspect-ratio: 8 / 5;
+  overflow: hidden;
+  border: 1px solid #fafaf223;
+  border-radius: 12px;
+  background: var(--background);
+  background-clip: padding-box;
+}
+.add-node-preview-sample img { width: 100%; height: 100%; min-height: 0; object-fit: cover; }
+
+@media (prefers-reduced-motion: reduce) {
+  .add-node-preview { --node-preview-scale: 1; }
+}
 @media (hover: none) {
   .flora-add-node-row .flora-add-node-replaceable { display: none; }
   .flora-add-node-row .flora-add-node-quantity { display: flex; }

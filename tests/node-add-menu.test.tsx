@@ -20,21 +20,24 @@ async function element(selector: string) {
 async function run() {
   const pane = await element('.react-flow__pane');
   const dock = await element('.canvas-sidebar-add');
-  for (const open of [() => dock.click(), () => {
+  const openContextMenu = () => {
     const options = { view: window, button: 2, bubbles: true, cancelable: true, clientX: 340, clientY: 240 };
     pane.dispatchEvent(new MouseEvent('mousedown', { ...options, buttons: 2 }));
     pane.dispatchEvent(new MouseEvent('mouseup', options));
-  }]) {
+  };
+  for (const [type, open] of [['image', () => dock.click()], ['text', openContextMenu]] as const) {
     open();
     const menu = await element('#canvas-node-menu');
     const rows = menu.querySelectorAll<HTMLElement>('[data-type]');
-    if (rows.length !== 1 || rows[0].dataset.type !== 'image') throw new Error('Unexpected menu entries');
-    menu.querySelector<HTMLButtonElement>('[role=menuitem]')!.click();
-    await element('.canvas-image-node');
+    if (rows.length !== 2 || !menu.querySelector('[data-type="image"]') || !menu.querySelector('[data-type="text"]')) {
+      throw new Error('Expected the Image and Text menu entries');
+    }
+    menu.querySelector<HTMLButtonElement>(`[data-type="${type}"] [role=menuitem]`)!.click();
+    await element(`.react-flow__node-${type === 'image' ? 'sunburst' : 'text'}`);
     await new Promise(requestAnimationFrame);
   }
-  if (document.querySelectorAll('.canvas-image-node').length !== 2) throw new Error('Image creation failed');
+  if (document.querySelectorAll('.canvas-image-node').length !== 2) throw new Error('Node creation failed');
   result.dataset.result = 'passed';
-  result.textContent = 'PASS · 左侧和右键入口均只创建 Image';
+  result.textContent = 'PASS · 左侧和右键入口均包含 Image 和 Text，可分别创建节点';
 }
 void run().catch(error => { result.dataset.result = 'failed'; result.textContent = String(error); });

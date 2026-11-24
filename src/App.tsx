@@ -28,6 +28,7 @@ import { createLibraryNode } from './components/libraryCatalog';
 import { createImportedCanvasImage, readCanvasImage } from './nodes/importCanvasImage';
 import { assetResources } from './nodes/assetResources';
 import { canvasImageSize } from './nodes/canvasImageGeometry';
+import { composerAspectRatio } from './nodes/imageComposerSettings';
 import { connectImageReferenceRatio } from './nodes/imageReferenceRatio';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -142,7 +143,39 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   const history = useCanvasHistory(nodes, edges, restore);
   useLayoutEffect(() => { storage.releaseRestoredAssets(); }, [storage]);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const canvasPointer = useRef<XYPosition | null>(null);
   const canvasStore = useStoreApi();
+  useEffect(() => {
+    // The pointer scopes these shortcuts even when a canvas control still has focus.
+    const addNodeShortcut = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.repeat || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+      const key = event.key.toLowerCase();
+      if (key !== 'i' && key !== 't') return;
+
+      const canvas = canvasRef.current;
+      const pointer = canvasPointer.current;
+      if (!canvas || !pointer || canvas.hasAttribute('inert') || apiSettingsOpen || pendingNodeMenu) return;
+      if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable], .image-edit-mode')) return;
+      const hit = document.elementFromPoint(pointer.x, pointer.y);
+      if (!canvas.contains(hit?.closest('.react-flow__pane') ?? null) || hit?.closest('.image-edit-mode')) return;
+      if (document.querySelector('dialog[open], [role="dialog"], [role="menu"]:not([data-state="closed"]), [role="listbox"]:not([data-state="closed"])')) return;
+
+      const state = canvasStore.getState();
+      if (state.paneDragging || state.userSelectionActive || state.connection.inProgress || state.connectionClickStartHandle
+        || state.nodes.some(node => node.dragging || node.resizing)) return;
+
+      const position = screenToFlowPosition(pointer);
+      const node = createLibraryNode(key === 'i' ? 'image' : 'text', position);
+      if (!node) return;
+      // The factory stores a top-center anchor. Match the actual preset width.
+      if (node.type === 'sunburst') node.position.x = position.x + canvasImageSize(composerAspectRatio(node.data)).width / 2;
+      event.preventDefault();
+      canvas.focus({ preventScroll: true });
+      setNodes(current => [...current.map(item => ({ ...item, selected: false })), node]);
+    };
+    window.addEventListener('keydown', addNodeShortcut, true);
+    return () => window.removeEventListener('keydown', addNodeShortcut, true);
+  }, [apiSettingsOpen, canvasStore, pendingNodeMenu, screenToFlowPosition, setNodes]);
   const gridOrigin = useRef(canvasGridOrigin);
   const gridDragAnchor = useRef<GridDragAnchor | null>(null);
   const updateGridOrigin = useCallback((origin: number) => { gridOrigin.current = origin; }, []);
@@ -327,6 +360,10 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       ref={canvasRef}
       tabIndex={0}
       onDragStartCapture={preventCanvasImageDrag}
+      onPointerMoveCapture={event => {
+        if (event.pointerType === 'mouse') canvasPointer.current = { x: event.clientX, y: event.clientY };
+      }}
+      onPointerLeave={event => { if (event.pointerType === 'mouse') canvasPointer.current = null; }}
       onPointerDownCapture={event => {
         if ((event.target as HTMLElement).classList.contains('react-flow__pane')) canvasRef.current?.focus({ preventScroll: true });
       }}

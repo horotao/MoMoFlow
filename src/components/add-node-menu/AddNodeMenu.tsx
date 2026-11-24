@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
+import { AddNodePreview } from './AddNodePreview';
+import { nodePreviewDescription, supportsNodePreview, useAddNodePreview, type AddNodeType } from './useAddNodePreview';
 import './add-node-menu.css';
 
 const imageEntry = { id: 'image', type: 'image', label: '图片', description: '生成和编辑图片', key: 'I' } as const;
-type AddNodeType = 'image' | 'text';
 export interface AddNodeRequest { type: AddNodeType; quantity: number }
 export interface AddNodeMenuProps {
   /** Viewport coordinates, unaffected by canvas zoom. Mount only while open. */
@@ -34,12 +35,15 @@ function normalizeQuantity(value: string) { return Math.max(1, Math.min(20, Math
 export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuantity = true, allowedTypes }: AddNodeMenuProps) {
   const panel = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
+  const previewRef = useRef<HTMLElement>(null);
+  const { preview, enter, leave, keepOpen, reset, finishExit } = useAddNodePreview();
   const [query, setQuery] = useState('');
   const [counts, setCounts] = useState<Partial<Record<AddNodeType, string>>>({});
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
   const rows = [imageEntry, { id: 'text', type: 'text', label: '文本', description: '生成文本与 Markdown', key: 'T' } as const]
     .filter(entry => !allowedTypes || allowedTypes.includes(entry.type)).map(entry => ({ ...entry, quantity: allowQuantity }));
   const filtered = rows.filter(entry => `${entry.type} ${entry.label} ${entry.description}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const previewEntry = preview && filtered.find(entry => entry.type === preview.type);
   const width = Math.min(352, Math.max(0, viewport.width - 16));
   const groups = filtered.length ? [filtered] : [];
   const height = filtered.length ? 46 + filtered.length * 48 + groups.length * 8 + groups.length - 1 : 110;
@@ -48,9 +52,13 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
 
   useLayoutEffect(() => { search.current?.focus({ preventScroll: true }); }, []);
   useEffect(() => {
-    function resize() { setViewport({ width: window.innerWidth, height: window.innerHeight }); }
+    function resize() {
+      reset();
+      setViewport({ width: window.innerWidth, height: window.innerHeight });
+    }
     function outside(event: Event) {
-      if (event.target instanceof Node && !panel.current?.contains(event.target) && !triggerRef?.current?.contains(event.target)) onClose(false);
+      if (event.target instanceof Node && !panel.current?.contains(event.target)
+        && !previewRef.current?.contains(event.target) && !triggerRef?.current?.contains(event.target)) onClose(false);
     }
     window.addEventListener('resize', resize);
     document.addEventListener('pointerdown', outside);
@@ -60,7 +68,7 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
       document.removeEventListener('pointerdown', outside);
       document.removeEventListener('focusin', outside);
     };
-  }, [onClose, triggerRef]);
+  }, [onClose, reset, triggerRef]);
 
   function select(entry: typeof rows[number]) {
     onSelect({ type: entry.type, quantity: normalizeQuantity(counts[entry.type] ?? '1') });
@@ -69,8 +77,12 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
   function changeQuantity(type: AddNodeType, value: number) {
     setCounts(current => ({ ...current, [type]: String(Math.max(1, Math.min(20, value))) }));
   }
+  function changeQuery(value: string) {
+    reset();
+    setQuery(value);
+  }
 
-  return createPortal(<div ref={panel} id="canvas-node-menu" role="dialog" aria-label="添加节点" lang="zh-CN" className="flora-add-node-menu nodrag nopan nowheel"
+  return createPortal(<><div ref={panel} id="canvas-node-menu" role="dialog" aria-label="添加节点" lang="zh-CN" className="flora-add-node-menu nodrag nopan nowheel"
     style={{ left, top, width, maxHeight: Math.max(0, viewport.height - top - 8) }}
     onPointerDown={event => event.stopPropagation()} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }} onWheel={event => event.stopPropagation()}
     onKeyDown={event => {
@@ -92,6 +104,7 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
       const items = [...(panel.current?.querySelectorAll<HTMLButtonElement>('.flora-add-node-item') ?? [])];
       if (!items.length) return;
       event.preventDefault();
+      reset();
       const current = items.indexOf(document.activeElement as HTMLButtonElement);
       const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : current < 0 ? (event.key === 'ArrowUp' ? items.length - 1 : 0) : (current + (event.key === 'ArrowUp' ? -1 : 1) + items.length) % items.length;
       items[next].focus({ preventScroll: true });
@@ -99,15 +112,20 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
     }}>
     <div className="flora-add-node-search">
       <Icon name="search" />
-      <input ref={search} aria-label="搜索节点、操作和工具" placeholder="添加节点、操作和工具" value={query} onChange={event => setQuery(event.target.value)}
+      <input ref={search} aria-label="搜索节点、操作和工具" placeholder="添加节点、操作和工具" value={query} onChange={event => changeQuery(event.target.value)}
         onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing && filtered[0]) { event.preventDefault(); select(filtered[0]); } }} />
-      <button type="button" aria-label="清空搜索" className="flora-add-node-clear" style={{ visibility: query ? 'visible' : 'hidden' }} onClick={() => { setQuery(''); search.current?.focus(); }}><Icon name="close" /></button>
+      <button type="button" aria-label="清空搜索" className="flora-add-node-clear" style={{ visibility: query ? 'visible' : 'hidden' }} onClick={() => { changeQuery(''); search.current?.focus(); }}><Icon name="close" /></button>
     </div>
-    <div className="flora-add-node-list" role="menu" aria-label="节点和操作">
+    <div className="flora-add-node-list" role="menu" aria-label="节点和操作" onScroll={reset}>
       {groups.map(group => <div role="group" className="flora-add-node-group" key={group[0].id}>
         {group.map(entry => {
           const quantity = normalizeQuantity(counts[entry.type] ?? '1');
           return <div className="flora-add-node-row" data-type={entry.type} key={entry.id}
+            onPointerEnter={event => {
+              if (!event.buttons && supportsNodePreview(event.pointerType)) enter(entry.type, event.currentTarget);
+            }}
+            onPointerLeave={event => { if (supportsNodePreview(event.pointerType)) leave(); }}
+            onPointerCancel={reset}
             onMouseEnter={event => {
               const focusedRow = document.activeElement?.closest('.flora-add-node-row');
               if (focusedRow && focusedRow !== event.currentTarget) event.currentTarget.querySelector<HTMLButtonElement>('.flora-add-node-item')?.focus({ preventScroll: true });
@@ -115,7 +133,8 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
             onClick={event => {
               if (event.target instanceof Element && !event.target.closest('button, .flora-add-node-quantity')) select(entry);
             }}>
-            <button type="button" role="menuitem" className="flora-add-node-item" aria-label={`${entry.label} ${entry.description}`} onClick={() => select(entry)}>
+            <button type="button" role="menuitem" className="flora-add-node-item" aria-label={`${entry.label} ${entry.description}`}
+              aria-description={nodePreviewDescription[entry.type]} onClick={() => select(entry)}>
               <span className="flora-add-node-badge"><Icon name={entry.type} /></span>
               <span className="flora-add-node-copy"><span className="flora-add-node-title">{entry.label}</span><span className="flora-add-node-description" title={entry.description}>{entry.description}</span></span>
             </button>
@@ -137,5 +156,11 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
       </div>)}
       {!filtered.length && <div className="flora-add-node-empty" role="status">未找到匹配的节点</div>}
     </div>
-  </div>, document.body);
+  </div>
+    {preview && previewEntry && <AddNodePreview key={preview.type} previewRef={previewRef} anchor={preview.anchor}
+      menuLeft={left} menuTop={top} menuWidth={width} viewportWidth={viewport.width} viewportHeight={viewport.height}
+      type={preview.type} title={previewEntry.label} subtitle={previewEntry.description}
+      shortcut={previewEntry.key} icon={<Icon name={preview.type} />} open={preview.open}
+      onEnter={keepOpen} onLeave={leave} onExit={finishExit} />}
+  </>, document.body);
 }
