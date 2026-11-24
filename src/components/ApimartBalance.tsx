@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apimartGenerationCompleted } from '../nodes/apimartGeneration';
 import { apiCredentialHeaders, apiSettingsStorageKey } from './apiSettings';
 
 const formatCredits = new Intl.NumberFormat('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -12,14 +13,13 @@ export function ApimartBalance() {
     const onStorage = (event: StorageEvent) => {
       if (event.key === null || event.key === apiSettingsStorageKey) refresh();
     };
-    const onVisibility = () => { if (document.visibilityState === 'visible') refresh(); };
     window.addEventListener(apiSettingsStorageKey, refresh);
     window.addEventListener('storage', onStorage);
-    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener(apimartGenerationCompleted, refresh);
     return () => {
       window.removeEventListener(apiSettingsStorageKey, refresh);
       window.removeEventListener('storage', onStorage);
-      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener(apimartGenerationCompleted, refresh);
     };
   }, []);
   useEffect(() => {

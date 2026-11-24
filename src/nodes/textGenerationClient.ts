@@ -1,3 +1,4 @@
+import { notifyApimartGenerationCompleted } from './apimartGeneration.ts';
 import { apiCredentialHeaders } from '../components/apiSettings.ts';
 import { readImage, dataUrl } from './imageGenerationClient.ts';
 import { readTextBilling, readTextUsage } from './textPricing.ts';
@@ -81,7 +82,8 @@ export async function readTextResponse(response: Response, signal: AbortSignal, 
 
 /** Capture image bytes and credentials once so every variant uses the same input. */
 export async function prepareTextRequest(input: TextRequest, signal: AbortSignal): Promise<TextExecutor> {
-  const headers = { 'Content-Type': 'application/json', ...apiCredentialHeaders(textModelProvider(input.model)) };
+  const provider = textModelProvider(input.model);
+  const headers = { 'Content-Type': 'application/json', ...apiCredentialHeaders(provider) };
   let total = 0;
   const images: string[] = [];
   for (const url of input.images) {
@@ -95,7 +97,9 @@ export async function prepareTextRequest(input: TextRequest, signal: AbortSignal
   return async (signal, onText) => {
     signal.throwIfAborted();
     const response = await fetch('/api/text', { method: 'POST', headers, body, signal });
-    return readTextResponse(response, signal, onText);
+    const result = await readTextResponse(response, signal, onText);
+    if (provider === 'apimart') notifyApimartGenerationCompleted();
+    return result;
   };
 }
 

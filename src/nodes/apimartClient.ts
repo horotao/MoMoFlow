@@ -1,3 +1,4 @@
+import { notifyApimartGenerationCompleted } from './apimartGeneration.ts';
 import { readImageApiResponse } from './apimartUpload.ts';
 import { ModelRequestCancelled, ModelRequestTimeout, modelRequestError } from './modelRequestError.ts';
 
@@ -38,7 +39,10 @@ export async function requestApimartImage<T>(
       try { result = await call('/api/apimart/task', { taskId, outputFormat: input.outputFormat, ...(allImages ? { allImages } : {}) }); }
       catch (error) { if (error instanceof ModelRequestTimeout && !signal.aborted) continue; throw error; }
       if (result?.status === 'cancelled') throw new ModelRequestCancelled('APIMart 任务已取消。');
-      if (result?.status === 'completed') return await readResult(result);
+      if (result?.status === 'completed') {
+        notifyApimartGenerationCompleted();
+        return await readResult(result);
+      }
       if (!['submitted', 'pending', 'processing'].includes(result?.status)) throw new Error('APIMart 返回了无效任务状态。');
     }
   } catch (error) {

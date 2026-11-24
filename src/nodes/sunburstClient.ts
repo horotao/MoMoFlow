@@ -1,3 +1,4 @@
+import { notifyApimartGenerationCompleted } from './apimartGeneration.ts';
 import { uploadApimartImages, readImageApiResponse } from './apimartUpload.ts';
 import { downloadApimartResult } from './apimartResult.ts';
 import { apiCredentialHeaders } from '../components/apiSettings.ts';
@@ -105,7 +106,10 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
       if (!response.ok && result.code === modelTimeoutCode) continue;
       if (!response.ok) { result.error = `${result.error || 'APIMart 查询失败。'}\n任务编号：${taskId}`; break; }
       if (result.status === 'cancelled') throw new ModelRequestCancelled(`APIMart 任务已取消。\n任务编号：${taskId}`);
-      if (result.status === 'completed') break;
+      if (result.status === 'completed') {
+        notifyApimartGenerationCompleted();
+        break;
+      }
       if (!['submitted', 'pending', 'processing'].includes(result.status)) throw new Error(`APIMart 任务状态无效，任务编号：${taskId}`);
     }
   }
