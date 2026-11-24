@@ -17,7 +17,7 @@ npm run dev
 
 Image 节点和工具栏使用 [ImagePromptNode 组件与样式](src/components/image-prompt-node/ImagePromptNode.tsx)。节点和工具栏使用随组件提供的 Geist Sans。画布其他界面沿用[全局样式](src/index.css)的 `--font-ui`，英文使用 Inter，macOS 中文优先使用苹方，Windows 中文使用随应用提供的 Noto Sans SC。
 
-鼠标指向画布时，按 `I` 创建 Image，按 `T` 创建 Text，新节点的左上角对齐鼠标位置。选择与抓手工具使用左侧 Dock 或快捷键 V / H。撤销使用 Ctrl / ⌘ Z，重做使用 Ctrl / ⌘ Shift Z。「更多」菜单提供 API 设置和网格对齐。
+鼠标指向画布时，按 `I` 创建 Image，按 `T` 创建 Text，新节点的左上角对齐鼠标位置。选择与抓手工具使用左侧 Dock 或快捷键 V / H。按 Delete 或 Backspace 删除选中的未锁定节点。撤销使用 Ctrl / ⌘ Z，重做使用 Ctrl / ⌘ Shift Z。「更多」菜单提供 API 设置和网格对齐。
 
 画布与左侧 Dock 的颜色参考 FLORA 深色外观：画布底色 `#090908`，Dock 使用 90% 不透明的 `#191918`，图标区分暖灰默认态与灰白选中态。点阵在 100% 缩放下间隔 32px、直径 1px，随画布一起缩放；网格对齐沿用同一套间距。
 

@@ -65,6 +65,7 @@ import { ProjectLibrary, type CanvasProject } from './persistence/projectLibrary
 import { CanvasProjectHeader } from './components/CanvasProjectHeader';
 
 const defaultEdgeOptions = { type: 'default' };
+const canvasDeleteKeys = ['Backspace', 'Delete'];
 type PendingNodeMenu = PendingConnection | (Pick<PendingConnection, 'screen' | 'position'> & { origin?: 'dock'; keyboard?: boolean });
 
 type ProjectSession = {
@@ -392,6 +393,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       }}
       minZoom={canvasMinZoom}
       maxZoom={canvasMaxZoom}
+      deleteKeyCode={canvasDeleteKeys}
       proOptions={{ hideAttribution: true }}
       colorMode={colorMode}
       className={`canvas-tool-${tool} canvas-selection`}
