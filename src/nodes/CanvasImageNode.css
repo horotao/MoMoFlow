@@ -20,7 +20,7 @@
   touch-action: none;
 }
 .canvas-image-node .image-node-heading h1 { gap: calc(6 * var(--heading-px)); }
-.canvas-image-node .image-node-heading :is(.image-node-icon, .image-model-google) {
+.canvas-image-node .image-node-heading :is(.image-node-icon, .image-model-logo) {
   width: 1em;
   height: 1em;
   pointer-events: none;

@@ -3,7 +3,7 @@ import { readImage, dataUrl } from './imageGenerationClient.ts';
 import { readTextBilling, readTextUsage } from './textPricing.ts';
 import { textCitations } from './textCitations.ts';
 import { readSse } from './responseStream.ts';
-import { isTextModel, isTextReasoningEffort, type TextRequest, type TextResult } from './textGeneration.ts';
+import { isTextModel, isTextReasoningEffort, textModelProvider, type TextRequest, type TextResult } from './textGeneration.ts';
 import type { TextGenerationResult } from './types.ts';
 
 export type TextBatchItem = {
@@ -81,7 +81,7 @@ export async function readTextResponse(response: Response, signal: AbortSignal, 
 
 /** Capture image bytes and credentials once so every variant uses the same input. */
 export async function prepareTextRequest(input: TextRequest, signal: AbortSignal): Promise<TextExecutor> {
-  const headers = { 'Content-Type': 'application/json', ...apiCredentialHeaders('openai') };
+  const headers = { 'Content-Type': 'application/json', ...apiCredentialHeaders(textModelProvider(input.model)) };
   let total = 0;
   const images: string[] = [];
   for (const url of input.images) {

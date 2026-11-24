@@ -55,6 +55,7 @@ export interface ImagePromptNodeProps {
   title?: string;
   onTitleChange?: (title: string) => void;
   modelLabel?: string;
+  modelBrand?: string;
   editModeLabel?: string;
   modelSelection?: ImagePromptModelSelection;
   defaultModelSelection?: ImagePromptModelSelection;
@@ -100,7 +101,7 @@ export function ImagePromptNode({
   quantity: quantityValue, defaultQuantity = 1, onQuantityChange,
   selected: selectedValue, defaultSelected = false, onSelectedChange,
   locked: lockedValue, defaultLocked = false, onLockedChange,
-  title = 'Image', onTitleChange, modelLabel, editModeLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange,
+  title = 'Image', onTitleChange, modelLabel, modelBrand, editModeLabel, modelSelection, defaultModelSelection = defaultImagePromptModelSelection, onModelSelectionChange, aspectRatio: aspectRatioValue, defaultAspectRatio = '1:1', onAspectRatioChange,
   suggestion = 'Oil paint macro, impasto texture', className = '', toolbar, generation = null, result, onPreviewImage, variants = [], activeVariant = 0, onVariantChange,
   onGenerate, onCancelGeneration, canGenerateWithoutPrompt = false, onMention, onDictate, onEnhance, onImageInput, onAddConnectedNode, imageInputCount = 0, imageInputLimit = 16,
   promptMentions, mentionCandidates, onMentionEdit,
@@ -268,7 +269,7 @@ export function ImagePromptNode({
           <h1><ImagePromptIcon name={isText ? 'text' : 'image'} /><ImageNodeTitle title={title} editable={selected} locked={locked} onChange={onTitleChange} /></h1>
           {editModeLabel ? <span className="image-node-model"><span title={editModeLabel}>{editModeLabel}</span></span> : !assetOnly && <span className="image-node-model">{busy && Number.isFinite(generation.estimatedSeconds) && (generation.estimatedSeconds ?? 0) > 0
             ? <span className="image-node-estimate">~{Math.round(generation.estimatedSeconds!)}s</span>
-            : <><ImagePromptModelBrand brand={activeModel?.brand ?? 'openai'} /><span title={displayModelLabel}>{displayModelLabel}</span></>}</span>}
+            : <><ImagePromptModelBrand brand={modelBrand ?? activeModel?.brand ?? 'openai'} /><span title={displayModelLabel}>{displayModelLabel}</span></>}</span>}
           {tags.length > 0 && <span className="node-heading-tags" aria-label="节点颜色标记">{tags.map(tag => <span key={tag.id} className="node-tag-dot" style={{ background: tag.color }} title={tag.label} />)}</span>}
         </header>
 

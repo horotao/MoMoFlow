@@ -5,13 +5,14 @@ import { textPlugin, buildTextRequest } from './text.ts';
 import { captureMiddleware } from './testMiddleware.ts';
 import { readSse } from '../src/nodes/responseStream.ts';
 import { readTextResponse } from '../src/nodes/textGenerationClient.ts';
+import { deepSeekFlashModel } from '../src/nodes/textGeneration.ts';
 
 const input = { model: 'gpt-6.2-sol', prompt: '你好', images: [] };
 const png = 'data:image/png;base64,aGVsbG8=';
 const sse = (items: object[]) => new Response(items.map(item => `data: ${JSON.stringify(item)}\n\n`).join(''), { headers: { 'Content-Type': 'text/event-stream' } });
 const completed = (model = input.model, text = '你好，世界') => ({ type: 'response.completed', response: { id: 'resp_test', model, status: 'completed', output: [{ type: 'message', content: [{ type: 'output_text', text }] }] } });
 async function invoke(provider: typeof fetch, body: unknown = input, headers: Record<string, string> = {}, hook: 'configureServer' | 'configurePreviewServer' = 'configureServer', key = 'test-openai-key') {
-  const middleware = captureMiddleware(textPlugin(key, provider), hook);
+  const middleware = captureMiddleware(textPlugin({ openai: key, apimart: key ? 'test-apimart-key' : '' }, provider), hook);
   const server = createServer((req, res) => { void middleware(req, res, () => { res.writeHead(404); res.end(); }); });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
   try {
@@ -23,7 +24,9 @@ async function invoke(provider: typeof fetch, body: unknown = input, headers: Re
 
 test('all three Text model IDs produce Responses payloads with ordered text and image inputs', () => {
   for (const model of ['gpt-6.2-sol', 'gpt-6.1-terra', 'gpt-6-luna']) {
-    const body = buildTextRequest({ ...input, model, images: [png, png] });
+    const request = buildTextRequest({ ...input, model, images: [png, png] });
+    assert.equal(request.provider, 'openai');
+    const body = request.payload;
     assert.equal(body.model, model); assert.equal(body.stream, true); assert.equal(body.store, false);
     assert.deepEqual(body.reasoning, { effort: 'low' });
     assert.deepEqual(body.input[0].content, [{ type: 'input_text', text: '你好' }, { type: 'input_image', image_url: png, detail: 'auto' }, { type: 'input_image', image_url: png, detail: 'auto' }]);
@@ -106,7 +109,7 @@ test('SSE decoder handles split UTF-8, CRLF, multiline data and cancellation', a
 test('Text cancels the provider stream when the browser disconnects', async () => {
   let observedAbort!: () => void;
   const aborted = new Promise<void>(resolve => { observedAbort = resolve; });
-  const middleware = captureMiddleware(textPlugin('test-key', async (_url, options) => {
+  const middleware = captureMiddleware(textPlugin({ openai: 'test-key' }, async (_url, options) => {
     options?.signal?.addEventListener('abort', observedAbort, { once: true });
     return new Response(new ReadableStream<Uint8Array>({ start(controller) {
       controller.enqueue(new TextEncoder().encode('data: {"type":"response.output_text.delta","delta":"开始"}\n\n'));
@@ -134,8 +137,11 @@ test('Text rejects untrusted origins and invalid bodies before provider access',
 
 test('Text web search is opt-in for all three models and rejects malformed settings before provider access', async () => {
   for (const model of ['gpt-6.2-sol', 'gpt-6.1-terra', 'gpt-6-luna']) {
-    assert.equal(buildTextRequest({ ...input, model }).tools, undefined);
-    assert.equal(buildTextRequest({ ...input, model, webSearch: false }).tools, undefined);
+    for (const webSearch of [undefined, false]) {
+      const request = buildTextRequest({ ...input, model, webSearch });
+      assert.equal(request.provider, 'openai');
+      assert.equal(request.payload.tools, undefined);
+    }
     const result = await invoke(async (_url, options) => {
       const body = JSON.parse(String(options?.body));
       assert.deepEqual(body.tools, [{ type: 'web_search' }]);
@@ -148,6 +154,58 @@ test('Text web search is opt-in for all three models and rejects malformed setti
   for (const webSearch of ['true', 'enabled', 1, null, {}]) {
     assert.equal((await invoke(async () => { assert.fail('invalid setting must not reach provider'); }, { ...input, webSearch })).status, 400);
   }
+});
+
+test('DeepSeek streams Chat Completions through APIMart and saves usage with the answer', async () => {
+  const body = { ...input, model: deepSeekFlashModel, images: [png], reasoningEffort: 'medium', webSearch: true };
+  const chunk = { id: 'chatcmpl-test', model: deepSeekFlashModel };
+  const provider: typeof fetch = async (url, options) => {
+    assert.equal(url, 'https://api.apimart.ai/v1/chat/completions');
+    assert.equal(new Headers(options?.headers).get('authorization'), 'Bearer test-apimart-key');
+    assert.deepEqual(JSON.parse(String(options?.body)), {
+      model: deepSeekFlashModel, reasoning_effort: 'high', stream: true, max_tokens: 16384,
+      messages: [{ role: 'user', content: [{ type: 'text', text: input.prompt }, { type: 'image_url', image_url: { url: png } }] }],
+    });
+    const upstream = sse([
+      { ...chunk, choices: [{ delta: { reasoning_content: 'hide this' } }] },
+      { ...chunk, choices: [{ delta: { content: '你好' } }] },
+      { ...chunk, choices: [{ delta: { content: '！' }, finish_reason: 'stop' }] },
+      { ...chunk, choices: [], usage: { prompt_tokens: 31, completion_tokens: 9, prompt_cache_hit_tokens: 3, completion_tokens_details: { reasoning_tokens: 4 } } },
+    ]);
+    return new Response(await upstream.text() + 'data: [DONE]\n\n', { headers: upstream.headers });
+  };
+  const result = await invoke(provider, body);
+  assert.equal(result.status, 200);
+  assert.doesNotMatch(result.text, /hide this/);
+  const updates: string[] = [];
+  const output = await readTextResponse(new Response(result.text, { headers: result.headers }), new AbortController().signal, text => updates.push(text));
+  assert.deepEqual(updates, ['你好', '你好！', '你好！']);
+  assert.equal(output.model, deepSeekFlashModel);
+  assert.equal(output.responseId, 'chatcmpl-test');
+  assert.equal(output.reasoningEffort, 'high');
+  assert.equal(output.webSearch, false);
+  assert.equal(output.usage?.cachedTokens, 3);
+  assert.equal(output.usage?.reasoningTokens, 4);
+  assert.equal(output.billing, undefined);
+});
+
+test('DeepSeek uses APIMart BYOK credentials and preserves history on partial responses', async () => {
+  const body = { ...input, model: deepSeekFlashModel };
+  const headers = { 'x-momoflow-provider': 'apimart', 'x-momoflow-api-key': 'custom-apimart-key', 'x-momoflow-base-url': 'https://gateway.example/v1' };
+  const partial = { id: 'chatcmpl-test', choices: [{ delta: { content: 'partial' } }] };
+  for (const tail of [[], [{ choices: [{ finish_reason: 'length' }] }], [{ error: { message: 'bad custom-apimart-key' } }]]) {
+    const result = await invoke(async (url, options) => {
+      assert.equal(url, 'https://gateway.example/v1/chat/completions');
+      assert.equal(new Headers(options?.headers).get('authorization'), 'Bearer custom-apimart-key');
+      assert.deepEqual(JSON.parse(String(options?.body)).messages, [{ role: 'user', content: input.prompt }]);
+      return sse([partial, ...tail]);
+    }, body, headers);
+    assert.match(result.text, /"type":"error"/);
+    assert.doesNotMatch(result.text, /"type":"completed"|custom-apimart-key/);
+  }
+  const unused: typeof fetch = async () => { assert.fail('provider must not be contacted'); };
+  assert.equal((await invoke(unused, body, { ...headers, 'x-momoflow-provider': 'openai' })).status, 400);
+  assert.equal((await invoke(unused, body, {}, 'configureServer', '')).status, 503);
 });
 
 test('Text search streams text, carries safe citations across output parts and restores them in the client', async () => {

@@ -1,8 +1,9 @@
 import type { PromptModelSelection } from './ImagePromptModelMenu';
-import { textModels, textModelSelection, defaultTextModel } from '../../nodes/textGeneration.ts';
+import { textModels, defaultTextModel } from '../../nodes/textGeneration.ts';
 export { textModels };
-export function textModelLabel(selection: PromptModelSelection) {
-  const current = textModelSelection(selection);
-  return current.autoSelect ? '自动选择模型' : current.modelIds.length > 1 ? `${current.modelIds.length} 个模型`
-    : textModels.find(model => model.id === current.modelIds[0])?.name ?? textModels.find(model => model.id === defaultTextModel)!.name;
+export function textModelDisplay({ autoSelect, modelIds }: PromptModelSelection) {
+  if (autoSelect) return { label: '自动选择模型', brand: 'openai' };
+  if (modelIds.length > 1) return { label: `${modelIds.length} 个模型`, brand: 'openai' };
+  const model = textModels.find(model => model.id === modelIds[0]) ?? textModels.find(model => model.id === defaultTextModel)!;
+  return { label: model.name, brand: model.brand };
 }

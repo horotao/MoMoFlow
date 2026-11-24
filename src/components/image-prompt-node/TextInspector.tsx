@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import { useReactFlow, useStore } from '@xyflow/react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { isCanvasTextNode, type AppNode, type CanvasText, type TextGenerationResult } from '../../nodes/types';
-import { estimateCanvasTextCost, isTextReasoningEffort, textHistory, textModelSelection, textReasoningEfforts } from '../../nodes/textGeneration';
+import { deepSeekFlashModel, deepSeekReasoningEfforts, estimateCanvasTextCost, isTextReasoningEffort, textHistory, textModelEffort, textModelSelection, textReasoningEfforts } from '../../nodes/textGeneration';
 import { useVisibleCanvasText } from '../../nodes/visibleCanvasText';
 import { readTextBilling, textBillingDescription, textCostLabel } from '../../nodes/textPricing';
 import { imageDateLabel } from '../../nodes/imageMetadata';
@@ -75,19 +75,24 @@ function TextGenerationOptions({ nodeId, data }: { nodeId: string; data: CanvasT
   const estimatedUsd = useStore(state => estimateCanvasTextCost(nodeId, state.nodes as AppNode[], state.edges));
   const composer = data.textComposer;
   const selection = textModelSelection(composer.selection);
-  const luna = selection.modelIds.length === 1 && selection.modelIds[0] === 'gpt-6-luna';
+  const modelId = !selection.autoSelect && selection.modelIds.length === 1 ? selection.modelIds[0] : undefined;
+  const luna = modelId === 'gpt-6-luna';
+  const deepSeek = modelId === deepSeekFlashModel;
+  const effort = composer.reasoningEffort ?? 'low';
+  const costBasis = deepSeek ? 'APIMart 公布的 Gold 基准价' : 'OpenAI 官方标准价';
   return <GenerationOptionsPanel label="生成选项" className="text-generation-options">
     <TextModelPicker appearance="inspector" selection={selection} locked={data.locked}
       onChange={selection => { if (!data.locked) updateNodeData(nodeId, { textComposer: { ...composer, selection } }); }} />
     <div className="generation-option-row"><span>思考强度</span><GenerationOptionSelect label="思考强度"
-      value={composer.reasoningEffort ?? 'low'} choices={luna ? ['none', ...textReasoningEfforts] : textReasoningEfforts}
-      labels={[...(luna ? ['无'] : []), '低', '中', '高', '超高', '最高']} disabledChoices={['none']}
+      value={deepSeek ? textModelEffort(deepSeekFlashModel, effort) : effort}
+      choices={deepSeek ? deepSeekReasoningEfforts : luna ? ['none', ...textReasoningEfforts] : textReasoningEfforts}
+      labels={deepSeek ? ['低', '高', '最高'] : [...(luna ? ['无'] : []), '低', '中', '高', '超高', '最高']} disabledChoices={['none']}
       disabled={data.locked} onChange={reasoningEffort => {
         if (!data.locked && isTextReasoningEffort(reasoningEffort)) updateNodeData(nodeId, { textComposer: { ...composer, reasoningEffort } });
       }} /></div>
-    <div className="generation-option-row"><span>网络搜索</span><GenerationOptionSelect label="网络搜索"
+    {!deepSeek && <div className="generation-option-row"><span>网络搜索</span><GenerationOptionSelect label="网络搜索"
       value={composer.webSearch ? 'enabled' : 'disabled'} choices={['disabled', 'enabled']} labels={['关闭', '开启']} disabled={data.locked}
-      onChange={value => { if (!data.locked) updateNodeData(nodeId, { textComposer: { ...composer, webSearch: value === 'enabled' } }); }} /></div>
-    <div className="generation-options-cost"><span>预计费用<ImagePromptInfoTip label="文本生成费用">{`整批 ${composer.quantity} 份的美元估算，按 OpenAI 官方标准价计算。输入含上游文字与参考图的近似 token，预估每份输出 512 tokens，并按思考强度计入推理预算；开启搜索时按每份 1 次搜索及近似搜索内容估算。实际输出长度、搜索次数和缓存命中会影响费用；自定义渠道价格与税费可能不同。`}</ImagePromptInfoTip></span><span>{textCostLabel(estimatedUsd, true)}</span></div>
+      onChange={value => { if (!data.locked) updateNodeData(nodeId, { textComposer: { ...composer, webSearch: value === 'enabled' } }); }} /></div>}
+    <div className="generation-options-cost"><span>预计费用<ImagePromptInfoTip label="文本生成费用">{`整批 ${composer.quantity} 份的美元估算，按${costBasis}计算。输入含上游文字与参考图的近似 token，预估每份输出 512 tokens，并按思考强度计入推理预算。${deepSeek ? '实际费用会随账户费率、缓存命中及输出长度变化。' : '开启搜索时按每份 1 次搜索及近似搜索内容估算。实际输出长度、搜索次数和缓存命中会影响费用，自定义渠道价格与税费可能不同。'}`}</ImagePromptInfoTip></span><span>{textCostLabel(estimatedUsd, true)}</span></div>
   </GenerationOptionsPanel>;
 }

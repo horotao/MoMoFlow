@@ -4,7 +4,7 @@
 
 | 节点 | 存储类型 | 组件 | 输入与输出 |
 | --- | --- | --- | --- |
-| Text | `text` | [CanvasTextNode](CanvasTextNode.tsx) | `text` 接收上游文本，`image-0` 至 `image-15` 接收图片；`text` 输出当前选中的已完成文本；尚未生成时直接输出手写提示词。接入 GPT-6.2 Sol、GPT-6.1 Terra 和 GPT-6 Luna，连入文本和图片时显示共用参考缩略图，可开启网络搜索并显示可点击来源，每次可生成 1–20 份流式结果并进入历史；支持 @ 提及画布图片并自动连接；其余辅助图标为占位。 |
+| Text | `text` | [CanvasTextNode](CanvasTextNode.tsx) | `text` 接收上游文本，`image-0` 至 `image-15` 接收图片；`text` 输出当前选中的已完成文本；尚未生成时直接输出手写提示词。接入 GPT-6.2 Sol、GPT-6.1 Terra、GPT-6 Luna 和 APIMart 的 DeepSeek V4.1 Flash。GPT 模型可开启网络搜索并显示可点击来源。连入文本和图片时显示共用参考缩略图，每次可生成 1–20 份流式结果并进入历史；支持 @ 提及画布图片并自动连接；其余辅助图标为占位。 |
 | Image | `sunburst` | [CanvasImageNode](CanvasImageNode.tsx) | `prompt` 接收 Text，替代节点内提示词；最多接入 16 张参考图。`result` 输出当前选中的结果。局部重绘版本固定使用保存的原图与蒙版，输出沿用 `result`。 |
 | 群组 | `canvas-group` | [CanvasGroupNode](CanvasGroupNode.tsx) | 通过多选工具栏创建画布框，成员保留原有端口和连接。群组无输入或输出。 |
 

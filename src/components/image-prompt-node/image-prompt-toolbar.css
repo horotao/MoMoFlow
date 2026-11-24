@@ -14,4 +14,4 @@
 
 .image-node-toolbar button[aria-expanded=true] { background: var(--node-fill); }
 .image-node:has(.image-node-toolbar [aria-expanded=true]) .image-node-toolbar-bridge { opacity: 1; visibility: visible; transform: translate(-50%, 0); pointer-events: auto; }
-.image-node-toolbar-label > .image-model-google { width: 14px; height: 14px; }
+.image-node-toolbar-label > .image-model-logo { width: 14px; height: 14px; }

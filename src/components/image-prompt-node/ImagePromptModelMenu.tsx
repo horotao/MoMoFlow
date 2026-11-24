@@ -6,11 +6,15 @@ import { ImagePromptIcon } from './ImagePromptIcon';
 import './image-prompt-model-menu.css';
 
 export function ImagePromptModelBrand({ brand }: { brand: string }) {
-  return brand === 'openai' ? <ImagePromptIcon name="model-openai" /> : <img className="image-model-google" src={brand === 'bytedance' ? new URL('./assets/bytedance.svg', import.meta.url).href : new URL('./assets/google.svg', import.meta.url).href} alt="" />;
+  if (brand === 'openai') return <ImagePromptIcon name="model-openai" />;
+  const src = brand === 'deepseek' ? new URL('./assets/deepseek.svg', import.meta.url).href
+    : brand === 'bytedance' ? new URL('./assets/bytedance.svg', import.meta.url).href
+      : new URL('./assets/google.svg', import.meta.url).href;
+  return <img className="image-model-logo" src={src} alt="" />;
 }
 
 export interface PromptModelOption<Id extends string = string> {
-  id: Id; name: string; brand: string; time: string; description: string; isNew?: boolean;
+  id: Id; name: string; brand: string; time?: string; channel?: string; description: string; isNew?: boolean;
 }
 export interface PromptModelSelection<Id extends string = string> {
   modelIds: Id[]; autoSelect: boolean; multiple: boolean;
@@ -39,7 +43,7 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
   const titleId = useId();
   const autoSelectId = useId();
   const multipleId = useId();
-  const filtered = models.filter(model => `${model.name} ${model.brand} ${model.description}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const filtered = models.filter(model => `${model.name} ${model.brand} ${model.channel ?? ''} ${model.description}`.toLowerCase().includes(query.trim().toLowerCase()));
 
   useLayoutEffect(() => {
     function place() {
@@ -101,7 +105,7 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
           <span className="image-model-copy">
             <span className="image-model-name-line"><span className="image-model-name">{model.name}</span>
               {model.isNew && <span className="image-model-new">新</span>}
-              <span className="image-model-time">{model.time}</span>
+              <span className="image-model-time">{model.channel ?? model.time}</span>
               <span className="image-model-capability" title={label === '选择文本模型' ? '文本输入' : '文生图'}><ImagePromptIcon name="model-text" /></span>
               <span className="image-model-capability" title={label === '选择文本模型' ? '图片输入' : '图生图'}><ImagePromptIcon name="model-image" /></span>
             </span>

@@ -13,7 +13,7 @@ import { usePublishTextGeneration, usePublishVisibleText } from './visibleCanvas
 import { textInputReferences, textReferenceEdges } from './textReferences';
 import { prepareTextRequest, runTextBatch, type TextBatchItem } from './textGenerationClient';
 import { completeTextBatchResult, selectTextResult, textGenerationInput, textHistory, textModelSelection } from './textGeneration';
-import { textModelLabel } from '../components/image-prompt-node/textModels';
+import { textModelDisplay } from '../components/image-prompt-node/textModels';
 import { imageInputHandles, isImageInputHandle } from './connectionRules';
 import { isCanvasTextNode, isNodeLocked, type AppNode, type SunburstNode, type CanvasText, type TextComposerData } from './types';
 import { canvasTextRunEvent, type CanvasTextRunRequest } from './canvasTextRun';
@@ -177,9 +177,10 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
       : item.error ? <span title={item.error}><ImagePromptIcon name="info" /></span> : <ImagePromptIcon name="history-text" /> })) ?? []),
   ];
   const format = composer.format;
+  const model = textModelDisplay(composer.selection);
   const controls = { locked: Boolean(data.locked), onLockedChange: (locked: boolean) => updateNodeData(id, { locked }) };
   return <div className="canvas-image-mount canvas-text-mount" style={{ width: 384, height: 384 }}>
-    <ImagePromptNode kind="text" {...controls} title={data.label || 'Text'} modelLabel={textModelLabel(composer.selection)}
+    <ImagePromptNode kind="text" {...controls} title={data.label || 'Text'} modelLabel={model.label} modelBrand={model.brand}
       onTitleChange={label => {
         const node = getNode(id);
         if (node && !isNodeLocked(node)) updateNodeData(id, { label });

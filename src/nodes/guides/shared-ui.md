@@ -96,6 +96,8 @@ Text 选中时使用 [TextInspector](../../components/image-prompt-node/TextInsp
 
 思考强度低／中／高／超高／最高 对应 Responses `reasoning.effort` 的 `low`／`medium`／`high`／`xhigh`／`max`；新建默认中，缺少该字段的旧节点继续低。Luna 菜单中的「无」 仅为禁用占位，避免提交未经支持的值。参数写入 `textComposer.reasoningEffort`，生成记录保存实际使用值，切换历史恢复。思考强度下方增加「网络搜索」行，复用参数下拉显示「关闭／开启」，遵循 Flora 搜索选项的 40px 行高、12px 间隔和 12px 圆角菜单、悬停、选中、键盘及动效规则。默认关闭，选择后只保存设置，手动发送才运行；锁定禁用编辑，菜单可用 Escape 关闭并恢复焦点。「预计费用」随当前模型、提示词（含上游文本与参考图）、思考强度、搜索开关和生成数量更新，前缀 `≈` 标明估算；悬停信息按钮查看假设。修改设置不重算历史的本次花费，也不会自动生成。
 
+DeepSeek V4.1 Flash 在模型菜单默认置顶并标注 APIMart，检查器显示低／高／最高三档，对应 Chat Completions 的 `reasoning_effort`。从 GPT 切换时，中和超高分别显示为高和最高。网络搜索仅在 GPT 模型的生成选项可用。
+
 
 ## Image 的 Prompt 输入
 

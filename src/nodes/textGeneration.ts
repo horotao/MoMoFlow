@@ -7,19 +7,27 @@ import { selectedImageResult } from './annotationGraph.ts';
 import { numberedMentionPrompt } from './promptMentionText.ts';
 import { isCanvasImageNode, isCanvasTextNode, type AppNode, type CanvasText, type TextComposerData, type TextGenerationResult, type TextReasoningEffort, type TextCitation } from './types.ts';
 
+export const deepSeekFlashModel = 'deepseek-v4.1-flash';
 export const textModels = [
   { id: 'gpt-6.2-sol', name: 'GPT-6.2 Sol', brand: 'openai', time: '约 20 秒', description: '适合日常写作、代码与综合推理。' },
   { id: 'gpt-6.1-terra', name: 'GPT-6.1 Terra', brand: 'openai', time: '约 20 秒', description: '适合图片理解、视觉推理和自然文字表达。' },
   { id: 'gpt-6-luna', name: 'GPT-6 Luna', brand: 'openai', time: '约 10 秒', description: '适合快速、轻量的文本任务。' },
+  { id: deepSeekFlashModel, name: 'DeepSeek V4.1 Flash', brand: 'deepseek', channel: 'APIMart', description: '适合图片理解、代码和轻量推理。' },
 ] as const;
 export type TextModelId = typeof textModels[number]['id'];
 export const defaultTextModel: TextModelId = 'gpt-6.2-sol';
 export const isTextModel = (value: unknown): value is TextModelId => textModels.some(model => model.id === value);
+export const textModelProvider = (model: TextModelId) => model === deepSeekFlashModel ? 'apimart' : 'openai';
 const legacyModels: Record<string, TextModelId> = { 'gpt-4.1': defaultTextModel, 'gpt-4o': 'gpt-6.1-terra', 'o4-mini': 'gpt-6-luna' };
 export function textModelSelection(selection: TextComposerData['selection']): TextComposerData['selection'] {
   return { ...selection, modelIds: selection.modelIds.map(id => legacyModels[id] ?? id) };
 }
 export const textReasoningEfforts = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
+export const deepSeekReasoningEfforts = ['low', 'high', 'max'] as const;
+const deepSeekEffort: Record<TextReasoningEffort, typeof deepSeekReasoningEfforts[number]> = {
+  low: 'low', medium: 'high', high: 'high', xhigh: 'max', max: 'max',
+};
+export const textModelEffort = (model: TextModelId, effort: TextReasoningEffort) => model === deepSeekFlashModel ? deepSeekEffort[effort] : effort;
 export const isTextReasoningEffort = (value: unknown): value is TextReasoningEffort => textReasoningEfforts.some(effort => effort === value);
 export type TextRequest = { model: TextModelId; prompt: string; images: string[]; reasoningEffort?: TextReasoningEffort; webSearch?: boolean };
 export type TextResult = { text: string; model: TextModelId; responseId: string; reasoningEffort?: TextReasoningEffort; webSearch?: boolean; citations?: TextCitation[]; usage?: TextUsage; billing?: TextBilling };
@@ -81,7 +89,7 @@ export function textGenerationInput(id: string, nodes: AppNode[], edges: Edge[])
   const selection = textModelSelection(composer.selection);
   if (selection.autoSelect || selection.multiple || selection.modelIds.length !== 1) throw new Error('请直接选择一个文本模型；自动选择和多模型暂未接入。');
   const model = selection.modelIds[0];
-  if (!isTextModel(model)) throw new Error('请选择 GPT-6.2 Sol、GPT-6.1 Terra 或 GPT-6 Luna。');
+  if (!isTextModel(model)) throw new Error('请选择受支持的文本模型。');
   const quantity = textQuantity(composer.quantity);
   const imageInputs = edges.filter(edge => edge.target === id && isImageInputHandle(edge.targetHandle))
     .sort((a, b) => imageInputHandles.indexOf(a.targetHandle!) - imageInputHandles.indexOf(b.targetHandle!)).map(edge => {
@@ -104,7 +112,7 @@ export function textGenerationInput(id: string, nodes: AppNode[], edges: Edge[])
   if (!isTextReasoningEffort(reasoningEffort)) throw new Error('请选择受支持的思考强度。');
   const webSearch = composer.webSearch ?? false;
   if (typeof webSearch !== 'boolean') throw new Error('网络搜索设置无效。');
-  return { model, prompt, images, quantity, reasoningEffort, webSearch };
+  return { model, prompt, images, quantity, reasoningEffort: textModelEffort(model, reasoningEffort), webSearch: model !== deepSeekFlashModel && webSearch };
 }
 
 /** Preview uses current graph inputs without applying run validation or sending requests. */
@@ -122,5 +130,5 @@ export function estimateCanvasTextCost(id: string, nodes: AppNode[], edges: Edge
   });
   return estimateTextCost(model, [...upstream, composer.prompt].join('\n\n'),
     edges.filter(edge => edge.target === id && isImageInputHandle(edge.targetHandle)).length,
-    composer.quantity, composer.reasoningEffort ?? 'low', composer.webSearch ?? false);
+    composer.quantity, textModelEffort(model, composer.reasoningEffort ?? 'low'), model !== deepSeekFlashModel && Boolean(composer.webSearch));
 }

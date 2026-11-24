@@ -22,7 +22,7 @@
 .image-model-row:focus-within { background: #fafaf212; }
 .image-model-option { display: flex; align-items: flex-start; gap: 8px; width: 100%; min-width: 0; padding: 8px 34px 8px 8px !important; border-radius: 12px; text-align: left; }
 .image-model-brand { display: grid; flex: none; place-items: center; width: 24px; height: 24px; padding: 5px; border-radius: 8px; background: #fafaf223; }
-.image-model-google { display: block; flex: none; width: 14px; height: 14px; object-fit: contain; }
+.image-model-logo { display: block; flex: none; width: 14px; height: 14px; object-fit: contain; }
 .image-model-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; }
 .image-model-name-line { display: flex; align-items: center; gap: 4px; height: 18px; white-space: nowrap; }
 .image-model-name { overflow: hidden; text-overflow: ellipsis; font-size: 14px; line-height: 17.5px; }

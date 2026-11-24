@@ -2,15 +2,15 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { providerConnection } from './apiCredentials.ts';
 import { diagnosticText, readErrorDiagnostic, trusted } from './providerDiagnostics.ts';
-import { isTextModel, isTextReasoningEffort } from '../src/nodes/textGeneration.ts';
+import { deepSeekFlashModel, isTextModel, isTextReasoningEffort, textModelEffort } from '../src/nodes/textGeneration.ts';
 import { readSse } from '../src/nodes/responseStream.ts';
-import { textBilling } from '../src/nodes/textPricing.ts';
+import { chatCompletionUsage, textBilling, type TextUsage } from '../src/nodes/textPricing.ts';
 import { textCitations } from '../src/nodes/textCitations.ts';
 
 export function buildTextRequest(value: unknown) {
   if (!value || typeof value !== 'object') throw new Error('请求格式无效。');
   const input = value as Record<string, unknown>;
-  if (!isTextModel(input.model)) throw new Error('请选择受支持的 OpenAI 文本模型。');
+  if (!isTextModel(input.model)) throw new Error('请选择受支持的文本模型。');
   if (typeof input.prompt !== 'string' || !input.prompt.trim() || input.prompt.length > 128000) throw new Error('提示词不能为空，最多 128000 个字符。');
   if (!Array.isArray(input.images) || input.images.length > 16) throw new Error('最多接入 16 张图片。');
   const effort = input.reasoningEffort ?? 'low';
@@ -18,11 +18,19 @@ export function buildTextRequest(value: unknown) {
   if (input.webSearch !== undefined && typeof input.webSearch !== 'boolean') throw new Error('网络搜索设置无效。');
   const images = input.images.map(image => {
     if (typeof image !== 'string' || image.length > 44 * 1024 * 1024 || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(image)) throw new Error('参考图需为 PNG、JPEG 或 WebP 图片。');
-    return { type: 'input_image' as const, image_url: image, detail: 'auto' as const };
+    return image;
   });
-  return { model: input.model, input: [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: input.prompt }, ...images] }],
+  if (input.model === deepSeekFlashModel) {
+    const reasoningEffort = textModelEffort(input.model, effort);
+    const content = images.length ? [{ type: 'text', text: input.prompt }, ...images.map(url => ({ type: 'image_url', image_url: { url } }))] : input.prompt;
+    return { provider: 'apimart' as const, payload: { model: input.model, messages: [{ role: 'user', content }],
+      reasoning_effort: reasoningEffort, stream: true, max_tokens: 16384 } };
+  }
+  return { provider: 'openai' as const, payload: {
+    model: input.model, input: [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: input.prompt },
+      ...images.map(image_url => ({ type: 'input_image' as const, image_url, detail: 'auto' as const }))] }],
     reasoning: { effort }, ...(input.webSearch ? { tools: [{ type: 'web_search' as const }] } : {}),
-    stream: true, store: false, max_output_tokens: 16384 };
+    stream: true, store: false, max_output_tokens: 16384 } };
 }
 function responseContent(value: unknown) {
   const result = value as { output?: { type?: string; content?: { type?: string; text?: string; annotations?: {
@@ -40,7 +48,34 @@ function responseContent(value: unknown) {
   }
   return { text, citations: textCitations(annotations, text) };
 }
-export function createTextMiddleware(openaiKey: string, providerFetch: typeof fetch = fetch) {
+async function readChatCompletion(body: ReadableStream<Uint8Array>, signal: AbortSignal, apiKey: string, onDelta: (delta: string) => void) {
+  let text = '';
+  let responseId: string | undefined;
+  let completed = false;
+  let usage: TextUsage | undefined;
+  for await (const item of readSse(body, signal)) {
+    if (item.error || item.type === 'error') {
+      const error = item.error as { message?: unknown } | undefined;
+      throw new Error(diagnosticText(error?.message ?? item.message ?? item.error, apiKey) ?? 'APIMart 未完成生成。');
+    }
+    if (typeof item.id === 'string' && item.id) responseId ??= item.id;
+    usage = chatCompletionUsage(item.usage) ?? usage;
+    const [choice] = Array.isArray(item.choices) ? item.choices : [];
+    if (typeof choice?.delta?.content === 'string' && choice.delta.content) {
+      text += choice.delta.content;
+      if (text.length > 2 * 1024 * 1024) throw new Error('结果过长，已停止读取。');
+      onDelta(choice.delta.content);
+    }
+    if (choice?.finish_reason === 'stop') completed = true;
+    else if (choice?.finish_reason) {
+      throw new Error(choice.finish_reason === 'length' ? '结果达到输出上限，原有结果已保留。' : 'APIMart 未完成生成，原有结果已保留。');
+    }
+  }
+  if (!completed || !responseId || !text.trim()) throw new Error('APIMart 未返回完整文本，原有结果已保留。');
+  return { text, responseId, ...(usage ? { usage } : {}) };
+}
+
+export function createTextMiddleware(defaultKeys: Partial<Record<'openai' | 'apimart', string>>, providerFetch: typeof fetch = fetch) {
   return async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (req.url?.split('?')[0] !== '/api/text') return next();
     const send = (status: number, error: string) => {
@@ -54,7 +89,7 @@ export function createTextMiddleware(openaiKey: string, providerFetch: typeof fe
     const timeout = setTimeout(() => controller.abort(), 300000);
     const close = () => { if (!res.writableEnded) controller.abort(); };
     res.on('close', close);
-    let apiKey = ''; let streaming = false;
+    let apiKey = ''; let streaming = false; let channel = '文本服务';
     const event = (value: object) => { if (!res.destroyed && !res.writableEnded) res.write(`data: ${JSON.stringify(value)}\n\n`); };
     try {
       const chunks: Buffer[] = []; let bytes = 0;
@@ -63,26 +98,34 @@ export function createTextMiddleware(openaiKey: string, providerFetch: typeof fe
         if (bytes > 64 * 1024 * 1024) return send(413, '参考图片总大小过大。');
         chunks.push(Buffer.from(chunk));
       }
-      let payload: ReturnType<typeof buildTextRequest>;
-      try { payload = buildTextRequest(JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
+      let request: ReturnType<typeof buildTextRequest>;
+      try { request = buildTextRequest(JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
       catch (error) { return send(400, error instanceof Error ? error.message : '请求格式错误。'); }
+      const { provider, payload } = request;
+      const isApimart = provider === 'apimart';
+      channel = isApimart ? 'APIMart' : 'OpenAI';
       let connection;
-      try { connection = providerConnection(req, 'openai', openaiKey, providerFetch); }
-      catch { return send(400, 'OpenAI 配置无效，请重新保存 API 设置。'); }
+      try { connection = providerConnection(req, provider, defaultKeys[provider] ?? '', providerFetch); }
+      catch { return send(400, `${channel} 配置无效，请重新保存 API 设置。`); }
       apiKey = connection.apiKey;
-      if (!apiKey) return send(503, '请在 API 设置填写 OpenAI Key，或配置 OPENAI_API_KEY 后重启开发服务器。');
-      const upstream = await connection.fetch(`${connection.baseUrl}/responses`, {
+      if (!apiKey) return send(503, `请在 API 设置填写 ${channel} Key，或配置 ${isApimart ? 'APIMART_API_KEY' : 'OPENAI_API_KEY'} 后重启开发服务器。`);
+      const upstream = await connection.fetch(`${connection.baseUrl}/${isApimart ? 'chat/completions' : 'responses'}`, {
         method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', Accept: 'text/event-stream' },
         body: JSON.stringify(payload), signal: controller.signal, redirect: 'error',
       });
       if (!upstream.ok) {
         const diagnostic = await readErrorDiagnostic(upstream, apiKey);
-        const messages: Record<number, string> = { 401: 'OpenAI Key 无效。', 403: '当前 Key 无权访问此模型。', 429: 'OpenAI 配额不足或请求受限。' };
-        return send(upstream.status, [messages[upstream.status] ?? `OpenAI 请求失败（${upstream.status}）。`, diagnostic.message].filter(Boolean).join('\n'));
+        const messages: Record<number, string> = { 401: `${channel} Key 无效。`, 402: `${channel} 余额不足。`, 403: '当前 Key 无权访问此模型。', 429: `${channel} 配额不足或请求受限。` };
+        return send(upstream.status, [messages[upstream.status] ?? `${channel} 请求失败（${upstream.status}）。`, diagnostic.message].filter(Boolean).join('\n'));
       }
-      if (!upstream.body || !upstream.headers.get('content-type')?.includes('text/event-stream')) return send(502, 'OpenAI 未返回有效的流式响应。');
+      if (!upstream.body || !upstream.headers.get('content-type')?.includes('text/event-stream')) return send(502, `${channel} 未返回有效的流式响应。`);
       res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', 'X-Accel-Buffering': 'no' });
       res.flushHeaders?.(); streaming = true;
+      if (isApimart) {
+        const result = await readChatCompletion(upstream.body, controller.signal, apiKey, delta => event({ type: 'delta', delta }));
+        event({ type: 'completed', ...result, model: payload.model, reasoningEffort: payload.reasoning_effort, webSearch: false });
+        res.end(); return;
+      }
       let text = '';
       for await (const item of readSse(upstream.body, controller.signal)) {
         if (item.type === 'response.output_text.delta' && typeof item.delta === 'string') {
@@ -107,7 +150,7 @@ export function createTextMiddleware(openaiKey: string, providerFetch: typeof fe
       throw new Error('生成连接中断，未收到完成确认。');
     } catch (error) {
       const message = controller.signal.aborted ? '生成超时或已取消；已提交请求仍可能计费，不会自动重试。'
-        : diagnosticText(error instanceof Error ? error.message : undefined, apiKey) ?? '无法取得 OpenAI 文本结果。';
+        : diagnosticText(error instanceof Error ? error.message : undefined, apiKey) ?? `无法取得 ${channel} 文本结果。`;
       if (streaming) { event({ type: 'error', message }); if (!res.destroyed) res.end(); }
       else send(502, message);
     } finally { clearTimeout(timeout); res.off('close', close); }
@@ -115,5 +158,5 @@ export function createTextMiddleware(openaiKey: string, providerFetch: typeof fe
 }
 export function textPlugin(...args: Parameters<typeof createTextMiddleware>): Plugin {
   const middleware = createTextMiddleware(...args);
-  return { name: 'openai-text', configureServer(server) { server.middlewares.use(middleware); }, configurePreviewServer(server) { server.middlewares.use(middleware); } };
+  return { name: 'text-generation', configureServer(server) { server.middlewares.use(middleware); }, configurePreviewServer(server) { server.middlewares.use(middleware); } };
 }

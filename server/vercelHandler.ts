@@ -7,7 +7,7 @@ import { trustedDeploymentRequest } from './providerDiagnostics.ts';
 
 // Never load server/default credentials in the hosted BYOK deployment.
 const handlers = [
-  createTextMiddleware(''),
+  createTextMiddleware({}),
   createApiSettingsMiddleware({ openai: '', apimart: '', deepseek: '' }),
   createApimartMiddleware(''),
   createSunburstMiddleware(''),

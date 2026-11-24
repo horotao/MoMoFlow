@@ -8,6 +8,8 @@ export const textPrices: Record<TextModelId, TextRates> = {
   'gpt-6.2-sol': { input: 2, cached: .1, write30m: 2.5, write12h: 5, output: 10, search: .01 },
   'gpt-6.1-terra': { input: 1, cached: .05, write30m: 1.25, write12h: 2.5, output: 5, search: .01 },
   'gpt-6-luna': { input: .1, cached: .01, write30m: .125, write12h: .25, output: .5, search: .01 },
+  // APIMart Gold reference rates. Membership and account overrides affect actual billing.
+  'deepseek-v4.1-flash': { input: .22857, cached: .00453, write30m: 0, write12h: 0, output: .91429, search: 0 },
 };
 export interface TextUsage {
   inputTokens: number; cachedTokens: number; write30mTokens: number; write12hTokens: number;
@@ -45,6 +47,14 @@ export function responseTextUsage(value: unknown, webSearch: boolean): TextUsage
     write30mTokens, write12hTokens, outputTokens: usage.output_tokens,
     reasoningTokens: record(usage.output_tokens_details).reasoning_tokens ?? 0,
     searchRequests: count(searchUsage.num_requests) ? searchUsage.num_requests : !webSearch || noSearch ? 0 : undefined });
+}
+
+export function chatCompletionUsage(value: unknown): TextUsage | undefined {
+  const usage = record(value);
+  return readTextUsage({ inputTokens: usage.prompt_tokens, outputTokens: usage.completion_tokens,
+    cachedTokens: record(usage.prompt_tokens_details).cached_tokens ?? usage.prompt_cache_hit_tokens ?? 0,
+    reasoningTokens: record(usage.completion_tokens_details).reasoning_tokens ?? 0,
+    write30mTokens: 0, write12hTokens: 0, searchRequests: 0 });
 }
 
 function bill(usage: TextUsage, rates: TextRates) {
