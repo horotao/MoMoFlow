@@ -68,6 +68,7 @@ export const imageSizes = ['auto', '1024x1024', '1536x1024', '1024x1536', '1536x
 export const imageSizeLabels = ['自动', '1:1', '3:2', '2:3', '4:3', '3:4', '5:4', '4:5', '16:9', '9:16', '21:9', '2:1', '1:2', '3:1', '1:3', '9:21'];
 export const sunburstResolutions = ['1K', '2K', '4K'] as const;
 export type SunburstResolution = typeof sunburstResolutions[number];
+export const extImageOutputCredits = { '1K': 0.085, '2K': 0.3, '4K': 0.4 } satisfies Record<SunburstResolution, number>;
 
 // Keep size as the single saved/API value. Resolution presets preserve the exact
 // aspect ratio and align both edges to 16 within OpenAI's edge and pixel limits.

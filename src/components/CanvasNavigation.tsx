@@ -3,8 +3,9 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Panel, useReactFlow, useStore } from '@xyflow/react';
 import { cubicBezier } from 'motion';
 import { motion, useSpring, useTransform, type MotionValue } from 'motion/react';
-import { memo, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type MutableRefObject } from 'react';
+import { memo, useCallback, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type MutableRefObject } from 'react';
 import { spring } from '../lib/springs';
+import { ApimartBalance } from './ApimartBalance';
 import { CanvasMinimap } from './CanvasMinimap';
 import { minimapSize } from './minimapGeometry';
 import './CanvasNavigation.css';
@@ -54,6 +55,9 @@ function ZoomReadout({ percent, reducedMotion }: { percent: number; reducedMotio
   const rolling = useSpring(percent, { visualDuration: spring.fast.duration, bounce: spring.fast.bounce });
   const position = useTransform(rolling, value => Math.max(minPercent, Math.min(maxPercent, value)));
 
+  const subscribe = useCallback((notify: () => void) => rolling.on('change', notify), [rolling]);
+  const isRolling = useSyncExternalStore(subscribe, () => !reducedMotion && rolling.get() !== percent);
+
   useLayoutEffect(() => {
     if (reducedMotion) rolling.jump(percent);
     else rolling.set(percent);
@@ -61,7 +65,9 @@ function ZoomReadout({ percent, reducedMotion }: { percent: number; reducedMotio
 
   return <span className="navigation-readout" aria-hidden="true">
     <span className="navigation-digits">
-      {digitPlaces.map(place => <ZoomDigit key={place} place={place} position={position} />)}
+      {isRolling
+        ? digitPlaces.map(place => <ZoomDigit key={place} place={place} position={position} />)
+        : percent}
     </span>
     <span className="navigation-percent-sign">%</span>
   </span>;
@@ -176,6 +182,7 @@ export function CanvasNavigation({ pendingZoom }: { pendingZoom: MutableRefObjec
         <HugeiconsIcon icon={MapIcon} size={17} aria-hidden="true" />
       </button>
     </div>
+    <ApimartBalance />
     <div className="navigation-map-reveal" id={mapId} aria-hidden={!mapOpen}
       onPointerDownCapture={() => { pendingZoom.current = null; }}
       onWheelCapture={() => { pendingZoom.current = null; }}>

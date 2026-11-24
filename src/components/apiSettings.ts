@@ -32,6 +32,7 @@ export function readApiSettings(storage?: Pick<Storage, 'getItem'>): ApiSettings
 }
 export function saveApiSettings(settings: ApiSettings, storage: Pick<Storage, 'setItem'> = localStorage) {
   storage.setItem(apiSettingsStorageKey, JSON.stringify(settings));
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(apiSettingsStorageKey));
 }
 
 export function apiCredentialHeaders(provider: ApiProvider): Record<string, string> {

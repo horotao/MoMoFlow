@@ -12,6 +12,12 @@ Seedream、Nano Banana 2.1、Nano Banana Pro 和 Kling V4 Image 的高级设置�
 
 GPT Image 的「渠道商」可选 OpenAI 官方、APIMart 标准和 APIMart EXT。切换时同步转换尺寸并保留分辨率，随节点保存且可撤销。新建 Image 的初始配置为 APIMart EXT、Sunburst、1:1、1K、中等画质、PNG。旧项目按已保存的渠道恢复，早期未指定版本的 APIMart 节点按 EXT 恢复。两种 APIMart 渠道共用左侧「更多 → API 设置」中的 APIMart 凭据。Seedream 与 Nano Banana 使用各自的 APIMart 接口。
 
+Seedream 5.5 的预计费用按 APIMart 黄金价计算。每张输出的 1.5K 费用为 0.16 积分，2K 为 0.28 积分；每次生成另计每张参考图 0.064 积分，再按生成张数合计。
+
+APIMart EXT 渠道的 Sunburst 和 Flare 共用黄金价。「费用」随所选分辨率显示每张参考单价：1K 为 0.085、2K 为 0.3、4K 为 0.4 Credits/张。OpenAI 官方渠道按[官方计算器](https://developers.openai.com/api/docs/guides/image-generation#calculating-costs)估算当前 GPT Image 2.6 模型整批光栅图片费用。文本输入、图片输入与图片输出分别按每百万 tokens 5、8、30 美元计算。提示词按长度、参考图按每张约 1536 tokens 估算；自动尺寸暂按 1024×1024，自动画质暂按中等。
+
+APIMart 标准渠道按 [Sunburst](https://apimart.ai/zh/model/gpt-image-2-6-sunburst) 和 [Flare](https://apimart.ai/zh/model/gpt-image-2-6-flare) 公布的规格用量和黄金会员价估算整批积分。每百万 tokens 的文本输入、图片输入、图片输出分别为 40、64、240 积分。输入按未命中缓存估算；自动比例按当前分辨率的 1:1，自动画质显示按最高画质计算的预计预扣，完成后按实际用量结算。缺少规格用量时显示「按实际用量」。
+
 Nano Banana Pro 使用 APIMart 标准版 `gemini-3-pro-image-preview`，与 2.1 共用最多 14 张参考图、1K／2K／4K 分辨率和 PNG／JPEG 输出，浏览器按所选格式保存结果。Pro 比例包括自动及 1:1、2:3、3:2、3:4、4:3、4:5、5:4、9:16、16:9、21:9。旧项目或预设选中的 Nano Banana 2 会恢复为 2.1。旧项目已选 Pro 且比例不受支持时按自动比例恢复。[APIMart Nano Banana Pro 文档](https://docs.apimart.ai/cn/api-reference/images/gemini-3-pro/generation)
 
 Kling V4 Image 使用 APIMart 的 `kling-v4-image`。生成选项提供普通生成和关联组图，分别支持 1–9 张和 2–4 张，张数用节点内的数量控件调整。输出为 2K／4K／8K PNG，比例支持自动、1:1、16:9、9:16、4:3、3:4、3:2、2:3 和 21:9。最多接入 10 张 JPG／PNG／GIF 参考图，每张最多 30 MiB，宽、高至少 300 像素且比例在 2:5 至 5:2 之间。提示词里的图片胶囊按提交顺序转换为 `@Image1`、`@Image2` 等。一次任务返回的图片依序进入历史，最后一张设为当前结果。[APIMart Kling V4 Image 文档](https://docs.apimart.ai/cn/api-reference/images/kling-v4-image/generation.md)

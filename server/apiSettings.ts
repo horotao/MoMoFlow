@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { apiProviders, validApiKey, validBaseUrl, type ApiProvider } from '../src/components/apiSettings.ts';
+import { providerConnection } from './apiCredentials.ts';
 import { trusted } from './providerDiagnostics.ts';
 import { ApiConfigurationError, byokFetch } from './byokFetch.ts';
 
@@ -56,7 +57,9 @@ export async function checkApiConnection(provider: ApiProvider, baseUrl: string,
 
 export function createApiSettingsMiddleware(keys: ServerKeys, providerFetch: typeof fetch = byokFetch) {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
-    if (req.url?.split('?')[0] !== '/api/settings/test') return next();
+    const path = req.url?.split('?')[0];
+    const balance = path === '/api/apimart/balance';
+    if (!balance && path !== '/api/settings/test') return next();
     const send = (status: number, value: object) => {
       if (!res.destroyed && !res.writableEnded) {
         res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
@@ -71,6 +74,23 @@ export function createApiSettingsMiddleware(keys: ServerKeys, providerFetch: typ
     const close = () => { if (!res.writableEnded) controller.abort(); };
     res.on('close', close);
     try {
+      if (balance) {
+        const connection = providerConnection(req, 'apimart', keys.apimart, providerFetch);
+        if (!connection.apiKey) return send(401, { error: '请在 API 设置中配置 APIMart Key' });
+        const response = await connection.fetch(`${connection.baseUrl}/user/balance`, {
+          headers: { Authorization: `Bearer ${connection.apiKey}`, Accept: 'application/json' },
+          redirect: 'error', signal: controller.signal,
+        });
+        if (!response.ok) {
+          await response.body?.cancel();
+          return send(502, { error: `APIMart 余额查询失败（HTTP ${response.status}）` });
+        }
+        const body = await readConnectionResponse(response);
+        if (body.success !== true || typeof body.remain_credits !== 'number' || !Number.isFinite(body.remain_credits)) {
+          return send(502, { error: 'APIMart 未返回有效的剩余积分' });
+        }
+        return send(200, { credits: body.remain_credits });
+      }
       const chunks: Buffer[] = [];
       let bytes = 0;
       for await (const chunk of req) {

@@ -3,6 +3,8 @@ export const seedreamName = 'Seedream 5.5';
 export const seedreamMaxImages = 10;
 export const seedreamAspectRatios = ['1:1', '4:3', '3:4', '16:9', '9:16', '3:2', '2:3', '21:9', '2:1', '1:2'] as const;
 export const seedreamResolutions = ['1.5K', '2K'] as const;
+export const seedreamOutputCredits = { '1.5K': 0.16, '2K': 0.28 } satisfies Record<typeof seedreamResolutions[number], number>;
+export const seedreamReferenceCredits = 0.064;
 export const seedreamFormats = ['jpeg', 'png'] as const;
 export type SeedreamSettings = {
   size: string;

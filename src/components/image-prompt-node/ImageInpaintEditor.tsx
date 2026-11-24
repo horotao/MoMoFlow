@@ -18,7 +18,7 @@ export function ImageInpaintEditor({ source, size, saving, error, generationOpti
   size: { width: number; height: number };
   saving: boolean;
   error: string;
-  generationOptions: ReactNode;
+  generationOptions: (prompt: string, quantity: number) => ReactNode;
   onSubmit: (prompt: string, strokes: readonly InpaintStroke[], quantity: number) => void;
   onCancel: (restoreFocus?: boolean) => void;
   onError: () => void;
@@ -227,7 +227,7 @@ export function ImageInpaintEditor({ source, size, saving, error, generationOpti
       {error && <p className="image-inpaint-error" role="alert">{error}</p>}
     </form>
     {inspector && createPortal(<>
-      {generationOptions}
+      {generationOptions(prompt, quantity)}
       <ImageInpaintOptions diameter={diameter} mode={mode} disabled={saving}
         onDiameterChange={setDiameter} onModeChange={setMode}
         onClear={() => { if (hasSelection) setEdits(previous => [...previous, 'clear']); }} />

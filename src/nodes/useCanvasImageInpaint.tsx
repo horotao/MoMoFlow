@@ -130,7 +130,8 @@ export function useCanvasImageInpaint(id: string, asset?: FileAsset, disabled = 
       },
     },
     editor: active && source && size ? <ImageInpaintEditor source={source} size={size} saving={saving} error={error}
-      generationOptions={<ImageGenerationSettings className="image-inpaint-draft-options" inpaintOnly data={{ ...settings, locked: saving }}
+      generationOptions={(prompt, quantity) => <ImageGenerationSettings className="image-inpaint-draft-options" inpaintOnly referenceCount={1}
+        data={{ ...settings, composer: { ...settings.composer, prompt, quantity }, locked: saving }}
         onChange={patch => setSettings(current => ({ ...current, ...patch }))} />}
       onSubmit={(prompt, strokes, quantity) => void submit(prompt, strokes, quantity)} onCancel={close}
       onError={() => { close(); setError('无法显示重绘图片，请重试。'); }} /> : null,

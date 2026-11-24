@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useReactFlow, useStore } from '@xyflow/react';
+import { resolveTextValue } from '../../nodes/textVariables';
+import { isImageInputHandle } from '../../nodes/connectionRules';
+import { estimateApimartImageCredits, estimateImageCost } from '../../nodes/imagePricing';
+import { textCostLabel } from '../../nodes/textPricing';
 import { GenerationOptionsPanel } from './GenerationOptionsPanel';
 import type { AppNode, SunburstNode } from '../../nodes/types';
 import { changeComposerChannel, changeComposerSettings, composerAspectRatio, composerAspectRatios, composerChannel, composerModelId, composerModelSelection, composerSettings } from '../../nodes/imageComposerSettings';
-import { imageQualities, imageQualityLabels, sunburstChannels, sunburstChannelLabels, type SunburstChannel } from '../../nodes/sunburst';
-import { seedreamChoices } from '../../nodes/seedream';
+import { extImageOutputCredits, sunburstResolutions, imageQualities, imageQualityLabels, sunburstChannels, sunburstChannelLabels, type SunburstChannel } from '../../nodes/sunburst';
+import { seedreamChoices, seedreamOutputCredits, seedreamReferenceCredits } from '../../nodes/seedream';
 import { klingImageModel, klingImageModes, klingImageOutputCredits, klingImageResolutions } from '../../nodes/klingImage';
 import { imagePromptGenerationAspectRatios } from './imagePromptAspectRatios';
 import { defaultPinnedImageModelIds, gptImageVariants, imagePromptModels, inpaintModels, type ImagePromptModelId } from './imagePromptModels';
@@ -26,19 +30,26 @@ export function ImageGenerationOptions() {
 
 function GenerationOptions({ nodeId }: { nodeId: string }) {
   const data = useStore(state => state.nodeLookup.get(nodeId)?.data) as SunburstNode['data'] | undefined;
+  const upstreamPrompt = useStore(state => {
+    const edge = state.edges.find(edge => edge.target === nodeId && edge.targetHandle === 'prompt');
+    return edge ? resolveTextValue(edge.source, state.nodes as AppNode[], state.edges) : undefined;
+  });
+  const referenceCount = useStore(state => state.edges.filter(edge => edge.target === nodeId && isImageInputHandle(edge.targetHandle)).length);
   const { updateNodeData } = useReactFlow<AppNode>();
   if (!data?.composer) return null;
-  return <ImageGenerationSettings data={data} inpaintOnly={Boolean(data.inpaint)} onChange={patch => {
+  return <ImageGenerationSettings data={data} prompt={data.inpaint ? undefined : upstreamPrompt} referenceCount={data.inpaint ? 1 : referenceCount} inpaintOnly={Boolean(data.inpaint)} onChange={patch => {
     if (!data.inpaint) sunburstPreset.remember({ ...data, ...patch });
     updateNodeData(nodeId, patch);
   }} />;
 }
 
-export function ImageGenerationSettings({ data, onChange, inpaintOnly = false, className }: {
+export function ImageGenerationSettings({ data, onChange, inpaintOnly = false, prompt, referenceCount = 0, className }: {
   data: SunburstNode['data'];
   onChange: (patch: Partial<SunburstNode['data']>) => void;
   inpaintOnly?: boolean;
   className?: string;
+  prompt?: string;
+  referenceCount?: number;
 }) {
   const [modelOpen, setModelOpen] = useState(false);
   const [pinned, setPinned] = useState<ImagePromptModelId[]>(() => [...defaultPinnedImageModelIds]);
@@ -60,8 +71,29 @@ export function ImageGenerationSettings({ data, onChange, inpaintOnly = false, c
   const nano = modelId.startsWith('nano-banana');
   const kling = modelId === klingImageModel;
   const klingResolution = kling ? klingImageResolutions.find(resolution => resolution === settings.resolution) : undefined;
-  const outputCredits = klingResolution ? klingImageOutputCredits[klingResolution] : undefined;
   const channel = composerChannel(data);
+  const extResolution = gptImageVariants[modelId] && channel === 'gpt-image-2.6-ext'
+    ? sunburstResolutions.find(value => value === settings.resolution) : undefined;
+  const outputCredits = extResolution ? extImageOutputCredits[extResolution] : klingResolution && klingImageOutputCredits[klingResolution];
+  const isGpt = !selection.autoSelect && Boolean(gptImageVariants[modelId]);
+  const standard = channel === 'gpt-image-2.6';
+  const estimator = standard ? estimateApimartImageCredits : estimateImageCost;
+  const seedreamResolution = seedream && !selection.autoSelect
+    ? seedreamChoices.resolution.find(value => value === settings.resolution) : undefined;
+  const seedreamPrice = seedreamResolution && seedreamOutputCredits[seedreamResolution];
+  const estimate = seedreamPrice !== undefined ? composer.quantity * (seedreamPrice + referenceCount * seedreamReferenceCredits)
+    : isGpt && (standard || channel === 'openai')
+    ? estimator(data, prompt ?? composer.prompt, referenceCount, composer.quantity) : undefined;
+  const estimateLabel = estimate === undefined ? '按实际用量' : (standard || seedream)
+    ? `≈${estimate.toLocaleString('en-US', { maximumFractionDigits: 4 })} 积分` : textCostLabel(estimate, true);
+  const autoPrecharge = isGpt && standard && data.quality === 'auto';
+  const estimateTitle = `${selection.modelIds.length > 1 ? '当前模型' : ''}${autoPrecharge ? '预计预扣' : '预计费用'}`;
+  const rate = standard ? 'APIMart 黄金会员积分费率' : 'OpenAI 标准美元费率';
+  const autoSize = standard ? '自动比例暂按当前分辨率的 1:1。' : '自动尺寸暂按 1024×1024。';
+  const autoQuality = standard ? '自动画质按最高画质预扣，完成后按实际用量退差额。' : '自动画质暂按中等。';
+  const estimateTip = seedreamPrice !== undefined
+    ? `APIMart 黄金价。每张输出 ${seedreamPrice} 积分，每次生成使用 ${referenceCount} 张参考图，每张参考图 ${seedreamReferenceCredits} 积分。共生成 ${composer.quantity} 张。`
+    : `${model?.name} 共 ${composer.quantity} 张，按${rate}估算。提示词按长度估算，${referenceCount} 张参考图按每张约 1536 tokens 计入。图片输出按尺寸与画质估算。${data.size === 'auto' ? autoSize : ''}${data.quality === 'auto' ? autoQuality : ''}实际费用以账单为准。`;
   const showBackground = !nano && !kling && (seedream || channel !== 'gpt-image-2.6-ext');
   const transparent = showBackground && settings.background === 'transparent';
   const automaticSize = Boolean(gptImageVariants[modelId]) && channel === 'openai' && composer.ratio === 'auto';
@@ -107,12 +139,14 @@ export function ImageGenerationSettings({ data, onChange, inpaintOnly = false, c
         choices={transparent || kling ? ['png'] : ['png', 'jpeg']} labels={transparent || kling ? ['PNG'] : ['PNG', 'JPEG']}
         disabled={locked} onChange={value => setSetting('outputFormat', value)} /></div>
       <div className="generation-options-cost">
-        <span>费用<ImagePromptInfoTip label="生成费用">{outputCredits !== undefined
+        <span>{estimate !== undefined ? estimateTitle : '费用'}<ImagePromptInfoTip label="生成费用">{estimate !== undefined ? estimateTip : extResolution
+          ? '按 APIMart EXT 黄金价显示当前分辨率的每张参考单价，实际费用以 APIMart 结算为准。'
+          : klingResolution
           ? '按 APIMart 黄金价显示每张输出图片的参考单价。输入参考图另计，实际费用以 APIMart 结算为准。'
           : '费用由当前 API 渠道按模型、参数和生成数量结算。'}</ImagePromptInfoTip></span>
         {outputCredits !== undefined ? <span className="generation-options-unit-price" aria-live="polite" aria-atomic="true">
-          {outputCredits.toFixed(4)} Credits/张
-        </span> : <span>按实际用量</span>}
+          {outputCredits} Credits/张
+        </span> : <span aria-live="polite">{estimateLabel}</span>}
       </div>
   </GenerationOptionsPanel>;
 }

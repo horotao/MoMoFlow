@@ -12,16 +12,50 @@
   color: var(--navigation-content);
 }
 
+.navigation-toolbar,
+.navigation-credits {
+  border: 1px solid var(--navigation-border);
+  border-radius: 16px;
+  background: var(--navigation-background);
+  backdrop-filter: blur(24px);
+}
+
+.navigation-credits {
+  position: absolute;
+  left: calc(100% + 4px);
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  height: 42px;
+  padding: 0 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.navigation-credits:hover {
+  background-image: linear-gradient(#fff3, #fff3);
+}
+
+.navigation-credits:focus-visible {
+  outline: 2px solid #b5b3ad;
+}
+
+.navigation-credit-icon {
+  width: 19px;
+  height: 19px;
+  transform: translateY(0.5px);
+  background: currentColor;
+  mask: url('/canvas-dock/wallet.svg') center / contain no-repeat;
+}
+
 .navigation-toolbar {
   position: relative;
   z-index: 1;
   display: flex;
   align-items: center;
   padding: 4px;
-  border: 1px solid var(--navigation-border);
-  border-radius: 16px;
-  background: var(--navigation-background);
-  backdrop-filter: blur(24px);
 }
 
 .canvas-navigation[data-map-open='true'] {
@@ -86,11 +120,15 @@
 .navigation-toolbar button[aria-controls]:hover { color: var(--navigation-content); }
 .navigation-toolbar button:focus-visible { outline: 1px solid var(--navigation-content); outline-offset: -2px; }
 
+.navigation-credits,
+.navigation-toolbar .navigation-percentage {
+  color: var(--navigation-muted);
+  font: 500 14px/1.25 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+}
+
 .navigation-toolbar .navigation-percentage {
   width: 44px;
-  color: var(--navigation-muted);
-  font: 500 14px/1 var(--font-ui);
-  font-variant-numeric: tabular-nums;
   user-select: none;
 }
 
@@ -121,7 +159,7 @@
 .navigation-readout {
   display: flex;
   gap: 3px;
-  line-height: 1.25;
+  line-height: 18px;
 }
 
 .navigation-digits { display: flex; }
@@ -209,6 +247,15 @@
 .navigation-map-node[data-selected='true'] > rect { fill: transparent; stroke: var(--navigation-muted); }
 .navigation-map-group { fill: rgb(250 250 242 / 8%); stroke: rgb(250 250 242 / 25%); stroke-width: .75px; }
 .navigation-map-group[data-selected='true'] { stroke: var(--navigation-muted); }
+
+@media (max-width: 660px) {
+  .react-flow:has(> .canvas-navigation) > .canvas-task-queue { bottom: 58px; }
+}
+
+@media (max-width: 395px) {
+  .navigation-credits { left: 0; bottom: calc(100% + 4px); }
+  .canvas-navigation[data-map-open='true'] .navigation-credits { bottom: calc(100% + 54px); }
+}
 
 @media (max-width: 520px) {
   .react-flow:has(> .canvas-navigation) > .canvas-task-queue {
