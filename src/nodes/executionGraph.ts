@@ -1,3 +1,4 @@
+import { grokImageModel, grokImageMaxReferences, validateGrokImageRequest } from './grokImage.ts';
 import { mapAssets } from '../persistence/workflowStorage.ts';
 import { isTextNode } from './textVariables.ts';
 import type { Edge } from '@xyflow/react';
@@ -159,7 +160,7 @@ export function graphGuard(graph: ExecutionGraph, id: string, force = false, han
   // A flat adjacency list avoids exponential escaping of nested JSON strings.
   return stableSignature([...records].sort(([a], [b]) => a.localeCompare(b)));
 }
-function prepareKlingImage(graph: ExecutionGraph, node: SunburstNode, runs?: number): PreviewTask {
+function prepareApimartComposerImage(graph: ExecutionGraph, node: SunburstNode, runs?: number): PreviewTask {
   if (isNodeLocked(node)) throw new Error('节点已锁定或不能运行。');
   const inputs = executionInputs(node, undefined, graph);
   const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
@@ -171,12 +172,16 @@ function prepareKlingImage(graph: ExecutionGraph, node: SunburstNode, runs?: num
       if (!assets.length) throw new Error('连接的 Image 尚无图片，上游未提供可用输出。');
       return assets.map(asset => asset.url);
     });
+  const base = { id: crypto.randomUUID(), batchId: crypto.randomUUID(), createdAt: Date.now(), nodeId: node.id,
+    state: 'Queued' as const, progress: 0, started: 0 };
+  if (composerModelId(node.data) === grokImageModel) {
+    return { ...base, model: grokImageModel, grokImageRequest: validateGrokImageRequest({ size: composerAspectRatio(node.data), prompt, images }) };
+  }
   const settings = composerKlingSettings(node.data);
   const { min, max } = klingImageQuantityRange(settings.mode);
   const count = Math.max(min, Math.min(max, runs ?? (settings.mode === 'series' ? node.data.composer?.quantity ?? min : 1)));
   const klingImageRequest = validateKlingImageRequest({ ...settings, size: composerAspectRatio(node.data), prompt, images, count });
-  return { id: crypto.randomUUID(), batchId: crypto.randomUUID(), createdAt: Date.now(), nodeId: node.id,
-    model: klingImageModel, klingImageRequest, state: 'Queued', progress: 0, started: 0 };
+  return { ...base, model: klingImageModel, klingImageRequest };
 }
 
 export function prepareModel(graph: ExecutionGraph, id: string, runs?: number): PreviewTask[] {
@@ -191,8 +196,8 @@ export function prepareModel(graph: ExecutionGraph, id: string, runs?: number): 
   const prompt = original.type === 'sunburst' ? original.data.composer?.prompt : undefined;
   let result: { tasks: PreviewTask[]; error?: string };
   try {
-    const kling = node.type === 'sunburst' && composerModelId(node.data) === klingImageModel ? node : undefined;
-    result = kling ? { tasks: [prepareKlingImage(graph, kling, runs)] }
+    const direct = node.type === 'sunburst' && [klingImageModel, grokImageModel].includes(composerModelId(node.data)) ? node : undefined;
+    result = direct ? { tasks: [prepareApimartComposerImage(graph, direct, runs)] }
       : node.type === 'sunburst' ? prepareSunburstRun(nodes, graph.edges, [id], 1)
       : node.type === 'nano-banana' ? prepareNanoBananaRun(nodes, graph.edges, [id], 1, prompt)
       : prepareSeedreamRun(nodes, graph.edges, [id], 1, prompt);
@@ -224,6 +229,7 @@ export function prepareModel(graph: ExecutionGraph, id: string, runs?: number): 
         ...(task.imageRequest ? { imageRequest: { ...task.imageRequest, prompt } } : {}),
         ...(task.seedreamRequest ? { seedreamRequest: { ...task.seedreamRequest, prompt } } : {}),
         ...(task.nanoBananaRequest ? { nanoBananaRequest: { ...task.nanoBananaRequest, prompt } } : {}),
+        ...(task.grokImageRequest ? { grokImageRequest: { ...task.grokImageRequest, prompt } } : {}),
         ...(task.klingImageRequest ? { klingImageRequest: { ...task.klingImageRequest, prompt } } : {}),
       };
     } catch (error) { nodeProblem(original, error instanceof Error ? error.message : '无法解析引用图片。'); }
@@ -284,7 +290,8 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
     const model = composerExecutionNode(node);
     const promptEdge = inputs.find(edge => edge.targetHandle === 'prompt');
     const kling = model.type === 'sunburst' && composerModelId(model.data) === klingImageModel;
-    const sunburst = model.type === 'sunburst' && !kling ? effectiveSunburstSettings(model) : undefined;
+    const grok = model.type === 'sunburst' && composerModelId(model.data) === grokImageModel;
+    const sunburst = model.type === 'sunburst' && !kling && !grok ? effectiveSunburstSettings(model) : undefined;
     const edit = sunburst && promptEdge && !unknown.has('prompt')
       ? resolveSunburstEditPrompt(promptEdge.source, graph.nodes, graph.edges,
         sunburst.provider === 'apimart' && sunburst.channelModel !== 'gpt-image-2.6') : undefined;
@@ -302,7 +309,10 @@ function validateKnownModelInputs(node: AppNode, graph: ExecutionGraph, targets:
     const inpaint = isCanvasImageNode(node) && node.data.inpaint;
     const masked = Boolean(inpaint) || inputs.some(edge => edge.targetHandle === 'mask');
     const images = inputs.filter(edge => /^image-\d+$/.test(edge.targetHandle ?? ''));
-    if (kling) {
+    if (grok) {
+      if (images.length > grokImageMaxReferences) throw new Error('Grok Imagine 2.0 最多支持 5 张参考图。');
+      if (masked) throw new Error('Grok Imagine 2.0 不支持 Mask。');
+    } else if (kling) {
       validateKlingImageSettings({ ...composerKlingSettings(model.data), size: composerAspectRatio(model.data) });
       if (images.length > klingImageMaxReferences) throw new Error(`Kling V4 Image 最多支持 ${klingImageMaxReferences} 张参考图。`);
       if (masked) throw new Error('Kling V4 Image 不支持 Mask。');

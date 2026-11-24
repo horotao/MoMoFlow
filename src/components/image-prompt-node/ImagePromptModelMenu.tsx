@@ -15,6 +15,7 @@ const modelBrandSources: Record<string, string> = {
   deepseek: new URL('./assets/deepseek.svg', import.meta.url).href,
   bytedance: new URL('./assets/bytedance.svg', import.meta.url).href,
   google: new URL('./assets/google.svg', import.meta.url).href,
+  grok: new URL('./assets/grok.svg', import.meta.url).href,
   kling: new URL('./assets/kling.svg', import.meta.url).href,
 };
 
@@ -110,7 +111,8 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
           <span className="image-model-copy">
             <span className="image-model-name-line"><span className="image-model-name">{model.name}</span>
               {model.isNew && <span className="image-model-new">新</span>}
-              <span className="image-model-time">{model.channel ?? model.time}</span>
+              {model.time && <span className="image-model-time" title="预计生成时间">{model.time}</span>}
+              {!model.time && model.channel && <span className="image-model-time">{model.channel}</span>}
               <span className="image-model-capability" title={label === '选择文本模型' ? '文本输入' : '文生图'}><ImagePromptIcon name="model-text" /></span>
               <span className="image-model-capability" title={label === '选择文本模型' ? '图片输入' : '图生图'}><ImagePromptIcon name="model-image" /></span>
             </span>

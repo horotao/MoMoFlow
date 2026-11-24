@@ -1,3 +1,4 @@
+import { grokImageModel, grokImageName } from './grokImage.ts';
 import type { FileAsset } from './types';
 import { modelInputSignatureVersion } from './generationRecord.ts';
 import { nanoBananaModel, nanoBananaProModel } from './nanoBanana.ts';
@@ -11,6 +12,7 @@ const modelNames: Record<string, string> = {
   [nanoBananaModel]: 'Nano Banana 2.1',
   [nanoBananaProModel]: 'Nano Banana Pro',
   'seedream-5-5': 'Seedream 5.5',
+  [grokImageModel]: grokImageName,
   [klingImageModel]: klingImageName,
 };
 

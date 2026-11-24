@@ -20,6 +20,8 @@ APIMart 标准渠道按 [Sunburst](https://apimart.ai/zh/model/gpt-image-2-6-sun
 
 Nano Banana Pro 使用 APIMart 标准版 `gemini-3-pro-image-preview`，与 2.1 共用最多 14 张参考图、1K／2K／4K 分辨率和 PNG／JPEG 输出，浏览器按所选格式保存结果。Pro 比例包括自动及 1:1、2:3、3:2、3:4、4:3、4:5、5:4、9:16、16:9、21:9。旧项目或预设选中的 Nano Banana 2 会恢复为 2.1。旧项目已选 Pro 且比例不受支持时按自动比例恢复。[APIMart Nano Banana Pro 文档](https://docs.apimart.ai/cn/api-reference/images/gemini-3-pro/generation)
 
+Grok Imagine 2.0 使用 APIMart 的 `grok-imagine-2.0-ext`。支持文生图与最多 5 张有序参考图，每张结果独立提交并进入历史。可选 1:1、16:9、9:16、4:3、3:4、3:2、2:3；切换时不兼容的比例恢复为 1:1。文生图使用质量模式，参考图生成省略分辨率，下载保留服务商返回的图片格式。[APIMart Grok 文档](https://docs.apimart.ai/cn/api-reference/images/grok-imagine-2.0-ext/generation)
+
 Kling V4 Image 使用 APIMart 的 `kling-v4-image`。生成选项提供普通生成和关联组图，分别支持 1–9 张和 2–4 张，张数用节点内的数量控件调整。输出为 2K／4K／8K PNG，比例支持自动、1:1、16:9、9:16、4:3、3:4、3:2、2:3 和 21:9。最多接入 10 张 JPG／PNG／GIF 参考图，每张最多 30 MiB，宽、高至少 300 像素且比例在 2:5 至 5:2 之间。提示词里的图片胶囊按提交顺序转换为 `@Image1`、`@Image2` 等。一次任务返回的图片依序进入历史，最后一张设为当前结果。[APIMart Kling V4 Image 文档](https://docs.apimart.ai/cn/api-reference/images/kling-v4-image/generation.md)
 
 Kling 的「费用」随分辨率显示每张输出图片的参考单价，按 2026-11-24 的 APIMart 黄金价表记录。2K、4K、8K 分别为 0.5714、0.8571、1.4286 Credits/张。输入参考图另计，实际费用以 APIMart 结算为准。

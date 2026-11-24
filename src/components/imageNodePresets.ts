@@ -57,7 +57,7 @@ function normalizePreset(value: unknown): CanvasImage['data'] {
     outputFormat: settings.outputFormat === 'webp' ? 'png' : settings.outputFormat,
     imageInputs: 16, composer,
   };
-  if (!composerAspectRatios(data).includes(composer.ratio)) composer.ratio = 'auto';
+  if (!composerAspectRatios(data).includes(composer.ratio)) composer.ratio = composerAspectRatios(data)[0];
   return { ...data, ...changeComposerSettings(data, { ratio: composer.ratio }) };
 }
 

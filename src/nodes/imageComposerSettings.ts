@@ -1,3 +1,4 @@
+import { grokImageModel, grokImageRatios } from './grokImage.ts';
 import { imageSizes, imageSizeLabels, sunburstPresetSize, sunburstSizePreset, sunburstProviderSettings, apimartAspectRatios, apimartStandardAspectRatios, migrateSunburstProvider, type SunburstChannel, type SunburstProvider, type SunburstResolution } from './sunburst.ts';
 import { defaultSeedreamSettings, seedreamChoices } from './seedream.ts';
 import { defaultNanoBananaSettings, nanoBananaAspectRatios, nanoBananaProAspectRatios, nanoBananaProModel } from './nanoBanana.ts';
@@ -24,6 +25,7 @@ export function composerChannel(data: SunburstNode['data']): SunburstChannel {
 
 export function composerAspectRatios(data: SunburstNode['data']): readonly string[] {
   const model = composerModelId(data);
+  if (model === grokImageModel) return grokImageRatios;
   if (model === klingImageModel) return klingImageRatios;
   if (model === 'seedream-5-5') return seedreamChoices.size;
   if (model === 'nano-banana-pro') return nanoBananaProAspectRatios;
@@ -37,6 +39,7 @@ export function composerAspectRatios(data: SunburstNode['data']): readonly strin
 export function composerAspectRatio(data: SunburstNode['data']) {
   const ratio = data.composer?.ratio ?? 'auto';
   const model = composerModelId(data);
+  if (model === grokImageModel && !grokImageRatios.some(choice => choice === ratio)) return '1:1';
   if (model === klingImageModel && !klingImageRatios.some(choice => choice === ratio)) return 'auto';
   // Pro could already be saved with an unsupported ratio while it was a placeholder.
   return model === 'nano-banana-pro' && !nanoBananaProAspectRatios.some(choice => choice === ratio)
@@ -85,7 +88,7 @@ export function changeComposerSettings(data: SunburstNode['data'], change: Parti
   const { min, max } = composerQuantityRange(updated);
   composer.quantity = Math.max(min, Math.min(max, composer.quantity));
   if (change.ratio !== undefined) delete composer.followReferenceRatio;
-  if (change.selection && !composerAspectRatios(updated).includes(composer.ratio)) composer.ratio = 'auto';
+  if (change.selection && !composerAspectRatios(updated).includes(composer.ratio)) composer.ratio = composerAspectRatios(updated)[0];
   if (!variant) return { ...selectedVariant, composer };
   if (change.ratio === undefined && settings.resolution === undefined && !change.selection) return { ...settings, composer };
   const next = { ...composerSettings(updated), ...settings };
@@ -123,7 +126,7 @@ export function composerExecutionNode(node: ImageGeneratorNode): ImageGeneratorN
   const variant = gptImageVariants[model];
   if (variant) return { ...node, data: { ...node.data, variant, imageInputs: node.data.inpaint ? 1 : 16 } };
   if (node.data.inpaint) throw new Error('局部重绘需要选择 GPT Image 2.6 Sunburst 或 Flare。');
-  if (model === klingImageModel) return node;
+  if (model === klingImageModel || model === grokImageModel) return node;
   const settings = composerSettings(node.data);
   const common = { locked: node.data.locked, label: node.data.label, imageInputs: 16, results: node.data.results, activeResultId: node.data.activeResultId };
   if (model === 'seedream-5-5') return { ...node, type: 'seedream', data: {

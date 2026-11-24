@@ -35,6 +35,26 @@ test('APIMart uses only the documented Ext parameters for both versions and ever
 
 const standardInput = { ...input, channelModel: 'gpt-image-2.6' };
 
+test('Grok submits the documented text and reference parameters and reads the versioned task ID', async () => {
+  const path = '/api/apimart/grok';
+  for (const images of [[], ['https://cdn.example/a.png', 'https://cdn.example/b.png']]) {
+    const result = await invoke({ size: '2:3', prompt: '  paint  ', images }, async (url, init) => {
+      assert.equal(url, 'https://api.apimart.ai/v1/images/generations');
+      const headers = new Headers(init?.headers);
+      assert.equal(headers.get('X-APIMart-Response-Version'), '2026-07-27');
+      assert.ok(headers.get('Idempotency-Key'));
+      assert.deepEqual(JSON.parse(String(init?.body)), { model: 'grok-imagine-2.0-ext', size: '2:3', prompt: 'paint',
+        n: 1, response_format: 'url', ...(images.length ? { image_urls: images } : { resolution: 'quality' }) });
+      return Response.json({ code: 202, data: { id: 'task_grok', status: 'pending' } }, { status: 202 });
+    }, { path });
+    assert.deepEqual(result, { status: 200, body: { taskId: 'task_grok' } });
+  }
+  for (const invalid of [{ size: 'auto' }, { images: Array(6).fill('https://cdn.example/a.png') }, { prompt: ' ' }]) {
+    const result = await invoke({ prompt: 'paint', size: '1:1', images: [], ...invalid }, async () => assert.fail(), { path });
+    assert.equal(result.status, 400);
+  }
+});
+
 test('Kling submits normal and series counts using the documented APIMart fields', async () => {
   const path = '/api/apimart/kling';
   const reference = 'https://cdn.example/reference.png';

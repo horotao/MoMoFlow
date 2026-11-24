@@ -1,3 +1,4 @@
+import { grokImageModel } from './grokImage.ts';
 import { annotationOutput, storedAnnotationResult } from './annotationGraph.ts';
 import { seedreamModel } from './seedream.ts';
 import { nanoBananaModel } from './nanoBanana.ts';
@@ -197,8 +198,8 @@ export class WorkflowExecution {
     const selected = composerExecutionNode(node);
     let model: string;
     let imageVariant: PreviewTask['imageVariant'];
-    if (selected.type === 'sunburst' && composerModelId(selected.data) === klingImageModel) {
-      model = klingImageModel;
+    if (selected.type === 'sunburst' && [klingImageModel, grokImageModel].includes(composerModelId(selected.data))) {
+      model = composerModelId(selected.data);
     } else if (selected.type === 'sunburst') {
       const settings = effectiveSunburstSettings(selected);
       model = sunburstModelForProvider(settings.provider, settings.variant, settings.channelModel);
@@ -370,7 +371,7 @@ export class WorkflowExecution {
       releaseSlot = await this.acquireModelSlot(controller.signal);
       aborted(controller.signal);
       // APIMart owns its polling deadline.
-      if (prepared.imageRequest?.provider !== 'apimart' && !prepared.seedreamRequest && !prepared.nanoBananaRequest && !prepared.klingImageRequest) {
+      if (prepared.imageRequest?.provider !== 'apimart' && !prepared.seedreamRequest && !prepared.nanoBananaRequest && !prepared.klingImageRequest && !prepared.grokImageRequest) {
         const deadline = 310000;
         timeout = setTimeout(() => controller.abort(new ModelRequestTimeout('请求超时；不会自动重试。')), deadline);
       }

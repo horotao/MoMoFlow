@@ -180,6 +180,25 @@ test('multi-model Image validates the prompt before adding branches or submittin
   } finally { h.engine.dispose(); }
 });
 
+test('Grok runs each requested output with its references in port order and saves the model name', async () => {
+  const image = createLibraryNode('image', { x: 0, y: 0 }) as CanvasImage;
+  const first = createImportedCanvasImage(generatedAsset('first'), { x: 0, y: 0 });
+  const second = createImportedCanvasImage(generatedAsset('second'), { x: 0, y: 0 });
+  image.data = { ...image.data, ...changeComposerSettings(image.data, { prompt: 'paint', ratio: 'auto',
+    selection: { modelIds: ['grok-imagine-2.0-ext'], autoSelect: false, multiple: false } }) };
+  const h = harness({ nodes: [image, first, second], edges: [edge(first.id, image.id, 'image-4', 'result'),
+    edge(second.id, image.id, 'image-1', 'result')] }, async () => [generatedAsset(crypto.randomUUID())]);
+  try {
+    assert.equal(await h.engine.run([image.id], 2), true);
+    assert.equal(h.requests.length, 2);
+    for (const task of h.requests) {
+      assert.equal(modelTaskLabel(task), 'Grok Imagine 2.0');
+      assert.deepEqual(task.grokImageRequest, { prompt: 'paint', size: '1:1', images: ['blob:second', 'blob:first'] });
+    }
+    assert.deepEqual((h.node(image.id) as CanvasImage).data.results?.map(imageModel), ['Grok Imagine 2.0', 'Grok Imagine 2.0']);
+  } finally { h.engine.dispose(); }
+});
+
 test('Kling uses one queue task for a series, orders reference mentions and publishes each result', async () => {
   const image = createLibraryNode('image', { x: 0, y: 0 }) as CanvasImage;
   const referenceA = createImportedCanvasImage(generatedAsset('first'), { x: 0, y: 0 });

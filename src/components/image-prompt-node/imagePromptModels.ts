@@ -1,5 +1,11 @@
+import { grokImageModel, grokImageName } from '../../nodes/grokImage.ts';
 import type { SunburstVariant } from '../../nodes/sunburst';
 import { klingImageModel, klingImageName } from '../../nodes/klingImage.ts';
+
+export const imageRunEstimates: Readonly<Partial<Record<string, number>>> = {
+  [grokImageModel]: 15,
+  [klingImageModel]: 60,
+};
 
 // Listed timings are reference presentation, not live estimates.
 export const imagePromptModels = [
@@ -8,7 +14,8 @@ export const imagePromptModels = [
   { id: 'gpt-image-2-6', name: 'GPT Image 2.6 Sunburst', brand: 'openai', time: '1 分钟', description: 'OpenAI 旗舰图像模型，擅长精细创作。' },
   { id: 'gpt-image-2-6-flare', name: 'GPT Image 2.6 Flare', brand: 'openai', time: '30 秒', description: 'OpenAI 图像生成与编辑模型，适合快速迭代。' },
   { id: 'seedream-5-5', name: 'Seedream 5.5', brand: 'bytedance', time: '25 秒', isNew: true, description: '字节跳动图像模型，支持最多 10 张参考图和透明背景。' },
-  { id: klingImageModel, name: klingImageName, brand: 'kling', channel: 'APIMart', description: '可灵图像模型，支持最多 10 张参考图、8K PNG 和关联组图。' },
+  { id: grokImageModel, name: grokImageName, brand: 'grok', time: `${imageRunEstimates[grokImageModel]} 秒`, channel: 'APIMart', description: '支持文生图和最多 5 张参考图。' },
+  { id: klingImageModel, name: klingImageName, brand: 'kling', time: `${imageRunEstimates[klingImageModel]} 秒`, channel: 'APIMart', description: '可灵图像模型，支持最多 10 张参考图、8K PNG 和关联组图。' },
 ] as const;
 export type ImagePromptModelId = typeof imagePromptModels[number]['id'];
 export const defaultPinnedImageModelIds = ['gpt-image-2-6', 'gpt-image-2-6-flare'] as const satisfies readonly ImagePromptModelId[];

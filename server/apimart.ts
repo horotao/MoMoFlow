@@ -1,3 +1,4 @@
+import { grokImageModel, validateGrokImageRequest } from '../src/nodes/grokImage.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { providerConnection } from './apiCredentials.ts';
@@ -5,6 +6,7 @@ import { apimartInputUrl, apimartResultUrl } from '../src/nodes/apimartResult.ts
 import { diagnosticText, readErrorDiagnostic, trusted } from './providerDiagnostics.ts';
 import { isTimeoutStatus, modelTimeoutCode } from '../src/nodes/modelRequestError.ts';
 import { apimartExtMarkupError, imageFormats, sunburstModelForProvider, validateSunburstImageInputs, validateSunburstMarkup, validateSunburstSettings, validateSunburstVariant } from '../src/nodes/sunburst.ts';
+import { parseReferenceImages } from './apimartReferences.ts';
 import { buildNanoBananaRequest } from './nanoBanana.ts';
 import { buildSeedreamRequest } from './seedream.ts';
 import { klingImageMaxReferenceBytes, klingImageModel, validateKlingImageRequest } from '../src/nodes/klingImage.ts';
@@ -110,7 +112,7 @@ async function readLimited(response: Response, limit: number): Promise<Buffer> {
 export function createApimartMiddleware(defaultKey: string, providerFetch: typeof fetch = fetch) {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const path = req.url?.split('?')[0];
-    if (path !== '/api/apimart/images' && path !== '/api/apimart/seedream' && path !== '/api/apimart/kling' && path !== '/api/apimart/task' && path !== '/api/nano-banana') return next();
+    if (path !== '/api/apimart/images' && path !== '/api/apimart/seedream' && path !== '/api/apimart/grok' && path !== '/api/apimart/kling' && path !== '/api/apimart/task' && path !== '/api/nano-banana') return next();
     const send = (status: number, value: object) => {
       if (res.destroyed || res.writableEnded) return;
       res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(value));
@@ -136,7 +138,11 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
         input = JSON.parse(Buffer.concat(chunks).toString());
         if (path === '/api/apimart/images') generation = buildApimartRequest(input);
         else if (path === '/api/apimart/seedream') generation = buildSeedreamRequest(input);
-        else if (path === '/api/apimart/kling') generation = buildKlingImageRequest(input);
+        else if (path === '/api/apimart/grok') {
+          const { prompt, size, images } = validateGrokImageRequest(input);
+          generation = { images: parseReferenceImages(images), body: { model: grokImageModel, prompt, size, n: 1,
+            response_format: 'url', ...(!images.length ? { resolution: 'quality' } : {}) } };
+        } else if (path === '/api/apimart/kling') generation = buildKlingImageRequest(input);
         else if (path === '/api/nano-banana') generation = buildNanoBananaRequest(input);
         else {
           if (!input || typeof input.taskId !== 'string' || !taskIdPattern.test(input.taskId)) throw new Error('无效的 APIMart 任务编号。');
@@ -152,7 +158,8 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
       const call = async (suffix: string, body?: object | FormData) => {
         const form = body instanceof FormData;
         const response = await connection.fetch(`${connection.baseUrl}${suffix}`, {
-          method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${apiKey}`, ...(body && !form ? { 'Content-Type': 'application/json' } : {}) },
+          method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${apiKey}`, ...(path === '/api/apimart/grok' && suffix === '/images/generations'
+            ? { 'X-APIMart-Response-Version': '2026-07-27', 'Idempotency-Key': crypto.randomUUID() } : {}), ...(body && !form ? { 'Content-Type': 'application/json' } : {}) },
           ...(body ? { body: form ? body : JSON.stringify(body) } : {}), signal: controller.signal, redirect: 'error',
         });
         if (!response.ok) {
@@ -183,9 +190,10 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
           ...(markupUrl ? { markup_url: markupUrl } : {}),
         });
         if (!result) return;
-        const data = result.data as { task_id?: unknown }[] | undefined;
-        if (!Array.isArray(data) || typeof data[0]?.task_id !== 'string' || !taskIdPattern.test(data[0].task_id)) throw new Error('APIMart 未返回有效任务编号；结果未知，请检查请求记录后再手动重试。');
-        return send(200, { taskId: data[0].task_id });
+        const data = result.data;
+        const id = Array.isArray(data) ? data[0]?.task_id : (data as { id?: unknown } | null)?.id;
+        if (typeof id !== 'string' || !taskIdPattern.test(id)) throw new Error('APIMart 未返回有效任务编号；结果未知，请检查请求记录后再手动重试。');
+        return send(200, { taskId: id });
       }
       // The status API localizes failed task error.message with this query.
       const result = await call(`/tasks/${taskId}?language=zh`);

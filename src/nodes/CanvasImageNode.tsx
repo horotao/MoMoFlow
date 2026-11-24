@@ -15,7 +15,8 @@ import { isActiveTask, type PreviewTask } from './taskQueue';
 import { downloadAsset } from './fileMedia';
 import { savedImagePrompt } from './generationRecord';
 import { imageInputHandles, isImageInputHandle } from './connectionRules';
-import { klingImageModel } from './klingImage';
+import { grokImageMaxReferences, grokImageModel } from './grokImage';
+import { imageRunEstimates } from '../components/image-prompt-node/imagePromptModels';
 import { changeComposerSettings, composerAspectRatio, composerAspectRatios, composerModelSelection, composerQuantityRange } from './imageComposerSettings';
 import { canvasImageSize, hasImageDimensions } from './canvasImageGeometry';
 import { reorderImageReferences } from './imageReferenceOrder';
@@ -33,7 +34,7 @@ import './CanvasImageNode.css';
 // All Image nodes share the selection check for the same React Flow nodes array.
 const multipleSelection = new WeakMap<readonly Node[], boolean>();
 const generationState = (task: PreviewTask) => ({
-  id: task.id, startedAt: task.started || undefined, estimatedSeconds: task.model === klingImageModel ? undefined : 25,
+  id: task.id, startedAt: task.started || undefined, estimatedSeconds: imageRunEstimates[task.model] ?? 25,
   progress: task.state === 'Queued' ? 0 : undefined,
 });
 
@@ -194,7 +195,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
         });
       }}
       imageInputCount={inpaintInput ? 1 : references.length}
-      imageInputLimit={inpaintInput ? 1 : undefined}
+      imageInputLimit={inpaintInput ? 1 : controls.modelSelection.modelIds.includes(grokImageModel) ? grokImageMaxReferences : undefined}
       references={inpaintInput ? [{ id: inpaintInput.image.id, kind: 'image', name: inpaintInput.image.name, url: inpaintInput.image.url }]
         : textInputReferences(incoming, sourceNodes).map(input => ({ ...input, onLoad: rememberSize(inputs.find(item => item.id === input.id)?.asset) }))}
       textInput={!inpaintInput && <button type="button" className="image-node-input" data-connection-port="text" data-connected={Boolean(promptEdge) || undefined} aria-label="Prompt input" disabled={data.locked}>

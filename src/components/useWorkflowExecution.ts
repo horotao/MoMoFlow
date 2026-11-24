@@ -1,3 +1,4 @@
+import { requestGrokImage } from '../nodes/grokImageClient';
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
@@ -49,6 +50,7 @@ export function useWorkflowExecution(onImageGenerated?: (prompt: string) => Prom
         } catch (error) { assetResources.discard(urls); throw error; }
       },
       request: (task, signal) => {
+        if (task.grokImageRequest) return requestGrokImage(task.grokImageRequest, signal);
         if (task.klingImageRequest) return requestKlingImage(task.klingImageRequest, signal);
         if (task.seedreamRequest) return requestSeedream(task.seedreamRequest, signal);
         if (task.nanoBananaRequest) return requestNanoBanana(task.nanoBananaRequest, signal);

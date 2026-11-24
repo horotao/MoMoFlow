@@ -1,3 +1,4 @@
+import { grokImageModel } from '../../nodes/grokImage.ts';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useReactFlow, useStore } from '@xyflow/react';
 import { resolveTextValue } from '../../nodes/textVariables';
@@ -69,6 +70,7 @@ export function ImageGenerationSettings({ data, onChange, inpaintOnly = false, p
   const settings = composerSettings(data);
   const seedream = modelId === 'seedream-5-5';
   const nano = modelId.startsWith('nano-banana');
+  const grok = modelId === grokImageModel;
   const kling = modelId === klingImageModel;
   const klingResolution = kling ? klingImageResolutions.find(resolution => resolution === settings.resolution) : undefined;
   const channel = composerChannel(data);
@@ -94,7 +96,7 @@ export function ImageGenerationSettings({ data, onChange, inpaintOnly = false, p
   const estimateTip = seedreamPrice !== undefined
     ? `APIMart 黄金价。每张输出 ${seedreamPrice} 积分，每次生成使用 ${referenceCount} 张参考图，每张参考图 ${seedreamReferenceCredits} 积分。共生成 ${composer.quantity} 张。`
     : `${model?.name} 共 ${composer.quantity} 张，按${rate}估算。提示词按长度估算，${referenceCount} 张参考图按每张约 1536 tokens 计入。图片输出按尺寸与画质估算。${data.size === 'auto' ? autoSize : ''}${data.quality === 'auto' ? autoQuality : ''}实际费用以账单为准。`;
-  const showBackground = !nano && !kling && (seedream || channel !== 'gpt-image-2.6-ext');
+  const showBackground = !nano && !kling && !grok && (seedream || channel !== 'gpt-image-2.6-ext');
   const transparent = showBackground && settings.background === 'transparent';
   const automaticSize = Boolean(gptImageVariants[modelId]) && channel === 'openai' && composer.ratio === 'auto';
   const supportedRatios = composerAspectRatios(data);
@@ -124,20 +126,20 @@ export function ImageGenerationSettings({ data, onChange, inpaintOnly = false, p
       <div className="generation-option-row"><span>画面比例</span><GenerationOptionSelect key={`ratio-${modelId}`} label="画面比例" value={composerAspectRatio(data)} choices={ratios}
         labels={ratios.map(value => value === 'auto' ? '自动' : value)} disabled={locked}
         onChange={ratio => edit(changeComposerSettings(data, { ratio }))} /></div>
-      <div className="generation-option-row"><span>分辨率{automaticSize && <ImagePromptInfoTip label="自动分辨率说明">OpenAI 自动比例下，选择分辨率会将画面比例设为 1:1。也可以先选择其他画面比例。</ImagePromptInfoTip>}</span><GenerationOptionSelect key={`resolution-${modelId}`} label="分辨率" value={automaticSize ? 'auto' : settings.resolution}
+      {!grok && <div className="generation-option-row"><span>分辨率{automaticSize && <ImagePromptInfoTip label="自动分辨率说明">OpenAI 自动比例下，选择分辨率会将画面比例设为 1:1。也可以先选择其他画面比例。</ImagePromptInfoTip>}</span><GenerationOptionSelect key={`resolution-${modelId}`} label="分辨率" value={automaticSize ? 'auto' : settings.resolution}
         choices={automaticSize ? ['auto', '1K', '2K', '4K'] : seedream ? seedreamChoices.resolution : kling ? klingImageResolutions : ['1K', '2K', '4K']}
         labels={automaticSize ? ['自动', '1K', '2K', '4K'] : undefined} disabled={locked}
-        onChange={value => { if (value !== 'auto') setSetting('resolution', value); }} /></div>
+        onChange={value => { if (value !== 'auto') setSetting('resolution', value); }} /></div>}
       {showBackground && <div className="generation-option-row"><span>背景</span><GenerationOptionSelect label="背景" value={settings.background ?? 'auto'}
         choices={['auto', 'transparent', 'opaque']} labels={['自动', '透明', '不透明']} disabled={locked} onChange={value => setSetting('background', value)} /></div>}
-      {!seedream && !nano && !kling && <div className="generation-option-row"><span>画质</span><GenerationOptionSelect label="画质" value={settings.quality ?? 'medium'}
+      {!seedream && !nano && !kling && !grok && <div className="generation-option-row"><span>画质</span><GenerationOptionSelect label="画质" value={settings.quality ?? 'medium'}
         choices={imageQualities} labels={imageQualities.map(value => imageQualityLabels[value])} disabled={locked} onChange={value => setSetting('quality', value)} /></div>}
       {kling && <div className="generation-option-row"><span>生成模式<ImagePromptInfoTip label="Kling 生成模式说明">普通生成支持 1–9 张。关联组图支持 2–4 张，张数在节点生成按钮旁调整。</ImagePromptInfoTip></span>
         <GenerationOptionSelect label="生成模式" value={settings.mode ?? 'standard'} choices={klingImageModes} labels={['普通生成', '关联组图']}
           disabled={locked} onChange={value => setSetting('mode', value)} /></div>}
-      <div className="generation-option-row"><span>输出格式</span><GenerationOptionSelect label="输出格式" value={settings.outputFormat}
+      {!grok && <div className="generation-option-row"><span>输出格式</span><GenerationOptionSelect label="输出格式" value={settings.outputFormat}
         choices={transparent || kling ? ['png'] : ['png', 'jpeg']} labels={transparent || kling ? ['PNG'] : ['PNG', 'JPEG']}
-        disabled={locked} onChange={value => setSetting('outputFormat', value)} /></div>
+        disabled={locked} onChange={value => setSetting('outputFormat', value)} /></div>}
       <div className="generation-options-cost">
         <span>{estimate !== undefined ? estimateTitle : '费用'}<ImagePromptInfoTip label="生成费用">{estimate !== undefined ? estimateTip : extResolution
           ? '按 APIMart EXT 黄金价显示当前分辨率的每张参考单价，实际费用以 APIMart 结算为准。'
