@@ -19,10 +19,10 @@ export async function measureAsset(asset: FileAsset): Promise<FileAsset> {
     });
   } finally { release(); }
 }
-async function assetBlob(asset: FileAsset) {
+export async function assetBlob(asset: FileAsset, signal?: AbortSignal) {
   const release = assetResources.retain([asset.url]);
   try {
-    const response = await fetch(asset.url);
+    const response = await fetch(asset.url, { signal });
     if (!response.ok) throw new Error('Could not download this file. Check the link and try again.');
     return await response.blob();
   } finally { release(); }
@@ -109,4 +109,9 @@ export async function copyAssetImage(asset: FileAsset) {
   })();
   await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
   releaseAssetClipboard();
+}
+
+export function videoTimeLabel(seconds: number) {
+  const whole = Math.floor(seconds);
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
 }

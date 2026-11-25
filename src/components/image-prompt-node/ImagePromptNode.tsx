@@ -34,6 +34,7 @@ export interface ImagePromptNodeProps {
   kind?: 'image' | 'text' | 'video';
   videoInput?: ReactNode;
   playbackSlot?: (element: HTMLDivElement | null) => void;
+  playbackBelowActions?: boolean;
   textResult?: ReactNode;
   textFormat?: 'txt' | 'md';
   onTextFormatChange?: (format: 'txt' | 'md') => void;
@@ -99,7 +100,7 @@ export interface ImagePromptNodeProps {
 }
 
 export function ImagePromptNode({
-  kind = 'image', videoInput, playbackSlot, textResult, textFormat = 'txt', onTextFormatChange, textInput,
+  kind = 'image', videoInput, playbackSlot, playbackBelowActions = false, textResult, textFormat = 'txt', onTextFormatChange, textInput,
   assetKind, handles, promptReadOnly, prompt: promptValue, defaultPrompt = '', onPromptChange,
   quantity: quantityValue, defaultQuantity = 1, onQuantityChange, quantityRange,
   selected: selectedValue, defaultSelected = false, onSelectedChange,
@@ -136,6 +137,7 @@ export function ImagePromptNode({
   const canGenerate = hasPrompt || canGenerateWithoutPrompt;
   const cancelGeneration = busy ? onCancelGeneration : undefined;
   const hasResult = Boolean(result);
+  const playback = kind === 'video' && hasResult && !busy && <div className="video-composer-playback" ref={playbackSlot} />;
   const resultElement = useRef<HTMLDivElement>(null);
   const activeVariantId = variants[activeVariant]?.id;
   const previousResult = useRef({ busy, activeVariantId });
@@ -310,7 +312,7 @@ export function ImagePromptNode({
             >
               <button type="button" aria-label="Mention node" onPointerDown={event => event.preventDefault()} onClick={() => { hideTooltip(); editor.current?.mention(); onMention?.(); }} {...tooltipProps('Mention node')} disabled={locked || promptReadOnly}><ImagePromptIcon name="mention" /></button>
               {isText ? <button type="button" aria-label="Connected apps" aria-disabled="true" {...tooltipProps('Connected apps')}><ImagePromptIcon name="plug" /></button>
-                : kind === 'video' ? (hasResult && !busy && <div className="video-composer-playback" ref={playbackSlot} />)
+                : kind === 'video' ? (!playbackBelowActions && playback)
                 : <button type="button" aria-label="Reference Element" {...tooltipProps('No Elements available')} disabled><ImagePromptIcon name="hash" /></button>}
               <div className="image-node-actions-right">
                 {isText ? <div className="text-node-formats" role="group" aria-label="Output format">
@@ -324,6 +326,7 @@ export function ImagePromptNode({
                   onSend={() => cancelGeneration ? cancelGeneration() : onGenerate?.({ prompt, quantity })} />
               </div>
             </div>
+            {playbackBelowActions && playback}
             </div>
             </div>
           </div>}

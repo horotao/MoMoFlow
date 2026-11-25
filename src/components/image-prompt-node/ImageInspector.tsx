@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type Ref } from 'react';
+import { useEffect, useRef, useState, type Ref } from 'react';
 import { useStore } from '@xyflow/react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import type { FileAsset, SunburstNode } from '../../nodes/types';
@@ -8,6 +8,7 @@ import { assetResources } from '../../nodes/assetResources';
 import { measureAsset } from '../../nodes/fileMedia';
 import { imageCreatedAt, imageDateLabel, imageFormat, imageModel, imageSizeLabel } from '../../nodes/imageMetadata';
 import { ImageGenerationOptions } from './ImageGenerationOptions';
+import { MediaInformationCard } from './MediaInformationCard';
 import { ImageAssetPreview } from './ImageAssetPreview';
 import { ImagePromptIcon, type ImagePromptIconName } from './ImagePromptIcon';
 import { requestImageCrop } from '../../nodes/useCanvasImageCrop';
@@ -40,12 +41,10 @@ const tools: { icon: ImagePromptIconName; label: string }[] = [
 ];
 
 function ImageInformation({ asset, name, generated, assets, onCrop }: { asset?: FileAsset; name: string; generated: boolean; assets?: FileAsset[]; onCrop?: () => void }) {
-  const [expanded, setExpanded] = useState(true);
   const [measured, setMeasured] = useState(asset);
   const [preview, setPreview] = useState(false);
   const openingPreview = useRef(false);
   const more = useRef<HTMLButtonElement>(null);
-  const id = useId();
   useEffect(() => {
     if (!asset) return;
     const image = asset;
@@ -87,11 +86,7 @@ function ImageInformation({ asset, name, generated, assets, onCrop }: { asset?: 
     ['分辨率', measured.width && measured.height ? `${measured.width} × ${measured.height}${asset.crop ? '（已裁剪）' : ''}` : '—'],
     ['创建时间', imageDateLabel(imageCreatedAt(asset))],
   ] : [];
-  return <section className="image-information" aria-label="图片信息">
-    <header><h3 title={name}>{name}</h3><button type="button" className="image-information-toggle" aria-label="图片信息"
-      disabled={!asset} aria-expanded={Boolean(asset) && expanded} aria-controls={asset ? id : undefined}
-      onClick={() => setExpanded(!expanded)}><ImagePromptIcon name="metadata-info" /></button></header>
-    {asset && expanded && <dl id={id}>{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd title={value}>{value}</dd></div>)}</dl>}
+  return <MediaInformationCard label="图片信息" name={name} rows={rows}>
     <footer>{tools.map(tool => <button key={tool.icon} type="button" disabled={tool.icon !== 'metadata-crop' || !asset || !onCrop}
       onClick={tool.icon === 'metadata-crop' ? onCrop : undefined} aria-label={tool.icon === 'metadata-crop' ? tool.label : `${tool.label}（预留）`}
       title={tool.icon === 'metadata-crop' ? tool.label : `${tool.label}（预留）`}><ImagePromptIcon name={tool.icon} /></button>)}
@@ -106,5 +101,5 @@ function ImageInformation({ asset, name, generated, assets, onCrop }: { asset?: 
       </DropdownMenu.Root>
     </footer>
     {preview && asset && <ImageAssetPreview asset={asset} assets={assets} onClose={() => { setPreview(false); more.current?.focus({ preventScroll: true }); }} />}
-  </section>;
+  </MediaInformationCard>;
 }

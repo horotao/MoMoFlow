@@ -60,7 +60,8 @@ export function mapAssets(nodes: AppNode[], map: (asset: FileAsset) => FileAsset
       } } as AppNode;
     }
 
-    if (isCanvasVideo(node) && node.data.asset) return { ...node, data: { ...node.data, asset: visit(node.data.asset) } };
+    if (isCanvasVideo(node)) return { ...node, data: { ...node.data, asset: node.data.asset ? visit(node.data.asset) : undefined,
+      lastFrame: node.data.lastFrame ? visit(node.data.lastFrame) : undefined } };
     if (isInteractiveEditNode(node)) return { ...node, data: { ...node.data,
       baseImage: node.data.baseImage ? visit(node.data.baseImage) : undefined,
     } };

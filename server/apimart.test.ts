@@ -309,3 +309,37 @@ test('uploaded reference and mask URLs pass through in order without server down
     }
   }
 });
+
+test('video middleware submits one task per click and polls the video result with the same credential', async () => {
+  const images = ['https://cdn.example/first.png'];
+  const models = [['seedance', 'seedance-2-5-flash'], ['kling', 'kling-v4-flash'], ['minimax', 'MiniMax-H3']] as const;
+  for (const [model, upstreamModel] of models) {
+    let submitted = 0;
+    const result = await invoke({ model, prompt: 'video', ratio: '16:9', seconds: 5, options: { mode: 'first' }, images, videos: [], audio: [] }, async (url, init) => {
+      submitted++;
+      assert.equal(url, 'https://api.apimart.ai/v1/videos/generations');
+      assert.equal(new Headers(init?.headers).get('Authorization'), 'Bearer apimart-test-secret');
+      const body = JSON.parse(String(init?.body));
+      assert.equal(body.model, upstreamModel);
+      assert.deepEqual(body.image_with_roles, [{ url: images[0], role: 'first_frame' }]);
+      assert.equal(body.aspect_ratio, undefined);
+      return Response.json({ code: 200, data: [{ task_id: 'task_video' }] });
+    }, { path: '/api/apimart/videos' });
+    assert.equal(submitted, 1);
+    assert.deepEqual(result, { status: 200, body: { taskId: 'task_video' } });
+  }
+  const upstream = (status: string) => async (url: RequestInfo | URL, init?: RequestInit) => {
+    assert.equal(url, 'https://api.apimart.ai/v1/tasks/task_video?language=zh');
+    assert.equal(init?.method, 'GET');
+    return Response.json({ data: { status, error: { message: 'Reference rejected' }, result: {
+      videos: [{ url: ['https://cdn.example/video.mp4'], last_frame_url: 'https://cdn.example/last.png' }],
+    } } });
+  };
+  const path = '/api/apimart/video-task', taskId = 'task_video';
+  assert.deepEqual(await invoke({ taskId }, upstream('processing'), { path }), { status: 200, body: { status: 'processing', taskId } });
+  assert.deepEqual(await invoke({ taskId }, upstream('completed'), { path }), { status: 200, body: {
+    status: 'completed', taskId, videoUrl: 'https://cdn.example/video.mp4', lastFrameUrl: 'https://cdn.example/last.png',
+  } });
+  assert.match((await invoke({ taskId }, upstream('failed'), { path })).body.error, /Reference rejected/);
+  assert.equal((await invoke({ taskId: 'a/../../bad' }, async () => assert.fail('Invalid task ID cannot reach the provider'), { path })).status, 400);
+});

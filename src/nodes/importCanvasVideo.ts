@@ -6,16 +6,20 @@ import type { CanvasVideo, FileAsset } from './types';
 export const isMp4File = (file: File) => file.type === 'video/mp4'
   || ((!file.type || file.type === 'application/octet-stream') && /\.mp4$/i.test(file.name));
 
-export async function readCanvasVideo(file: File): Promise<FileAsset> {
-  if (!file.size || !isMp4File(file)) throw new Error('请选择 MP4 视频文件。');
+export async function readCanvasVideo(file: File, { signal }: { signal?: AbortSignal } = {}): Promise<FileAsset> {
+  signal?.throwIfAborted();
+  if (!file.size || !isMp4File(file)) throw new Error('请选择有效的视频文件。');
   const url = assetResources.create(file);
   const video = document.createElement('video');
   video.preload = 'auto';
   video.muted = true;
+  let abort: (() => void) | undefined;
   try {
     await new Promise<void>((resolve, reject) => {
       const fail = () => reject(new Error(`无法播放「${file.name}」，请检查视频文件或编码。`));
       const timeout = window.setTimeout(fail, 15000);
+      abort = () => { window.clearTimeout(timeout); reject(signal?.reason); };
+      signal?.addEventListener('abort', abort, { once: true });
       video.onloadeddata = () => {
         window.clearTimeout(timeout);
         if (video.videoWidth && video.videoHeight && Number.isFinite(video.duration)) resolve();
@@ -30,6 +34,7 @@ export async function readCanvasVideo(file: File): Promise<FileAsset> {
     assetResources.discard([url]);
     throw error;
   } finally {
+    if (abort) signal?.removeEventListener('abort', abort);
     video.onloadeddata = video.onerror = null;
     video.removeAttribute('src');
     video.load();

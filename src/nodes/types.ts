@@ -64,9 +64,10 @@ export type VideoModelId = 'seedance' | 'kling' | 'minimax';
 export interface VideoComposer {
   prompt: string; mentions?: PromptMention[];
   model: VideoModelId; ratio: string; seconds: number;
+  modelOptions?: Partial<Record<VideoModelId, import('./apimartVideo').VideoOptions>>;
   selection?: { modelIds: VideoModelId[]; autoSelect: boolean; multiple: boolean };
 }
-export type CanvasVideo = Node<{ videoComposer?: VideoComposer; label: string; locked?: boolean; colorTags?: ColorTag[]; asset?: FileAsset }, 'video'>;
+export type CanvasVideo = Node<{ videoComposer?: VideoComposer; label: string; locked?: boolean; colorTags?: ColorTag[]; asset?: FileAsset; lastFrame?: FileAsset }, 'video'>;
 export const isCanvasVideo = (node?: AppNode): node is CanvasVideo => node?.type === 'video';
 export const isVideoComposerNode = (node?: AppNode): node is CanvasVideo => isCanvasVideo(node) && Boolean(node.data.videoComposer || !node.data.asset);
 export type CanvasMediaNode = CanvasVideo | Node<{ label: string; locked?: boolean }, 'audio'>;

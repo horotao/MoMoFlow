@@ -24,7 +24,10 @@ function snapshot(nodes: AppNode[], edges: Edge[]): Snapshot {
 
 function signature({ nodes, edges }: Snapshot) {
   return JSON.stringify({
-    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position, data: node.data,
+    nodes: nodes.map(node => ({ id: node.id, type: node.type, position: node.position,
+      // A player can discover these after the result is committed or after a preview retry.
+      data: isCanvasVideo(node) && node.data.asset ? { ...node.data,
+        asset: { ...node.data.asset, width: undefined, height: undefined, duration: undefined } } : node.data,
       parentId: node.parentId, ...(isCanvasGroup(node) ? { width: node.width, height: node.height } : {}) })),
     edges: edges.map((edge) => ({ ...edge, selected: undefined })),
   }, (key, value) => key === 'content' && Array.isArray(value) && value.length === 0 ? undefined : value);

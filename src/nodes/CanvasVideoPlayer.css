@@ -60,7 +60,16 @@
 .canvas-video-controls input[type="range"]::-webkit-slider-thumb { appearance: none; margin-top: -4px; width: 10px; height: 10px; border: 1px solid #fafaf223; border-radius: 50%; background: #eeeeec; }
 .canvas-video-controls input[type="range"]::-moz-range-track { height: 2px; background: transparent; }
 .canvas-video-controls input[type="range"]::-moz-range-thumb { width: 10px; height: 10px; border: 1px solid #fafaf223; border-radius: 50%; background: #eeeeec; }
-.canvas-video-error { position: absolute; top: 50%; inset-inline: 8px; text-align: center; }
+.canvas-video-error {
+  position: absolute; top: 50%; inset-inline: 8px; translate: 0 -50%;
+  display: grid; justify-items: center; gap: 10px; font: 14px/20px GeistSans, sans-serif;
+}
+.canvas-video-error > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.canvas-video-error button {
+  padding: 6px 12px; border: 1px solid #fafaf223; border-radius: 8px;
+  background: #191918; color: inherit; font: inherit; cursor: pointer;
+}
+.canvas-video-error button:hover { background: #30302e; }
 @media (prefers-reduced-motion: reduce) { .canvas-video-controls { transition: none; } }
 
 .video-toolbar-duration { min-width: 24px; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -84,12 +93,15 @@
 .video-composer-playback .canvas-video-scrubber { min-width: 12px; }
 .image-information footer .video-inspector-import { width: auto; padding: 0 8px; color: #b5b3ad; }
 .canvas-generated-video.has-compact-composer .image-node-surface-body { container-type: inline-size; }
-/* Leave room for the full volume control and the seek thumb on square and portrait cards. */
+.image-node-footer > .video-composer-playback { flex: none; border: 0; }
+.image-node-footer > .video-composer-playback:empty { display: none; }
+.image-node-footer > .video-composer-playback .canvas-video-controls-body { padding-inline: 0; }
+/* Keep inline playback usable on narrow landscape cards when the volume slider expands. */
 @container (max-width: 400px) {
-  .canvas-generated-video .image-node-actions,
-  .canvas-generated-video .image-node-actions-right { gap: 0; }
-  .canvas-generated-video .image-node-actions > button,
-  .canvas-generated-video .image-node-actions-right > button { width: 24px; }
-  .video-composer-playback .canvas-video-controls-body { padding-inline: 2px; }
-  .video-composer-playback .canvas-video-clock { margin-inline: 3px; }
+  .image-node-actions:has(> .video-composer-playback),
+  .video-composer-playback + .image-node-actions-right { gap: 0; }
+  .image-node-actions:has(> .video-composer-playback) > button,
+  .video-composer-playback + .image-node-actions-right > button { width: 24px; }
+  .image-node-actions .video-composer-playback .canvas-video-controls-body { padding-inline: 2px; }
+  .image-node-actions .video-composer-playback .canvas-video-clock { margin-inline: 3px; }
 }
