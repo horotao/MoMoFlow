@@ -2,13 +2,61 @@ import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
 import { EventEmitter } from 'node:events';
-import type { IncomingMessage, ServerResponse } from 'node:http';
-import { buildSunburstPayload, buildSunburstRequest, sunburstPlugin } from './sunburst.ts';
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { once } from 'node:events';
+import { buildSunburstPayload, buildSunburstRequest, createSunburstMiddleware, sunburstPlugin } from './sunburst.ts';
 import { captureMiddleware } from './testMiddleware.ts';
 import { defaultSunburstSettings, imageQualities } from '../src/nodes/sunburst.ts';
 const png = 'data:image/png;base64,aGVsbG8=';
 const sunburstModel = 'gpt-image-2.6-sunburst';
 const input = { ...defaultSunburstSettings, provider: 'openai', prompt: 'A green circle', images: [] };
+
+test('official image edit forwards ordered file IDs and the separate mask or markup without file bytes', async () => {
+  for (const variant of ['Sunburst', 'Flare'] as const) for (const overlay of ['mask', 'markup']) {
+    let submissions = 0;
+    const result = await invoke({ body: { ...input, variant, images: ['file-first', 'file-second'], [overlay]: 'file-overlay' },
+      provider: async (url, options) => {
+        submissions++;
+        assert.equal(url, 'https://api.openai.com/v1/images/edits');
+        assert.equal(new Headers(options?.headers).get('Content-Type'), 'application/json');
+        const body = JSON.parse(options!.body as string);
+        assert.equal(body.model, `gpt-image-2.6-${variant.toLowerCase()}`);
+        assert.deepEqual(body.images, [{ file_id: 'file-first' }, { file_id: 'file-second' }]);
+        assert.deepEqual(body[overlay], { file_id: 'file-overlay' });
+        assert.equal(body[overlay === 'mask' ? 'markup' : 'mask'], undefined);
+        return Response.json({ data: [{ b64_json: 'aGVsbG8=' }] });
+      } });
+    assert.equal(submissions, 1);
+    assert.equal(result.status, 200);
+  }
+  assert.throws(() => buildSunburstRequest({ ...input, images: ['file-first', png] }), /不能混用/);
+  assert.throws(() => buildSunburstRequest({ ...input, images: ['file-first'], mask: png }), /不能混用/);
+  assert.throws(() => buildSunburstRequest({ ...input, images: ['file-not/valid'] }), /PNG/);
+});
+
+test('image response streams more than 4.5 MB as unchanged binary with no Content-Length', async () => {
+  const bytes = Buffer.alloc(5 * 1024 * 1024 + 123, 37);
+  const middleware = createSunburstMiddleware('test-only', async () => Response.json({ data: [{ b64_json: bytes.toString('base64') }] }));
+  const server = createServer((req, res) => { void middleware(req, res, () => { res.writeHead(404).end(); }); });
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  try {
+    const address = server.address();
+    assert.ok(address && typeof address !== 'string');
+    const response = await fetch(`http://127.0.0.1:${address.port}/api/sunburst`, {
+      method: 'POST', headers: { Accept: 'image/*', 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('content-type'), 'image/png');
+    assert.equal(response.headers.get('content-length'), null);
+    assert.equal(response.headers.get('transfer-encoding'), 'chunked');
+    assert.equal(response.headers.get('x-momoflow-image-bytes'), String(bytes.length));
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), bytes);
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>(resolve => server.close(() => resolve()));
+  }
+});
 
 test('all six official qualities reach generation and edit payloads without rewriting', () => {
   for (const quality of imageQualities) for (const images of [[], [png]]) {

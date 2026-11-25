@@ -17,11 +17,12 @@ test('client preserves provider details and request ID in the task error without
 });
 
 // Exercise the request boundary with controlled browser APIs; no provider is called.
-function maskFixture(context: TestContext, values: number[], options: { width?: number; type?: string; onExport?: () => void; exportFails?: boolean } = {}) {
+function maskFixture(context: TestContext, values: number[], options: { width?: number; type?: string; onExport?: () => void; exportFails?: boolean; byok?: boolean } = {}) {
   const pixels = new Uint8ClampedArray(values);
   let exported: number[] | undefined;
   let body: Record<string, unknown> | undefined;
   let closed = 0;
+  const uploads: string[] = [];
   const global = (name: string, value: unknown) => {
     const descriptor = Object.getOwnPropertyDescriptor(globalThis, name);
     Object.defineProperty(globalThis, name, { configurable: true, writable: true, value });
@@ -52,18 +53,49 @@ function maskFixture(context: TestContext, values: number[], options: { width?: 
       });
     }
   });
+  if (options.byok) global('localStorage', { getItem: () => JSON.stringify({ provider: 'openai',
+    credentials: { openai: { apiKey: 'fixture-only-key', baseUrl: 'https://provider.example/v1' } } }) });
   context.mock.method(globalThis, 'fetch', async (url: string, init?: RequestInit) => {
+    if (url === 'https://provider.example/v1/files') {
+      assert.equal(new Headers(init?.headers).get('Authorization'), 'Bearer fixture-only-key');
+      assert.ok(init?.body instanceof FormData);
+      const file = init.body.get('file');
+      assert.ok(file instanceof File);
+      assert.equal(file.type, 'image/png');
+      uploads.push(await file.text());
+      return Response.json({ id: `file-ref${uploads.length}` });
+    }
     if (url === '/api/sunburst') {
       body = JSON.parse(String(init?.body));
+      assert.equal(new Headers(init?.headers).get('Accept'), 'image/*');
       return Response.json({ error: 'Mock API reached' }, { status: 502 });
     }
     assert.ok(['blob:source', 'blob:mask'].includes(url));
     return new Response(new Blob([url === 'blob:source' ? 'source' : 'mask'], { type: url === 'blob:mask' ? options.type ?? 'image/png' : 'image/png' }));
   });
-  return { pixels, exported: () => exported, body: () => body, closed: () => closed };
+  return { pixels, uploads, exported: () => exported, body: () => body, closed: () => closed };
 }
 
 const maskedRequest = { ...defaultSunburstSettings, prompt: 'Edit', images: ['blob:source'], mask: 'blob:mask', maskMode: 'luminance' as const };
+
+test('official BYOK sends reference and mask bytes only to Files, then sends only IDs to the app', async context => {
+  const f = maskFixture(context, [255, 255, 255, 128, 0, 0, 0, 255], { byok: true });
+  await assert.rejects(requestSunburst(maskedRequest, new AbortController().signal), /Mock API reached/);
+  assert.deepEqual(f.uploads, ['source', 'mask']);
+  assert.deepEqual(f.body()?.images, ['file-ref1']);
+  assert.equal(f.body()?.mask, 'file-ref2');
+  assert.doesNotMatch(JSON.stringify(f.body()), /data:image|blob:|fixture-only-key/);
+});
+
+test('official binary response detects incomplete downloads without starting a second generation', async t => {
+  let requests = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    requests++;
+    return new Response(new Uint8Array([1, 2]), { headers: { 'Content-Type': 'image/png', 'X-MoMoFlow-Image-Bytes': '10' } });
+  });
+  await assert.rejects(requestSunburst({ ...defaultSunburstSettings, prompt: 'Example', images: [] }, new AbortController().signal), /回传不完整/);
+  assert.equal(requests, 1);
+});
 
 test('opaque inverted mask becomes alpha with white editable, black protected and gray soft edges', async context => {
   const f = maskFixture(context, [255, 255, 255, 255, 0, 0, 0, 255, 191, 191, 191, 255, 64, 64, 64, 255]);
@@ -124,11 +156,13 @@ test('mask PNG export failures prevent API submission and release bitmaps', asyn
   assert.equal(f.closed(), 2);
 });
 
-test('SVG client keeps UTF-8 XML as an SVG blob without decoding to a bitmap', async context => {
+test('SVG client keeps streamed UTF-8 XML as an SVG blob without decoding to a bitmap', async context => {
   const xml = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480"><path d="M0 0h10v10z"/><text y="30">矢量</text></svg>';
   const nativeFetch = globalThis.fetch;
   context.mock.method(globalThis, 'fetch', async (url: Parameters<typeof fetch>[0], init?: RequestInit) => {
-    if (url === '/api/sunburst') return Response.json({ image: `data:image/svg+xml;base64,${Buffer.from(xml).toString('base64')}`, format: 'svg' });
+    if (url === '/api/sunburst') return new Response(xml, { headers: {
+      'Content-Type': 'image/svg+xml', 'X-MoMoFlow-Image-Bytes': String(Buffer.byteLength(xml)),
+    } });
     return nativeFetch(url, init);
   });
   const asset = await requestSunburst({ ...defaultSunburstSettings, outputFormat: 'svg', variant: 'Flare', prompt: 'vector', images: [] }, new AbortController().signal);

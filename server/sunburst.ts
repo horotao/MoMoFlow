@@ -4,8 +4,10 @@ import { validateVectorSvg } from '../src/nodes/vectorSvg.ts';
 import { diagnosticText, logIdentifier, errorDiagnostic, readErrorDiagnostic, trusted, type ProviderDiagnostic } from './providerDiagnostics.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { once } from 'node:events';
 import type { Plugin } from 'vite';
 import { validateSunburstImageInputs, validateSunburstMarkup, validateSunburstVariant, sunburstModelForProvider, validateSunburstProvider, validateSunburstSettings } from '../src/nodes/sunburst.ts';
+import { isOpenAIFileId } from '../src/nodes/textGeneration.ts';
 
 // The image model renders the reference; this vision/text model authors SVG XML.
 const svgAuthorModel = 'gpt-6.1-terra';
@@ -18,6 +20,10 @@ function imageData(value: unknown, pngOnly?: '蒙版' | '标注图'): string {
   return value;
 }
 
+function imageReference(value: unknown, pngOnly?: '蒙版' | '标注图') {
+  return isOpenAIFileId(value) ? { file_id: value } : { image_url: imageData(value, pngOnly) };
+}
+
 export function buildSunburstRequest(value: unknown) {
   const settings = validateSunburstSettings(value);
   const input = value as Record<string, unknown>;
@@ -28,10 +34,14 @@ export function buildSunburstRequest(value: unknown) {
   const hasMarkup = input.markup !== undefined;
   if (hasMarkup) validateSunburstMarkup(settings.outputFormat, input.images.length > 0, Boolean(input.mask));
   validateSunburstImageInputs(settings.outputFormat, input.images.length > 0, Boolean(input.mask));
-  const images = input.images.map(url => ({ image_url: imageData(url) }));
+  const images = input.images.map(url => imageReference(url));
   if (input.mask && !images.length) throw new Error('使用 Mask 时必须连接 Image。');
-  const mask = input.mask ? imageData(input.mask, '蒙版') : undefined;
-  const markup = hasMarkup ? imageData(input.markup, '标注图') : undefined;
+  const mask = input.mask ? imageReference(input.mask, '蒙版') : undefined;
+  const markup = hasMarkup ? imageReference(input.markup, '标注图') : undefined;
+  const attachments = [...images, ...(mask ? [mask] : []), ...(markup ? [markup] : [])];
+  if (attachments.some(item => item.file_id) && attachments.some(item => item.image_url)) {
+    throw new Error('不能混用已上传的文件 ID 与内联素材。');
+  }
   return {
     provider,
     endpoint: images.length ? 'edits' : 'generations',
@@ -40,7 +50,7 @@ export function buildSunburstRequest(value: unknown) {
       moderation: 'low',
       quality: settings.quality, background: settings.background, size: settings.size, output_format: settings.outputFormat,
       ...(settings.outputFormat === 'svg' ? { svg: { model: svgAuthorModel } } : {}),
-      ...(images.length ? { images, ...(mask ? { mask: { image_url: mask } } : {}), ...(markup ? { markup: { image_url: markup } } : {}) } : {}),
+      ...(images.length ? { images, ...(mask ? { mask } : {}), ...(markup ? { markup } : {}) } : {}),
     },
   };
 }
@@ -52,19 +62,22 @@ function imageUpload(dataUrl: string) {
   return { blob: new Blob([new Uint8Array(bytes)], { type }), extension: type.slice('image/'.length) };
 }
 
-// Local image inputs use the documented file-upload form, avoiding data-URL
-// conversion in the provider's JSON edit adapter. Generation remains JSON.
+// Uploaded IDs use the documented JSON edit API. Keep local env-only raw
+// attachments on the provider's multipart path without exposing the server key.
 export function buildSunburstPayload(request: ReturnType<typeof buildSunburstRequest>): { body: string | FormData; headers: Record<string, string> } {
-  if (request.endpoint === 'generations') return { body: JSON.stringify(request.body), headers: { 'Content-Type': 'application/json' } };
+  if (request.endpoint === 'generations' || request.body.images?.[0]?.file_id) {
+    return { body: JSON.stringify(request.body), headers: { 'Content-Type': 'application/json' } };
+  }
   const form = new FormData();
   const { images, mask, markup, ...settings } = request.body;
   for (const [name, value] of Object.entries(settings)) form.append(name, String(value));
   for (const [index, image] of (images ?? []).entries()) {
+    if (!image.image_url) throw new Error('缺少内联参考图。');
     const { blob, extension } = imageUpload(image.image_url);
     form.append('image[]', blob, `image-${index + 1}.${extension}`);
   }
-  if (mask) form.append('mask', imageUpload(mask.image_url).blob, 'mask.png');
-  if (markup) form.append('markup', imageUpload(markup.image_url).blob, 'markup.png');
+  if (mask?.image_url) form.append('mask', imageUpload(mask.image_url).blob, 'mask.png');
+  if (markup?.image_url) form.append('markup', imageUpload(markup.image_url).blob, 'markup.png');
   // fetch supplies the multipart boundary; never set Content-Type manually.
   return { body: form, headers: {} };
 }
@@ -75,7 +88,7 @@ export function createSunburstMiddleware(openaiKey: string, providerFetch: typeo
     if (req.url?.split('?')[0] !== '/api/sunburst') return next();
     const send = (status: number, value: object) => {
       if (res.destroyed || res.writableEnded) return;
-      res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(value));
+      res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', Vary: 'Accept' }); res.end(JSON.stringify(value));
     };
     if (req.method !== 'POST') return send(405, { error: 'Method not allowed' });
     if (!trusted(req)) return send(403, { error: 'Host or Origin not allowed' });
@@ -157,8 +170,30 @@ export function createSunburstMiddleware(openaiKey: string, providerFetch: typeo
         } catch (error) { return sendFailure(error instanceof Error ? error.message : '未返回有效的纯矢量 SVG。'); }
       }
       stage = 'send-result';
-      send(200, { image: `data:image/${format === 'svg' ? 'svg+xml' : format};base64,${data.b64_json}`, format });
+      const mime = `image/${format === 'svg' ? 'svg+xml' : format}`;
+      if (req.headers.accept?.split(',').some(value => value.trim() === 'image/*')) {
+        const bytes = Buffer.from(data.b64_json, 'base64');
+        if (!bytes.length) return sendFailure('OpenAI 返回了空图片。');
+        controller.signal.throwIfAborted();
+        // Stream the decoded response without Content-Length. Writing a buffered
+        // JSON response with end(body) is subject to the hosted payload limit.
+        res.writeHead(200, { 'Content-Type': mime, 'Cache-Control': 'no-store, no-transform',
+          'X-Content-Type-Options': 'nosniff', 'X-MoMoFlow-Image-Bytes': String(bytes.length), Vary: 'Accept',
+          ...(format === 'svg' ? { 'Content-Security-Policy': "default-src 'none'; sandbox" } : {}) });
+        const chunkSize = 64 * 1024;
+        for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+          controller.signal.throwIfAborted();
+          if (!res.write(bytes.subarray(offset, offset + chunkSize))) await once(res, 'drain', { signal: controller.signal });
+        }
+        res.end();
+      } else {
+        send(200, { image: `data:${mime};base64,${data.b64_json}`, format });
+      }
     } catch (error) {
+      if (res.headersSent) {
+        res.destroy();
+        return;
+      }
       sendFailure(controller.signal.aborted ? '请求超时或已取消；已提交请求仍可能计费，不会自动重试。' : '无法取得 OpenAI 结果；请检查网络及用量后再手动重试。', error);
     } finally { clearTimeout(timeout); res.off('close', close); }
   };

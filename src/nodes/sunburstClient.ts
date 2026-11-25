@@ -1,6 +1,7 @@
 import { notifyApimartGenerationCompleted } from './apimartGeneration.ts';
 import { uploadApimartImages, readImageApiResponse } from './apimartUpload.ts';
 import { downloadApimartResult } from './apimartResult.ts';
+import { uploadOpenAIImages } from './openaiImageUpload.ts';
 import { apiCredentialHeaders } from '../components/apiSettings.ts';
 import { ModelRequestCancelled, modelTimeoutCode, modelRequestError } from './modelRequestError.ts';
 import { readImage, dataUrl } from './imageGenerationClient.ts';
@@ -24,16 +25,20 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
   const provider = validateSunburstProvider(input.provider);
   const apimart = provider === 'apimart';
   const credentialHeaders = apiCredentialHeaders(provider);
+  const openAIKey = apimart ? undefined : credentialHeaders['X-MoMoFlow-Api-Key'];
+  const openAIBaseUrl = credentialHeaders['X-MoMoFlow-Base-Url'];
   const { maskMode, markupMarks, ...request } = input;
   if (markupMarks?.length) {
     if (apimart && input.channelModel !== 'gpt-image-2.6') throw new Error(apimartExtMarkupError);
     validateSunburstMarkup(input.outputFormat, input.images.length > 0, Boolean(input.mask));
   }
   validateSunburstImageInputs(input.outputFormat, input.images.length > 0, Boolean(input.mask), provider, input.channelModel);
-  if (apimart) {
-    validateSunburstSettings(input);
-    if (!input.prompt.trim() || input.prompt.length > 32000) throw new Error('请连接非空 Prompt，最多 32000 个字符。');
-    if (input.images.length > 16) throw new Error('最多支持 16 张参考图片。');
+  validateSunburstSettings(input);
+  if (!input.prompt.trim() || input.prompt.length > 32000) throw new Error('请连接非空 Prompt，最多 32000 个字符。');
+  if (input.images.length > 16) throw new Error('最多支持 16 张参考图片。');
+  if (!apimart && input.images.length && !openAIKey && typeof location !== 'undefined'
+    && !['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)) {
+    throw new Error('请先在「更多 → API 设置」保存 OpenAI 官方 Key，再上传参考图片。');
   }
   const blobs: Blob[] = []; let total = 0;
   for (const url of input.images) {
@@ -81,14 +86,18 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
   }
   signal.throwIfAborted();
   const overlay = mask ?? markup;
-  const uploaded = apimart ? await uploadApimartImages([...blobs, ...(overlay ? [overlay] : [])], credentialHeaders, signal) : undefined;
+  const attachments = [...blobs, ...(overlay ? [overlay] : [])];
+  const uploaded = apimart ? await uploadApimartImages(attachments, credentialHeaders, signal)
+    : openAIKey && openAIBaseUrl && attachments.length ? await uploadOpenAIImages(attachments, openAIBaseUrl, openAIKey, signal) : undefined;
   const overlayInput = overlay ? uploaded ? uploaded[blobs.length] : await dataUrl(overlay) : undefined;
   signal.throwIfAborted();
   let response = await fetch(apimart ? '/api/apimart/images' : '/api/sunburst', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', ...credentialHeaders }, signal,
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...(!apimart ? { Accept: 'image/*' } : {}), ...credentialHeaders }, signal,
     body: JSON.stringify({ ...request, images: uploaded ? uploaded.slice(0, blobs.length) : await Promise.all(blobs.map(dataUrl)), ...(overlayInput ? { [mask ? 'mask' : 'markup']: overlayInput } : {}) }),
   });
-  let result = await readImageApiResponse(response);
+  const mime = response.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+  const binaryFormat = !apimart && response.ok && mime?.startsWith('image/') ? (mime === 'image/svg+xml' ? 'svg' : mime.slice(6)) : undefined;
+  let result = binaryFormat ? { format: binaryFormat } : await readImageApiResponse(response);
   let apimartTaskId: string | undefined;
   if (apimart && response.ok) {
     const taskId: unknown = result.taskId;
@@ -117,6 +126,17 @@ export async function requestSunburst(input: SunburstRequest, signal: AbortSigna
   let blob: Blob;
   try {
     if (apimart) blob = await downloadApimartResult(result, input.outputFormat, signal);
+    else if (binaryFormat) {
+      if (!['png', 'jpeg', 'webp', 'svg'].includes(binaryFormat)) throw new Error('OpenAI 返回了不支持的图片格式。');
+      const bytes = Number(response.headers.get('x-momoflow-image-bytes'));
+      if (!Number.isSafeInteger(bytes) || bytes < 1 || bytes > 48 * 1024 * 1024) throw new Error('OpenAI 图片大小无效。');
+      try { blob = await response.blob(); }
+      catch {
+        signal.throwIfAborted();
+        throw new Error('OpenAI 图片回传中断；已提交请求可能计费，请先检查用量再手动重试。');
+      }
+      if (blob.size !== bytes) throw new Error('OpenAI 图片回传不完整，请先检查用量再手动重试。');
+    }
     else {
       if (typeof result.image !== 'string' || !/^data:image\/(png|jpeg|webp|gif|svg\+xml);base64,/.test(result.image)) throw new Error('未返回有效图片。');
       blob = await (await fetch(result.image, { signal })).blob();

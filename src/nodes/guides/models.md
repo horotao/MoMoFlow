@@ -12,6 +12,8 @@ Seedream、Nano Banana 2.1、Nano Banana Pro 和 Kling V4 Image 的高级设置�
 
 GPT Image 的「渠道商」可选 OpenAI 官方、APIMart 标准和 APIMart EXT。切换时同步转换尺寸并保留分辨率，随节点保存且可撤销。新建 Image 的初始配置为 APIMart EXT、Sunburst、1:1、1K、中等画质、PNG。旧项目按已保存的渠道恢复，早期未指定版本的 APIMart 节点按 EXT 恢复。两种 APIMart 渠道共用左侧「更多 → API 设置」中的 APIMart 凭据。Seedream 与 Nano Banana 使用各自的 APIMart 接口。
 
+OpenAI 官方渠道保存 Key 后，浏览器按顺序将参考图及可选蒙版或标注图上传到同一 Base URL 的 `/files`，然后只将文件 ID 送给 MoMoFlow API。若网关不支持浏览器直传，不自动改走内联上传。仅本机使用环境变量默认 Key 时，保留本机接口接收参考图并转成 multipart 的方式。OpenAI 结果由 MoMoFlow API 解码后流式回传原图字节，仍经过该 API；APIMart 则继续让浏览器通过结果 URL 直下。两种渠道都把成图存入浏览器，预览地址不是公开下载链接。
+
 Seedream 5.5 的预计费用按 APIMart 黄金价计算。每张输出的 1.5K 费用为 0.16 积分，2K 为 0.28 积分；每次生成另计每张参考图 0.064 积分，再按生成张数合计。
 
 APIMart EXT 渠道的 Sunburst 和 Flare 共用黄金价。「费用」随所选分辨率显示每张参考单价：1K 为 0.085、2K 为 0.3、4K 为 0.4 Credits/张。OpenAI 官方渠道按[官方计算器](https://developers.openai.com/api/docs/guides/image-generation#calculating-costs)估算当前 GPT Image 2.6 模型整批光栅图片费用。文本输入、图片输入与图片输出分别按每百万 tokens 5、8、30 美元计算。提示词按长度、参考图按每张约 1536 tokens 估算；自动尺寸暂按 1024×1024，自动画质暂按中等。
