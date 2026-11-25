@@ -133,7 +133,7 @@ export function CanvasAudioNode({ id, data, selected, isConnectable }: NodeProps
         data-connection-port="text" data-connected={Boolean(edge) || undefined}>
         <span className="image-node-port-label"><ImagePromptIcon name="text" />Prompt</span><InputPortRing />
         <Handle type="target" id="prompt" position={Position.Left} isConnectable={connectable} /></button>}
-      handles={{ image: null, output: <Handle type="source" id="audio" position={Position.Right} isConnectable={connectable} /> }}
+      outputConnected={edges.some(edge => edge.source === id)} handles={{ image: null, output: <Handle type="source" id="audio" position={Position.Right} isConnectable={connectable} /> }}
       references={edge ? [{ id: edge.id, kind: 'text', name: source?.data.label || 'Text' }] : []} referenceScale={zoom}
       onRemoveReference={edgeId => { if (!locked) setEdges(edges => edges.filter(e => e.id !== edgeId)); }}
       playbackSlot={setControlsHost} playbackBelowActions result={result && <AudioWaveform key={result.id} result={result} controlsHost={controlsHost} />}

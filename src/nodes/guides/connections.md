@@ -28,7 +28,7 @@ Image 生成和结果切换期间，两侧端口继续参与布局。已有连�
 
 ## Video 连接
 
-生成 Video 的输入依次为 `prompt`、`image-0` 至 `image-8`、`video-0` 至 `video-2`，分别接收 Text、Image 和 Video。上游文本取代本地草稿，断线后恢复。生成节点与导入视频均通过右侧 `video` 端口连接下游 Video，支持正反向拖线、拖到空白处创建及撤销。普通参考图与视频按端口编号进入模型。Seedance 和 MiniMax 的「首尾帧」模式额外显示独立的 `first-frame`、`last-frame` 图片端口。两帧按角色提交，每个端口接收一张图。切回 Auto 时保留连线，两张帧图归入普通图片输入。Kling 只连一张图片时将它作为首帧；Seedance 和 MiniMax 将连入的图片作为参考图。Audio 左侧单个 `prompt` 端口接收 Text，连线替代本地草稿，断线后恢复。右侧 `audio` 为音频输出，当前画布尚无接收音频的下游节点。
+生成 Video 的输入依次为 `prompt`、`image-0` 至 `image-8`、`video-0` 至 `video-2`，分别接收 Text、Image 和 Video。上游文本取代本地草稿，断线后恢复。生成节点与导入视频均通过右侧 `video` 端口连接下游 Video，支持正反向拖线、拖到空白处创建及撤销。普通参考图与视频按端口编号进入模型。Seedance 和 MiniMax 的「首尾帧」模式额外显示独立的 `first-frame`、`last-frame` 图片端口。两帧按角色提交，每个端口接收一张图。切回 Auto 时保留连线，两张帧图归入普通图片输入。Kling 只连一张图片时将它作为首帧；Seedance 和 MiniMax 将连入的图片作为参考图。Audio 左侧单个 `prompt` 端口接收 Text，连线替代本地草稿，断线后恢复。右侧 `audio` 输出当前历史音轨，可连接 Seedance 2.5 Flash 的 Audio 输入（`audio-0` 至 `audio-4`），支持正反向拖线和创建节点。音频按端口顺序提交，仅接音频时保留手选画面比例。切换到其他模型或首尾帧模式会移除音频连线，可撤销恢复。
 
 ## Text 连接
 

@@ -1,6 +1,6 @@
 import type { Connection, XYPosition } from '@xyflow/react';
 import type { AppNode } from './types';
-import { isVideoFrameHandle, videoInputHandles } from './videoComposer.ts';
+import { acceptsVideoAudio, videoAudioHandles, isVideoFrameHandle, videoInputHandles } from './videoComposer.ts';
 import { isCanvasVideo, isVideoComposerNode, isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isNodeLocked } from './types.ts';
 import { isImageInputHandle } from './connectionRules.ts';
 import { selectedImageResult } from './annotationGraph.ts';
@@ -32,7 +32,7 @@ export function connectionChoices(pending: PendingConnection, nodes: AppNode[]):
   const node = nodes.find(item => item.id === pending.nodeId);
   if (!node || (!isCanvasImageNode(node) && !isCanvasTextNode(node) && !isCanvasVideo(node) && node.type !== 'audio') || isNodeLocked(node)) return [];
   if (pending.direction === 'target' && (isCanvasImageNode(node) && node.data.inpaint || isCanvasVideo(node) && !isVideoComposerNode(node))) return [];
-  // The new node is anchored by its top center, like Image, with three inputs spaced 40 units apart.
+  // The new node is anchored by its top center, like Image, with four inputs spaced 40 units apart.
   const videoWidth = canvasImageSize('16:9').width;
   const videoTarget = (handleId: string, offsetY: number): ConnectionChoice => {
     const source = isCanvasImageNode(node) ? selectedImageResult(node) : isCanvasVideo(node) ? node.data.asset : undefined;
@@ -40,13 +40,17 @@ export function connectionChoices(pending: PendingConnection, nodes: AppNode[]):
     return { id: `video:${handleId}`, itemId: 'video', handleId,
       portX: -24 + (videoWidth - width) / 2, portY: height / 2 + offsetY };
   };
-  if (isCanvasVideo(node) && pending.direction === 'source' && pending.handleId === 'video') return [videoTarget('video-0', 40)];
+  if (node.type === 'audio' && pending.direction === 'source' && pending.handleId === 'audio') return [videoTarget('audio-0', 60)];
+  if (isVideoComposerNode(node) && acceptsVideoAudio(node.data.videoComposer) && pending.direction === 'target' && videoAudioHandles.includes(pending.handleId ?? '')) {
+    return [{ id: 'audio:output', itemId: 'audio', handleId: 'audio', portX: 412, portY: 192 }];
+  }
+  if (isCanvasVideo(node) && pending.direction === 'source' && pending.handleId === 'video') return [videoTarget('video-0', 20)];
   if (isVideoComposerNode(node) && pending.direction === 'target' && videoInputHandles.includes(pending.handleId ?? '')) {
     return [{ id: 'video:output', itemId: 'video', handleId: 'video', portX: videoWidth + 28, portY: 192 }];
   }
   if (isCanvasTextNode(node) && pending.direction === 'source' && pending.handleId === 'text') {
     return [{ id: 'image:prompt', itemId: 'image', handleId: 'prompt', portX: -24, portY: 192 },
-      { id: 'text:text', itemId: 'text', handleId: 'text', portX: -24, portY: 192 }, videoTarget('prompt', -40),
+      { id: 'text:text', itemId: 'text', handleId: 'text', portX: -24, portY: 192 }, videoTarget('prompt', -60),
       { id: 'audio:prompt', itemId: 'audio', handleId: 'prompt', portX: -24, portY: 192 }];
   }
   if (pending.direction === 'target' && (isCanvasTextNode(node) && pending.handleId === 'text'
@@ -57,7 +61,7 @@ export function connectionChoices(pending: PendingConnection, nodes: AppNode[]):
     const { width, height } = canvasImageSize('auto', undefined, selectedImageResult(node));
     return [{ id: 'image:image-0', itemId: 'image', handleId: 'image-0',
       portX: -24 - (width - canvasImageBaseSize) / 2, portY: height / 2 + 32 },
-      { id: 'text:image-0', itemId: 'text', handleId: 'image-0', portX: -24, portY: 224 }, videoTarget('image-0', 0)];
+      { id: 'text:image-0', itemId: 'text', handleId: 'image-0', portX: -24, portY: 224 }, videoTarget('image-0', -20)];
   }
   if (pending.direction === 'target' && !isImportedCanvasImage(node) && (isImageInputHandle(pending.handleId) || isVideoFrameHandle(pending.handleId))) {
     return [{ id: 'image:result', itemId: 'image', handleId: 'result', portX: 412, portY: 192 }];

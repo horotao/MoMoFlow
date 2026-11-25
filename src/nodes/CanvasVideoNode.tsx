@@ -6,6 +6,7 @@ import { ImagePromptNode } from '../components/image-prompt-node/ImagePromptNode
 import { ImagePromptIcon } from '../components/image-prompt-node/ImagePromptIcon';
 import { InputPortRing } from '../components/image-prompt-node/InputPortRing';
 import { ImportedMediaToolbar } from '../components/image-prompt-node/ImportedMediaToolbar';
+import { selectedAudioAsset } from './audioPreview';
 import { assetResources } from './assetResources';
 import { canvasImageSize, hasImageDimensions } from './canvasImageGeometry';
 import { CanvasVideoPlayer } from './CanvasVideoPlayer';
@@ -16,12 +17,12 @@ import { readCanvasVideo } from './importCanvasVideo';
 import { downloadAsset, measureAsset } from './fileMedia';
 import { composerRunEvent, type ComposerRunRequest } from './canvasComposerRun';
 import { textOutputValue } from './textGeneration';
-import { defaultVideoComposer, videoFrameHandles, videoImageHandles, videoInputHandles, videoModelDisplay } from './videoComposer';
+import { acceptsVideoAudio, videoAudioHandles, defaultVideoComposer, videoFrameHandles, videoImageHandles, videoInputHandles, videoModelDisplay } from './videoComposer';
 import { generateApimartVideo, videoStopNotice } from './apimartVideoClient';
 import { normalizeVideoComposer, videoOptions } from './apimartVideo';
 import { selectedImageResult } from './annotationGraph';
 import { usePublishNodeGeneration } from './visibleCanvasText';
-import { isCanvasTextNode, isCanvasVideo, isImageGeneratorNode, isNodeLocked, type AppNode, type CanvasImage, type CanvasText, type CanvasVideo, type FileAsset, type VideoComposer } from './types';
+import { isCanvasAudio, isCanvasTextNode, isCanvasVideo, isImageGeneratorNode, isNodeLocked, type AppNode, type CanvasAudio, type CanvasImage, type CanvasText, type CanvasVideo, type FileAsset, type VideoComposer } from './types';
 
 function inputSlots(handles: string[], occupied: Set<string | null | undefined>, enabled: boolean) {
   const free = handles.find(handle => !occupied.has(handle));
@@ -53,19 +54,20 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
   const incoming = useMemo(() => edges.filter(edge => edge.target === id), [edges, id]);
   const occupied = new Set(incoming.map(edge => edge.targetHandle));
   const sourceIds = useMemo(() => incoming.map(edge => edge.source), [incoming]);
-  const sources = useNodesData<CanvasImage | CanvasText | CanvasVideo>(sourceIds);
+  const sources = useNodesData<CanvasAudio | CanvasImage | CanvasText | CanvasVideo>(sourceIds);
   const promptEdge = incoming.find(edge => edge.targetHandle === 'prompt');
   const promptSource = sources.find(source => source.id === promptEdge?.source);
   const prompt = promptEdge ? promptSource?.type === 'text' ? textOutputValue(promptSource.data) : '' : composer.prompt;
   const mentions = useCanvasMentions(id);
   const frameMode = videoOptions(composer).imageMode === 'first-last';
-  const mediaInputs = [...videoFrameHandles, ...videoImageHandles, ...videoInputHandles].flatMap(handle => {
+  const audioEnabled = !imported && acceptsVideoAudio(composer);
+  const mediaInputs = [...videoFrameHandles, ...videoImageHandles, ...videoInputHandles, ...videoAudioHandles].flatMap(handle => {
     const edge = incoming.find(edge => edge.targetHandle === handle);
     if (!edge) return [];
     const source = sources.find(node => node.id === edge.source);
-    const kind: 'image' | 'video' = videoInputHandles.includes(handle) ? 'video' : 'image';
-    const asset = source?.type === 'sunburst' ? selectedImageResult(source) : source?.type === 'video' ? source.data.asset : undefined;
-    const name = kind === 'image' ? asset?.name || source?.data.label || '上游 Image' : source?.data.label || 'Video';
+    const kind: 'audio' | 'video' | 'image' = videoAudioHandles.includes(handle) ? 'audio' : videoInputHandles.includes(handle) ? 'video' : 'image';
+    const asset = source?.type === 'sunburst' ? selectedImageResult(source) : source?.type === 'video' ? source.data.asset : source?.type === 'audio' ? selectedAudioAsset(source.data) : undefined;
+    const name = kind === 'audio' ? asset?.name ?? source?.data.label ?? 'Audio' : kind === 'image' ? asset?.name || source?.data.label || '上游 Image' : source?.data.label || 'Video';
     let videoImageRole: 'First' | 'Last' | 'Ref' | undefined;
     if (frameMode && kind === 'image') {
       videoImageRole = handle === 'first-frame' ? 'First' : handle === 'last-frame' ? 'Last' : 'Ref';
@@ -73,8 +75,8 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
     return [{ id: edge.id, kind, asset, url: asset?.url, name, videoImageRole }];
   });
   const references = promptEdge ? [{ id: promptEdge.id, kind: 'text' as const, name: promptSource?.data.label || '上游 Text' }, ...mediaInputs] : mediaInputs;
-  const followsInputRatio = mediaInputs.length > 0;
-  const reference = mediaInputs.find(input => input.asset)?.asset;
+  const followsInputRatio = mediaInputs.some(input => input.kind !== 'audio');
+  const reference = mediaInputs.find(input => input.kind !== 'audio' && input.asset)?.asset;
   const [measured, setMeasured] = useState<FileAsset>();
   useEffect(() => {
     if (reference?.kind !== 'image' || hasImageDimensions(reference)) return;
@@ -86,7 +88,7 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
   const nextRatio = dimensions ? `${dimensions.width}:${dimensions.height}` : composer.ratio;
   const size = canvasImageSize(generation?.ratio ?? nextRatio, !generation && !dimensions && asset && hasImageDimensions(asset) ? asset : undefined);
   const internals = useUpdateNodeInternals();
-  useLayoutEffect(() => internals(id), [id, internals, size.width, size.height, incoming, imported, frameMode]);
+  useLayoutEffect(() => internals(id), [id, internals, size.width, size.height, incoming, imported, frameMode, audioEnabled]);
   usePublishNodeGeneration(id, Boolean(generation));
   useLayoutEffect(() => {
     pendingUrls.current = pendingUrls.current.filter(url => url !== asset?.url && url !== data.lastFrame?.url);
@@ -118,7 +120,8 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
   }, [id]);
 
   const pictureCount = mediaInputs.filter(ref => ref.kind === 'image').length;
-  const videoCount = mediaInputs.length - pictureCount;
+  const videoCount = mediaInputs.filter(ref => ref.kind === 'video').length;
+  const audioCount = mediaInputs.filter(ref => ref.kind === 'audio').length;
   const klingFirstFrame = composer.model === 'kling' && pictureCount === 1 && !videoCount;
 
   async function run() {
@@ -152,8 +155,9 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
       }
       const images = inputs([...videoFrameHandles, ...videoImageHandles], node => isImageGeneratorNode(node) ? selectedImageResult(node) : undefined);
       const videos = inputs(videoInputHandles, node => isCanvasVideo(node) ? node.data.asset : undefined).map(ref => ref.asset);
+      const audio = inputs(videoAudioHandles, node => isCanvasAudio(node) ? selectedAudioAsset(node.data) : undefined).map(ref => ref.asset);
       const result = await generateApimartVideo(config, runPrompt,
-        textEdge ? undefined : config.mentions, images, videos, controller.signal, taskId => { submittedTask.current = taskId; });
+        textEdge ? undefined : config.mentions, images, videos, audio, controller.signal, taskId => { submittedTask.current = taskId; });
       const node = getNode(id);
       if (controller.signal.aborted || !isCanvasVideo(node) || node.data.locked || node.data.asset?.id !== nodeAtStart.data.asset?.id || input.current?.closest('[inert]')) {
         assetResources.discard([result.url]);
@@ -205,7 +209,11 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
     const node = getNode(id);
     if (!isCanvasVideo(node) || node.data.locked || job.current || busy) return;
     const current = normalizeVideoComposer(node.data.videoComposer ?? defaultVideoComposer);
-    updateNodeData(id, { videoComposer: normalizeVideoComposer({ ...current, ...change }) });
+    const next = normalizeVideoComposer({ ...current, ...change });
+    if (acceptsVideoAudio(current) && !acceptsVideoAudio(next) && audioCount) {
+      setEdges(edges => edges.filter(edge => edge.target !== id || !videoAudioHandles.includes(edge.targetHandle ?? '')));
+    }
+    updateNodeData(id, { videoComposer: next });
   };
   const connectable = isConnectable && !locked;
   return <div className="canvas-image-mount" style={size}>
@@ -235,6 +243,10 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
       videoInput={!imported && <button type="button" className="image-node-input" disabled={locked} aria-label="Video input" data-connection-port="video" data-connected={videoCount > 0 || undefined}>
         <span className="image-node-port-label"><Video size={12} />Video <span className="image-node-port-count">{videoCount}/{videoInputHandles.length}</span></span>
         <InputPortRing />{inputSlots(videoInputHandles, occupied, connectable)}</button>}
+      audioInput={audioEnabled && <button type="button" className="image-node-input" disabled={locked} aria-label="Audio input"
+        data-connection-port="audio" data-connected={audioCount > 0 || undefined}>
+        <span className="image-node-port-label"><ImagePromptIcon name="audio" />Audio <span className="image-node-port-count">{audioCount}/{videoAudioHandles.length}</span></span>
+        <InputPortRing />{inputSlots(videoAudioHandles, occupied, connectable)}</button>}
       imageInputCount={frameMode ? mediaInputs.filter(ref => ref.videoImageRole === 'Ref').length : pictureCount} imageInputLimit={videoImageHandles.length}
       references={references} referenceScale={zoom}
       onRemoveReference={edgeId => { if (!locked) setEdges(edges => edges.filter(edge => edge.id !== edgeId)); }}

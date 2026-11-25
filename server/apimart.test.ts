@@ -11,7 +11,7 @@ import { defaultSunburstSettings, imageQualities, apimartAspectRatios, sunburstR
 const png = 'data:image/png;base64,aGVsbG8=';
 const input = { ...defaultSunburstSettings, provider: 'apimart', prompt: 'Edit the product', images: [] };
 async function invoke(body: unknown, upstream: typeof fetch, options: { path?: string; key?: string; headers?: Record<string, string | undefined>; hook?: 'configureServer' | 'configurePreviewServer'; method?: string } = {}) {
-  const req = Object.assign(Readable.from([Buffer.from(JSON.stringify(body))]), {
+  const req = Object.assign(Readable.from([Buffer.isBuffer(body) ? body : Buffer.from(JSON.stringify(body))]), {
     url: options.path ?? '/api/apimart/images', method: options.method ?? 'POST',
     headers: { host: 'localhost:5173', 'content-type': 'application/json', ...options.headers }, socket: {},
   });
@@ -376,4 +376,28 @@ test('Suno polls the music endpoint, reports real progress, ordered tracks and p
   assert.deepEqual(done.body.tracks, tracks);
   assert.equal((await poll({ status: 'completed', result: { music: [] } })).status, 502);
   assert.match((await poll({ status: 'failed', error: { message: 'test failure' } })).body.error, /test failure/);
+});
+
+test('local reference audio upload forwards original bytes and feeds the Seedance video route', async () => {
+  const path = '/api/apimart/audio-upload', cdn = 'https://cdn.example/reference.wav';
+  const bytes = Buffer.from([0x52, 0x49, 0x46, 0x46, 0x00, 0xfa]);
+  const upload = await invoke(bytes, async (url, init) => {
+    assert.equal(url, 'https://api.apimart.ai/v1/uploads/audios?retention_days=3');
+    assert.ok(init?.body instanceof FormData);
+    const file = init.body.get('file');
+    assert.ok(file instanceof File);
+    assert.equal(file.name, 'reference.wav');
+    assert.deepEqual(Buffer.from(await file.arrayBuffer()), bytes);
+    return Response.json({ url: cdn });
+  }, { path, headers: { 'content-type': 'audio/wav' } });
+  assert.deepEqual(upload, { status: 200, body: { url: cdn } });
+  assert.equal((await invoke(bytes, async () => assert.fail(), { path, headers: { 'content-type': 'audio/mp4' } })).status, 415);
+  const submitted = await invoke({ model: 'seedance', prompt: 'A dance', audio: [upload.body.url], images: [], videos: [] }, async (url, init) => {
+    assert.equal(url, 'https://api.apimart.ai/v1/videos/generations');
+    const body = JSON.parse(String(init?.body));
+    assert.deepEqual(body.audio_urls, [cdn]);
+    assert.equal(body.model, 'seedance-2-5-flash');
+    return Response.json({ data: [{ task_id: 'audio_reference_task' }] });
+  }, { path: '/api/apimart/videos' });
+  assert.equal(submitted.body.taskId, 'audio_reference_task');
 });

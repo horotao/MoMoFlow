@@ -1,3 +1,4 @@
+import { seedanceAudioByteLimit } from '../src/nodes/seedanceAudio.ts';
 import { sunoRequest, sunoTracks } from '../src/nodes/suno.ts';
 import { parseVideoTaskResult, planVideoRequest, videoReferenceUrl } from '../src/nodes/apimartVideo.ts';
 import { grokImageModel, validateGrokImageRequest } from '../src/nodes/grokImage.ts';
@@ -114,18 +115,21 @@ async function readLimited(response: Response, limit: number): Promise<Buffer> {
 export function createApimartMiddleware(defaultKey: string, providerFetch: typeof fetch = fetch) {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const path = req.url?.split('?')[0];
+    const audioUpload = path === '/api/apimart/audio-upload';
     const music = path === '/api/apimart/music';
     const musicTask = path === '/api/apimart/music-task';
     const video = path === '/api/apimart/videos';
     const videoTask = path === '/api/apimart/video-task';
-    if (path !== '/api/apimart/images' && path !== '/api/apimart/seedream' && path !== '/api/apimart/grok' && path !== '/api/apimart/kling' && path !== '/api/apimart/task' && path !== '/api/nano-banana' && !video && !videoTask && !music && !musicTask) return next();
+    if (path !== '/api/apimart/images' && path !== '/api/apimart/seedream' && path !== '/api/apimart/grok' && path !== '/api/apimart/kling' && path !== '/api/apimart/task' && path !== '/api/nano-banana' && !video && !videoTask && !music && !musicTask && !audioUpload) return next();
     const send = (status: number, value: object) => {
       if (res.destroyed || res.writableEnded) return;
       res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(value));
     };
     if (req.method !== 'POST') return send(405, { error: 'Method not allowed' });
     if (!trusted(req)) return send(403, { error: 'Host or Origin not allowed' });
-    if (!req.headers['content-type']?.startsWith('application/json')) return send(415, { error: 'Expected application/json' });
+    const mime = req.headers['content-type']?.split(';')[0];
+    if (audioUpload && mime !== 'audio/mpeg' && mime !== 'audio/wav') return send(415, { error: '参考音频仅支持 MP3 或 WAV。' });
+    if (!audioUpload && !req.headers['content-type']?.startsWith('application/json')) return send(415, { error: 'Expected application/json' });
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
     const close = () => { if (!res.writableEnded) controller.abort(); };
@@ -135,15 +139,15 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
       const chunks: Buffer[] = []; let bytes = 0;
       for await (const chunk of req) {
         bytes += chunk.length;
-        if (bytes > ((path === '/api/apimart/task' || videoTask || musicTask) ? 4096 : music ? 65536 : maxBody)) return send(413, { error: '素材总大小过大，请压缩后重试。' });
+        if (bytes > ((path === '/api/apimart/task' || videoTask || musicTask) ? 4096 : music ? 65536 : audioUpload ? seedanceAudioByteLimit : maxBody)) return send(413, { error: '素材总大小过大，请压缩后重试。' });
         chunks.push(Buffer.from(chunk));
       }
-      let input: Record<string, unknown>;
+      let input: Record<string, unknown> = {};
       let generation: GenerationRequest | undefined;
       let videoPlan: ReturnType<typeof planVideoRequest> | undefined;
       let videos: string[] = [], audio: string[] = [];
       try {
-        input = JSON.parse(Buffer.concat(chunks).toString());
+        if (!audioUpload) input = JSON.parse(Buffer.concat(chunks).toString());
         if (music) generation = { body: sunoRequest(input), images: [] };
         else if (video) {
           if (![input.images, input.videos, input.audio].every(Array.isArray)) throw new Error('无效的参考素材列表。');
@@ -162,7 +166,7 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
             response_format: 'url', ...(!images.length ? { resolution: 'quality' } : {}) } };
         } else if (path === '/api/apimart/kling') generation = buildKlingImageRequest(input);
         else if (path === '/api/nano-banana') generation = buildNanoBananaRequest(input);
-        else {
+        else if (!audioUpload) {
           if (!input || typeof input.taskId !== 'string' || !taskIdPattern.test(input.taskId)) throw new Error('无效的 APIMart 任务编号。');
           if (!videoTask && !musicTask && !imageFormats.some(format => format === input.outputFormat)) throw new Error('不支持的 APIMart 输出格式。');
           taskId = input.taskId;
@@ -188,6 +192,14 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
         }
         return JSON.parse((await readLimited(response, 2 * 1024 * 1024)).toString()) as Record<string, unknown>;
       };
+      if (audioUpload) {
+        if (!bytes) return send(400, { error: '参考音频为空。' });
+        const form = new FormData();
+        form.append('file', new Blob([new Uint8Array(Buffer.concat(chunks))], { type: mime }), mime === 'audio/mpeg' ? 'reference.mp3' : 'reference.wav');
+        const uploaded = await call('/uploads/audios?retention_days=3', form);
+        if (uploaded) send(200, { url: videoReferenceUrl(uploaded.url) });
+        return;
+      }
       if (generation) {
         const upload = async (image: InputImage) => {
           if (typeof image === 'string') return image;

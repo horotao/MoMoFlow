@@ -12,6 +12,13 @@ export const videoFrameHandles = ['first-frame', 'last-frame'] as const;
 export const isVideoFrameHandle = (handle?: string | null) => handle === 'first-frame' || handle === 'last-frame';
 export const videoInputHandles = Array.from({ length: 3 }, (_, i) => `video-${i}`);
 
+export const videoAudioHandles = Array.from({ length: 5 }, (_, i) => `audio-${i}`);
+
+export function acceptsVideoAudio(composer = defaultVideoComposer) {
+  const model = composer.selection?.modelIds[0] ?? composer.model;
+  return model === 'seedance' && composer.modelOptions?.seedance?.imageMode !== 'first-last';
+}
+
 export function videoModelDisplay(composer: VideoComposer) {
   const selection = normalizeVideoComposer(composer).selection!;
   const model = videoModels.find(item => item.id === selection.modelIds[0]) ?? videoModels[0];

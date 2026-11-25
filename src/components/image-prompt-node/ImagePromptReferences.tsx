@@ -11,7 +11,7 @@ export type ImagePromptReference = {
   name: string;
   videoImageRole?: 'First' | 'Last' | 'Ref';
   url?: string;
-  kind?: 'image' | 'text' | 'video';
+  kind?: 'image' | 'text' | 'video' | 'audio';
   onLoad?: ReactEventHandler<HTMLImageElement>;
 };
 
@@ -58,7 +58,7 @@ export function ImagePromptReferences({ references, onRemove, onReorder, scale =
         strip.scrollLeft += event.deltaY * unit;
       }}>
       <SortableContext items={ids} strategy={horizontalListSortingStrategy}>
-        <ul className="image-node-reference-strip" aria-label={references.some(reference => reference.kind === 'text') ? '连入的参考内容' : '连入的参考图'} data-keyboard={keyboard} data-dragging={dragging}>
+        <ul className="image-node-reference-strip" aria-label={references.some(reference => reference.kind && reference.kind !== 'image') ? '连入的参考内容' : '连入的参考图'} data-keyboard={keyboard} data-dragging={dragging}>
           {references.map(reference => <SortableReference key={reference.id} reference={reference}
             expanded={expanded} setExpanded={setExpanded} keyboard={keyboard} setKeyboard={setKeyboard}
             disabled={!sortable || reference.kind === 'text'} scale={scale} reduceMotion={reduceMotion} onRemove={onRemove} restoreFocus={restoreFocus} />)}
@@ -87,7 +87,7 @@ function SortableReference({ reference, expanded, setExpanded, keyboard, setKeyb
   const text = reference.kind === 'text';
   const role = reference.videoImageRole;
   const roleLabel = role === 'Ref' ? 'Reference' : role && `${role} frame`;
-  const label = roleLabel ?? (text ? '参考文本' : reference.kind === 'video' ? '参考视频' : '参考图');
+  const label = roleLabel ?? (text ? '参考文本' : reference.kind === 'audio' ? '参考音频' : reference.kind === 'video' ? '参考视频' : '参考图');
   // dnd kit measures screen pixels; CSS transforms inside a zoomed canvas use canvas units.
   const translate = transform ? CSS.Translate.toString({ ...transform, x: transform.x / scale, y: transform.y / scale }) : undefined;
   return <li ref={setNodeRef} {...listeners} className="image-node-reference" data-kind={reference.kind ?? 'image'} data-expanded={open}
@@ -140,14 +140,14 @@ function SortableReference({ reference, expanded, setExpanded, keyboard, setKeyb
         }}>
         <span className="image-node-reference-media">{text ? <svg className="image-node-reference-text-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M12 4v16M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2M9 20h6" />
-        </svg> : reference.kind === 'video' ? reference.url ? <video src={reference.url} muted playsInline preload="metadata" /> : <ImagePromptIcon name="video" /> : reference.url
+        </svg> : reference.kind === 'audio' ? <ImagePromptIcon name="audio" /> : reference.kind === 'video' ? reference.url ? <video src={reference.url} muted playsInline preload="metadata" /> : <ImagePromptIcon name="video" /> : reference.url
           ? <img key={reference.url} src={reference.url} alt="" draggable={false} onLoad={reference.onLoad} />
           : <ImagePromptIcon name="image" />}</span>
         {role && <span className="video-frame-badge" data-role={role} aria-hidden="true">{role}</span>}
       </button>
       <span className="image-node-reference-details" aria-hidden={!open}>
         <span className="image-node-reference-name" title={reference.name}>{reference.name}</span>
-        <span className="image-node-reference-type">{roleLabel ?? (text ? 'Text' : reference.kind === 'video' ? 'Video' : reference.url ? 'Image' : '等待上游图片')}</span>
+        <span className="image-node-reference-type">{roleLabel ?? (text ? 'Text' : reference.kind === 'audio' ? 'Audio' : reference.kind === 'video' ? 'Video' : reference.url ? 'Image' : '等待上游图片')}</span>
       </span>
       {onRemove && <button type="button" className="image-node-reference-remove" aria-label={`移除${label}：${reference.name}`}
         aria-hidden={!open} disabled={!open}

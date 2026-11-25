@@ -112,3 +112,19 @@ test('the explicit image mode sends ordered first and last frames only for model
     }
   }
 });
+
+test('Seedance audio-only keeps the selected aspect ratio and ordered audio references', async () => {
+  const { validateSeedanceAudio, seedanceAudioByteLimit } = await import('./seedanceAudio.ts');
+  const audio = { id: 'a', url: 'blob:test', kind: 'audio' as const, name: 'music.wav', mimeType: 'audio/wav', duration: 6, size: seedanceAudioByteLimit };
+  validateSeedanceAudio(Array(5).fill(audio));
+  for (const change of [{ duration: 1.99 }, { duration: 30.01 }, { size: seedanceAudioByteLimit + 1 }, { mimeType: 'audio/mp4' }]) {
+    assert.throws(() => validateSeedanceAudio([{ ...audio, ...change }]));
+  }
+  assert.throws(() => validateSeedanceAudio([{ ...audio, duration: 25 }, audio]));
+  const input = { model: 'seedance', prompt: 'Cut to @音频1', ratio: '9:16' };
+  assert.throws(() => planVideoRequest(input, 0, 0, 6));
+  const payload = planVideoRequest(input, 0, 0, 2).withMedia([], [], ['first', 'second']);
+  assert.deepEqual(payload.audio_urls, ['first', 'second']);
+  assert.equal(payload.size, '9:16');
+  assert.equal(payload.image_urls, undefined);
+});

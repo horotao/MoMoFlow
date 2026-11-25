@@ -74,6 +74,7 @@
 
 .video-toolbar-duration { min-width: 24px; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; }
 .canvas-generated-video.has-text-input .image-node-inputs { top: calc(50% - 56px); }
+.canvas-generated-video.has-text-input .image-node-inputs:has([data-connection-port=audio]) { top: calc(50% - 76px); }
 .canvas-generated-video .image-node-inputs:has([data-connection-port=first-frame]) { top: calc(50% - 96px); }
 .canvas-generated-video .image-node-reference-thumbnail:has(.video-frame-badge) { position: relative; }
 .video-frame-badge {
@@ -82,7 +83,7 @@
   font: 500 12px/14px GeistSans, sans-serif; pointer-events: none;
 }
 .video-frame-badge[data-role="Ref"] { background: #252524; color: #c4c3bd; }
-.canvas-generated-video:is([data-video-port-near], [data-frame-4-port-near], [data-frame-5-port-near]) .image-node-inputs { opacity: 1; visibility: visible; transform: none; }
+.canvas-generated-video:is([data-video-port-near], [data-audio-port-near], [data-frame-4-port-near], [data-frame-5-port-near]) .image-node-inputs { opacity: 1; visibility: visible; transform: none; }
 .canvas-generated-video.has-result.is-selected .image-node-surface { opacity: 1; visibility: visible; transform: none; }
 .canvas-generated-video .image-node-generate-group:has(.image-node-generate:enabled) { opacity: 1; }
 .canvas-generated-video .image-node-reference-media video { width: 100%; height: 100%; object-fit: cover; }

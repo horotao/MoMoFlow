@@ -72,7 +72,7 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
     const byId = new Map(blocks.map(node => [node.id, node]));
     return { nodes: [...groups, ...blocks.map(anchorCanvasImage)], edges: edges.filter(edge => {
       const source = byId.get(edge.source), target = byId.get(edge.target);
-      if (source?.type === 'audio' || target?.type === 'audio') return source && target && isAudioInputWire(edge, source, target);
+      if (source?.type === 'audio' || target?.type === 'audio') return source && target && (isAudioInputWire(edge, source, target) || isVideoInputWire(edge, source, target));
       return source && target && (source.type !== 'video' && target.type !== 'video' || isVideoInputWire(edge, source, target));
     }) };
   }

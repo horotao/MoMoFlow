@@ -1,6 +1,6 @@
 import type { Connection, Edge } from '@xyflow/react';
 import { videoOptions } from './apimartVideo.ts';
-import { defaultVideoComposer, isVideoFrameHandle, videoImageHandles, videoInputHandles } from './videoComposer.ts';
+import { acceptsVideoAudio, videoAudioHandles, defaultVideoComposer, isVideoFrameHandle, videoImageHandles, videoInputHandles } from './videoComposer.ts';
 import { isCanvasVideo, isVideoComposerNode, isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isNodeLocked, type AppNode } from './types.ts';
 
 export const imageInputHandles = Array.from({ length: 16 }, (_, index) => `image-${index}`);
@@ -10,7 +10,8 @@ export function isImageWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandl
   return connection.sourceHandle === 'result' && isImageInputHandle(connection.targetHandle);
 }
 export function isCanvasWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandle'>) {
-  return connection.sourceHandle === 'video' && videoInputHandles.includes(connection.targetHandle ?? '') || connection.sourceHandle === 'result' && isVideoFrameHandle(connection.targetHandle) || isImageWire(connection) || connection.sourceHandle === 'text' && (connection.targetHandle === 'text' || connection.targetHandle === 'prompt');
+  return connection.sourceHandle === 'audio' && videoAudioHandles.includes(connection.targetHandle ?? '')
+    || connection.sourceHandle === 'video' && videoInputHandles.includes(connection.targetHandle ?? '') || connection.sourceHandle === 'result' && isVideoFrameHandle(connection.targetHandle) || isImageWire(connection) || connection.sourceHandle === 'text' && (connection.targetHandle === 'text' || connection.targetHandle === 'prompt');
 }
 
 export function withoutReplacedInput(connection: Pick<Edge, 'target' | 'targetHandle'>, edges: Edge[]) {
@@ -36,7 +37,8 @@ export function isAudioInputWire(connection: Pick<Edge, 'sourceHandle' | 'target
 
 export function isVideoInputWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandle'>, source: AppNode, target: AppNode) {
   if (!isVideoComposerNode(target)) return false;
-  return isCanvasTextNode(source) && connection.sourceHandle === 'text' && connection.targetHandle === 'prompt'
+  return source.type === 'audio' && connection.sourceHandle === 'audio' && acceptsVideoAudio(target.data.videoComposer) && videoAudioHandles.includes(connection.targetHandle ?? '')
+    || isCanvasTextNode(source) && connection.sourceHandle === 'text' && connection.targetHandle === 'prompt'
     || isCanvasImageNode(source) && connection.sourceHandle === 'result' && (videoImageHandles.includes(connection.targetHandle ?? '') || isVideoFrameHandle(connection.targetHandle))
     || isCanvasVideo(source) && connection.sourceHandle === 'video' && videoInputHandles.includes(connection.targetHandle ?? '');
 }

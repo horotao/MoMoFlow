@@ -65,3 +65,24 @@ test('Video enforces three typed inputs, slot limits and compatible forward and 
     assert.deepEqual(new Set(restored.edges.map(edge => edge.id)), new Set(inputs.map(edge => edge.id)));
   }
 });
+
+test('Audio connects both ways to Seedance Auto only and its slots survive workflow restoration', async () => {
+  const { createLibraryNode } = await import('../components/libraryCatalog.ts');
+  const { migrateLegacyImageGraph } = await import('../persistence/legacyImageMigration.ts');
+  const position = { x: 0, y: 0 };
+  const source = createLibraryNode('audio', position), target = createLibraryNode('video', position);
+  assert.ok(target.type === 'video' && target.data.videoComposer);
+  const nodes = [source, target];
+  const wire = { id: 'music', source: source.id, sourceHandle: 'audio', target: target.id, targetHandle: 'audio-4' };
+  assert.ok(canConnect(wire, nodes, []));
+  assert.equal(canConnect({ ...wire, targetHandle: 'audio-5' }, nodes, []), false);
+  assert.equal(canConnect(wire, nodes, [wire]), false);
+  assert.equal(connectionChoices(pending(source.id, 'source', 'audio'), nodes)[0].handleId, 'audio-0');
+  assert.equal(connectionChoices(pending(target.id, 'target', 'audio-4'), nodes)[0].itemId, 'audio');
+  for (const extra of [[], [text]]) assert.deepEqual(migrateLegacyImageGraph([...nodes, ...extra], [wire]).edges, [wire]);
+  for (const options of [{ model: 'kling' }, { model: 'minimax' }, { modelOptions: { seedance: { imageMode: 'first-last' } } }] as const) {
+    const other: AppNode = { ...target, data: { ...target.data, videoComposer: { ...target.data.videoComposer, ...options } } };
+    assert.equal(canConnect(wire, [source, other], []), false);
+    assert.deepEqual(connectionChoices(pending(other.id, 'target', 'audio-0'), [source, other]), []);
+  }
+});

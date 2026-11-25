@@ -33,6 +33,7 @@ function OutputPortIcon() {
 export interface ImagePromptNodeProps {
   kind?: 'image' | 'text' | 'video' | 'audio';
   videoInput?: ReactNode;
+  audioInput?: ReactNode;
   frameInputs?: ReactNode;
   playbackSlot?: (element: HTMLDivElement | null) => void;
   playbackBelowActions?: boolean;
@@ -101,7 +102,7 @@ export interface ImagePromptNodeProps {
 }
 
 export function ImagePromptNode({
-  kind = 'image', videoInput, frameInputs, playbackSlot, playbackBelowActions = false, textResult, textFormat = 'txt', onTextFormatChange, textInput,
+  kind = 'image', videoInput, audioInput, frameInputs, playbackSlot, playbackBelowActions = false, textResult, textFormat = 'txt', onTextFormatChange, textInput,
   assetKind, handles, promptReadOnly, prompt: promptValue, defaultPrompt = '', onPromptChange,
   quantity: quantityValue, defaultQuantity = 1, onQuantityChange, quantityRange,
   selected: selectedValue, defaultSelected = false, onSelectedChange,
@@ -168,7 +169,7 @@ export function ImagePromptNode({
   const referencesAbovePrompt = compactComposer || hasTextOutput;
   const quantityEnabled = hasPrompt || (isText && canGenerateWithoutPrompt);
   const hasReferences = !assetKind && references.length > 0;
-  const ports = useMagneticPorts(Boolean(videoInput), Boolean(frameInputs));
+  const ports = useMagneticPorts(Boolean(videoInput), Boolean(frameInputs), Boolean(audioInput));
   const referenceStrip = hasReferences && <ImagePromptReferences references={references} onRemove={locked ? undefined : onRemoveReference}
     onReorder={locked ? undefined : onReorderReferences} scale={referenceScale}
     restoreFocus={() => ports.node.current?.focus({ preventScroll: true })} />;
@@ -344,6 +345,7 @@ export function ImagePromptNode({
               <span className="image-node-port-label"><span className="image-node-port-icon image-node-port-icon-image" aria-hidden="true" />{frameInputs ? 'References' : 'Image'} <span className="image-node-port-count">{imageInputCount}/{imageInputLimit}</span></span><InputPortRing />{handles?.image}
             </button>}
             {videoInput && <div ref={element => { ports.videoInput.current = element?.querySelector('button') ?? null; }}>{videoInput}</div>}
+            {audioInput && <div ref={element => { ports.audioInput.current = element?.querySelector('button') ?? null; }}>{audioInput}</div>}
           </div>}
           <button ref={ports.output} data-connection-port="output" data-connected={outputConnected || undefined} disabled={locked} type="button" className="image-node-output" aria-label="Add connected node" onClick={onAddConnectedNode}>
             <span className="image-node-output-visual"><OutputPortIcon /></span>{handles?.output}
