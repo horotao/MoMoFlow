@@ -29,6 +29,9 @@ const deepSeekEffort: Record<TextReasoningEffort, typeof deepSeekReasoningEffort
 };
 export const textModelEffort = (model: TextModelId, effort: TextReasoningEffort) => model === deepSeekFlashModel ? deepSeekEffort[effort] : effort;
 export const isTextReasoningEffort = (value: unknown): value is TextReasoningEffort => textReasoningEfforts.some(effort => effort === value);
+export function isOpenAIFileId(value: unknown): value is string {
+  return typeof value === 'string' && /^file-[A-Za-z0-9_-]{1,200}$/.test(value);
+}
 export type TextRequest = { model: TextModelId; prompt: string; images: string[]; reasoningEffort?: TextReasoningEffort; webSearch?: boolean };
 export type TextResult = { text: string; model: TextModelId; responseId: string; reasoningEffort?: TextReasoningEffort; webSearch?: boolean; citations?: TextCitation[]; usage?: TextUsage; billing?: TextBilling };
 

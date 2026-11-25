@@ -266,3 +266,17 @@ test('Text completes with actual usage and a stable USD snapshot through the SSE
   const missing = await readTextResponse(new Response(legacy.text, { headers: legacy.headers }), new AbortController().signal, () => {});
   assert.equal(missing.text, '你好，世界'); assert.equal(missing.billing, undefined);
 });
+
+test('Text passes ordered uploaded references in the selected provider format', () => {
+  const files = ['file-first', 'file-second'];
+  const request = buildTextRequest({ ...input, images: files });
+  assert.equal(request.provider, 'openai');
+  assert.deepEqual(request.payload.input[0].content.slice(1), files.map(file_id => ({ type: 'input_image', file_id, detail: 'auto' })));
+  const urls = ['https://cdn.example/first.jpg', 'https://cdn.example/second.png'];
+  const chat = buildTextRequest({ ...input, model: deepSeekFlashModel, images: urls });
+  assert.equal(chat.provider, 'apimart');
+  assert.deepEqual(chat.payload.messages[0].content, [{ type: 'text', text: input.prompt }, ...urls.map(url => ({ type: 'image_url', image_url: { url } }))]);
+  for (const [model, images] of [[input.model, urls], [deepSeekFlashModel, files], [deepSeekFlashModel, ['https://127.0.0.1/a']], [input.model, ['file-']]]) {
+    assert.throws(() => buildTextRequest({ ...input, model, images }));
+  }
+});

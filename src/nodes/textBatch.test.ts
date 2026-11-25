@@ -115,3 +115,39 @@ test('a prepared Text batch snapshots payload and provider credentials and check
     else Reflect.deleteProperty(globalThis, 'localStorage');
   }
 });
+
+test('GPT uploads large images once per batch and sends only file IDs to the Text route', async t => {
+  const storage = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  const key = 'test-image-upload';
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: { getItem: () => JSON.stringify({
+    credentials: { openai: { apiKey: key, baseUrl: 'https://gateway.example/v1/' } },
+  }) } });
+  t.after(() => { if (storage) Object.defineProperty(globalThis, 'localStorage', storage); else Reflect.deleteProperty(globalThis, 'localStorage'); });
+  const signal = new AbortController().signal;
+  let uploads = 0, submissions = 0, rejectUpload = false;
+  t.mock.method(globalThis, 'fetch', async (url: string, init: RequestInit) => {
+    if (url.startsWith('blob:')) return new Response(new Blob([new Uint8Array(5 * 1024 * 1024)], { type: 'image/png' }));
+    if (url === 'https://gateway.example/v1/files') {
+      assert.equal(new Headers(init.headers).get('Authorization'), 'Bearer ' + key);
+      assert.ok(init.body instanceof FormData);
+      assert.equal((init.body.get('file') as File).size, 5 * 1024 * 1024);
+      assert.equal(init.body.get('purpose'), 'vision');
+      assert.equal(init.body.get('expires_after[seconds]'), '3600');
+      uploads++;
+      return rejectUpload ? new Response('', { status: 403 }) : Response.json({ id: 'file-ref' + uploads });
+    }
+    assert.equal(url, '/api/text');
+    assert.ok(String(init.body).length < 1024);
+    assert.deepEqual(JSON.parse(String(init.body)).images, ['file-ref1', 'file-ref2']);
+    submissions++;
+    return new Response(`data: ${JSON.stringify({ type: 'completed', ...result('done') })}\n\n`, { headers: { 'Content-Type': 'text/event-stream' } });
+  });
+  const input = { model: 'gpt-6-luna' as const, prompt: 'Compare', images: ['blob:first', 'blob:second'] };
+  const execute = await prepareTextRequest(input, signal);
+  await Promise.all([execute(signal, () => {}), execute(signal, () => {})]);
+  assert.equal(uploads, 2);
+  rejectUpload = true;
+  await assert.rejects(prepareTextRequest(input, signal), /HTTP 403/);
+  assert.equal(uploads, 3);
+  assert.equal(submissions, 2);
+});

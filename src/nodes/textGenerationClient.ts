@@ -1,6 +1,8 @@
 import { notifyApimartGenerationCompleted } from './apimartGeneration.ts';
 import { apiCredentialHeaders } from '../components/apiSettings.ts';
 import { readImage, dataUrl } from './imageGenerationClient.ts';
+import { uploadApimartImages } from './apimartUpload.ts';
+import { uploadOpenAIImages } from './openaiImageUpload.ts';
 import { readTextBilling, readTextUsage } from './textPricing.ts';
 import { textCitations } from './textCitations.ts';
 import { readSse } from './responseStream.ts';
@@ -83,14 +85,28 @@ export async function readTextResponse(response: Response, signal: AbortSignal, 
 /** Capture image bytes and credentials once so every variant uses the same input. */
 export async function prepareTextRequest(input: TextRequest, signal: AbortSignal): Promise<TextExecutor> {
   const provider = textModelProvider(input.model);
-  const headers = { 'Content-Type': 'application/json', ...apiCredentialHeaders(provider) };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...apiCredentialHeaders(provider) };
   let total = 0;
-  const images: string[] = [];
+  const blobs: Blob[] = [];
   for (const url of input.images) {
     const blob = await readImage(url, signal);
     total += blob.size;
     if (total > 46 * 1024 * 1024) throw new Error('输入图片总大小不能超过 46 MiB。');
-    images.push(await dataUrl(blob));
+    if (!blob.size) throw new Error('参考图片为空。');
+    blobs.push(blob);
+  }
+  let images: string[] = [];
+  if (blobs.length) {
+    const key = headers['X-MoMoFlow-Api-Key'];
+    if (key) {
+      images = provider === 'apimart'
+        ? await uploadApimartImages(blobs, headers, signal)
+        : await uploadOpenAIImages(blobs, headers['X-MoMoFlow-Base-Url'], key, signal);
+    } else if (typeof location !== 'undefined' && ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)) {
+      images = await Promise.all(blobs.map(dataUrl));
+    } else {
+      throw new Error(`请先在「更多 → API 设置」填写 ${provider === 'apimart' ? 'APIMart' : 'OpenAI'} API Key，再上传参考图片。`);
+    }
   }
   signal.throwIfAborted();
   const body = JSON.stringify({ ...input, images });

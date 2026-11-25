@@ -2,7 +2,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { providerConnection } from './apiCredentials.ts';
 import { diagnosticText, readErrorDiagnostic, trusted } from './providerDiagnostics.ts';
-import { deepSeekFlashModel, isTextModel, isTextReasoningEffort, textModelEffort } from '../src/nodes/textGeneration.ts';
+import { deepSeekFlashModel, isOpenAIFileId, isTextModel, isTextReasoningEffort, textModelEffort } from '../src/nodes/textGeneration.ts';
+import { apimartInputUrl } from '../src/nodes/apimartResult.ts';
 import { readSse } from '../src/nodes/responseStream.ts';
 import { chatCompletionUsage, textBilling, type TextUsage } from '../src/nodes/textPricing.ts';
 import { textCitations } from '../src/nodes/textCitations.ts';
@@ -17,6 +18,8 @@ export function buildTextRequest(value: unknown) {
   if (!isTextReasoningEffort(effort)) throw new Error('请选择受支持的思考强度。');
   if (input.webSearch !== undefined && typeof input.webSearch !== 'boolean') throw new Error('网络搜索设置无效。');
   const images = input.images.map(image => {
+    if (input.model === deepSeekFlashModel && typeof image === 'string' && image.startsWith('https://')) return apimartInputUrl(image);
+    if (input.model !== deepSeekFlashModel && isOpenAIFileId(image)) return image;
     if (typeof image !== 'string' || image.length > 44 * 1024 * 1024 || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(image)) throw new Error('参考图需为 PNG、JPEG 或 WebP 图片。');
     return image;
   });
@@ -28,7 +31,8 @@ export function buildTextRequest(value: unknown) {
   }
   return { provider: 'openai' as const, payload: {
     model: input.model, input: [{ role: 'user' as const, content: [{ type: 'input_text' as const, text: input.prompt },
-      ...images.map(image_url => ({ type: 'input_image' as const, image_url, detail: 'auto' as const }))] }],
+      ...images.map(image => ({ type: 'input_image' as const, detail: 'auto' as const,
+        ...(isOpenAIFileId(image) ? { file_id: image } : { image_url: image }) }))] }],
     reasoning: { effort }, ...(input.webSearch ? { tools: [{ type: 'web_search' as const }] } : {}),
     stream: true, store: false, max_output_tokens: 16384 } };
 }

@@ -30,7 +30,7 @@ Image 节点保存顶部中心坐标。旧坐标按原先 384 × 384 方框的�
 
 新版 Text 带 `textComposer` 标记，迁移时保留节点、结果、格式、模型选择、坐标和兼容连接，不再当作旧 Prompt 转成 Image。无标记的旧 Prompt 继续沿用上述迁移规则。
 
-Text 的发送按钮直接运行 [文本请求](../textGeneration.ts)，经 [后端文本路由](../../../server/text.ts) 流式返回模型文本。GPT 模型走 OpenAI Responses API，DeepSeek V4.1 Flash 使用 APIMart 的 `/v1/chat/completions`，模型 ID 为 `deepseek-v4.1-flash`。Text 输入优先使用上游当前选中的已完成结果；上游尚未生成时直接使用其手写提示词，与本节点提示词以空行合并。点击下游只请求下游，不会先生成上游或增加上游历史；图片输入按 `image-0` 至 `image-15` 排序，使用上游当前选中的图片。上游文字和结果都为空时提示补充内容，避免把空输入提交给模型。至少需要本节点提示词或非空上游文本。预计费用使用相同的文本解析规则；切换历史结果后下一次下游请求同步使用当前项。
+Text 的发送按钮直接运行 [文本请求](../textGeneration.ts)，经 [后端文本路由](../../../server/text.ts) 流式返回模型文本。GPT 模型走 OpenAI Responses API，DeepSeek V4.1 Flash 使用 APIMart 的 `/v1/chat/completions`，模型 ID 为 `deepseek-v4.1-flash`。线上运行时，浏览器使用 API 设置中的对应渠道密钥，按端口顺序直传参考图。GPT 使用 OpenAI Files（vision），文件一小时后过期；DeepSeek 使用 APIMart 图片上传接口。每批只上传一遍，发往 `/api/text` 的图片引用分别为文件 ID 和 HTTPS URL。仅在 localhost 使用服务端环境密钥时沿用内嵌图片。Text 输入优先使用上游当前选中的已完成结果；上游尚未生成时直接使用其手写提示词，与本节点提示词以空行合并。点击下游只请求下游，不会先生成上游或增加上游历史；图片输入按 `image-0` 至 `image-15` 排序，使用上游当前选中的图片。上游文字和结果都为空时提示补充内容，避免把空输入提交给模型。至少需要本节点提示词或非空上游文本。预计费用使用相同的文本解析规则；切换历史结果后下一次下游请求同步使用当前项。
 
 API 设置按模型渠道读取 OpenAI 或 APIMart 的 Key 与 Base URL。本地默认 Key 分别来自 `OPENAI_API_KEY` 和 `APIMART_API_KEY`，线上使用用户填写的凭据。模型、格式和提示词保存在 `textComposer`，完成结果保存在 `text`，模型、响应 ID 和时间保存在 `textGeneration`。运行期间增量只在内存。OpenAI 收到 `response.completed` 后保存；APIMart 收到 `finish_reason: "stop"` 后，在流结束时保存正文和可用用量。断流、失败、超时和取消均保留上次成功结果，不自动重试。关闭节点、切换项目、刷新或主动停止会取消接收，已提交的 API 请求仍可能计费。
 
