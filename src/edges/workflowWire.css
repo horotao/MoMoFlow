@@ -12,6 +12,11 @@
 .workflow-preview { stroke: #eeeeec; stroke-width: 2; pointer-events: none; }
 .react-flow[data-wire-drag] .react-flow__connectionline { z-index: 0; pointer-events: none; overflow: visible; }
 .react-flow[data-wire-drag] .workflow-wire-hit { pointer-events: none; }
+.react-flow[data-wire-drag] .image-node:not(:has([data-connection-eligible=true])) {
+  > .image-node-card { filter: blur(3px); }
+  /* Hide both port rails from painting and hit testing while preserving handle geometry for existing wires. */
+  > .image-node-ports { clip-path: inset(50%); }
+}
 :is([data-wire-hover], [data-wire-drag]) .image-node-inputs,
 :is([data-wire-hover], [data-wire-drag]) .image-node-output-visual { opacity: 1; visibility: visible; transform: none; }
 :is([data-wire-hover], [data-wire-drag]) .image-node-output { visibility: visible; }

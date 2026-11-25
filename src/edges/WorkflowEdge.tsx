@@ -7,6 +7,15 @@ import { portCenter, workflowPort } from './workflowPort';
 import { wireCurve, wirePacket, wirePacketCenter } from './wireGeometry';
 import './workflowWire.css';
 
+// A hidden port still has a layout box outside the card. Keep its input row
+// height, but draw the existing wire all the way to the visible card boundary.
+function wireEndpoint(port: Element | null | undefined, side: 'left' | 'right', inverse: DOMMatrix | undefined, fallback: { x: number; y: number }) {
+  const card = port?.closest('[data-wire-drag] .image-node:not(:has([data-connection-eligible=true]))')?.querySelector(':scope > .image-node-card');
+  if (!port || !card || !inverse) return portCenter(port, inverse, fallback);
+  const { top, height } = port.getBoundingClientRect();
+  return new DOMPoint(card.getBoundingClientRect()[side], top + height / 2).matrixTransform(inverse);
+}
+
 export function WorkflowEdge({ id, source, target, sourceHandleId, targetHandleId, sourceX, sourceY, targetX, targetY }: EdgeProps) {
   const sweepId = useId();
   const tasks = useModelTaskStore();
@@ -57,8 +66,8 @@ export function WorkflowEdge({ id, source, target, sourceHandleId, targetHandleI
       // Only geometry changes read port layout; the running light reuses it.
       if (!curve || now < awakeUntil) {
         const inverse = element.getScreenCTM()?.inverse();
-        const start = portCenter(a, inverse, { x: sourceX, y: sourceY });
-        const end = portCenter(b, inverse, { x: targetX, y: targetY });
+        const start = wireEndpoint(a, 'right', inverse, { x: sourceX, y: sourceY });
+        const end = wireEndpoint(b, 'left', inverse, { x: targetX, y: targetY });
         const d = wireCurve(start, end, 1);
         if (d !== curve) {
           curve = d;
@@ -92,7 +101,7 @@ export function WorkflowEdge({ id, source, target, sourceHandleId, targetHandleI
     const observer = new MutationObserver(wake);
     for (const port of [a, b]) {
       const button = port?.closest('[data-connection-port]');
-      if (button) observer.observe(button, { attributes: true, attributeFilter: ['style'] });
+      if (button) observer.observe(button, { attributes: true, attributeFilter: ['style', 'data-connection-eligible'] });
     }
     hosts.forEach(host => host.addEventListener('transitionrun', wake));
     const reveal = () => hosts.forEach(host => host.setAttribute('data-wire-hover', 'true'));
