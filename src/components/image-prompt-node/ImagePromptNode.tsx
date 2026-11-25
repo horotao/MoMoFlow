@@ -320,8 +320,8 @@ export function ImagePromptNode({
                   {(['txt', 'md'] as const).map(format => <button type="button" key={format} aria-pressed={format === textFormat} disabled={locked} onClick={() => onTextFormatChange?.(format)}>{format.toUpperCase()}</button>)}
                 </div> : <button type="button" aria-label="Dictate prompt" onClick={onDictate} {...tooltipProps('Dictate prompt')} disabled={locked || promptReadOnly}><ImagePromptIcon name="mic" /></button>}
                 <button type="button" aria-label="Enhance prompt" onClick={onEnhance} {...tooltipProps('Enhance prompt')} disabled={!hasPrompt || locked || promptReadOnly}><ImagePromptIcon name="enhance" /></button>
-                <ImagePromptGenerateControl quantity={quantity} quantityRange={quantityRange} onQuantityChange={updateQuantity}
-                  canChangeQuantity={kind !== 'video' && quantityEnabled && !locked} canExpand={kind !== 'video' && canGenerate && !locked}
+                <ImagePromptGenerateControl quantity={quantity} quantityRange={kind === 'video' ? { min: 1, max: 1 } : quantityRange} onQuantityChange={updateQuantity}
+                  canChangeQuantity={kind !== 'video' && quantityEnabled && !locked} canExpand={canGenerate && !locked}
                   canSend={(canGenerate && !locked) || Boolean(cancelGeneration)}
                   sendLabel={cancelGeneration ? 'Cancel generation' : 'Generate'}
                   onSend={() => cancelGeneration ? cancelGeneration() : onGenerate?.({ prompt, quantity })} />
