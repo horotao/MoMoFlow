@@ -4,7 +4,7 @@ import { inputPortMinimumSpacing, inputPortSpacing, separateInputPorts } from '.
 // FLORA's rendered handle geometry: 160-unit attraction radius, 35% pull,
 // capped at 20 units, retargeted from the current position over 500ms (easeOutCubic).
 // Magnetic movement and the separate 150ms reveal never share a transform.
-export function useMagneticPorts(hasVideoInput = false) {
+export function useMagneticPorts(hasVideoInput = false, hasFrameInputs = false) {
   const node = useRef<HTMLElement>(null);
   const input = useRef<HTMLButtonElement>(null);
   const output = useRef<HTMLButtonElement>(null);
@@ -18,6 +18,9 @@ export function useMagneticPorts(hasVideoInput = false) {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
     const elements = hasVideoInput ? [input, output, textInput, videoInput] : [input, output, textInput];
+    const framePorts = [...host.querySelectorAll<HTMLButtonElement>('[data-connection-port$="-frame"]')];
+    for (const port of framePorts) elements.push({ current: port });
+    const inputOrder = [2, ...framePorts.map((_, i) => 4 + i), 0, ...(hasVideoInput ? [3] : [])];
     const tracks = elements.map(() => ({
       x: 0, y: 0, fromX: 0, fromY: 0, toX: 0, toY: 0, started: 0,
     }));
@@ -36,19 +39,16 @@ export function useMagneticPorts(hasVideoInput = false) {
       frame = 0;
       let moving = false;
       tracks.forEach(track => { moving = advance(track, now) || moving; });
-      const top = textInput.current;
-      const bottom = input.current;
-      // Project every rendered frame, including interrupted/reversed movement.
-      // Keep the raw tracks continuous and leave disabled ports at rest.
-      const [topY, bottomY] = top && bottom
-        ? separateInputPorts(tracks[2].y, tracks[0].y, inputPortSpacing, inputPortMinimumSpacing)
-        : [tracks[2].y, tracks[0].y];
-      const [middleY, videoY] = videoInput.current
-        ? separateInputPorts(bottomY, tracks[3].y, inputPortSpacing, inputPortMinimumSpacing)
-        : [bottomY, 0];
+      const ys = tracks.map(track => track.y);
+      for (let i = 1; i < inputOrder.length; i++) {
+        const top = inputOrder[i - 1], bottom = inputOrder[i];
+        if (elements[top].current && elements[bottom].current) {
+          [ys[top], ys[bottom]] = separateInputPorts(ys[top], ys[bottom], inputPortSpacing, inputPortMinimumSpacing);
+        }
+      }
       tracks.forEach((track, index) => {
         const element = elements[index].current;
-        const y = index === 0 ? middleY : index === 2 ? topY : index === 3 ? videoY : track.y;
+        const y = ys[index];
         const transform = `translate3d(${track.x}px, ${y}px, 0px)`;
         if (element && element.style.transform !== transform) element.style.transform = transform;
       });
@@ -60,8 +60,8 @@ export function useMagneticPorts(hasVideoInput = false) {
       const rect = host.getBoundingClientRect();
       const width = host.offsetWidth, height = host.offsetHeight;
       const scale = rect.width / width;
-      const offset = videoInput.current ? inputPortSpacing : inputPortSpacing / 2;
-      const anchors = [{ x: -24, y: height / 2 + (videoInput.current ? 0 : 20) }, { x: width + 28, y: height / 2 }, { x: -24, y: height / 2 - offset }, { x: -24, y: height / 2 + inputPortSpacing }];
+      const anchors = elements.map((_, index) => index === 1 ? { x: width + 28, y: height / 2 }
+        : { x: -24, y: height / 2 + (inputOrder.indexOf(index) - (inputOrder.length - 1) / 2) * inputPortSpacing });
       const now = performance.now();
       tracks.forEach((track, index) => {
         advance(track, now);
@@ -82,7 +82,7 @@ export function useMagneticPorts(hasVideoInput = false) {
         }
         // Reveal on the same fixed-anchor field as the pull, before the pointer
         // reaches the port hit area. Keep CSS reveal and magnetic transforms separate.
-        const attribute = index === 0 ? 'data-input-port-near' : index === 1 ? 'data-output-port-near' : index === 2 ? 'data-text-port-near' : 'data-video-port-near';
+        const attribute = index === 0 ? 'data-input-port-near' : index === 1 ? 'data-output-port-near' : index === 2 ? 'data-text-port-near' : index === 3 ? 'data-video-port-near' : `data-frame-${index}-port-near`;
         if (host.hasAttribute(attribute) !== near) host.toggleAttribute(attribute, near);
         if (track.toX === x && track.toY === y) return;
         track.fromX = track.x;
@@ -125,6 +125,7 @@ export function useMagneticPorts(hasVideoInput = false) {
       host.removeAttribute('data-output-port-near');
       host.removeAttribute('data-text-port-near');
       host.removeAttribute('data-video-port-near');
+      framePorts.forEach((_, i) => host.removeAttribute(`data-frame-${4 + i}-port-near`));
       cancelAnimationFrame(frame);
       window.removeEventListener('pointermove', move);
       window.removeEventListener('blur', leave);
@@ -134,7 +135,7 @@ export function useMagneticPorts(hasVideoInput = false) {
       reduced.removeEventListener('change', retarget);
       finePointer.removeEventListener('change', retarget);
     };
-  }, [hasVideoInput]);
+  }, [hasVideoInput, hasFrameInputs]);
 
   return { node, input, output, textInput, videoInput };
 }

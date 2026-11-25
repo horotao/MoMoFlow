@@ -95,3 +95,20 @@ test('Kling and MiniMax resume saved manual modes using the connected media', ()
     assert.ok(!('omni_reference_task_type' in reference));
   }
 });
+
+test('the explicit image mode sends ordered first and last frames only for models that support them', () => {
+  for (const model of ['seedance', 'minimax', 'kling'] as const) {
+    const composer = normalizeVideoComposer({ model, prompt: 'Sunrise to sunset', seconds: 5, ratio: 'auto',
+      modelOptions: { [model]: { imageMode: 'first-last' } } });
+    const options = videoOptions(composer);
+    const request = planVideoRequest({ ...composer, options }, 2, 0, 0).withMedia(['dawn', 'dusk'], [], []);
+    if (model === 'kling') {
+      assert.equal(options.imageMode, 'auto');
+      assert.deepEqual(request.image_urls, ['dawn', 'dusk']);
+    } else {
+      assert.equal(options.imageMode, 'first-last');
+      assert.deepEqual(request.image_with_roles, [{ url: 'dawn', role: 'first_frame' }, { url: 'dusk', role: 'last_frame' }]);
+      assert.equal(request.image_urls, undefined);
+    }
+  }
+});

@@ -33,6 +33,7 @@ function OutputPortIcon() {
 export interface ImagePromptNodeProps {
   kind?: 'image' | 'text' | 'video';
   videoInput?: ReactNode;
+  frameInputs?: ReactNode;
   playbackSlot?: (element: HTMLDivElement | null) => void;
   playbackBelowActions?: boolean;
   textResult?: ReactNode;
@@ -100,7 +101,7 @@ export interface ImagePromptNodeProps {
 }
 
 export function ImagePromptNode({
-  kind = 'image', videoInput, playbackSlot, playbackBelowActions = false, textResult, textFormat = 'txt', onTextFormatChange, textInput,
+  kind = 'image', videoInput, frameInputs, playbackSlot, playbackBelowActions = false, textResult, textFormat = 'txt', onTextFormatChange, textInput,
   assetKind, handles, promptReadOnly, prompt: promptValue, defaultPrompt = '', onPromptChange,
   quantity: quantityValue, defaultQuantity = 1, onQuantityChange, quantityRange,
   selected: selectedValue, defaultSelected = false, onSelectedChange,
@@ -166,7 +167,7 @@ export function ImagePromptNode({
   const referencesAbovePrompt = compactComposer || hasTextOutput;
   const quantityEnabled = hasPrompt || (isText && canGenerateWithoutPrompt);
   const hasReferences = !assetKind && references.length > 0;
-  const ports = useMagneticPorts(Boolean(videoInput));
+  const ports = useMagneticPorts(Boolean(videoInput), Boolean(frameInputs));
   const referenceStrip = hasReferences && <ImagePromptReferences references={references} onRemove={locked ? undefined : onRemoveReference}
     onReorder={locked ? undefined : onReorderReferences} scale={referenceScale}
     restoreFocus={() => ports.node.current?.focus({ preventScroll: true })} />;
@@ -338,8 +339,9 @@ export function ImagePromptNode({
         {(assetKind !== 'video' || handles?.output) && <div className="image-node-ports">
           {!assetKind && <div className="image-node-inputs">
             {textInput && <div ref={element => { ports.textInput.current = element?.querySelector('button') ?? null; }}>{textInput}</div>}
-            <button ref={ports.input} data-connection-port="image" data-connected={imageInputCount > 0 || undefined} disabled={locked} type="button" className="image-node-input" aria-label="Image input" onClick={onImageInput}>
-              <span className="image-node-port-label"><span className="image-node-port-icon image-node-port-icon-image" aria-hidden="true" />Image <span className="image-node-port-count">{imageInputCount}/{imageInputLimit}</span></span><InputPortRing />{handles?.image}
+            {frameInputs}
+            <button ref={ports.input} data-connection-port="image" data-connected={imageInputCount > 0 || undefined} disabled={locked} type="button" className="image-node-input" aria-label={frameInputs ? 'References input' : 'Image input'} onClick={onImageInput}>
+              <span className="image-node-port-label"><span className="image-node-port-icon image-node-port-icon-image" aria-hidden="true" />{frameInputs ? 'References' : 'Image'} <span className="image-node-port-count">{imageInputCount}/{imageInputLimit}</span></span><InputPortRing />{handles?.image}
             </button>
             {videoInput && <div ref={element => { ports.videoInput.current = element?.querySelector('button') ?? null; }}>{videoInput}</div>}
           </div>}

@@ -1,6 +1,7 @@
 import type { Edge } from '@xyflow/react';
-import { videoImageHandles, defaultVideoComposer } from './videoComposer.ts';
+import { isVideoFrameHandle, videoFrameHandles, videoImageHandles, defaultVideoComposer } from './videoComposer.ts';
 import { isVideoComposerNode } from './types.ts';
+import { videoOptions } from './apimartVideo.ts';
 import { canConnect, imageInputHandles, isImageInputHandle } from './connectionRules.ts';
 import { isCanvasImageNode, isCanvasTextNode, isNodeLocked, type AppNode, type PromptMention } from './types.ts';
 import { selectedImageResult } from './annotationGraph.ts';
@@ -12,9 +13,15 @@ export interface MentionEdit { prompt: string; mentions: PromptMention[] }
 export type MentionSources = string | readonly string[];
 export interface MentionCandidate { id: string; name: string; url?: string; connected: boolean; disabled?: string }
 
+function mentionHandles(target?: AppNode): readonly string[] {
+  if (!isVideoComposerNode(target)) return imageInputHandles;
+  return videoOptions(target.data.videoComposer ?? defaultVideoComposer).imageMode === 'first-last' ? videoFrameHandles : videoImageHandles;
+}
+const isMentionHandle = (handle?: string | null) => isImageInputHandle(handle) || isVideoFrameHandle(handle);
+
 export function mentionCandidates(target: string, nodes: AppNode[], edges: Edge[]): MentionCandidate[] {
-  const occupied = edges.filter(edge => edge.target === target && isImageInputHandle(edge.targetHandle));
-  const handles = isVideoComposerNode(nodes.find(node => node.id === target)) ? videoImageHandles : imageInputHandles;
+  const occupied = edges.filter(edge => edge.target === target && isMentionHandle(edge.targetHandle));
+  const handles = mentionHandles(nodes.find(node => node.id === target));
   const handle = handles.find(handle => !occupied.some(edge => edge.targetHandle === handle));
   // Nodes are appended when added to this canvas. File completion dates do
   // not describe that order, and newly created empty Images belong first too.
@@ -42,7 +49,7 @@ export function editPromptMentions(id: string, edit: MentionEdit, nodes: AppNode
     const candidate = mentionCandidates(id, nodes, nextEdges).find(item => item.id === source);
     if (!candidate || candidate.disabled) return;
     if (!candidate.connected) {
-      const handle = (isVideoComposerNode(target) ? videoImageHandles : imageInputHandles).find(handle => !nextEdges.some(edge => edge.target === id && edge.targetHandle === handle))!;
+      const handle = mentionHandles(target).find(handle => !nextEdges.some(edge => edge.target === id && edge.targetHandle === handle))!;
       const added: Edge = { id: addedEdges.length ? `${edgeId}-${addedEdges.length}` : edgeId, source, target: id, sourceHandle: 'result', targetHandle: handle, type: 'default', data: { mention: true } };
       addedEdges.push(added);
       nextEdges = [...nextEdges, added];
@@ -66,7 +73,7 @@ export function editPromptMentions(id: string, edit: MentionEdit, nodes: AppNode
 export function pruneDisconnectedMentions(nodes: AppNode[], removed: readonly Edge[]): AppNode[] {
   if (!removed.length) return nodes;
   return nodes.map(node => {
-    const sources = new Set(removed.filter(edge => edge.target === node.id && isImageInputHandle(edge.targetHandle)).map(edge => edge.source));
+    const sources = new Set(removed.filter(edge => edge.target === node.id && isMentionHandle(edge.targetHandle)).map(edge => edge.source));
     const composer = isCanvasTextNode(node) ? node.data.textComposer : isCanvasImageNode(node) ? node.data.composer : isVideoComposerNode(node) ? node.data.videoComposer : undefined;
     if (!composer || !composer.mentions?.some(item => sources.has(item.nodeId))) return node;
     let prompt = '', offset = 0;

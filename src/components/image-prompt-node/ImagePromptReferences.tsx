@@ -9,6 +9,7 @@ import './image-prompt-references.css';
 export type ImagePromptReference = {
   id: string;
   name: string;
+  videoImageRole?: 'First' | 'Last' | 'Ref';
   url?: string;
   kind?: 'image' | 'text' | 'video';
   onLoad?: ReactEventHandler<HTMLImageElement>;
@@ -84,7 +85,9 @@ function SortableReference({ reference, expanded, setExpanded, keyboard, setKeyb
   });
   const open = expanded === reference.id || isDragging;
   const text = reference.kind === 'text';
-  const label = text ? '参考文本' : reference.kind === 'video' ? '参考视频' : '参考图';
+  const role = reference.videoImageRole;
+  const roleLabel = role === 'Ref' ? 'Reference' : role && `${role} frame`;
+  const label = roleLabel ?? (text ? '参考文本' : reference.kind === 'video' ? '参考视频' : '参考图');
   // dnd kit measures screen pixels; CSS transforms inside a zoomed canvas use canvas units.
   const translate = transform ? CSS.Translate.toString({ ...transform, x: transform.x / scale, y: transform.y / scale }) : undefined;
   return <li ref={setNodeRef} {...listeners} className="image-node-reference" data-kind={reference.kind ?? 'image'} data-expanded={open}
@@ -140,10 +143,11 @@ function SortableReference({ reference, expanded, setExpanded, keyboard, setKeyb
         </svg> : reference.kind === 'video' ? reference.url ? <video src={reference.url} muted playsInline preload="metadata" /> : <ImagePromptIcon name="video" /> : reference.url
           ? <img key={reference.url} src={reference.url} alt="" draggable={false} onLoad={reference.onLoad} />
           : <ImagePromptIcon name="image" />}</span>
+        {role && <span className="video-frame-badge" data-role={role} aria-hidden="true">{role}</span>}
       </button>
       <span className="image-node-reference-details" aria-hidden={!open}>
         <span className="image-node-reference-name" title={reference.name}>{reference.name}</span>
-        <span className="image-node-reference-type">{text ? 'Text' : reference.kind === 'video' ? 'Video' : reference.url ? 'Image' : '等待上游图片'}</span>
+        <span className="image-node-reference-type">{roleLabel ?? (text ? 'Text' : reference.kind === 'video' ? 'Video' : reference.url ? 'Image' : '等待上游图片')}</span>
       </span>
       {onRemove && <button type="button" className="image-node-reference-remove" aria-label={`移除${label}：${reference.name}`}
         aria-hidden={!open} disabled={!open}

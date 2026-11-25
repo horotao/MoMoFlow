@@ -9,12 +9,13 @@ interface ImagePromptAspectRatioMenuProps {
   labelledBy: string;
   anchor: RefObject<HTMLButtonElement>;
   value: string;
+  autoLabel?: string;
   choices?: readonly string[];
   onChange: (value: ImagePromptAspectRatio) => void;
   onClose: (restoreFocus?: boolean) => void;
 }
 
-export function ImagePromptAspectRatioMenu({ id, labelledBy, anchor, value, choices, onChange, onClose }: ImagePromptAspectRatioMenuProps) {
+export function ImagePromptAspectRatioMenu({ id, labelledBy, anchor, value, choices, autoLabel = '自动', onChange, onClose }: ImagePromptAspectRatioMenuProps) {
   const panel = useRef<HTMLDivElement>(null);
   const [focusedValue, setFocusedValue] = useState(value);
   const [position, setPosition] = useState({ left: 0, top: 0, maxHeight: 0, above: false });
@@ -90,7 +91,7 @@ export function ImagePromptAspectRatioMenu({ id, labelledBy, anchor, value, choi
         return <button key={ratio} type="button" role="menuitemradio" aria-checked={value === ratio} tabIndex={focusedValue === ratio ? 0 : -1} onFocus={() => setFocusedValue(ratio)} className="image-aspect-option"
           onClick={() => { onChange(ratio); onClose(true); }}>
           <span className="image-aspect-icon">{ratio === 'auto' ? <ImagePromptIcon name="ratio-auto" /> : <span aria-hidden="true" className="image-aspect-rectangle" style={{ transform: width >= height ? `scaleY(${height / width})` : `scaleX(${width / height})` }} />}</span>
-          <span className="image-aspect-label">{ratio === 'auto' ? '自动' : ratio}</span>
+          <span className="image-aspect-label">{ratio === 'auto' ? autoLabel : ratio}</span>
           {value === ratio && <ImagePromptIcon name="check" className="image-aspect-check" />}
         </button>;
       })}

@@ -8,6 +8,8 @@ export const videoModels = [
 ] as const;
 export const defaultVideoComposer: VideoComposer = { prompt: '', model: 'seedance', ratio: '16:9', seconds: 5 };
 export const videoImageHandles = Array.from({ length: 9 }, (_, i) => `image-${i}`);
+export const videoFrameHandles = ['first-frame', 'last-frame'] as const;
+export const isVideoFrameHandle = (handle?: string | null) => handle === 'first-frame' || handle === 'last-frame';
 export const videoInputHandles = Array.from({ length: 3 }, (_, i) => `video-${i}`);
 
 export function videoModelDisplay(composer: VideoComposer) {

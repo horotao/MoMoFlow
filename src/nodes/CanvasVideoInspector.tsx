@@ -1,5 +1,4 @@
 import { useState, type ComponentProps } from 'react';
-import { Upload } from 'lucide-react';
 import { ImagePromptIcon } from '../components/image-prompt-node/ImagePromptIcon';
 import { ImagePromptInfoTip } from '../components/image-prompt-node/ImagePromptInfoTip';
 import { GenerationOptionsPanel } from '../components/image-prompt-node/GenerationOptionsPanel';
@@ -40,8 +39,11 @@ function VideoGenerationOptions({ composer, onEdit, disabled, followsInputRatio 
 
   return <GenerationOptionsPanel className="video-generation-options">
     <VideoModelPicker appearance="inspector" composer={composer} disabled={disabled} onEdit={onEdit} />
-    <OptionRow label="画面比例" value={followsInputRatio ? '跟随素材' : composer.ratio} choices={cap.ratios}
-      labels={cap.ratios.map(value => value === 'auto' ? '自动' : value)} disabled={disabled || followsInputRatio}
+    {cap.modes.some(mode => mode === 'first-last') && <OptionRow label="图片模式" value={options.imageMode ?? 'auto'}
+      choices={['auto', 'first-last']} labels={['Auto', '首尾帧']} disabled={disabled}
+      onChange={value => edit({ imageMode: value === 'first-last' ? 'first-last' : 'auto' })} />}
+    <OptionRow label="画面比例" value={followsInputRatio ? 'auto' : composer.ratio} choices={cap.ratios}
+      labels={cap.ratios.map(ratio => ratio === 'auto' ? 'Auto' : ratio)} disabled={disabled || followsInputRatio}
       onChange={ratio => onEdit({ ratio })} />
     <OptionRow label="分辨率" value={options.resolution ?? cap.resolutions[0]} choices={cap.resolutions}
       disabled={disabled} onChange={resolution => edit({ resolution })} />
@@ -56,8 +58,8 @@ function VideoGenerationOptions({ composer, onEdit, disabled, followsInputRatio 
   </GenerationOptionsPanel>;
 }
 
-export function CanvasVideoInspector({ data, composer, onImport, onEdit, busy, followsInputRatio }: {
-  data: CanvasVideo['data']; composer?: VideoComposer; onImport: () => void; onEdit: VideoSettingsProps['onEdit']; busy: boolean; followsInputRatio: boolean;
+export function CanvasVideoInspector({ data, composer, onEdit, busy, followsInputRatio }: {
+  data: CanvasVideo['data']; composer?: VideoComposer; onEdit: VideoSettingsProps['onEdit']; busy: boolean; followsInputRatio: boolean;
 }) {
   const [downloadError, setDownloadError] = useState('');
   const asset = data.asset;
@@ -68,17 +70,15 @@ export function CanvasVideoInspector({ data, composer, onImport, onEdit, busy, f
     ['分辨率', asset.width && asset.height ? `${asset.width} × ${asset.height}` : '—'],
     ['时长', asset.duration !== undefined && Number.isFinite(asset.duration) ? videoTimeLabel(asset.duration) : '—'],
     ['创建时间', imageDateLabel(asset.createdAt)],
-    ['创建者', '—'],
   ] : [];
   return <aside aria-label="视频检查器" className="image-inspector nodrag nopan nowheel"
     onPointerDown={e => e.stopPropagation()} onWheel={e => e.stopPropagation()} onDoubleClick={e => e.stopPropagation()}>
     <MediaInformationCard label="视频信息" name={asset?.name || data.label} rows={rows}>
-      {asset && <footer>
+      <footer>
         <button type="button" disabled aria-label="放大视频（预留）" title="放大视频（预留）"><ImagePromptIcon name="metadata-upscale" /></button>
         <button type="button" disabled aria-label="移除背景（预留）" title="移除背景（预留）"><ImagePromptIcon name="metadata-remove-background" /></button>
         <button type="button" disabled className="image-information-more" aria-label="更多视频操作（预留）" title="更多视频操作（预留）"><ImagePromptIcon name="metadata-more" /></button>
-      </footer>}
-      {!asset && <footer><button type="button" className="video-inspector-import" onClick={onImport} disabled={disabled}><Upload size={14} aria-hidden="true" />导入 MP4</button></footer>}
+      </footer>
       {data.lastFrame && <footer><button type="button" className="video-inspector-import" onClick={() => {
         setDownloadError('');
         if (data.lastFrame) void downloadAsset(data.lastFrame).catch(() => setDownloadError('尾帧下载失败。'));

@@ -85,11 +85,11 @@ async function downloadVideo(url: unknown, signal: AbortSignal) {
 export async function generateApimartVideo(composer: VideoComposer, prompt: string, mentions: PromptMention[] | undefined,
   images: { nodeId: string; asset: FileAsset }[], videos: FileAsset[], signal: AbortSignal, onSubmitted: (taskId: string) => void) {
   const options = videoOptions(composer);
-  const input = { model: composer.model, prompt, ratio: composer.ratio, seconds: composer.seconds, options };
+  const input = { model: composer.model, prompt, ratio: images.length || videos.length ? 'auto' : composer.ratio, seconds: composer.seconds, options };
   const preliminary = planVideoRequest(input, images.length, videos.length, 0);
   const imageRefs = images.map(({ nodeId, asset }) => ({ nodeId, url: asset.url }));
-  input.prompt = numberedMentionPrompt(prompt, mentions, imageRefs, imageRefs.map(ref => ref.url), index => preliminary.firstFrame
-    ? '首帧'
+  input.prompt = numberedMentionPrompt(prompt, mentions, imageRefs, imageRefs.map(ref => ref.url), index => preliminary.frames
+    ? (index === 1 ? '首帧' : '尾帧')
     : composer.model === 'kling' ? `@Image${index}` : `@图片${index}`);
   validateMedia(composer, images.map(ref => ref.asset), videos, preliminary);
   const headers = apiCredentialHeaders('apimart');

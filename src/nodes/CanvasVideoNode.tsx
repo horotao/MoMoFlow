@@ -13,13 +13,12 @@ import { CanvasVideoToolbar } from './CanvasVideoToolbar';
 import { CanvasVideoInspector } from './CanvasVideoInspector';
 import { useCanvasMentions } from './CanvasMentionContext';
 import { readCanvasVideo } from './importCanvasVideo';
-import { downloadAsset } from './fileMedia';
+import { downloadAsset, measureAsset } from './fileMedia';
 import { composerRunEvent, type ComposerRunRequest } from './canvasComposerRun';
 import { textOutputValue } from './textGeneration';
-import { textInputReferences, textReferenceEdges } from './textReferences';
-import { defaultVideoComposer, videoImageHandles, videoInputHandles, videoModelDisplay } from './videoComposer';
+import { defaultVideoComposer, videoFrameHandles, videoImageHandles, videoInputHandles, videoModelDisplay } from './videoComposer';
 import { generateApimartVideo, videoStopNotice } from './apimartVideoClient';
-import { normalizeVideoComposer } from './apimartVideo';
+import { normalizeVideoComposer, videoOptions } from './apimartVideo';
 import { selectedImageResult } from './annotationGraph';
 import { usePublishNodeGeneration } from './visibleCanvasText';
 import { isCanvasTextNode, isCanvasVideo, isImageGeneratorNode, isNodeLocked, type AppNode, type CanvasImage, type CanvasText, type CanvasVideo, type FileAsset, type VideoComposer } from './types';
@@ -59,14 +58,35 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
   const promptSource = sources.find(source => source.id === promptEdge?.source);
   const prompt = promptEdge ? promptSource?.type === 'text' ? textOutputValue(promptSource.data) : '' : composer.prompt;
   const mentions = useCanvasMentions(id);
-  const imageRefs = textInputReferences(textReferenceEdges(id, incoming), sources.filter(source => source.type !== 'video'));
-  const videoRefs = incoming.filter(edge => videoInputHandles.includes(edge.targetHandle ?? '')).map(edge => {
-    const source = sources.find(source => source.id === edge.source);
-    return { id: edge.id, kind: 'video' as const, name: source?.data.label || 'Video', url: source?.type === 'video' ? source.data.asset?.url : undefined };
+  const frameMode = videoOptions(composer).imageMode === 'first-last';
+  const mediaInputs = [...videoFrameHandles, ...videoImageHandles, ...videoInputHandles].flatMap(handle => {
+    const edge = incoming.find(edge => edge.targetHandle === handle);
+    if (!edge) return [];
+    const source = sources.find(node => node.id === edge.source);
+    const kind: 'image' | 'video' = videoInputHandles.includes(handle) ? 'video' : 'image';
+    const asset = source?.type === 'sunburst' ? selectedImageResult(source) : source?.type === 'video' ? source.data.asset : undefined;
+    const name = kind === 'image' ? asset?.name || source?.data.label || '上游 Image' : source?.data.label || 'Video';
+    let videoImageRole: 'First' | 'Last' | 'Ref' | undefined;
+    if (frameMode && kind === 'image') {
+      videoImageRole = handle === 'first-frame' ? 'First' : handle === 'last-frame' ? 'Last' : 'Ref';
+    }
+    return [{ id: edge.id, kind, asset, url: asset?.url, name, videoImageRole }];
   });
-  const size = canvasImageSize(generation?.ratio ?? composer.ratio, !generation && asset && hasImageDimensions(asset) ? asset : undefined);
+  const references = promptEdge ? [{ id: promptEdge.id, kind: 'text' as const, name: promptSource?.data.label || '上游 Text' }, ...mediaInputs] : mediaInputs;
+  const followsInputRatio = mediaInputs.length > 0;
+  const reference = mediaInputs.find(input => input.asset)?.asset;
+  const [measured, setMeasured] = useState<FileAsset>();
+  useEffect(() => {
+    if (reference?.kind !== 'image' || hasImageDimensions(reference)) return;
+    let current = true;
+    void measureAsset(reference).then(image => { if (current && hasImageDimensions(image)) setMeasured(image); });
+    return () => { current = false; };
+  }, [reference]);
+  const dimensions = reference && (hasImageDimensions(reference) ? reference : measured?.url === reference.url ? measured : undefined);
+  const nextRatio = dimensions ? `${dimensions.width}:${dimensions.height}` : composer.ratio;
+  const size = canvasImageSize(generation?.ratio ?? nextRatio, !generation && !dimensions && asset && hasImageDimensions(asset) ? asset : undefined);
   const internals = useUpdateNodeInternals();
-  useLayoutEffect(() => internals(id), [id, internals, size.width, size.height, incoming, imported]);
+  useLayoutEffect(() => internals(id), [id, internals, size.width, size.height, incoming, imported, frameMode]);
   usePublishNodeGeneration(id, Boolean(generation));
   useLayoutEffect(() => {
     pendingUrls.current = pendingUrls.current.filter(url => url !== asset?.url && url !== data.lastFrame?.url);
@@ -97,8 +117,9 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
     return () => window.removeEventListener(composerRunEvent.video, start);
   }, [id]);
 
-  const pictureCount = imageRefs.filter(ref => ref.kind === 'image').length;
-  const klingFirstFrame = composer.model === 'kling' && pictureCount === 1 && !videoRefs.length;
+  const pictureCount = mediaInputs.filter(ref => ref.kind === 'image').length;
+  const videoCount = mediaInputs.length - pictureCount;
+  const klingFirstFrame = composer.model === 'kling' && pictureCount === 1 && !videoCount;
 
   async function run() {
     const nodeAtStart = getNode(id);
@@ -113,7 +134,7 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
     submittedTask.current = undefined;
     setError('');
     const startedAt = Date.now();
-    setGeneration({ id: startedAt, startedAt, estimatedSeconds: 120, ratio: config.ratio });
+    setGeneration({ id: startedAt, startedAt, estimatedSeconds: 120, ratio: nextRatio });
     try {
       const inputs = (handles: string[], resolve: (node: AppNode | undefined) => FileAsset | undefined) => handles.flatMap(handle => {
         const edge = liveEdges.find(edge => edge.targetHandle === handle);
@@ -122,7 +143,14 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
         if (!asset) throw new Error('有连接的参考素材尚未就绪，请先生成或导入素材。');
         return [{ nodeId: edge.source, asset }];
       });
-      const images = inputs(videoImageHandles, node => isImageGeneratorNode(node) ? selectedImageResult(node) : undefined);
+      const useFrames = videoOptions(config).imageMode === 'first-last';
+      if (useFrames && liveEdges.some(edge => videoImageHandles.includes(edge.targetHandle ?? '') || videoInputHandles.includes(edge.targetHandle ?? ''))) {
+        throw new Error('首尾帧模式只接收帧图片。请断开普通参考素材，或切换到 Auto。');
+      }
+      if (useFrames && !videoFrameHandles.every(handle => liveEdges.some(edge => edge.targetHandle === handle))) {
+        throw new Error('请分别连接首帧和尾帧图片。');
+      }
+      const images = inputs([...videoFrameHandles, ...videoImageHandles], node => isImageGeneratorNode(node) ? selectedImageResult(node) : undefined);
       const videos = inputs(videoInputHandles, node => isCanvasVideo(node) ? node.data.asset : undefined).map(ref => ref.asset);
       const result = await generateApimartVideo(config, runPrompt,
         textEdge ? undefined : config.mentions, images, videos, controller.signal, taskId => { submittedTask.current = taskId; });
@@ -196,21 +224,31 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
       textInput={!imported && <button type="button" className="image-node-input" disabled={locked} aria-label="Prompt input" data-connection-port="text" data-connected={Boolean(promptEdge) || undefined}>
         <span className="image-node-port-label"><ImagePromptIcon name="text" />Prompt</span><InputPortRing />
         <Handle type="target" id="prompt" position={Position.Left} isConnectable={connectable} /></button>}
-      videoInput={!imported && <button type="button" className="image-node-input" disabled={locked} aria-label="Video input" data-connection-port="video" data-connected={videoRefs.length > 0 || undefined}>
-        <span className="image-node-port-label"><Video size={12} />Video <span className="image-node-port-count">{videoRefs.length}/{videoInputHandles.length}</span></span>
+      frameInputs={frameMode && videoFrameHandles.map((handle, i) => {
+        const label = i === 0 ? 'First frame' : 'Last frame';
+        return <button key={handle} type="button" aria-label={label} className="image-node-input" data-connection-port={handle}
+          data-connected={occupied.has(handle) || undefined} disabled={locked}>
+          <span className="image-node-port-label"><span className="image-node-port-icon image-node-port-icon-image" aria-hidden="true" />{label}</span>
+          <InputPortRing /><Handle type="target" position={Position.Left} id={handle} isConnectable={connectable} />
+        </button>;
+      })}
+      videoInput={!imported && <button type="button" className="image-node-input" disabled={locked} aria-label="Video input" data-connection-port="video" data-connected={videoCount > 0 || undefined}>
+        <span className="image-node-port-label"><Video size={12} />Video <span className="image-node-port-count">{videoCount}/{videoInputHandles.length}</span></span>
         <InputPortRing />{inputSlots(videoInputHandles, occupied, connectable)}</button>}
-      imageInputCount={pictureCount} imageInputLimit={videoImageHandles.length}
-      references={[...imageRefs, ...videoRefs]} referenceScale={zoom}
+      imageInputCount={frameMode ? mediaInputs.filter(ref => ref.videoImageRole === 'Ref').length : pictureCount} imageInputLimit={videoImageHandles.length}
+      references={references} referenceScale={zoom}
       onRemoveReference={edgeId => { if (!locked) setEdges(edges => edges.filter(edge => edge.id !== edgeId)); }}
-      outputConnected={edges.some(edge => edge.source === id)} handles={{ image: inputSlots(videoImageHandles, occupied, connectable),
+      outputConnected={edges.some(edge => edge.source === id)} handles={{ image: <>{!frameMode && videoFrameHandles.filter(handle => occupied.has(handle)).map(handle =>
+        <Handle key={handle} type="target" position={Position.Left} id={handle} isConnectable={false} style={{ pointerEvents: 'none' }} />)}
+        {inputSlots(videoImageHandles, occupied, connectable && (frameMode || pictureCount < videoImageHandles.length))}</>,
         output: <Handle type="source" position={Position.Right} id="video" isConnectable={connectable} /> }}
       result={asset && <CanvasVideoPlayer key={asset.id} asset={asset} playerRef={player} onMetadata={saveVideoMetadata} onDownload={onDownload} controlsHost={imported ? undefined : controlsHost} />}
       toolbar={hideToolbar ? null : imported ? <ImportedMediaToolbar kind="video" className="nodrag nopan" replaceDisabled={busy || locked}
         onReplace={onReplace} onDownload={onDownload} onPreview={onFullscreen} /> :
-        <CanvasVideoToolbar composer={composer} locked={Boolean(locked)} running={Boolean(generation) || busy} hasResult={Boolean(asset)} followsInputRatio={klingFirstFrame}
+        <CanvasVideoToolbar composer={composer} locked={Boolean(locked)} running={Boolean(generation) || busy} hasResult={Boolean(asset)} followsInputRatio={followsInputRatio}
           onEdit={edit} onLock={() => updateNodeData(id, { locked: !locked })} onReplace={onReplace} onDownload={onDownload} onFullscreen={onFullscreen} />}
     />
-    {selected && !hideToolbar && canvas && createPortal(<CanvasVideoInspector data={data} composer={imported ? undefined : composer} followsInputRatio={klingFirstFrame} onImport={onReplace} onEdit={edit} busy={Boolean(generation) || busy} />, canvas)}
+    {selected && !hideToolbar && canvas && createPortal(<CanvasVideoInspector data={data} composer={imported ? undefined : composer} followsInputRatio={followsInputRatio} onEdit={edit} busy={Boolean(generation) || busy} />, canvas)}
     <input hidden type="file" ref={input} accept="video/mp4,.mp4" aria-label="选择 MP4 文件" onChange={event => {
       const picker = event.currentTarget, file = picker.files?.[0];
       picker.value = '';

@@ -1,5 +1,6 @@
 import type { Connection, Edge } from '@xyflow/react';
-import { videoImageHandles, videoInputHandles } from './videoComposer.ts';
+import { videoOptions } from './apimartVideo.ts';
+import { defaultVideoComposer, isVideoFrameHandle, videoImageHandles, videoInputHandles } from './videoComposer.ts';
 import { isCanvasVideo, isVideoComposerNode, isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isNodeLocked, type AppNode } from './types.ts';
 
 export const imageInputHandles = Array.from({ length: 16 }, (_, index) => `image-${index}`);
@@ -9,7 +10,7 @@ export function isImageWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandl
   return connection.sourceHandle === 'result' && isImageInputHandle(connection.targetHandle);
 }
 export function isCanvasWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandle'>) {
-  return connection.sourceHandle === 'video' && videoInputHandles.includes(connection.targetHandle ?? '') || isImageWire(connection) || connection.sourceHandle === 'text' && (connection.targetHandle === 'text' || connection.targetHandle === 'prompt');
+  return connection.sourceHandle === 'video' && videoInputHandles.includes(connection.targetHandle ?? '') || connection.sourceHandle === 'result' && isVideoFrameHandle(connection.targetHandle) || isImageWire(connection) || connection.sourceHandle === 'text' && (connection.targetHandle === 'text' || connection.targetHandle === 'prompt');
 }
 
 export function withoutReplacedInput(connection: Pick<Edge, 'target' | 'targetHandle'>, edges: Edge[]) {
@@ -32,7 +33,7 @@ export function createsImageCycle(connection: Pick<Edge, 'source' | 'target'>, e
 export function isVideoInputWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandle'>, source: AppNode, target: AppNode) {
   if (!isVideoComposerNode(target)) return false;
   return isCanvasTextNode(source) && connection.sourceHandle === 'text' && connection.targetHandle === 'prompt'
-    || isCanvasImageNode(source) && connection.sourceHandle === 'result' && videoImageHandles.includes(connection.targetHandle ?? '')
+    || isCanvasImageNode(source) && connection.sourceHandle === 'result' && (videoImageHandles.includes(connection.targetHandle ?? '') || isVideoFrameHandle(connection.targetHandle))
     || isCanvasVideo(source) && connection.sourceHandle === 'video' && videoInputHandles.includes(connection.targetHandle ?? '');
 }
 
@@ -45,6 +46,12 @@ export function canConnect(connection: Connection | Edge, nodes: AppNode[], edge
   const textWire = isCanvasTextNode(source) && connection.sourceHandle === 'text'
     && (isCanvasTextNode(target) && connection.targetHandle === 'text' || isCanvasImageNode(target) && connection.targetHandle === 'prompt');
   if (!imageWire && !textWire && !isVideoInputWire(connection, source, target)) return false;
+  if (isVideoComposerNode(target) && connection.sourceHandle === 'result') {
+    const frameMode = videoOptions(target.data.videoComposer ?? defaultVideoComposer).imageMode === 'first-last';
+    if (isVideoFrameHandle(connection.targetHandle) && !frameMode) return false;
+    if (!frameMode && edges.filter(edge => edge.target === target.id && edge.sourceHandle === 'result'
+      && edge.targetHandle !== connection.targetHandle).length >= videoImageHandles.length) return false;
+  }
   if (edges.some(edge => edge.source === source.id && edge.target === target.id)) return false;
   return !createsImageCycle(connection, withoutReplacedInput(connection, edges));
 }

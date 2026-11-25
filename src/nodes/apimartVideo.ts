@@ -3,7 +3,7 @@ import type { VideoComposer, VideoModelId } from './types.ts';
 
 export type VideoMode = 'auto' | 'reference' | 'first' | 'first-last' | 'last' | 'edit' | 'extend';
 export type VideoOptions = {
-  resolution?: string; mode?: VideoMode; generateAudio?: boolean;
+  resolution?: string; imageMode?: 'auto' | 'first-last'; mode?: VideoMode; generateAudio?: boolean;
   keepAudio?: boolean;
 };
 export const videoRatios = ['16:9', '4:3', '1:1', '3:4', '9:16', '21:9', 'auto'] as const;
@@ -32,8 +32,9 @@ export function normalizeVideoComposer(composer: VideoComposer): VideoComposer {
 
 export function videoOptions(composer: VideoComposer, model = composer.model): VideoOptions {
   // Only forward current canvas settings, including when reopening older workflows.
-  const { resolution, generateAudio, keepAudio } = composer.modelOptions?.[model] ?? {};
-  return { mode: 'auto', resolution, generateAudio, keepAudio };
+  const { resolution, generateAudio, keepAudio, imageMode } = composer.modelOptions?.[model] ?? {};
+  const mode = model !== 'kling' && imageMode === 'first-last' ? 'first-last' : 'auto';
+  return { imageMode: mode, mode, resolution, generateAudio, keepAudio };
 }
 export function videoReferenceUrl(value: unknown) {
   if (typeof value === 'string' && /^asset:\/\/[\w-]{1,256}$/.test(value)) return value;

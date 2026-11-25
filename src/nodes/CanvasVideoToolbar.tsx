@@ -27,13 +27,15 @@ export function CanvasVideoToolbar({ composer, locked, running, hasResult, follo
   return <NodeToolbarTooltipScope><div role="toolbar" aria-label="Video node tools" className="image-node-toolbar nodrag nopan" onKeyDown={event => event.stopPropagation()}>
     <VideoModelPicker appearance="toolbar" composer={composer} disabled={disabled} onEdit={onEdit} />
     {divider}
-    <NodeToolbarTooltip label="画面比例"><button type="button" ref={ratioButton} id={id + '-ratio-button'} className="image-node-toolbar-label"
-      aria-label={followsInputRatio ? '画面比例：跟随素材' : `选择画面比例：${composer.ratio}`} aria-expanded={ratioOpen} aria-haspopup="menu" disabled={disabled || followsInputRatio}
-      onClick={() => setRatioOpen(value => !value)} onKeyDown={e => { if (e.key === 'ArrowDown') { e.preventDefault(); setRatioOpen(true); } }}>
-      {followsInputRatio ? '跟随素材' : composer.ratio === 'auto' ? '自动' : composer.ratio}<ImagePromptIcon name="chevron" /></button></NodeToolbarTooltip>
-    {ratioOpen && !disabled && !followsInputRatio && <ImagePromptAspectRatioMenu id={id+'-ratio'} labelledBy={id+'-ratio-button'} anchor={ratioButton}
-      value={composer.ratio} choices={cap.ratios} onChange={ratio => onEdit({ ratio })} onClose={closeRatio} />}
-    {divider}
+    {!followsInputRatio && <>
+      <NodeToolbarTooltip label="画面比例"><button type="button" ref={ratioButton} id={id + '-ratio-button'} className="image-node-toolbar-label"
+        aria-label={`选择画面比例：${composer.ratio}`} aria-expanded={ratioOpen} aria-haspopup="menu" disabled={disabled}
+        onClick={() => setRatioOpen(value => !value)} onKeyDown={e => { if (e.key === 'ArrowDown') { e.preventDefault(); setRatioOpen(true); } }}>
+        {composer.ratio === 'auto' ? <ImagePromptIcon name="ratio-auto" /> : composer.ratio}<ImagePromptIcon name="chevron" /></button></NodeToolbarTooltip>
+      {ratioOpen && !disabled && <ImagePromptAspectRatioMenu id={id+'-ratio'} labelledBy={id+'-ratio-button'} anchor={ratioButton}
+        autoLabel="Auto" value={composer.ratio} choices={cap.ratios} onChange={ratio => onEdit({ ratio })} onClose={closeRatio} />}
+      {divider}
+    </>}
     <MediaToolbarAction label="减少一秒" icon="minus" disabled={disabled || autoDuration || composer.seconds <= cap.min} onClick={() => onEdit({ seconds: composer.seconds - 1 })} />
     <span className="video-toolbar-duration" aria-label="视频时长">{autoDuration ? '自动' : composer.seconds + 's'}</span>
     <MediaToolbarAction label="增加一秒" icon="plus" disabled={disabled || autoDuration || composer.seconds >= cap.max} onClick={() => onEdit({ seconds: composer.seconds + 1 })} />
