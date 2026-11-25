@@ -11,7 +11,7 @@ export function requestCanvasRun(ids?: string[]) {
 }
 
 export function generationNodes(nodes: AppNode[]) {
-  return nodes.filter(node => !node.hidden && !isNodeLocked(node) && (isModelNode(node) || isCanvasTextNode(node) || isVideoComposerNode(node)));
+  return nodes.filter(node => !node.hidden && !isNodeLocked(node) && (isModelNode(node) || isCanvasTextNode(node) || isVideoComposerNode(node) || node.type === 'audio'));
 }
 
 export function selectedGenerationNodes(nodes: AppNode[]) {

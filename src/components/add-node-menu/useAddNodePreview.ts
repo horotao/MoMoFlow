@@ -11,7 +11,7 @@ export type AddNodeType = typeof addNodeEntries[number]['type'];
 export const nodePreviewDescription = {
   image: '输入提示词生成图片，也可以用参考图引导构图、风格和后续编辑。',
   video: '连接文字、图片或视频，选择模型、比例和时长后运行本地预览，也可直接导入 MP4。',
-  audio: '在画布上放置音频占位节点。音频生成与编辑尚未开放。',
+  audio: '输入或连接音乐描述，使用 Suno V6 生成人声歌曲或纯音乐。',
   text: '撰写或生成提示词、文案和 Markdown，并将结果连到下游节点。',
 };
 

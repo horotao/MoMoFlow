@@ -1,5 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
+import * as Menu from '@radix-ui/react-dropdown-menu';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { ImagePromptInfoTip } from './ImagePromptInfoTip';
 import { ImagePromptIcon } from './ImagePromptIcon';
@@ -12,6 +13,7 @@ export function ImagePromptModelBrand({ brand }: { brand: string }) {
 }
 
 const modelBrandSources: Record<string, string> = {
+  suno: new URL('./assets/suno.svg', import.meta.url).href,
   deepseek: new URL('./assets/deepseek.svg', import.meta.url).href,
   minimax: new URL('./assets/minimax.svg', import.meta.url).href,
   bytedance: new URL('./assets/bytedance.svg', import.meta.url).href,
@@ -37,12 +39,15 @@ interface ModelMenuProps<Id extends string> {
   onPinnedChange: (pinned: Id[]) => void;
   onClose: (restoreFocus?: boolean) => void;
   singleSelection?: boolean;
+  groups?: { featured: readonly Id[]; providers: Readonly<Record<string, string>> };
   multipleHelp?: string;
 }
 
-export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, label = '选择图像模型', selection, onChange, pinned, onPinnedChange, onClose, singleSelection = false,
+export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, label = '选择图像模型', selection, onChange, pinned, onPinnedChange, onClose, groups, singleSelection = false,
   multipleHelp = '第一个选中的模型在当前节点生成，其余模型分别新建节点。' }: ModelMenuProps<Id>) {
   const panel = useRef<HTMLDivElement>(null);
+  const providerPanel = useRef<HTMLDivElement>(null);
+  const [provider, setProvider] = useState<string>();
   const search = useRef<HTMLInputElement>(null);
   const pendingPinFocus = useRef<Id | null>(null);
   const [query, setQuery] = useState('');
@@ -83,7 +88,7 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
 
   useEffect(() => {
     function outside(event: Event) {
-      if (event.target instanceof Node && !panel.current?.contains(event.target) && !anchor.current?.contains(event.target)) onClose();
+      if (event.target instanceof Node && !panel.current?.contains(event.target) && !providerPanel.current?.contains(event.target) && !anchor.current?.contains(event.target)) onClose();
     }
     document.addEventListener('pointerdown', outside);
     document.addEventListener('focusin', outside);
@@ -115,7 +120,7 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
               {model.time && <span className="image-model-time" title="预计生成时间">{model.time}</span>}
               {!model.time && model.channel && <span className="image-model-time">{model.channel}</span>}
               <span className="image-model-capability" title={label === '选择图像模型' ? '文生图' : '文本输入'}><ImagePromptIcon name="model-text" /></span>
-              <span className="image-model-capability" title={label === '选择图像模型' ? '图生图' : '图片输入'}><ImagePromptIcon name="model-image" /></span>
+              {!groups && <span className="image-model-capability" title={label === '选择图像模型' ? '图生图' : '图片输入'}><ImagePromptIcon name="model-image" /></span>}
             </span>
             <span className="image-model-description">{model.description}</span>
           </span>
@@ -159,7 +164,34 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
     </div>}
     <div className="image-model-scroll">
       {section('已置顶模型', '收藏置顶的模型会显示在这里。', filtered.filter(model => pinned.includes(model.id)))}
-      {section('推荐模型', '精选的推荐模型。', filtered.filter(model => !pinned.includes(model.id)))}
+      {groups && !query.trim() ? <>
+        {!pinned.length && <section><div className="image-model-section-heading">已置顶模型</div><p className="model-pins-empty">收藏的模型将显示在这里</p></section>}
+        {section('推荐模型', '精选的推荐模型。', filtered.filter(model => groups.featured.includes(model.id)))}
+        {Object.keys(groups.providers).length > 0 && <div className="image-model-section-heading">提供商</div>}
+        {Object.entries(groups.providers).map(([brand, name]) => <Menu.Root key={brand} modal={false} open={provider === brand}
+          onOpenChange={open => setProvider(open ? brand : undefined)}>
+          <Menu.Trigger asChild><button type="button" data-model-option className="model-provider-trigger"
+            onPointerEnter={e => { if (e.pointerType === 'mouse') setProvider(brand); }}
+            onKeyDown={e => { if (e.key === 'ArrowRight') { e.preventDefault(); setProvider(brand); } }}>
+            <ImagePromptModelBrand brand={brand} />{name}<ImagePromptIcon name="chevron" /></button></Menu.Trigger>
+          <Menu.Portal><Menu.Content ref={providerPanel} className="image-model-menu model-provider-panel nodrag nopan nowheel" side="right" align="start"
+            sideOffset={2} collisionPadding={8} aria-label={name} onWheel={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}
+            onCloseAutoFocus={e => e.preventDefault()} onKeyDown={e => { e.stopPropagation(); if (e.key === 'ArrowLeft') setProvider(undefined); }}>
+            {filtered.filter(model => model.brand === brand).map(model => <div className="image-model-row" key={model.id}>
+              <Menu.Item asChild onSelect={() => select(model.id)}><button type="button" className="image-model-option">
+                <span className="image-model-brand"><ImagePromptModelBrand brand={brand} /></span>
+                <span className="image-model-copy"><span className="image-model-name-line"><span className="image-model-name">{model.name}</span>
+                  <span className="image-model-time">{model.time}</span></span><span className="image-model-description">{model.description}</span></span>
+                {selection.modelIds.includes(model.id) && <ImagePromptIcon name="check" className="image-model-selected" />}
+              </button></Menu.Item>
+              <Menu.Item asChild onSelect={e => { e.preventDefault(); onPinnedChange(pinned.includes(model.id) ? pinned.filter(id => id !== model.id) : [...pinned, model.id]); }}>
+                <button type="button" className="image-model-pin" aria-label={(pinned.includes(model.id) ? '取消置顶 ' : '置顶 ') + model.name}>
+                  <ImagePromptIcon name={pinned.includes(model.id) ? 'pin-off' : 'pin'} /></button></Menu.Item>
+            </div>)}
+          </Menu.Content></Menu.Portal>
+        </Menu.Root>)}
+        {section('模型', '其他可用模型。', filtered.filter(model => !groups.featured.includes(model.id) && !(model.brand in groups.providers)))}
+      </> : section(query.trim() && groups ? '模型' : '推荐模型', '可用的模型。', filtered.filter(model => !pinned.includes(model.id)))}
       {!filtered.length && <p className="image-model-empty" role="status">未找到兼容模型</p>}
     </div>
   </div>, document.body)}</Tooltip.Provider>;

@@ -1,3 +1,4 @@
+import { defaultAudioComposer } from '../nodes/audioComposer.ts';
 import { defaultVideoComposer } from '../nodes/videoComposer.ts';
 import { sunburstPreset } from './imageNodePresets.ts';
 import { anchorCanvasImage, canvasImageSize } from '../nodes/canvasImageGeometry.ts';
@@ -13,7 +14,7 @@ export function createLibraryNode(id: string, position: { x: number; y: number }
     if (id === 'video') return { ...base, type: id, origin: [.5, 0],
       position: { x: position.x + canvasImageSize(defaultVideoComposer.ratio).width / 2, y: position.y },
       data: { label: 'Video', videoComposer: { ...defaultVideoComposer } } };
-    return anchorCanvasImage<CanvasMediaNode>({ ...base, type: id, data: { label: 'Audio' } });
+    return anchorCanvasImage<CanvasMediaNode>({ ...base, type: id, data: { label: 'Audio', audioComposer: { ...defaultAudioComposer } } });
   }
   if (id === 'text') return anchorCanvasImage<CanvasText>({ id: crypto.randomUUID(), type: 'text', position, selected: true,
     data: { text: '', label: 'Text', textComposer: { prompt: '', format: 'txt', quantity: 1, reasoningEffort: 'medium', webSearch: false,

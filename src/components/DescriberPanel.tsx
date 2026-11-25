@@ -91,7 +91,7 @@ export function DescriberPanel({ onImageGenerated }: { onImageGenerated?: (promp
         if (disposed || !node || node.hidden || isNodeLocked(node)) return false;
         try {
           if (isCanvasTextNode(node)) return Boolean(await startCanvasComposerRun('text', id));
-          if (node.type === 'video') return Boolean(await startCanvasComposerRun('video', id));
+          if (node.type === 'video' || node.type === 'audio') return Boolean(await startCanvasComposerRun(node.type, id));
           if (!isModelNode(node)) return false;
           return Boolean(await runImage([id], true));
         } catch (error) {

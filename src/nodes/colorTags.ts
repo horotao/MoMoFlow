@@ -1,4 +1,4 @@
-import { isCanvasVideo, isCanvasImageNode, isCanvasTextNode, isNodeLocked, type AppNode, type CanvasImage, type CanvasText, type CanvasVideo } from './types.ts';
+import { isCanvasVideo, isCanvasImageNode, isCanvasTextNode, isNodeLocked, type AppNode, type CanvasImage, type CanvasText, type CanvasVideo, type CanvasAudio } from './types.ts';
 
 export const colorTags = [
   { id: 'red', label: '红色', color: '#ec5d5e' },
@@ -13,8 +13,8 @@ export type ColorTag = typeof colorTags[number]['id'];
 export function readColorTags(value: unknown): ColorTag[] {
   return colorTags.filter(tag => Array.isArray(value) && value.includes(tag.id)).map(tag => tag.id);
 }
-function isTaggableNode(node: AppNode): node is CanvasImage | CanvasText | CanvasVideo {
-  return isCanvasImageNode(node) || isCanvasTextNode(node) || isCanvasVideo(node);
+function isTaggableNode(node: AppNode): node is CanvasImage | CanvasText | CanvasVideo | CanvasAudio {
+  return isCanvasImageNode(node) || isCanvasTextNode(node) || isCanvasVideo(node) || node.type === 'audio';
 }
 export function nodeColorTags(node?: AppNode): ColorTag[] {
   return node && isTaggableNode(node) ? readColorTags(node.data.colorTags) : [];
@@ -39,6 +39,7 @@ export function changeColorTags(nodes: AppNode[], ids: readonly string[], color?
     const next = color === undefined ? [] : tags.includes(color) ? tags.filter(tag => tag !== color) : [...tags, color];
     if (next.length === tags.length && next.every(tag => tags.includes(tag))) return node;
     const colorTags = readColorTags(next);
+    if (node.type === 'audio') return { ...node, data: { ...node.data, colorTags } };
     if (isCanvasVideo(node)) return { ...node, data: { ...node.data, colorTags } };
     return isCanvasImageNode(node) ? { ...node, data: { ...node.data, colorTags } } : { ...node, data: { ...node.data, colorTags } };
   });

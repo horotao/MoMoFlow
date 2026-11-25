@@ -1,7 +1,7 @@
-import { Pause, Play, Volume2, VolumeX } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { videoTimeLabel } from './fileMedia';
+import { MediaPlaybackControls } from './MediaPlaybackControls';
 import type { FileAsset } from './types';
 import './CanvasVideoPlayer.css';
 
@@ -18,9 +18,6 @@ export function CanvasVideoPlayer({ asset, playerRef, controlsHost, onMetadata, 
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState('');
-  const quiet = muted || !volume;
-
-  const audibleVolume = quiet ? 0 : volume;
 
   const [fullscreen, setFullscreen] = useState(false);
   useEffect(() => {
@@ -50,39 +47,11 @@ export function CanvasVideoPlayer({ asset, playerRef, controlsHost, onMetadata, 
     media.current.currentTime = Math.max(0, Math.min(duration, seconds));
     setTime(media.current.currentTime);
   }
-  const controls = <div className="canvas-video-controls nodrag nopan nowheel" role="group" aria-label="视频播放控件">
-      <div className="canvas-video-controls-body">
-        <button type="button" aria-label={paused ? '播放' : '暂停'} onClick={togglePlay}>
-          {paused ? <Play fill="currentColor" strokeWidth={0} /> : <Pause />}
-        </button>
-        <div className="canvas-video-volume">
-          <button type="button" aria-label={quiet ? '取消静音' : '静音'} onClick={() => {
-            if (quiet && !volume && media.current) { media.current.volume = 1; setVolume(1); }
-            setMuted(!quiet);
-          }}>{quiet ? <VolumeX /> : <Volume2 />}</button>
-          <div className="canvas-video-volume-slider">
-            <div className="canvas-video-track" aria-hidden="true"><span style={{ transform: `scaleX(${audibleVolume})` }} /></div>
-            <input type="range" aria-label="音量" min="0" max="1" step="0.01" value={audibleVolume}
-              aria-valuetext={`${Math.round(audibleVolume * 100)}%`}
-              onChange={event => {
-                const next = event.currentTarget.valueAsNumber;
-                if (media.current) media.current.volume = next;
-                setVolume(next); setMuted(next === 0);
-              }} />
-          </div>
-        </div>
-        <span className="canvas-video-clock">{videoTimeLabel(time)} / {videoTimeLabel(duration)}</span>
-        <div className="canvas-video-scrubber">
-          <div className="canvas-video-track" aria-hidden="true"><span style={{ transform: `scaleX(${duration ? time / duration : 0})` }} /></div>
-          <input type="range" aria-label="视频播放进度" min={0} max={duration} step="any" value={time} disabled={!duration}
-            aria-valuetext={`${videoTimeLabel(time)} / ${videoTimeLabel(duration)}`} onChange={event => seek(event.currentTarget.valueAsNumber)}
-            onKeyDown={event => {
-              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-              event.preventDefault(); event.stopPropagation(); seek(time + (event.key === 'ArrowLeft' ? -1 : 1));
-            }} />
-        </div>
-      </div>
-    </div>;
+  const controls = <MediaPlaybackControls kind="视频" paused={paused} muted={muted} volume={volume} time={time} duration={duration}
+    togglePlay={togglePlay} seek={seek} setMuted={setMuted} onVolume={next => {
+      if (media.current) media.current.volume = next;
+      setVolume(next);
+    }} />;
   return <div className="canvas-video-player" ref={playerRef}>
     <video ref={media} src={asset.url} aria-label={asset.name} playsInline loop muted={muted} preload="auto"
       onClick={togglePlay} onPlay={() => setPaused(false)} onPause={() => setPaused(true)}

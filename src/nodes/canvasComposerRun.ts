@@ -1,4 +1,4 @@
-export const composerRunEvent = { text: 'canvas-text-run', video: 'canvas-video-run' } as const;
+export const composerRunEvent = { text: 'canvas-text-run', video: 'canvas-video-run', audio: 'canvas-audio-run' } as const;
 export type ComposerRunRequest = { id: string; completion?: Promise<boolean | void> };
 
 export function startCanvasComposerRun(type: keyof typeof composerRunEvent, id: string) {

@@ -1,3 +1,4 @@
+import { sunoRequest, sunoTracks } from '../src/nodes/suno.ts';
 import { parseVideoTaskResult, planVideoRequest, videoReferenceUrl } from '../src/nodes/apimartVideo.ts';
 import { grokImageModel, validateGrokImageRequest } from '../src/nodes/grokImage.ts';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -113,9 +114,11 @@ async function readLimited(response: Response, limit: number): Promise<Buffer> {
 export function createApimartMiddleware(defaultKey: string, providerFetch: typeof fetch = fetch) {
   const middleware = async (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const path = req.url?.split('?')[0];
+    const music = path === '/api/apimart/music';
+    const musicTask = path === '/api/apimart/music-task';
     const video = path === '/api/apimart/videos';
     const videoTask = path === '/api/apimart/video-task';
-    if (path !== '/api/apimart/images' && path !== '/api/apimart/seedream' && path !== '/api/apimart/grok' && path !== '/api/apimart/kling' && path !== '/api/apimart/task' && path !== '/api/nano-banana' && !video && !videoTask) return next();
+    if (path !== '/api/apimart/images' && path !== '/api/apimart/seedream' && path !== '/api/apimart/grok' && path !== '/api/apimart/kling' && path !== '/api/apimart/task' && path !== '/api/nano-banana' && !video && !videoTask && !music && !musicTask) return next();
     const send = (status: number, value: object) => {
       if (res.destroyed || res.writableEnded) return;
       res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(value));
@@ -132,7 +135,7 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
       const chunks: Buffer[] = []; let bytes = 0;
       for await (const chunk of req) {
         bytes += chunk.length;
-        if (bytes > ((path === '/api/apimart/task' || videoTask) ? 4096 : maxBody)) return send(413, { error: '素材总大小过大，请压缩后重试。' });
+        if (bytes > ((path === '/api/apimart/task' || videoTask || musicTask) ? 4096 : music ? 65536 : maxBody)) return send(413, { error: '素材总大小过大，请压缩后重试。' });
         chunks.push(Buffer.from(chunk));
       }
       let input: Record<string, unknown>;
@@ -141,7 +144,8 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
       let videos: string[] = [], audio: string[] = [];
       try {
         input = JSON.parse(Buffer.concat(chunks).toString());
-        if (video) {
+        if (music) generation = { body: sunoRequest(input), images: [] };
+        else if (video) {
           if (![input.images, input.videos, input.audio].every(Array.isArray)) throw new Error('无效的参考素材列表。');
           const images = input.images as unknown[];
           const videoInputs = input.videos as unknown[], audioInputs = input.audio as unknown[];
@@ -160,7 +164,7 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
         else if (path === '/api/nano-banana') generation = buildNanoBananaRequest(input);
         else {
           if (!input || typeof input.taskId !== 'string' || !taskIdPattern.test(input.taskId)) throw new Error('无效的 APIMart 任务编号。');
-          if (!videoTask && !imageFormats.some(format => format === input.outputFormat)) throw new Error('不支持的 APIMart 输出格式。');
+          if (!videoTask && !musicTask && !imageFormats.some(format => format === input.outputFormat)) throw new Error('不支持的 APIMart 输出格式。');
           taskId = input.taskId;
         }
       } catch (error) { return send(400, { error: error instanceof Error ? error.message : '请求格式错误。' }); }
@@ -200,12 +204,13 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
         }
         const markupUrl = generation.markup ? await upload(generation.markup) : undefined;
         if (generation.markup && !markupUrl) return;
-        const result = videoPlan ? await call('/videos/generations', videoPlan.withMedia(imageUrls, videos, audio))
+        const result = music ? await call('/music/generations', generation.body)
+          : videoPlan ? await call('/videos/generations', videoPlan.withMedia(imageUrls, videos, audio))
           : await call('/images/generations', { ...generation.body, ...(imageUrls.length ? { image_urls: imageUrls } : {}),
             ...(markupUrl ? { markup_url: markupUrl } : {}) });
-        if (video && result?.code !== undefined && result.code !== 200 && result.code !== 202) {
+        if ((video || music) && result?.code !== undefined && result.code !== 200 && result.code !== 202) {
           const failure = result.error as { message?: unknown } | undefined;
-          throw new Error(`APIMart 未接受视频请求：${diagnosticText(failure?.message ?? result.message, apiKey) ?? '请检查请求记录。'}`);
+          throw new Error(`APIMart 未接受${music ? '音乐' : '视频'}请求：${diagnosticText(failure?.message ?? result.message, apiKey) ?? '请检查请求记录。'}`);
         }
         if (!result) return;
         const data = result.data;
@@ -214,12 +219,13 @@ export function createApimartMiddleware(defaultKey: string, providerFetch: typeo
         return send(200, { taskId: id });
       }
       // The status API localizes failed task error.message with this query.
-      const result = await call(`/tasks/${taskId}?language=zh`);
+      const result = await call(`${musicTask ? '/music' : ''}/tasks/${taskId}?language=zh`);
       if (!result) return;
-      const task = (result.data ?? result) as { status?: string; error?: { message?: unknown }; result?: { images?: { url?: unknown; expires_at?: unknown }[]; videos?: { url?: unknown; last_frame_url?: unknown }[] } };
-      if (['submitted', 'pending', 'processing', 'cancelled'].includes(task.status ?? '')) return send(200, { status: task.status, taskId });
+      const task = (result.data ?? result) as { status?: string; progress?: number; error?: { message?: unknown }; result?: { music?: unknown; images?: { url?: unknown; expires_at?: unknown }[]; videos?: { url?: unknown; last_frame_url?: unknown }[] } };
+      if (['submitted', 'pending', 'processing', 'cancelled'].includes(task.status ?? '')) return send(200, { status: task.status, taskId, ...(musicTask && Number.isFinite(task.progress) ? { progress: task.progress } : {}) });
       if (task.status === 'failed') return send(502, { error: `APIMart 任务失败：${diagnosticText(task.error?.message, apiKey) ?? '请检查请求记录。'}`, taskId });
       if (task.status !== 'completed') throw new Error('APIMart 返回了未知任务状态。');
+      if (musicTask) return send(200, { status: 'completed', taskId, tracks: sunoTracks(task.result ?? {}) });
       if (videoTask) return send(200, { status: 'completed', taskId, ...parseVideoTaskResult(task.result ?? {}) });
       if (input.allImages === true) {
         const imageUrls = task.result?.images?.flatMap(({ url }) => Array.isArray(url) ? url.map(apimartResultUrl) : [apimartResultUrl(url)]);

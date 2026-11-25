@@ -70,7 +70,12 @@ export interface VideoComposer {
 export type CanvasVideo = Node<{ videoComposer?: VideoComposer; label: string; locked?: boolean; colorTags?: ColorTag[]; asset?: FileAsset; lastFrame?: FileAsset }, 'video'>;
 export const isCanvasVideo = (node?: AppNode): node is CanvasVideo => node?.type === 'video';
 export const isVideoComposerNode = (node?: AppNode): node is CanvasVideo => isCanvasVideo(node) && Boolean(node.data.videoComposer || !node.data.asset);
-export type CanvasMediaNode = CanvasVideo | Node<{ label: string; locked?: boolean }, 'audio'>;
+export type CanvasAudio = Node<{ label: string; locked?: boolean; colorTags?: ColorTag[];
+  audioComposer?: import('./audioComposer').AudioComposer;
+  audioHistory?: import('./audioComposer').AudioResult[]; activeAudioId?: string;
+}, 'audio'>;
+export const isCanvasAudio = (node?: AppNode): node is CanvasAudio => node?.type === 'audio';
+export type CanvasMediaNode = CanvasVideo | CanvasAudio;
 export const isCanvasMediaNode = (node: AppNode): node is CanvasMediaNode => node.type === 'video' || node.type === 'audio';
 
 export type CanvasGroup = Node<{ label: string; color?: string; locked?: boolean }, 'canvas-group'>;

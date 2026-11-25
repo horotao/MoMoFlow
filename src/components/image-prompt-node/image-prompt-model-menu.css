@@ -42,3 +42,8 @@
 @media (hover: none) { .image-model-pin { opacity: 1; } .image-model-selected { right: 33px; } }
 
 .image-model-setting label { cursor: pointer; }
+.model-pins-empty { margin: 0; padding: 4px 12px 12px; color: var(--node-subtle); font-size: 12px; }
+.image-model-menu .model-provider-trigger { display: flex; align-items: center; gap: 8px; height: 36px; width: calc(100% - 8px); margin: 0 4px; padding: 0 8px; border-radius: 10px; font-size: 14px; }
+.model-provider-trigger:is(:hover, [aria-expanded=true]) { background: var(--node-fill); }
+.model-provider-trigger > :last-child { margin-left: auto; rotate: -90deg; }
+.image-model-menu.model-provider-panel { position: relative; width: min(320px, calc(100vw - 16px)); padding: 4px 0; max-height: var(--radix-dropdown-menu-content-available-height); overflow: auto; }

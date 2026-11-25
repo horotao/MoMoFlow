@@ -343,3 +343,37 @@ test('video middleware submits one task per click and polls the video result wit
   assert.match((await invoke({ taskId }, upstream('failed'), { path })).body.error, /Reference rejected/);
   assert.equal((await invoke({ taskId: 'a/../../bad' }, async () => assert.fail('Invalid task ID cannot reach the provider'), { path })).status, 400);
 });
+
+test('Suno V6 submits all voice modes and preserves zero weights without enabling Max billing', async () => {
+  for (const [voice, format] of [['Male', 'mp3'], ['Female', 'm4a'], ['纯音乐', 'wav']]) {
+    const params = { prompt: '🎶'.repeat(3000), voice, variety: 'max', audio_format: format, style_weight: 0, weirdness_constraint: .37, audio_weight: 1 };
+    const result = await invoke(params, async (url, init) => {
+      assert.equal(url, 'https://api.apimart.ai/v1/music/generations');
+      assert.deepEqual(JSON.parse(String(init?.body)), { model: 'suno', version: 'v6', custom: false, prompt: params.prompt,
+        instrumental: voice === '纯音乐', ...(voice === '纯音乐' ? {} : { vocal_gender: voice }), variety: 'max', audio_format: format,
+        style_weight: 0, weirdness_constraint: .37, audio_weight: 1 });
+      return Response.json({ code: 200, data: [{ task_id: 'task_music' }] });
+    }, { path: '/api/apimart/music' });
+    assert.deepEqual(result.body, { taskId: 'task_music' });
+    for (const invalid of [{ prompt: params.prompt + '🎶' }, { style_weight: -.01 }, { weirdness_constraint: 1.01 }, { audio_weight: '0' }, { voice: 'Rachel' }, { audio_format: 'ogg' }, { variety: 'wild' }]) {
+      const response = await invoke({ ...params, ...invalid }, async () => assert.fail('Invalid music request reached upstream'), { path: '/api/apimart/music' });
+      assert.equal(response.status, 400);
+    }
+  }
+});
+
+test('Suno polls the music endpoint, reports real progress, ordered tracks and provider failures', async () => {
+  async function poll(data: object) {
+    return invoke({ taskId: 'task_music' }, async (url, init) => {
+      assert.equal(url, 'https://api.apimart.ai/v1/music/tasks/task_music?language=zh');
+      assert.equal(init?.method, 'GET');
+      return Response.json({ code: 200, data });
+    }, { path: '/api/apimart/music-task' });
+  }
+  assert.equal((await poll({ status: 'processing', progress: 42 })).body.progress, 42);
+  const tracks = [1, 2, 3].map(i => ({ title: 'song' + i, duration: i + .25, url: 'https://cdn.example/' + i + '.mp3' }));
+  const done = await poll({ status: 'completed', result: { music: tracks.map(t => ({ ...t, audio_url: t.url })) } });
+  assert.deepEqual(done.body.tracks, tracks);
+  assert.equal((await poll({ status: 'completed', result: { music: [] } })).status, 502);
+  assert.match((await poll({ status: 'failed', error: { message: 'test failure' } })).body.error, /test failure/);
+});

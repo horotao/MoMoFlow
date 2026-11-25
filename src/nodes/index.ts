@@ -2,9 +2,9 @@ import type { NodeTypes } from '@xyflow/react';
 import { CanvasImageNode } from './CanvasImageNode';
 import { CanvasTextNode } from './CanvasTextNode';
 import { CanvasVideoNode } from './CanvasVideoNode';
-import { CanvasMediaPlaceholder } from './CanvasMediaPlaceholder';
+import { CanvasAudioNode } from './CanvasAudioNode';
 import { CanvasGroupNode } from './CanvasGroupNode';
 import type { AppNode } from './types';
 
 export const initialNodes: AppNode[] = [];
-export const nodeTypes = { sunburst: CanvasImageNode, text: CanvasTextNode, video: CanvasVideoNode, audio: CanvasMediaPlaceholder, 'canvas-group': CanvasGroupNode } satisfies NodeTypes;
+export const nodeTypes = { sunburst: CanvasImageNode, text: CanvasTextNode, video: CanvasVideoNode, audio: CanvasAudioNode, 'canvas-group': CanvasGroupNode } satisfies NodeTypes;

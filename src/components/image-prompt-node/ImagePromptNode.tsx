@@ -31,7 +31,7 @@ function OutputPortIcon() {
 }
 
 export interface ImagePromptNodeProps {
-  kind?: 'image' | 'text' | 'video';
+  kind?: 'image' | 'text' | 'video' | 'audio';
   videoInput?: ReactNode;
   frameInputs?: ReactNode;
   playbackSlot?: (element: HTMLDivElement | null) => void;
@@ -136,9 +136,10 @@ export function ImagePromptNode({
   const hasPrompt = Boolean(prompt.trim());
   const busy = generation !== null;
   const canGenerate = hasPrompt || canGenerateWithoutPrompt;
+  const audioRunning = kind === 'audio' && busy;
   const cancelGeneration = busy ? onCancelGeneration : undefined;
   const hasResult = Boolean(result);
-  const playback = kind === 'video' && hasResult && !busy && <div className="video-composer-playback" ref={playbackSlot} />;
+  const playback = (kind === 'video' || kind === 'audio') && hasResult && !busy && <div className="video-composer-playback" ref={playbackSlot} />;
   const resultElement = useRef<HTMLDivElement>(null);
   const activeVariantId = variants[activeVariant]?.id;
   const previousResult = useRef({ busy, activeVariantId });
@@ -185,8 +186,7 @@ export function ImagePromptNode({
     tooltipExitTimer.current = setTimeout(() => setTooltip(null), 80);
   }
 
-  function showTooltip(target: HTMLElement, instant = false) {
-    const label = target.dataset.tooltip;
+  function showTooltip(target: HTMLElement, instant = false, label = target.dataset.tooltip) {
     if (!label) return;
     clearTimeout(tooltipTimer.current);
     clearTimeout(tooltipExitTimer.current);
@@ -282,13 +282,13 @@ export function ImagePromptNode({
         <div className="image-node-card" onClick={event => { if (!locked && !busy && !hasResult && !(event.target as HTMLElement).closest('.text-node-output, .image-node-prompt-editor')) editor.current?.focus(); }}>
           {hasResult && !busy && <div ref={resultElement} className="image-node-result" onDoubleClickCapture={event => {
             if (onPreviewImage) { event.preventDefault(); event.stopPropagation(); onPreviewImage(); }
-          }}><ImagePromptResult variantId={activeVariantId}>{result}</ImagePromptResult></div>}
+          }}>{kind === 'audio' ? result : <ImagePromptResult variantId={activeVariantId}>{result}</ImagePromptResult>}</div>}
           {!assetKind && <div className="image-node-surface">
             <div className="image-node-surface-body">
             {referencesAbovePrompt && referenceStrip}
             <div ref={promptScroll} className="image-node-composer nowheel" onWheel={event => event.stopPropagation()}>
-              <PromptMentionEditor ref={editor} kind={kind === 'text' ? 'text' : 'image'} prompt={prompt} mentions={promptMentions} candidates={mentionCandidates}
-                readOnly={locked || promptReadOnly} suggestion={suggestion} onChange={setPrompt} onEdit={onMentionEdit} />
+              <PromptMentionEditor ref={editor} allowMentions={kind !== 'audio'} kind={kind === 'text' ? 'text' : 'image'} prompt={prompt} mentions={promptMentions} candidates={mentionCandidates}
+                readOnly={locked || promptReadOnly || audioRunning} suggestion={suggestion} onChange={setPrompt} onEdit={onMentionEdit} />
               {!prompt && !promptReadOnly && <div className="image-node-suggestion" aria-hidden="true"><span className="image-node-suggestion-label">Try "{suggestion}"</span><kbd>tab</kbd></div>}
             </div>
 
@@ -311,17 +311,17 @@ export function ImagePromptNode({
               onBlurCapture={leaveTooltip}
               onPointerDownCapture={leaveTooltip}
             >
-              <button type="button" aria-label="Mention node" onPointerDown={event => event.preventDefault()} onClick={() => { hideTooltip(); editor.current?.mention(); onMention?.(); }} {...tooltipProps('Mention node')} disabled={locked || promptReadOnly}><ImagePromptIcon name="mention" /></button>
+              {kind !== 'audio' && <button type="button" aria-label="Mention node" onPointerDown={event => event.preventDefault()} onClick={() => { hideTooltip(); editor.current?.mention(); onMention?.(); }} {...tooltipProps('Mention node')} disabled={locked || promptReadOnly}><ImagePromptIcon name="mention" /></button>}
               {isText ? <button type="button" aria-label="Connected apps" aria-disabled="true" {...tooltipProps('Connected apps')}><ImagePromptIcon name="plug" /></button>
-                : kind === 'video' ? (!playbackBelowActions && playback)
+                : kind === 'video' || kind === 'audio' ? (!playbackBelowActions && playback)
                 : <button type="button" aria-label="Reference Element" {...tooltipProps('No Elements available')} disabled><ImagePromptIcon name="hash" /></button>}
               <div className="image-node-actions-right">
                 {isText ? <div className="text-node-formats" role="group" aria-label="Output format">
                   {(['txt', 'md'] as const).map(format => <button type="button" key={format} aria-pressed={format === textFormat} disabled={locked} onClick={() => onTextFormatChange?.(format)}>{format.toUpperCase()}</button>)}
-                </div> : <button type="button" aria-label="Dictate prompt" onClick={onDictate} {...tooltipProps('Dictate prompt')} disabled={locked || promptReadOnly}><ImagePromptIcon name="mic" /></button>}
-                <button type="button" aria-label="Enhance prompt" onClick={onEnhance} {...tooltipProps('Enhance prompt')} disabled={!hasPrompt || locked || promptReadOnly}><ImagePromptIcon name="enhance" /></button>
+                </div> : <button type="button" aria-label="Dictate prompt" onClick={kind === 'audio' && !onDictate ? e => showTooltip(e.currentTarget, true, '听写入口预览') : onDictate} {...tooltipProps('Dictate prompt')} disabled={locked || promptReadOnly || audioRunning}><ImagePromptIcon name="mic" /></button>}
+                <button type="button" aria-label="Enhance prompt" onClick={kind === 'audio' && !onEnhance ? e => showTooltip(e.currentTarget, true, '提示词优化入口预览') : onEnhance} {...tooltipProps('Enhance prompt')} disabled={!hasPrompt || locked || promptReadOnly || audioRunning}><ImagePromptIcon name="enhance" /></button>
                 <ImagePromptGenerateControl quantity={quantity} quantityRange={kind === 'video' ? { min: 1, max: 1 } : quantityRange} onQuantityChange={updateQuantity}
-                  canChangeQuantity={kind !== 'video' && quantityEnabled && !locked} canExpand={canGenerate && !locked}
+                  canChangeQuantity={kind !== 'video' && quantityEnabled && !locked && !audioRunning} canExpand={canGenerate && !locked}
                   canSend={(canGenerate && !locked) || Boolean(cancelGeneration)}
                   sendLabel={cancelGeneration ? 'Cancel generation' : 'Generate'}
                   onSend={() => cancelGeneration ? cancelGeneration() : onGenerate?.({ prompt, quantity })} />
@@ -331,7 +331,7 @@ export function ImagePromptNode({
             </div>
             </div>
           </div>}
-          <ImagePromptGeneration state={generation} label={kind === 'video' ? 'Generating video' : undefined} borderOnly={isText} />
+          <ImagePromptGeneration state={generation} label={kind === 'audio' ? 'Generating audio' : kind === 'video' ? 'Generating video' : undefined} borderOnly={isText} />
         </div>
 
         <ImagePromptHistory variants={variants} activeVariant={activeVariant} onVariantChange={onVariantChange} />
@@ -340,9 +340,9 @@ export function ImagePromptNode({
           {!assetKind && <div className="image-node-inputs">
             {textInput && <div ref={element => { ports.textInput.current = element?.querySelector('button') ?? null; }}>{textInput}</div>}
             {frameInputs}
-            <button ref={ports.input} data-connection-port="image" data-connected={imageInputCount > 0 || undefined} disabled={locked} type="button" className="image-node-input" aria-label={frameInputs ? 'References input' : 'Image input'} onClick={onImageInput}>
+            {kind !== 'audio' && <button ref={ports.input} data-connection-port="image" data-connected={imageInputCount > 0 || undefined} disabled={locked} type="button" className="image-node-input" aria-label={frameInputs ? 'References input' : 'Image input'} onClick={onImageInput}>
               <span className="image-node-port-label"><span className="image-node-port-icon image-node-port-icon-image" aria-hidden="true" />{frameInputs ? 'References' : 'Image'} <span className="image-node-port-count">{imageInputCount}/{imageInputLimit}</span></span><InputPortRing />{handles?.image}
-            </button>
+            </button>}
             {videoInput && <div ref={element => { ports.videoInput.current = element?.querySelector('button') ?? null; }}>{videoInput}</div>}
           </div>}
           <button ref={ports.output} data-connection-port="output" data-connected={outputConnected || undefined} disabled={locked} type="button" className="image-node-output" aria-label="Add connected node" onClick={onAddConnectedNode}>

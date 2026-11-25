@@ -1,5 +1,5 @@
 import type { Edge } from '@xyflow/react';
-import { createsImageCycle, isVideoInputWire, isImageWire, isCanvasWire } from '../nodes/connectionRules.ts';
+import { createsImageCycle, isAudioInputWire, isVideoInputWire, isImageWire, isCanvasWire } from '../nodes/connectionRules.ts';
 import { migrateFileAnnotations } from '../nodes/annotationMigration.ts';
 import { activeFileAsset, orderedAssets } from '../nodes/fileCollection.ts';
 import { savedImagePrompt } from '../nodes/generationRecord.ts';
@@ -69,9 +69,10 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
   const groupIds = new Set(groups.map(group => group.id));
   if (!hasLegacyImageGraph(nodes, edges)) {
     const blocks = nodes.filter(node => !isCanvasGroup(node));
-    const byId = new Map(blocks.filter(node => node.type !== 'audio').map(node => [node.id, node]));
+    const byId = new Map(blocks.map(node => [node.id, node]));
     return { nodes: [...groups, ...blocks.map(anchorCanvasImage)], edges: edges.filter(edge => {
       const source = byId.get(edge.source), target = byId.get(edge.target);
+      if (source?.type === 'audio' || target?.type === 'audio') return source && target && isAudioInputWire(edge, source, target);
       return source && target && (source.type !== 'video' && target.type !== 'video' || isVideoInputWire(edge, source, target));
     }) };
   }
@@ -131,7 +132,7 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
     const source = sources.get(edge.source);
     const target = sources.get(edge.target);
     if (source && target && converted.has(source.id) && converted.has(target.id)
-      && (isVideoInputWire(edge, source, target) || isCanvasTextNode(target) && isCanvasImageNode(source) && isImageWire(edge)
+      && (isAudioInputWire(edge, source, target) || isVideoInputWire(edge, source, target) || isCanvasTextNode(target) && isCanvasImageNode(source) && isImageWire(edge)
         || isCanvasTextNode(source) && edge.sourceHandle === 'text'
           && (isCanvasTextNode(target) && edge.targetHandle === 'text' || isCanvasImageNode(target) && !isImportedCanvasImage(target) && edge.targetHandle === 'prompt'))) {
       if (!wires.some(item => item.target === edge.target && (item.source === edge.source || item.targetHandle === edge.targetHandle)) && !createsImageCycle(edge, wires)) wires.push(edge);

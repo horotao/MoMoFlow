@@ -12,7 +12,7 @@ export function outputKind(node: AppNode | undefined, handle?: string | null): O
   if (!node) return undefined;
   if (isInteractiveEditNode(node)) return node.data.history?.frames[node.data.history.index]?.some(mark => mark.id === handle) ? 'text' : undefined;
 
-  if (node.type === 'video') return handle === 'video' ? 'video' : undefined;
+  if (node.type === 'audio' || node.type === 'video') return handle === node.type ? node.type : undefined;
   if (node.type === 'file') return handle === 'file' ? fileOutputKind(node.data) : undefined;
 
   if (['seedream', 'nano-banana', 'sunburst'].includes(node.type ?? '')) return handle === 'result' ? 'image' : undefined;

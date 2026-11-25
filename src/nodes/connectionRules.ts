@@ -30,6 +30,10 @@ export function createsImageCycle(connection: Pick<Edge, 'source' | 'target'>, e
   return false;
 }
 
+export function isAudioInputWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandle'>, source: AppNode, target: AppNode) {
+  return target.type === 'audio' && isCanvasTextNode(source) && connection.sourceHandle === 'text' && connection.targetHandle === 'prompt';
+}
+
 export function isVideoInputWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandle'>, source: AppNode, target: AppNode) {
   if (!isVideoComposerNode(target)) return false;
   return isCanvasTextNode(source) && connection.sourceHandle === 'text' && connection.targetHandle === 'prompt'
@@ -45,7 +49,7 @@ export function canConnect(connection: Connection | Edge, nodes: AppNode[], edge
   const imageWire = isCanvasImageNode(source) && (isCanvasImageNode(target) || isCanvasTextNode(target)) && isImageWire(connection);
   const textWire = isCanvasTextNode(source) && connection.sourceHandle === 'text'
     && (isCanvasTextNode(target) && connection.targetHandle === 'text' || isCanvasImageNode(target) && connection.targetHandle === 'prompt');
-  if (!imageWire && !textWire && !isVideoInputWire(connection, source, target)) return false;
+  if (!imageWire && !textWire && !isAudioInputWire(connection, source, target) && !isVideoInputWire(connection, source, target)) return false;
   if (isVideoComposerNode(target) && connection.sourceHandle === 'result') {
     const frameMode = videoOptions(target.data.videoComposer ?? defaultVideoComposer).imageMode === 'first-last';
     if (isVideoFrameHandle(connection.targetHandle) && !frameMode) return false;

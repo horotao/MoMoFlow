@@ -175,6 +175,14 @@ Image 空态、结果图片、导入图片和 Text 共用 [NodeColorGlow](../../
 | [Kling V4 Flash](https://docs.apimart.ai/cn/api-reference/videos/kling-v4-flash/generation) | 720p，3–20 秒 | 单张图片作为首帧，多张图片或连入视频时作为参考；可保留参考视频原声 |
 | [MiniMax H3](https://docs.apimart.ai/cn/api-reference/videos/minimax-h3/generation) | 768P／2K，4–15 秒 | 连入的图片和视频作为参考素材 |
 
-引用画布素材时，生成前会把使用的参考图／视频上传给 APIMart；本地参考视频需要在「更多 → API 设置」保存 APIMart Key。Kling 只连一张图片时，提示词可选，画面比例跟随首帧。视频节点默认关闭提交前内容审核和 AI 水印，随机种子由模型自动选择。Audio 仍为占位节点。
+引用画布素材时，生成前会把使用的参考图／视频上传给 APIMart；本地参考视频需要在「更多 → API 设置」保存 APIMart Key。Kling 只连一张图片时，提示词可选，画面比例跟随首帧。视频节点默认关闭提交前内容审核和 AI 水印，随机种子由模型自动选择。
 
 生成会使用 APIMart 额度。提交后轮询同一任务，原始 MP4 下载完成即写入节点，随项目存入 IndexedDB。播放器读到元信息后补全尺寸和时长。预览失败或加载超时后可下载原片，或点击「重试预览」重新载入节点中的本地文件。视频可播放、替换、下载或全屏，旧项目中已保存的尾帧仍可下载。停止等待不等于取消云端任务；查询或下载失败不要直接重复提交，先凭任务编号检查 APIMart 请求记录。
+
+## Audio 节点
+
+Audio 固定为 384 × 384，复用生成边缘光、进度条和视频方形编辑框。音频模型菜单上方为「已置顶模型」，下方为「推荐模型」。Suno V6 默认置顶，取消置顶后仍可从推荐区选择。工具栏选择 Male、Female 或纯音乐，右侧可调整风格变化程度、输出格式与三项权重。新节点默认 Male、normal、mp3，风格权重、怪异度与音频权重均为 0.50。
+
+本地或上游 Text 的音乐描述按灵感模式提交，最多 3000 个 Unicode 字符。生成数量表示提交的任务数，每个任务实际返回的全部歌曲按顺序进入历史。每首原始音频随画布保存，波形按音轨采样，可定位播放、下载和恢复历史参数。停止等待会中止后续批次，已提交任务可能继续计费。风格变化 max 不开启 Max 计费模式。旧预览仍可播放原 WAV 样例。
+
+[APIMart 音乐生成](https://docs.apimart.ai/cn/api-reference/audios/suno/generation) · [Suno 任务查询](https://docs.apimart.ai/cn/api-reference/audios/suno/overview)

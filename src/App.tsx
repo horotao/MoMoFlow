@@ -55,7 +55,7 @@ import { DescriberPanel } from './components/DescriberPanel';
 import { ModelTasksProvider } from './components/ModelTasksProvider';
 import { CanvasHistoryContext, useCanvasHistory } from './components/useCanvasHistory';
 import { initialNodes, nodeTypes } from './nodes';
-import { isCanvasGroup, isCanvasMediaNode, isNodeLocked, type AppNode } from './nodes/types';
+import { isCanvasGroup, isNodeLocked, type AppNode } from './nodes/types';
 import { initialEdges, edgeTypes } from './edges';
 import { ConnectionLine } from './edges/ConnectionLine';
 import { useConnectionGesture } from './edges/useConnectionGesture';
@@ -367,8 +367,6 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       if (isCanvasGroup(node)) return { ...node, draggable: editable, deletable: !locked, connectable: false,
         className: 'canvas-group-node', ariaLabel: node.data.label };
       const memberClass = node.parentId && selectedGroups.has(node.parentId) && !node.selected ? ' canvas-group-member-in-selected-frame' : '';
-      if (isCanvasMediaNode(node) && node.type === 'audio') return { ...node, draggable: editable, deletable: !locked, connectable: false,
-        className: `canvas-media-placeholder${memberClass}`, ariaLabel: node.data.label };
       return withCanvasImageDrag({ ...node, draggable: editable, deletable: !locked,
         connectable: editable, className: `canvas-image-node${memberClass}` });
     });
@@ -520,7 +518,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         create={() => withSavedWorkflow(projectSession.create)} rename={projectSession.rename}
         remove={project => withSavedWorkflow(snapshot => projectSession.remove(project, snapshot))} />}
       {pendingNodeMenu && <AddNodeMenu key={menuGeneration} position={pendingNodeMenu.screen}
-        allowedTypes={'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes).map(choice => choice.itemId as 'image' | 'text' | 'video') : undefined}
+        allowedTypes={'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes).map(choice => choice.itemId) : undefined}
         triggerRef={'origin' in pendingNodeMenu ? addTrigger : undefined}
         allowQuantity={!('direction' in pendingNodeMenu) || pendingNodeMenu.direction === 'source'}
         onSelect={addNodes}

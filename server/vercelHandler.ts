@@ -14,7 +14,7 @@ const handlers = [
 ];
 const paths = new Set([
   '/api/settings/test', '/api/apimart/balance', '/api/apimart/images', '/api/apimart/seedream', '/api/apimart/kling', '/api/apimart/grok', '/api/apimart/task', '/api/apimart/videos', '/api/apimart/video-task',
-  '/api/nano-banana', '/api/sunburst', '/api/text',
+  '/api/apimart/music', '/api/apimart/music-task', '/api/nano-banana', '/api/sunburst', '/api/text',
 ]);
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {

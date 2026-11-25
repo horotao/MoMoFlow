@@ -20,7 +20,7 @@ export function useMagneticPorts(hasVideoInput = false, hasFrameInputs = false) 
     const elements = hasVideoInput ? [input, output, textInput, videoInput] : [input, output, textInput];
     const framePorts = [...host.querySelectorAll<HTMLButtonElement>('[data-connection-port$="-frame"]')];
     for (const port of framePorts) elements.push({ current: port });
-    const inputOrder = [2, ...framePorts.map((_, i) => 4 + i), 0, ...(hasVideoInput ? [3] : [])];
+    const inputOrder = [2, ...framePorts.map((_, i) => 4 + i), 0, ...(hasVideoInput ? [3] : [])].filter(index => elements[index].current);
     const tracks = elements.map(() => ({
       x: 0, y: 0, fromX: 0, fromY: 0, toX: 0, toY: 0, started: 0,
     }));

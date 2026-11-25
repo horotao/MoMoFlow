@@ -8,7 +8,7 @@ import type { Edge } from '@xyflow/react';
 import { initialTextDocument } from '../nodes/textDocument';
 import { isTextNode, textInputHandles } from '../nodes/textVariables';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources';
-import { isCanvasGroup, isCanvasVideo, isCanvasImageNode, isCanvasTextNode, isNodeLocked, type AppNode } from '../nodes/types';
+import { isCanvasAudio, isCanvasGroup, isCanvasVideo, isCanvasImageNode, isCanvasTextNode, isNodeLocked, type AppNode } from '../nodes/types';
 
 export const CanvasHistoryContext = createContext({ canUndo: false, canRedo: false, undo: () => {}, redo: () => {}, endEditGroup: () => {} });
 
@@ -67,8 +67,9 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
     const mentionsChanged = nodes.some(node => mentionIds(node) !== mentionIds(state.present.nodes.find(item => item.id === node.id)));
     const colorTagsChanged = nodes.some(node => JSON.stringify(nodeColorTags(node)) !== JSON.stringify(nodeColorTags(state.present.nodes.find(item => item.id === node.id))));
     const labelChanged = nodes.some(node => node.data.label !== state.present.nodes.find(item => item.id === node.id)?.data.label);
-    const videoAssetChanged = dataOnly && nodes.some((node, index) => {
+    const mediaResultChanged = dataOnly && nodes.some((node, index) => {
       const previous = state.present.nodes[index];
+      if (isCanvasAudio(node) && isCanvasAudio(previous)) return node.data.activeAudioId !== previous.data.activeAudioId;
       return isCanvasVideo(node) && isCanvasVideo(previous) && node.data.asset?.id !== previous.data.asset?.id;
     });
     const cropsChanged = nodes.some(node => {
@@ -84,12 +85,12 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
       const previous = state.present.nodes[i];
       return isCanvasGroup(node) && isCanvasGroup(previous) && node.data.color !== previous.data.color;
     });
-    if (videoAssetChanged || cropsChanged || colorTagsChanged || mentionsChanged || labelChanged || lockChanged || groupColorChanged || annotationsChanged || seedreamSizeChanged || !dataOnly || Date.now() - state.time > 750) {
+    if (mediaResultChanged || cropsChanged || colorTagsChanged || mentionsChanged || labelChanged || lockChanged || groupColorChanged || annotationsChanged || seedreamSizeChanged || !dataOnly || Date.now() - state.time > 750) {
       state.past = [...state.past.slice(-99), state.present];
     }
     state.present = next;
     state.future = [];
-    state.time = dataOnly && !videoAssetChanged && !cropsChanged && !colorTagsChanged && !labelChanged && !mentionsChanged && !lockChanged && !groupColorChanged ? Date.now() : 0;
+    state.time = dataOnly && !mediaResultChanged && !cropsChanged && !colorTagsChanged && !labelChanged && !mentionsChanged && !lockChanged && !groupColorChanged ? Date.now() : 0;
     sync();
   }, [nodes, edges, sync]);
 

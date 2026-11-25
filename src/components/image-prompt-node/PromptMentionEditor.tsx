@@ -58,6 +58,7 @@ interface Picker { from: number; to: number; query: string; x: number; y: number
 export interface PromptMentionEditorHandle { focus: () => void; mention: () => void }
 interface Props {
   kind?: 'image' | 'text';
+  allowMentions?: boolean;
   prompt: string; mentions?: readonly PromptMention[]; candidates?: readonly MentionCandidate[]; readOnly?: boolean;
   suggestion: string; onChange: (prompt: string) => void;
   onEdit?: (edit: MentionEdit, sourceId?: MentionSources) => boolean;
@@ -65,14 +66,14 @@ interface Props {
 const empty: readonly MentionCandidate[] = [];
 const noMentions: readonly PromptMention[] = [];
 export const PromptMentionEditor = forwardRef<PromptMentionEditorHandle, Props>(function PromptMentionEditor({
-  kind = 'image', prompt, mentions = noMentions, candidates = empty, readOnly = false, suggestion, onChange, onEdit,
+  kind = 'image', allowMentions = true, prompt, mentions = noMentions, candidates = empty, readOnly = false, suggestion, onChange, onEdit,
 }, ref) {
   const host = useRef<HTMLDivElement>(null);
   const menu = useRef<HTMLDivElement>(null);
   const scrollArea = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView>();
-  const latest = useRef({ prompt, mentions, candidates, readOnly, suggestion, onChange, onEdit });
-  latest.current = { prompt, mentions, candidates, readOnly, suggestion, onChange, onEdit };
+  const latest = useRef({ prompt, mentions, candidates, readOnly, allowMentions, suggestion, onChange, onEdit });
+  latest.current = { prompt, mentions, candidates, readOnly, allowMentions, suggestion, onChange, onEdit };
   const controlledDocument = useRef(JSON.stringify([prompt, mentions]));
   const history = useContext(CanvasHistoryContext);
   const historyRef = useRef(history); historyRef.current = history;
@@ -100,7 +101,7 @@ export const PromptMentionEditor = forwardRef<PromptMentionEditorHandle, Props>(
   };
   const close = () => { pickerRef.current = null; setPicker(null); };
   const updatePicker = (editor: EditorView) => {
-    if (latest.current.readOnly || editor.composing || !editor.hasFocus() || !editor.state.selection.empty) { close(); return; }
+    if (!latest.current.allowMentions || latest.current.readOnly || editor.composing || !editor.hasFocus() || !editor.state.selection.empty) { close(); return; }
     const { from } = editor.state.selection;
     const before = editor.state.doc.textBetween(0, from, '', '\ufffc');
     const match = /@([^@\n\ufffc]*)$/.exec(before);

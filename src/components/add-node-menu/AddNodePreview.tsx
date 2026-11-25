@@ -8,7 +8,7 @@ const nodeScreenshots = {
   },
   audio: {
     src: new URL('./assets/audio-preview.png', import.meta.url).href,
-    alt: '主画布中的 Audio 占位节点',
+    alt: '主画布中的 Audio 节点与波形预览',
   },
   image: {
     src: new URL('./assets/image-preview.jpg', import.meta.url).href,
