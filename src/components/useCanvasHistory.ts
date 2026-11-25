@@ -10,7 +10,7 @@ import { isTextNode, textInputHandles } from '../nodes/textVariables';
 import { assetResources, nodeAssetUrls } from '../nodes/assetResources';
 import { isCanvasGroup, isCanvasVideo, isCanvasImageNode, isCanvasTextNode, isNodeLocked, type AppNode } from '../nodes/types';
 
-export const CanvasHistoryContext = createContext({ canUndo: false, canRedo: false, undo: () => {}, redo: () => {} });
+export const CanvasHistoryContext = createContext({ canUndo: false, canRedo: false, undo: () => {}, redo: () => {}, endEditGroup: () => {} });
 
 type Snapshot = { nodes: AppNode[]; edges: Edge[] };
 
@@ -122,5 +122,6 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
     sync();
   }, [restore, sync]);
 
-  return { ...availability, undo: () => travel('past'), redo: () => travel('future') };
+  const endEditGroup = useCallback(() => { history.current.time = 0; }, []);
+  return { ...availability, undo: () => travel('past'), redo: () => travel('future'), endEditGroup };
 }

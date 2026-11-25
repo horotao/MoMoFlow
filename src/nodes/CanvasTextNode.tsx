@@ -8,11 +8,12 @@ import { ImagePromptIcon } from '../components/image-prompt-node/ImagePromptIcon
 import { InputPortRing } from '../components/image-prompt-node/InputPortRing';
 import { ImagePromptGeneration } from '../components/image-prompt-node/ImagePromptGeneration';
 import { TextOutput } from '../components/image-prompt-node/TextOutput';
+import { EditableTextResult } from '../components/image-prompt-node/EditableTextResult';
 import { TextModelPicker } from '../components/image-prompt-node/TextModelPicker';
 import { usePublishNodeGeneration, usePublishVisibleText } from './visibleCanvasText';
 import { textInputReferences, textReferenceEdges } from './textReferences';
 import { prepareTextRequest, runTextBatch, type TextBatchItem } from './textGenerationClient';
-import { completeTextBatchResult, selectTextResult, textGenerationInput, textHistory, textModelSelection } from './textGeneration';
+import { completeTextBatchResult, editTextResult, selectTextResult, textGenerationInput, textHistory, textModelSelection } from './textGeneration';
 import { textModelDisplay } from '../components/image-prompt-node/textModels';
 import { imageInputHandles, isImageInputHandle } from './connectionRules';
 import { isCanvasTextNode, isNodeLocked, type AppNode, type SunburstNode, type CanvasText, type TextComposerData } from './types';
@@ -166,6 +167,8 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
     setError('已停止本批生成，已完成结果已保留。已提交请求仍可能计费。');
   }
   const output = item ? item.text : data.text;
+  const preview = <TextOutput key={outputId} text={output} citations={item ? item.result?.citations : active?.citations}
+    format={composer.format} streaming={showingRun} reveal={showingRun || Boolean(outputId && revealingResult === outputId)} />;
   // The reference uses a 20s visual estimate and a 40s thumbnail timeline.
   const generation = item && showingRun ? { id: item.id, startedAt: item.startedAt, estimatedSeconds: 20 } : null;
   const batchIds = new Set(batch?.items.map(item => item.id));
@@ -215,11 +218,16 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
           }));
         }
       }}
-      textResult={item || output ? <div ref={scroller} className="text-node-output-scroll" onScroll={event => {
+      textResult={item || active ? <div ref={scroller} className="text-node-output-scroll" onScroll={event => {
         const el = event.currentTarget; follow.current = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
       }}>
         {item?.error ? <div className="text-node-output-source">{item.error}</div>
-          : <TextOutput key={outputId} text={output} citations={item ? item.result?.citations : active?.citations} format={format} streaming={showingRun} reveal={showingRun || Boolean(outputId && revealingResult === outputId)} />}
+          : !batch && !data.locked && active
+            ? <EditableTextResult key={active.id} text={output}
+              onChange={text => updateNodeData(id, node => isCanvasTextNode(node) ? editTextResult(node.data, active.id, text) : {})}>
+              {preview}
+            </EditableTextResult>
+            : preview}
       </div> : undefined}
       imageInputCount={references.length} outputConnected={edges.some(edge => edge.source === id)}
       references={inputs} referenceScale={zoom}
@@ -235,7 +243,7 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
         <Handle key={handle} type="target" position={Position.Left} id={handle} isConnectable={connectable && handle === available} style={{ pointerEvents: handle === available ? undefined : 'none' }} />),
       output: <Handle type="source" position={Position.Right} id="text" isConnectable={connectable} /> }}
       toolbar={overview && !selected ? null : <ImagePromptToolbar className="nodrag nopan" {...controls} hidden={toolbarHidden}
-        textHasOutput={Boolean(batch || data.text)}
+        textHasOutput={Boolean(batch || active)}
         textModelPicker={<TextModelPicker selection={composer.selection} onChange={selection => edit({ selection })} locked={data.locked} hidden={toolbarHidden} />} />}
     />
     {error && <div className="text-node-error nodrag nopan nowheel" role="alert" onPointerDown={event => event.stopPropagation()}>{error}<button type="button" aria-label="关闭文本生成提示" onClick={() => setError('')}>×</button></div>}

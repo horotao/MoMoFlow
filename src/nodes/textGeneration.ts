@@ -2,7 +2,7 @@ import type { TextBilling, TextUsage } from './textPricing.ts';
 import { estimateTextCost } from './textPricing.ts';
 import type { Edge } from '@xyflow/react';
 import { imageInputHandles, isImageInputHandle } from './connectionRules.ts';
-import { textWithCitations } from './textCitations.ts';
+import { editedTextCitations, textWithCitations } from './textCitations.ts';
 import { selectedImageResult } from './annotationGraph.ts';
 import { numberedMentionPrompt } from './promptMentionText.ts';
 import { isCanvasImageNode, isCanvasTextNode, type AppNode, type CanvasText, type TextComposerData, type TextGenerationResult, type TextReasoningEffort, type TextCitation } from './types.ts';
@@ -61,6 +61,14 @@ export function completeTextResult(data: CanvasText['data'], result: TextGenerat
   return { ...selectTextResult(data, result), textHistory: [...textHistory(data), result] };
 }
 
+export function editTextResult(data: CanvasText['data'], id: string, text: string): CanvasText['data'] {
+  const history = textHistory(data);
+  const active = history.find(result => result.id === data.activeTextResultId) ?? history[history.length - 1];
+  if (data.locked || active?.id !== id || active.text === text) return data;
+  const edited = { ...active, text, citations: editedTextCitations(active.text, text, active.citations) };
+  return { ...data, text, activeTextResultId: id, textHistory: history.map(result => result.id === id ? edited : result) };
+}
+
 /** Insert asynchronous completions in submission order without losing siblings. */
 export function completeTextBatchResult(data: CanvasText['data'], result: TextGenerationResult, order: readonly string[], select: boolean) {
   const history = textHistory(data);
@@ -78,7 +86,7 @@ export function completeTextBatchResult(data: CanvasText['data'], result: TextGe
 
 /** Unrun Text nodes pass their authored text; completed nodes pass the selected result. */
 export function textOutputValue(data: CanvasText['data']) {
-  if (!data.text.trim()) return data.textComposer.prompt;
+  if (!data.textHistory?.length && !data.text.trim()) return data.textComposer.prompt;
   const history = textHistory(data);
   const result = history.find(item => item.id === data.activeTextResultId) ?? history[history.length - 1];
   return textWithCitations(data.text, result?.citations);

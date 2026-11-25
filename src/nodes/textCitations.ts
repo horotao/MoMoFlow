@@ -33,6 +33,22 @@ export function textCitationParts(text: string, citations?: readonly TextCitatio
   return parts;
 }
 
+/** Keep source links on untouched text and discard an annotation if its marker was edited. */
+export function editedTextCitations(before: string, after: string, citations?: TextCitation[]) {
+  if (!citations?.length) return citations;
+  let start = 0;
+  let oldEnd = before.length;
+  let newEnd = after.length;
+  while (start < oldEnd && start < newEnd && before[start] === after[start]) start++;
+  while (oldEnd > start && newEnd > start && before[oldEnd - 1] === after[newEnd - 1]) { oldEnd--; newEnd--; }
+  const shift = newEnd - oldEnd;
+  return citations.flatMap(link => {
+    if (link.endIndex <= start) return [link];
+    if (link.startIndex < oldEnd) return [];
+    return [{ ...link, startIndex: link.startIndex + shift, endIndex: link.endIndex + shift }];
+  });
+}
+
 /** Preserve real source URLs in Markdown previews and downstream Text inputs. */
 export function textWithCitations(text: string, citations?: readonly TextCitation[]) {
   return textCitationParts(text, citations).map(part => part.citation

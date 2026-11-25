@@ -5,7 +5,7 @@ import { canConnect } from './connectionRules.ts';
 import { connectionChoices } from './connectionRecommendations.ts';
 import { hasLegacyImageGraph, migrateLegacyImageGraph } from '../persistence/legacyImageMigration.ts';
 import type { AppNode, CanvasImage } from './types.ts';
-import { completeTextResult, estimateCanvasTextCost, selectTextResult, textGenerationInput, textHistory } from './textGeneration.ts';
+import { completeTextResult, editTextResult, estimateCanvasTextCost, selectTextResult, textGenerationInput, textHistory, textOutputValue } from './textGeneration.ts';
 import { estimateTextCost } from './textPricing.ts';
 import type { CanvasText, TextGenerationResult } from './types.ts';
 
@@ -123,6 +123,27 @@ test('Text snapshots reasoning settings, restores historical effort and preserve
   const saved = { ...initial, ...completeTextResult(initial, result) };
   assert.equal(selectTextResult(saved, textHistory(saved)[0]).textComposer.reasoningEffort, 'high');
   assert.equal(selectTextResult(saved, { ...result, reasoningEffort: undefined }).textComposer.reasoningEffort, 'low');
+});
+
+test('editing updates only the active output, preserving metadata, draft prompt and unaffected citations', () => {
+  const initial = { ...a.data, text: '旧结果' };
+  const legacy = editTextResult(initial, 'legacy-text-result', '已修改');
+  assert.equal(textHistory(legacy)[0].text, '已修改');
+  const citation = { url: 'https://example.com/', title: '来源', startIndex: 2, endIndex: 5 };
+  const result = { id: 'two', text: '甲乙[源]。', prompt: '已用提示词', model: 'gpt-6-luna', responseId: 'resp', createdAt: 1, citations: [citation] };
+  const data = { ...legacy, ...completeTextResult(legacy, result), textComposer: { ...legacy.textComposer, prompt: '提示词草稿' } };
+  const edited = editTextResult(data, 'two', '新甲乙[源]。');
+  assert.equal(edited.textComposer, data.textComposer);
+  assert.equal(edited.textGeneration, data.textGeneration);
+  assert.deepEqual(edited.textHistory, [legacy.textHistory![0], { ...result, text: edited.text, citations: [{ ...citation, startIndex: 3, endIndex: 6 }] }]);
+  assert.equal(textGenerationInput('b', [{ ...a, data: edited }, b], [textWire]).prompt, '新甲乙[[1]](<https://example.com/>)。');
+  assert.deepEqual(editTextResult(edited, 'two', '新甲乙[改]。').textHistory![1].citations, []);
+  const empty = editTextResult(edited, 'two', '');
+  assert.equal(textOutputValue(empty), '');
+  assert.equal(textHistory(empty).length, 2);
+  assert.equal(editTextResult(edited, 'legacy-text-result', '过期输入'), edited);
+  const locked = { ...edited, locked: true };
+  assert.equal(editTextResult(locked, 'two', '锁定输入'), locked);
 });
 
 test('Text saves search settings and citations, restores history defaults, and passes clickable sources downstream', () => {

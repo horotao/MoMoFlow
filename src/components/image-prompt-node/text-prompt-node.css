@@ -9,6 +9,10 @@
 .text-node-output-scroll::-webkit-scrollbar { width: 15px; }
 .text-node-output-scroll::-webkit-scrollbar-thumb { background: var(--node-muted); background-clip: padding-box; border: 6px solid transparent; border-radius: 8px; }
 .text-node-output-source { white-space: pre-wrap; }
+.text-node-editable { min-height: 1lh; cursor: text; }
+.text-node-editable:focus-visible { outline: 1px solid var(--node-muted); outline-offset: -1px; }
+.text-node-output-placeholder { color: var(--node-muted); }
+.text-node-result-editor { display: block; box-sizing: border-box; width: 100%; min-height: 3lh; field-sizing: content; resize: none; border: 0; outline: none; padding: 0; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; }
 .text-node-output-source:focus { outline: none; }
 .text-node-output-cursor { display: inline-block; width: 6px; height: 14px; margin-left: 3px; border-radius: 2px; background: var(--node-muted); vertical-align: -2px; animation: text-node-cursor 2.4s infinite; }
 .text-node-output-cursor[data-empty] { margin-left: 0; }

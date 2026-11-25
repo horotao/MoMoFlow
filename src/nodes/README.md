@@ -4,7 +4,7 @@
 
 | 节点 | 存储类型 | 组件 | 输入与输出 |
 | --- | --- | --- | --- |
-| Text | `text` | [CanvasTextNode](CanvasTextNode.tsx) | `text` 接收上游文本，`image-0` 至 `image-15` 接收图片；`text` 输出当前选中的已完成文本；尚未生成时直接输出手写提示词。接入 GPT-6.2 Sol、GPT-6.1 Terra、GPT-6 Luna 和 APIMart 的 DeepSeek V4.1 Flash。GPT 模型可开启网络搜索并显示可点击来源。连入文本和图片时显示共用参考缩略图，每次可生成 1–20 份流式结果并进入历史；支持 @ 提及画布图片并自动连接；其余辅助图标为占位。 |
+| Text | `text` | [CanvasTextNode](CanvasTextNode.tsx) | `text` 接收上游文本，`image-0` 至 `image-15` 接收图片；`text` 输出当前选中的已完成文本，可点击正文编辑并同步到下游；尚未生成时直接输出手写提示词。接入 GPT-6.2 Sol、GPT-6.1 Terra、GPT-6 Luna 和 APIMart 的 DeepSeek V4.1 Flash。GPT 模型可开启网络搜索并显示可点击来源。连入文本和图片时显示共用参考缩略图，每次可生成 1–20 份流式结果并进入历史；支持 @ 提及画布图片并自动连接；其余辅助图标为占位。 |
 | Image | `sunburst` | [CanvasImageNode](CanvasImageNode.tsx) | `prompt` 接收 Text，替代节点内提示词；最多接入 16 张参考图。`result` 输出当前选中的结果。局部重绘版本固定使用保存的原图与蒙版，输出沿用 `result`。 |
 | Video | `video` | [CanvasVideoNode](CanvasVideoNode.tsx) | 生成节点接收 Prompt、最多 9 张 Image 和 3 段 Video，经右侧 `video` 端口输出。Seedance 和 MiniMax 可切换首尾帧模式，用两个独立图片端口指定起止画面。接入 APIMart Seedance 2.5 Flash、Kling V4 Flash 和 MiniMax H3；选中节点后可调整生成选项，原始 MP4 下载完成后即随工作流保存，预览失败时可重试预览或下载原片。导入 MP4 节点仅提供视频输出。 |
 | Audio | `audio` | [CanvasMediaPlaceholder](CanvasMediaPlaceholder.tsx) | 音频占位节点，无端口或运行操作。 |
