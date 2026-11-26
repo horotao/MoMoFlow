@@ -17,6 +17,7 @@ import type { SelectionConnectionMenu } from './components/CanvasSelectionOutput
 import { selectionConnectionChoices, selectionTargetSize } from './nodes/selectionConnections';
 import { CanvasSelectionOutline, CanvasSelectionToolbar } from './components/CanvasSelectionToolbar';
 import { groupSelectedNodes, settleGroupDrop } from './nodes/canvasGroups';
+import { duplicateDragChanges, duplicateNodes } from './nodes/duplicateNodes';
 import { requestCanvasRun } from './nodes/selectionGeneration';
 import { alignSelectedNodes, arrangeSelectedNodes, isArrangeShortcut } from './components/canvasLayout';
 import { CanvasBackground } from './components/CanvasBackground';
@@ -185,24 +186,42 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   }, [apiSettingsOpen, canvasStore, pendingNodeMenu, screenToFlowPosition, setNodes]);
   const gridOrigin = useRef(canvasGridOrigin);
   const gridDragAnchor = useRef<GridDragAnchor | null>(null);
+  const duplicateDrag = useRef<{ ids: Map<string, string>; active: boolean } | null>(null);
   const updateGridOrigin = useCallback((origin: number) => { gridOrigin.current = origin; }, []);
-  const startGridDrag = useCallback<OnNodeDrag<AppNode>>((_event, node) => {
+  const startGridDrag = useCallback<OnNodeDrag<AppNode>>((event, node, dragged) => {
+    duplicateDrag.current = null;
+    if ('altKey' in event && event.altKey) {
+      const copies = duplicateNodes(getNodes(), getEdges(), dragged.map(item => item.id));
+      if (copies.nodes.length) {
+        duplicateDrag.current = { ids: copies.ids, active: true };
+        setNodes(current => [...current.map(item => ({ ...item, selected: false })), ...copies.nodes]);
+        setEdges(current => [...current.map(edge => ({ ...edge, selected: false })), ...copies.edges]);
+      }
+    }
     if (!gridSnap) return;
     const absolute = canvasStore.getState().nodeLookup.get(node.id)?.internals.positionAbsolute;
     if (absolute) {
       gridDragAnchor.current = { id: node.id, offset: { x: absolute.x - node.position.x, y: absolute.y - node.position.y } };
     }
-  }, [canvasStore, gridSnap]);
+  }, [canvasStore, gridSnap, getNodes, getEdges, setNodes, setEdges]);
   const finishCanvasDrag = useCallback<OnNodeDrag<AppNode>>((event, _node, dragged) => {
     gridDragAnchor.current = null;
-    if (event.type === 'touchcancel') return;
-    const ids = dragged.map(node => node.id);
+    const copies = duplicateDrag.current;
+    duplicateDrag.current = null;
+    if (event.type === 'touchcancel' && !copies) return;
+    const ids = copies ? [...copies.ids.values()] : dragged.map(node => node.id);
     // React Flow queues the final position changes before this callback.
-    setNodes(current => settleGroupDrop(current, ids));
+    setNodes(current => settleGroupDrop(copies
+      ? current.map(node => ids.includes(node.id) ? { ...node, dragging: false } : node) : current, ids));
   }, [setNodes]);
   const changeCanvasNodes = useCallback((changes: NodeChange<AppNode>[]) => {
     const anchor = gridDragAnchor.current;
-    onNodesChange(anchor ? snapDragChanges(changes, anchor, gridOrigin.current) : changes);
+    const snapped = anchor ? snapDragChanges(changes, anchor, gridOrigin.current) : changes;
+    const copies = duplicateDrag.current;
+    onNodesChange(copies?.active ? duplicateDragChanges(snapped, copies.ids) : snapped);
+    if (copies?.active && changes.some(change => change.type === 'position' && copies.ids.has(change.id) && change.dragging === false)) {
+      copies.active = false;
+    }
     // React Flow can send a final position batch without a stop callback when a drag is aborted.
     if (anchor && changes.some(change => change.type === 'position' && change.id === anchor.id && change.dragging === false)) {
       gridDragAnchor.current = null;
