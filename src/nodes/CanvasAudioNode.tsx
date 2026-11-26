@@ -1,3 +1,4 @@
+import { routedEdges } from './router.ts';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, useEdges, useNodesData, useReactFlow, useStore, type NodeProps } from '@xyflow/react';
@@ -35,7 +36,7 @@ export function CanvasAudioNode({ id, data, selected, isConnectable }: NodeProps
   const result = history[active];
   const locked = Boolean(data.locked);
   const busy = startedAt !== null;
-  const edges = useEdges();
+  const edges = routedEdges(useEdges());
   const edge = edges.find(e => e.target === id && e.targetHandle === 'prompt');
   const source = useNodesData<CanvasText>(edge?.source ?? '');
   const prompt = edge ? source?.type === 'text' ? textOutputValue(source.data) : '' : composer.prompt;
@@ -54,7 +55,7 @@ export function CanvasAudioNode({ id, data, selected, isConnectable }: NodeProps
     const node = getNode(id);
     if (!isCanvasAudio(node) || node.data.locked || pending.current) return false;
     const config = node.data.audioComposer ?? defaultAudioComposer;
-    const input = getEdges().find(e => e.target === id && e.targetHandle === 'prompt');
+    const input = routedEdges(getEdges()).find(e => e.target === id && e.targetHandle === 'prompt');
     const upstream = input && getNode(input.source);
     const submitted = input ? upstream && isCanvasTextNode(upstream) ? textOutputValue(upstream.data) : '' : config.prompt;
     if (!submitted.trim()) return false;

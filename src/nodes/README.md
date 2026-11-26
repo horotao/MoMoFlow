@@ -8,11 +8,12 @@
 | Image | `sunburst` | [CanvasImageNode](CanvasImageNode.tsx) | `prompt` 接收 Text，替代节点内提示词；最多接入 16 张参考图。`result` 输出当前选中的结果。局部重绘版本固定使用保存的原图与蒙版，输出沿用 `result`。 |
 | Video | `video` | [CanvasVideoNode](CanvasVideoNode.tsx) | 生成节点接收 Prompt、最多 9 张 Image 和 3 段 Video，经右侧 `video` 端口输出。Seedance 2.5 Flash 的 Auto 模式还可接入最多 5 段参考音频。Seedance 和 MiniMax 可切换首尾帧模式，用两个独立图片端口指定起止画面。接入 APIMart Seedance 2.5 Flash、Kling V4 Flash 和 MiniMax H3；选中节点后可调整生成选项，原始 MP4 下载完成后即随工作流保存，预览失败时可重试预览或下载原片。导入 MP4 节点仅提供视频输出。 |
 | Audio | `audio` | [CanvasAudioNode](CanvasAudioNode.tsx) | 左侧 `prompt` 接收 Text，右侧 `audio` 输出当前历史音轨，可连接 Seedance 2.5 Flash。通过 APIMart Suno V6 从音乐描述生成人声或纯音乐。支持 MP3、M4A 和 WAV，多首结果随画布保存，可试听、定位、切换历史和下载。 |
+| 路由 | `router` | [CanvasRouterNode](CanvasRouterNode.tsx) | 左侧 `in` 接收一路文本、图片、视频或音频，右侧 `out` 将原始输出转接到一个或多个兼容节点。 |
 | 群组 | `canvas-group` | [CanvasGroupNode](CanvasGroupNode.tsx) | 通过多选工具栏创建画布框，成员保留原有端口和连接。群组无输入或输出。 |
 
 Image 使用 `data.composer` 保存提示词、生成数量、比例和模型选择。Text 使用 `data.textComposer` 保存提示词、TXT／MD、数量、模型选择、思考强度和网络搜索开关，`data.text` 保存当前选中的完成结果；`data.textHistory` 保存历次成功输出及其提示词、模型、搜索设置、来源引用、实际用量与计费快照，`activeTextResultId` 保存当前项。新 Text 与历史 Prompt 通过 `textComposer` 区分，刷新与混合迁移保留 Text 及其连接。运行过程不持久化；删除、切换项目或刷新会停止接收当前生成；完成的文本结果和模型记录会保存。
 
-主画布注册 Image、Text、Video、Audio 和群组，见[节点注册表](index.ts)。旧项目的数据迁移和原始快照保留规则见[工作流](guides/workflow.md)。
+主画布注册 Image、Text、Video、Audio、路由 和群组，见[节点注册表](index.ts)。旧项目的数据迁移和原始快照保留规则见[工作流](guides/workflow.md)。
 
 新建 Image 默认使用 APIMart EXT、Sunburst 和 1:1。用户修改生成参数后，各创建入口通过[生成偏好](../components/imageNodePresets.ts)沿用当前浏览器的上次设置，详见[图片生成](guides/models.md)。
 

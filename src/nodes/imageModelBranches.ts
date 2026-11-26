@@ -1,3 +1,4 @@
+import { routedEdges } from './router.ts';
 import type { Edge, Rect } from '@xyflow/react';
 import { imagePromptModels } from '../components/image-prompt-node/imagePromptModels.ts';
 import { selectedImageResult } from './annotationGraph.ts';
@@ -15,7 +16,7 @@ export function imageModelBranches(source: CanvasImage, nodes: AppNode[], edges:
 
   const inputEdges = edges.filter(edge => edge.target === source.id
     && (edge.targetHandle === 'prompt' || isImageInputHandle(edge.targetHandle)));
-  const reference = inputEdges.filter(edge => isImageInputHandle(edge.targetHandle))
+  const reference = routedEdges(edges).filter(edge => edge.target === source.id && isImageInputHandle(edge.targetHandle))
     .sort((a, b) => imageInputHandles.indexOf(a.targetHandle!) - imageInputHandles.indexOf(b.targetHandle!))
     .map(edge => nodes.find(node => node.id === edge.source))
     .filter(isImageGeneratorNode)

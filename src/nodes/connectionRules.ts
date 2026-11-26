@@ -1,4 +1,5 @@
 import type { Connection, Edge } from '@xyflow/react';
+import { canvasOutputHandle, expectedSourceHandle, relayHandles, routerTypes } from './router.ts';
 import { videoOptions } from './apimartVideo.ts';
 import { acceptsVideoAudio, videoAudioHandles, defaultVideoComposer, isVideoFrameHandle, videoImageHandles, videoInputHandles } from './videoComposer.ts';
 import { isCanvasVideo, isVideoComposerNode, isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isNodeLocked, type AppNode } from './types.ts';
@@ -10,6 +11,8 @@ export function isImageWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandl
   return connection.sourceHandle === 'result' && isImageInputHandle(connection.targetHandle);
 }
 export function isCanvasWire(connection: Pick<Edge, 'sourceHandle' | 'targetHandle'>) {
+  if (connection.targetHandle === 'in') return connection.sourceHandle === 'out' || relayHandles.some(handle => handle === connection.sourceHandle);
+  if (connection.sourceHandle === 'out') return Boolean(expectedSourceHandle(connection.targetHandle));
   return connection.sourceHandle === 'audio' && videoAudioHandles.includes(connection.targetHandle ?? '')
     || connection.sourceHandle === 'video' && videoInputHandles.includes(connection.targetHandle ?? '') || connection.sourceHandle === 'result' && isVideoFrameHandle(connection.targetHandle) || isImageWire(connection) || connection.sourceHandle === 'text' && (connection.targetHandle === 'text' || connection.targetHandle === 'prompt');
 }
@@ -48,16 +51,36 @@ export function canConnect(connection: Connection | Edge, nodes: AppNode[], edge
   const target = nodes.find(node => node.id === connection.target);
   if (!source || !target || isImportedCanvasImage(target) || isNodeLocked(source) || isNodeLocked(target)) return false;
   if (isCanvasImageNode(target) && target.data.inpaint) return false;
-  const imageWire = isCanvasImageNode(source) && (isCanvasImageNode(target) || isCanvasTextNode(target)) && isImageWire(connection);
-  const textWire = isCanvasTextNode(source) && connection.sourceHandle === 'text'
-    && (isCanvasTextNode(target) && connection.targetHandle === 'text' || isCanvasImageNode(target) && connection.targetHandle === 'prompt');
-  if (!imageWire && !textWire && !isAudioInputWire(connection, source, target) && !isVideoInputWire(connection, source, target)) return false;
-  if (isVideoComposerNode(target) && connection.sourceHandle === 'result') {
+  const handle = canvasOutputHandle(source);
+  if (source.type === 'router' ? connection.sourceHandle !== 'out' : !handle || connection.sourceHandle !== handle) return false;
+  const input = connection.targetHandle;
+  if (target.type === 'router') {
+    if (input !== 'in') return false;
+  } else if (!acceptsInput(target, input)) return false;
+
+  if (source.type === 'router' || target.type === 'router') {
+    const remaining = withoutReplacedInput(connection, edges);
+    const types = source.type === 'router' ? routerTypes(source.id, remaining) : new Set<string>([handle!]);
+    if (target.type === 'router') routerTypes(target.id, remaining).forEach(type => types.add(type));
+    else types.add(expectedSourceHandle(input)!);
+    if (types.size > 1) return false;
+  } else if (handle !== expectedSourceHandle(input)) return false;
+
+  if (isVideoComposerNode(target) && expectedSourceHandle(input) === 'result') {
     const frameMode = videoOptions(target.data.videoComposer ?? defaultVideoComposer).imageMode === 'first-last';
-    if (isVideoFrameHandle(connection.targetHandle) && !frameMode) return false;
-    if (!frameMode && edges.filter(edge => edge.target === target.id && edge.sourceHandle === 'result'
-      && edge.targetHandle !== connection.targetHandle).length >= videoImageHandles.length) return false;
+    if (isVideoFrameHandle(input) && !frameMode) return false;
+    if (!frameMode && edges.filter(edge => edge.target === target.id && expectedSourceHandle(edge.targetHandle) === 'result'
+      && edge.targetHandle !== input).length >= videoImageHandles.length) return false;
   }
   if (edges.some(edge => edge.source === source.id && edge.target === target.id)) return false;
   return !createsImageCycle(connection, withoutReplacedInput(connection, edges));
+}
+
+function acceptsInput(target: AppNode, input?: string | null) {
+  if (isCanvasTextNode(target)) return input === 'text' || isImageInputHandle(input);
+  if (isCanvasImageNode(target)) return input === 'prompt' || isImageInputHandle(input);
+  if (target.type === 'audio') return input === 'prompt';
+  return isVideoComposerNode(target) && (input === 'prompt' || isVideoFrameHandle(input)
+    || videoImageHandles.includes(input ?? '') || videoInputHandles.includes(input ?? '')
+    || acceptsVideoAudio(target.data.videoComposer) && videoAudioHandles.includes(input ?? ''));
 }

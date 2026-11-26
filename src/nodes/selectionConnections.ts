@@ -1,10 +1,11 @@
-import type { Connection } from '@xyflow/react';
+import type { Connection, Edge } from '@xyflow/react';
 import { selectedImageResult } from './annotationGraph.ts';
 import { canvasImageSize, hasImageDimensions } from './canvasImageGeometry.ts';
 import { composerAspectRatio } from './imageComposerSettings.ts';
 import { imageInputHandles } from './connectionRules.ts';
 import { portChoices, type ConnectionChoice } from './connectionRecommendations.ts';
-import { isCanvasImageNode, isCanvasTextNode, isCanvasVideo, isVideoComposerNode, type AppNode } from './types.ts';
+import { canvasOutputHandle } from './router.ts';
+import { isCanvasImageNode, isCanvasVideo, isVideoComposerNode, type AppNode } from './types.ts';
 import { videoAudioHandles, videoImageHandles, videoInputHandles } from './videoComposer.ts';
 
 type SourceLink = Pick<Connection, 'source' | 'sourceHandle' | 'targetHandle'>;
@@ -20,13 +21,13 @@ function targetSlots(choice: ConnectionChoice) {
 }
 
 /** Each offered destination must have a distinct input for every selected output. */
-export function selectionConnectionChoices(nodes: AppNode[], sourceIds: string[]): SelectionChoice[] {
+export function selectionConnectionChoices(nodes: AppNode[], sourceIds: string[], edges: Edge[] = []): SelectionChoice[] {
   if (sourceIds.length < 2) return [];
   const byId = new Map(nodes.map(node => [node.id, node]));
   const sources = sourceIds.map(id => {
     const node = byId.get(id);
-    const handleId = node && isCanvasImageNode(node) ? 'result' : node && isCanvasTextNode(node) ? 'text' : node?.type ?? null;
-    return { id, handleId, choices: portChoices({ direction: 'source', handleId }, node) };
+    const handleId = node?.type === 'router' ? 'out' : canvasOutputHandle(node) ?? null;
+    return { id, handleId, choices: portChoices({ direction: 'source', handleId }, node, edges, nodes) };
   });
   const result: SelectionChoice[] = [];
   for (const first of sources[0].choices) {

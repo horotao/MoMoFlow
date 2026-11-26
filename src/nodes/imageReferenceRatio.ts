@@ -1,3 +1,4 @@
+import { routedEdges } from './router.ts';
 import type { Edge } from '@xyflow/react';
 import type { AppNode, SunburstNode } from './types';
 import { isCanvasImageNode } from './types.ts';
@@ -43,18 +44,28 @@ function firstReference(inputs: Edge[], nodes: Map<string, AppNode>) {
 
 /** Start reference following when a new first input is connected, in the same canvas edit. */
 export function connectImageReferenceRatio(nodes: AppNode[], previous: Edge[], edges: Edge[], target: string): AppNode[] {
-  const inputs = references(edges, target);
-  if (!inputs.length || inputs[0].id === references(previous, target)[0]?.id) return nodes;
-  return nodes.map(node => {
-    if (node.id !== target || !isCanvasImageNode(node) || node.data.imageSource === 'imported' || node.data.locked) return node;
+  const before = routedEdges(previous), after = routedEdges(edges);
+  const byId = new Map(nodes.map(node => [node.id, node]));
+  const targets = byId.get(target)?.type === 'router'
+    ? new Set(after.filter(edge => isImageInputHandle(edge.targetHandle)).map(edge => edge.target))
+    : [target];
+  const updates = new Map<string, AppNode>();
+  for (const id of targets) {
+    const node = byId.get(id);
+    if (!node || !isCanvasImageNode(node) || node.data.imageSource === 'imported' || node.data.locked) continue;
+    const inputs = references(after, id);
+    if (!inputs.length) continue;
+    const prior = references(before, id)[0];
+    if (prior?.id === inputs[0].id && prior.source === inputs[0].source) continue;
     const data = { ...node.data, composer: { ...node.data.composer, followReferenceRatio: true } };
-    const image = firstReference(inputs, new Map(nodes.map(item => [item.id, item])));
-    return { ...node, data: { ...data, ...referenceRatioSettings(data, image) } };
-  });
+    updates.set(id, { ...node, data: { ...data, ...referenceRatioSettings(data, firstReference(inputs, byId)) } });
+  }
+  return updates.size ? nodes.map(node => updates.get(node.id) ?? node) : nodes;
 }
 
 /** Apply a changed source and its followers' ratios in the same undo step. */
 export function syncImageReferenceRatios(nodes: AppNode[], edges: Edge[], sourceId: string, busy: ReadonlySet<string>): AppNode[] {
+  edges = routedEdges(edges);
   const targets = new Set(edges.filter(edge => edge.source === sourceId && isImageInputHandle(edge.targetHandle)).map(edge => edge.target));
   if (!targets.size) return nodes;
   const byId = new Map(nodes.map(node => [node.id, node]));

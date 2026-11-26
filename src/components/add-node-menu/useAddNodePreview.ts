@@ -5,10 +5,12 @@ export const addNodeEntries = [
   { type: 'text', label: '文本', description: '生成文本与 Markdown', key: 'T' },
   { type: 'video', label: '视频', description: '生成和编辑视频', key: 'V' },
   { type: 'audio', label: '音频', description: '生成和编辑音频', key: 'A' },
+  { type: 'router', label: '路由', description: '向下游转接输入', key: '' },
 ] as const;
 export type AddNodeType = typeof addNodeEntries[number]['type'];
 
 export const nodePreviewDescription = {
+  router: '将一路文本、图片、视频或音频原样传给下游，可连接多个节点。',
   image: '输入提示词生成图片，也可以用参考图引导构图、风格和后续编辑。',
   video: '连接文字、图片或视频，选择模型、比例和时长后运行本地预览，也可直接导入 MP4。',
   audio: '输入或连接音乐描述，使用 Suno V6 生成人声歌曲或纯音乐。',

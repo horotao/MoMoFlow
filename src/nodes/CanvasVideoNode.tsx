@@ -1,3 +1,4 @@
+import { routedEdges } from './router.ts';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Handle, Position, useEdges, useNodesData, useReactFlow, useStore, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
@@ -49,7 +50,7 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
   const composer = normalizeVideoComposer(data.videoComposer ?? defaultVideoComposer);
   const imported = Boolean(asset && !data.videoComposer);
   const model = videoModelDisplay(composer);
-  const edges = useEdges();
+  const edges = routedEdges(useEdges());
   const incoming = useMemo(() => edges.filter(edge => edge.target === id), [edges, id]);
   const occupied = new Set(incoming.map(edge => edge.targetHandle));
   const sourceIds = useMemo(() => incoming.map(edge => edge.source), [incoming]);
@@ -127,7 +128,7 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
     const nodeAtStart = getNode(id);
     if (!isCanvasVideo(nodeAtStart) || isNodeLocked(nodeAtStart) || imported || busy || job.current) return false;
     const config = normalizeVideoComposer(nodeAtStart.data.videoComposer ?? defaultVideoComposer);
-    const liveEdges = getEdges().filter(edge => edge.target === id);
+    const liveEdges = routedEdges(getEdges()).filter(edge => edge.target === id);
     const textEdge = liveEdges.find(edge => edge.targetHandle === 'prompt');
     const upstream = textEdge ? getNode(textEdge.source) : undefined;
     const runPrompt = textEdge ? upstream && isCanvasTextNode(upstream) ? textOutputValue(upstream.data) : '' : config.prompt;

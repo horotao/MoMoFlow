@@ -1,3 +1,4 @@
+import { routedEdges } from './router.ts';
 import { useCanvasImageReplacement } from './useCanvasImageReplacement';
 import { useCanvasMentions } from './CanvasMentionContext';
 import { useLayoutEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
@@ -54,7 +55,7 @@ function hasMultipleSelection(nodes: readonly Node[]) {
 
 export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps<CanvasImage>) {
   const { setNodes, getNode, updateNodeData } = useReactFlow<AppNode>();
-  const edges = useEdges();
+  const edges = routedEdges(useEdges());
   const overview = useStore(state => Math.round(state.transform[2] * 100) <= 14);
   const toolbarHidden = useStore(state => state.userSelectionActive || hasMultipleSelection(state.nodes));
   const connectable = isConnectable && !data.locked;

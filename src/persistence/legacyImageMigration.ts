@@ -7,11 +7,11 @@ import { migrateImageModelGraph } from '../nodes/sunburstMigration.ts';
 import { defaultSunburstSettings, imageSizeLabels, imageSizes, sunburstSizePreset } from '../nodes/sunburst.ts';
 import { isTextNode, resolveTextValue } from '../nodes/textVariables.ts';
 import { anchorCanvasImage } from '../nodes/canvasImageGeometry.ts';
-import { isCanvasGroup, isCanvasMediaNode, type CanvasMediaNode, isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isFileNode, isImageGeneratorNode, type AppNode, type CanvasText, type CanvasImage, type FileAsset, type ImageGeneratorNode } from '../nodes/types.ts';
+import { isCanvasGroup, isCanvasRouter, type CanvasRouter, isCanvasMediaNode, type CanvasMediaNode, isCanvasImageNode, isCanvasTextNode, isImportedCanvasImage, isFileNode, isImageGeneratorNode, type AppNode, type CanvasText, type CanvasImage, type FileAsset, type ImageGeneratorNode } from '../nodes/types.ts';
 
 export function hasLegacyImageGraph(nodes: AppNode[], edges: Edge[]) {
   const groups = new Set(nodes.filter(isCanvasGroup).map(node => node.id));
-  return nodes.some(node => (!isCanvasGroup(node) && !isCanvasImageNode(node) && !isCanvasTextNode(node) && !isCanvasMediaNode(node))
+  return nodes.some(node => (!isCanvasGroup(node) && !isCanvasRouter(node) && !isCanvasImageNode(node) && !isCanvasTextNode(node) && !isCanvasMediaNode(node))
     || (node.parentId && (isCanvasGroup(node) || !groups.has(node.parentId))) || 'exposed' in node.data)
     || edges.some(edge => !isCanvasWire(edge));
 }
@@ -72,6 +72,7 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
     const byId = new Map(blocks.map(node => [node.id, node]));
     return { nodes: [...groups, ...blocks.map(anchorCanvasImage)], edges: edges.filter(edge => {
       const source = byId.get(edge.source), target = byId.get(edge.target);
+      if (source && target && (isCanvasRouter(source) || isCanvasRouter(target))) return isCanvasWire(edge);
       if (source?.type === 'audio' || target?.type === 'audio') return source && target && (isAudioInputWire(edge, source, target) || isVideoInputWire(edge, source, target));
       return source && target && (source.type !== 'video' && target.type !== 'video' || isVideoInputWire(edge, source, target));
     }) };
@@ -80,9 +81,9 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
   const graph = migrateFileAnnotations(legacy.nodes, legacy.edges);
   const sources = new Map(graph.nodes.map(node => [node.id, node]));
   const copiedPrompts = new Set<string>();
-  const converted = new Map<string, CanvasImage | CanvasText | CanvasMediaNode>();
+  const converted = new Map<string, CanvasImage | CanvasText | CanvasMediaNode | CanvasRouter>();
   for (const node of graph.nodes) {
-    if (!isCanvasTextNode(node) && !isCanvasMediaNode(node)) continue;
+    if (!isCanvasTextNode(node) && !isCanvasMediaNode(node) && !isCanvasRouter(node)) continue;
     const flattened = node.parentId && !groupIds.has(node.parentId);
     converted.set(node.id, anchorCanvasImage(flattened
       ? { ...node, parentId: undefined, origin: undefined, position: positionOnCanvas(node, sources) }
@@ -132,7 +133,7 @@ export function migrateLegacyImageGraph(nodes: AppNode[], edges: Edge[], hasAsse
     const source = sources.get(edge.source);
     const target = sources.get(edge.target);
     if (source && target && converted.has(source.id) && converted.has(target.id)
-      && (isAudioInputWire(edge, source, target) || isVideoInputWire(edge, source, target) || isCanvasTextNode(target) && isCanvasImageNode(source) && isImageWire(edge)
+      && ((isCanvasRouter(source) || isCanvasRouter(target)) && isCanvasWire(edge) || isAudioInputWire(edge, source, target) || isVideoInputWire(edge, source, target) || isCanvasTextNode(target) && isCanvasImageNode(source) && isImageWire(edge)
         || isCanvasTextNode(source) && edge.sourceHandle === 'text'
           && (isCanvasTextNode(target) && edge.targetHandle === 'text' || isCanvasImageNode(target) && !isImportedCanvasImage(target) && edge.targetHandle === 'prompt'))) {
       if (!wires.some(item => item.target === edge.target && (item.source === edge.source || item.targetHandle === edge.targetHandle)) && !createsImageCycle(edge, wires)) wires.push(edge);

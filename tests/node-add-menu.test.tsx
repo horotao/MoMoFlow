@@ -25,12 +25,12 @@ async function run() {
     pane.dispatchEvent(new MouseEvent('mousedown', { ...options, buttons: 2 }));
     pane.dispatchEvent(new MouseEvent('mouseup', options));
   };
-  for (const [type, open] of [['image', () => dock.click()], ['text', openContextMenu], ['video', () => dock.click()], ['audio', openContextMenu]] as const) {
+  for (const [type, open] of [['image', () => dock.click()], ['text', openContextMenu], ['video', () => dock.click()], ['audio', openContextMenu], ['router', () => dock.click()]] as const) {
     open();
     const menu = await element('#canvas-node-menu');
     const rows = menu.querySelectorAll<HTMLElement>('[data-type]');
-    if (Array.from(rows, row => row.dataset.type).join(',') !== 'image,text,video,audio') {
-      throw new Error('Expected the Image, Text, Video and Audio menu entries');
+    if (Array.from(rows, row => row.dataset.type).join(',') !== 'image,text,video,audio,router') {
+      throw new Error('Expected the Image, Text, Video, Audio and Router menu entries');
     }
     const canvasActions = menu.querySelector('[role="group"][aria-label="画布操作"]');
     if (open === openContextMenu) {
@@ -43,8 +43,8 @@ async function run() {
     await element(`.react-flow__node-${type === 'image' ? 'sunburst' : type}`);
     await new Promise(requestAnimationFrame);
   }
-  if (document.querySelectorAll('.react-flow__node').length !== 4) throw new Error('Node creation failed');
+  if (document.querySelectorAll('.react-flow__node').length !== 5) throw new Error('Node creation failed');
   result.dataset.result = 'passed';
-  result.textContent = 'PASS · 四种节点可创建，空白画布右键另含导入与粘贴分组';
+  result.textContent = 'PASS · 五种节点可创建，空白画布右键另含导入与粘贴分组';
 }
 void run().catch(error => { result.dataset.result = 'failed'; result.textContent = String(error); });

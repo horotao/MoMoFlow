@@ -78,9 +78,12 @@ export const isCanvasAudio = (node?: AppNode): node is CanvasAudio => node?.type
 export type CanvasMediaNode = CanvasVideo | CanvasAudio;
 export const isCanvasMediaNode = (node: AppNode): node is CanvasMediaNode => node.type === 'video' || node.type === 'audio';
 
+export type CanvasRouter = Node<{ label: string; labelEdited?: boolean; locked?: boolean }, 'router'>;
+export const isCanvasRouter = (node?: AppNode): node is CanvasRouter => node?.type === 'router';
+
 export type CanvasGroup = Node<{ label: string; color?: string; locked?: boolean }, 'canvas-group'>;
 export const isCanvasGroup = (node: AppNode | undefined): node is CanvasGroup => node?.type === 'canvas-group';
 
-export type AppNode = ImageGeneratorNode | TextNode | FileNode | InteractiveEditNode | CanvasGroup | CanvasMediaNode | BuiltInNode;
+export type AppNode = ImageGeneratorNode | TextNode | FileNode | InteractiveEditNode | CanvasGroup | CanvasRouter | CanvasMediaNode | BuiltInNode;
 
 export const isNodeLocked = (node: AppNode | undefined): boolean => Boolean(node && 'locked' in node.data && node.data.locked);

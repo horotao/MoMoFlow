@@ -1,3 +1,4 @@
+import { routedEdges } from './router.ts';
 import type { Edge } from '@xyflow/react';
 import { isModelNode } from './executionGraph.ts';
 import { isCanvasTextNode, isVideoComposerNode, isNodeLocked, type AppNode } from './types.ts';
@@ -21,7 +22,7 @@ export function selectedGenerationNodes(nodes: AppNode[]) {
 export function runGenerationSelection(ids: string[], edges: Edge[], start: (id: string) => Promise<boolean>,
   runs = new Map<string, Promise<boolean>>()) {
   const prerequisites = new Map(ids.map(id => [id, new Set<string>()]));
-  for (const { source, target } of edges) {
+  for (const { source, target } of routedEdges(edges)) {
     if (prerequisites.has(source)) prerequisites.get(target)?.add(source);
   }
   const scheduled: string[] = [];

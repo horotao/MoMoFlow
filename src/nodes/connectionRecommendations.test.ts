@@ -26,10 +26,10 @@ test('empty Image composers wire together and recommend compatible Image or Text
   for (const [origin, direction, handle] of [[first.id, 'source', 'result'], [second.id, 'target', 'image-0']] as const) {
     const start = pending(origin, direction, handle);
     const choices = connectionChoices(start, nodes);
-    assert.deepEqual(choices.map(choice => choice.itemId), direction === 'source' ? ['image', 'text', 'video'] : ['image']);
+    assert.deepEqual(choices.map(choice => choice.itemId), direction === 'source' ? ['image', 'text', 'video', 'router'] : ['image', 'router']);
     assert.deepEqual(choiceConnection(start, choices[0], origin === first.id ? second.id : first.id), link);
   }
-  assert.deepEqual(connectionChoices(pending(second.id, 'target', 'prompt'), nodes).map(choice => choice.itemId), ['text']);
+  assert.deepEqual(connectionChoices(pending(second.id, 'target', 'prompt'), nodes).map(choice => choice.itemId), ['text', 'router']);
 });
 
 test('quick-created targets align their input with the drop using the source image ratio', () => {
@@ -58,8 +58,8 @@ test('Video enforces three typed inputs, slot limits and compatible forward and 
   for (const edge of [wire(prompt.id, 'text', 'video-0'), wire(still.id, 'result', 'image-9'), wire(movie.id, 'video', 'video-3'),
     { ...inputs[2], target: movie.id }, { ...inputs[0], target: movie.id }]) assert.equal(canConnect(edge, nodes, []), false);
   assert.equal(canConnect(inputs[2], nodes, inputs), false);
-  assert.deepEqual(connectionChoices(pending(movie.id, 'source', 'video'), nodes).map(choice => choice.handleId), ['video-0']);
-  assert.deepEqual(connectionChoices(pending(target.id, 'target', 'video-0'), nodes).map(choice => choice.handleId), ['video']);
+  assert.deepEqual(connectionChoices(pending(movie.id, 'source', 'video'), nodes).map(choice => choice.handleId), ['video-0', 'in']);
+  assert.deepEqual(connectionChoices(pending(target.id, 'target', 'video-0'), nodes).map(choice => choice.handleId), ['video', 'out']);
   for (const legacy of [[], [text]]) {
     const restored = migrateLegacyImageGraph([...nodes, ...legacy], inputs);
     assert.deepEqual(new Set(restored.edges.map(edge => edge.id)), new Set(inputs.map(edge => edge.id)));

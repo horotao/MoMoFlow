@@ -1,3 +1,4 @@
+import { routedEdges } from './router.ts';
 import { useCanvasMentions } from './CanvasMentionContext';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -29,7 +30,7 @@ interface TextBatchState {
 
 export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<CanvasText>) {
   const { setNodes, setEdges, updateNodeData, getNode, getNodes, getEdges } = useReactFlow<AppNode>();
-  const edges = useEdges();
+  const edges = routedEdges(useEdges());
   const mentions = useCanvasMentions(id);
   const internals = useUpdateNodeInternals();
   const overview = useStore(state => Math.round(state.transform[2] * 100) <= 14);

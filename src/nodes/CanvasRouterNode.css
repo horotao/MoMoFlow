@@ -1,0 +1,35 @@
+.canvas-router {
+  --input-port-retract: 24px;
+  --input-port-hover-fill: transparent;
+}
+.canvas-router > .image-node-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px;
+  border-radius: 16px;
+  background: rgb(0 0 0 / 30%);
+  cursor: inherit;
+}
+.canvas-router > .image-node-card::after { box-shadow: inset 0 0 0 1px #fafaf223; }
+.image-node.canvas-router.is-selected > .image-node-card::after { box-shadow: inset 0 0 0 1px #b5b3ad; }
+.canvas-router-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fafaf223;
+  color: #b5b3ad;
+}
+.canvas-router-icon :is(img, video) { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.canvas-router-merge { transform: rotate(90deg); }
+.canvas-router-copy { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; text-align: left; color: #eeeeec; font-size: 14px; line-height: 17.5px; }
+.canvas-router .image-node-name:is(.is-editing, .is-editable:hover, .is-editable:focus-within) {
+  background: transparent;
+  box-shadow: none;
+}
+.canvas-router-kind { color: #b5b3ad; font-size: 12px; line-height: 13.5px; }
+.canvas-router .image-node-inputs { top: calc(50% - 16px); }

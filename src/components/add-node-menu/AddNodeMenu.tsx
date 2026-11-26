@@ -1,4 +1,4 @@
-import { ClipboardPaste } from 'lucide-react';
+import { ClipboardPaste, Merge } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { AddNodePreview } from './AddNodePreview';
@@ -34,7 +34,8 @@ const icons = {
   plus: new URL('./assets/plus.svg', import.meta.url).href,
 };
 
-function Icon({ name }: { name: keyof typeof icons }) {
+function Icon({ name }: { name: keyof typeof icons | 'router' }) {
+  if (name === 'router') return <Merge size={14} style={{ rotate: '90deg' }} aria-hidden="true" />;
   return <span aria-hidden="true" className={`flora-add-node-icon flora-add-node-icon-${name}`} style={{ maskImage: `url("${icons[name]}")` }} />;
 }
 

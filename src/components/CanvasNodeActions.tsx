@@ -44,7 +44,7 @@ export function CanvasNodeActions({ node, nodes, edges, location, canvas, onClos
   const groupFiles = group ? canvasDownloadContents(nodes.filter(member => member.parentId === node.id)) : undefined;
   const disabled: Partial<Record<Action, boolean>> = {
     png: !image, download: !(asset || text || groupFiles?.assets.length || groupFiles?.extraFiles.length),
-    rename: locked, tag: locked || group, delete: locked || (group && nodes.some(member => member.parentId === node.id && isNodeLocked(member))),
+    rename: locked, tag: locked || group || node.type === 'router', delete: locked || (group && nodes.some(member => member.parentId === node.id && isNodeLocked(member))),
     clear: locked || busy || !hasNodeContents(node), replace: locked || busy || !isCanvasImageNode(node),
   };
   const [colorIndex, setColorIndex] = useState(0);

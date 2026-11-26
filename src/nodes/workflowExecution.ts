@@ -1,3 +1,4 @@
+import { routedEdges } from './router.ts';
 import { grokImageModel } from './grokImage.ts';
 import { annotationOutput, storedAnnotationResult } from './annotationGraph.ts';
 import { seedreamModel } from './seedream.ts';
@@ -66,7 +67,7 @@ export class WorkflowExecution {
   private io: ExecutionIO;
   constructor(graph: ExecutionGraph, store: ExecutionStore, io: ExecutionIO) {
     this.store = store; this.io = io;
-    this.graph = graph;
+    this.graph = { ...graph, edges: routedEdges(graph.edges) };
     this.unsubscribe = store.subscribe(() => {
       for (const root of this.roots) {
         if (!root.tasks.some(id => this.active(id))) root.controller.abort('运行已取消。');
@@ -78,7 +79,8 @@ export class WorkflowExecution {
   private state(id: string, patch: Partial<PreviewTask>) {
     this.store.update(tasks => tasks.map(task => task.id === id && isActiveTask(task) ? { ...task, ...patch } : task));
   }
-  observe(graph: ExecutionGraph) {
+  observe(snapshot: ExecutionGraph) {
+    const graph = { ...snapshot, edges: routedEdges(snapshot.edges) };
     this.graph = graph;
     for (const root of this.roots) {
       try { if (graphGuard({ ...graph, refreshImages: root.refreshImages }, root.id, true) !== root.guard) root.controller.abort('输入或输出选择已变化，请重新运行。'); }
@@ -126,7 +128,7 @@ export class WorkflowExecution {
     if (targets.some(id => running.has(id)) || [...this.roots].some(root => root.sourceId && requested.has(root.sourceId))) {
       throw new Error('选中节点已有运行中的任务，请等待完成后再运行。');
     }
-    const graph = additions ? { nodes: [...this.graph.nodes, ...additions.graph.nodes], edges: [...this.graph.edges, ...additions.graph.edges] } : this.graph;
+    const graph = additions ? { nodes: [...this.graph.nodes, ...additions.graph.nodes], edges: routedEdges([...this.graph.edges, ...additions.graph.edges]) } : this.graph;
     const refreshImages = new Set(graph.nodes.filter(node => isImageGeneratorNode(node)
       && (!selectedResult(node) || targets.includes(node.id) || running.has(node.id))).map(node => node.id));
     const plannedGraph = { ...graph, refreshImages, existingImagesOnly };

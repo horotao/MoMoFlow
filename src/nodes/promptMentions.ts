@@ -1,3 +1,4 @@
+import { routedEdges } from './router.ts';
 import type { Edge } from '@xyflow/react';
 import { isVideoFrameHandle, videoFrameHandles, videoImageHandles, defaultVideoComposer } from './videoComposer.ts';
 import { isVideoComposerNode } from './types.ts';
@@ -20,7 +21,7 @@ function mentionHandles(target?: AppNode): readonly string[] {
 const isMentionHandle = (handle?: string | null) => isImageInputHandle(handle) || isVideoFrameHandle(handle);
 
 export function mentionCandidates(target: string, nodes: AppNode[], edges: Edge[]): MentionCandidate[] {
-  const occupied = edges.filter(edge => edge.target === target && isMentionHandle(edge.targetHandle));
+  const occupied = routedEdges(edges).filter(edge => edge.target === target && isMentionHandle(edge.targetHandle));
   const handles = mentionHandles(nodes.find(node => node.id === target));
   const handle = handles.find(handle => !occupied.some(edge => edge.targetHandle === handle));
   // Nodes are appended when added to this canvas. File completion dates do
@@ -68,6 +69,19 @@ export function editPromptMentions(id: string, edit: MentionEdit, nodes: AppNode
   return { nodes: nextNodes, edges: nextEdges, added: addedEdges[0], addedEdges };
 }
 
+
+// A relay can lose or switch its source while the final wire stays on the canvas.
+export function pruneChangedInputMentions(nodes: AppNode[], before: Edge[], after: Edge[]) {
+  const current = new Map<string, Set<string>>();
+  for (const edge of routedEdges(after)) {
+    if (!isMentionHandle(edge.targetHandle)) continue;
+    const sources = current.get(edge.target) ?? new Set<string>();
+    sources.add(edge.source);
+    current.set(edge.target, sources);
+  }
+  const removed = routedEdges(before).filter(edge => isMentionHandle(edge.targetHandle) && !current.get(edge.target)?.has(edge.source));
+  return pruneDisconnectedMentions(nodes, removed);
+}
 
 /** Removing an input also removes its capsules, in the same undo snapshot. */
 export function pruneDisconnectedMentions(nodes: AppNode[], removed: readonly Edge[]): AppNode[] {

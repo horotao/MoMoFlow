@@ -2,6 +2,10 @@ import { useLayoutEffect, type ReactNode, type RefObject } from 'react';
 import { nodePreviewDescription, supportsNodePreview, type AddNodeType } from './useAddNodePreview';
 
 const nodeScreenshots = {
+  router: {
+    src: new URL('./assets/router-preview.png', import.meta.url).href,
+    alt: '主画布上的空路由和已连接的路由节点',
+  },
   video: {
     src: new URL('./assets/video-preview.png', import.meta.url).href,
     alt: '主画布上的 Video 生成结果、编辑框及播放时间轴',
@@ -89,9 +93,9 @@ export function AddNodePreview({ previewRef, anchor, menuLeft, menuTop, menuWidt
         <img src={nodeScreenshots[type].src} alt={nodeScreenshots[type].alt} width="768" height="480" />
       </div>
     </figure>
-    <footer className="add-node-preview-key">
+    {shortcut && <footer className="add-node-preview-key">
       <span className="add-node-preview-help" aria-hidden="true">?</span>
       <span>按</span><kbd className="flora-add-node-shortcut">{shortcut}</kbd><span>添加{title}节点</span>
-    </footer>
+    </footer>}
   </aside>;
 }

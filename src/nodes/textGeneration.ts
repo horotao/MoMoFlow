@@ -1,3 +1,4 @@
+import { routedEdges } from './router.ts';
 import type { TextBilling, TextUsage } from './textPricing.ts';
 import { estimateTextCost } from './textPricing.ts';
 import type { Edge } from '@xyflow/react';
@@ -102,7 +103,8 @@ export function textGenerationInput(id: string, nodes: AppNode[], edges: Edge[])
   const model = selection.modelIds[0];
   if (!isTextModel(model)) throw new Error('请选择受支持的文本模型。');
   const quantity = textQuantity(composer.quantity);
-  const imageInputs = edges.filter(edge => edge.target === id && isImageInputHandle(edge.targetHandle))
+  const inputs = routedEdges(edges);
+  const imageInputs = inputs.filter(edge => edge.target === id && isImageInputHandle(edge.targetHandle))
     .sort((a, b) => imageInputHandles.indexOf(a.targetHandle!) - imageInputHandles.indexOf(b.targetHandle!)).map(edge => {
       const source = nodes.find(item => item.id === edge.source);
       const asset = source && isCanvasImageNode(source) ? selectedImageResult(source) : undefined;
@@ -110,7 +112,7 @@ export function textGenerationInput(id: string, nodes: AppNode[], edges: Edge[])
       return { nodeId: edge.source, url: asset.url };
     });
   const images = imageInputs.map(input => input.url);
-  const textInputs = edges.filter(edge => edge.target === id && edge.targetHandle === 'text').map(edge => {
+  const textInputs = inputs.filter(edge => edge.target === id && edge.targetHandle === 'text').map(edge => {
     const source = nodes.find(item => item.id === edge.source);
     if (!source || !isCanvasTextNode(source)) throw new Error('找不到上游 Text，请检查连线。');
     const text = textOutputValue(source.data);
@@ -134,7 +136,7 @@ export function estimateCanvasTextCost(id: string, nodes: AppNode[], edges: Edge
   const selection = textModelSelection(composer.selection);
   const model = selection.modelIds[0];
   if (selection.autoSelect || selection.multiple || selection.modelIds.length !== 1 || !isTextModel(model)) return;
-  const upstream = edges.filter(edge => edge.target === id && edge.targetHandle === 'text').flatMap(edge => {
+  const upstream = routedEdges(edges).filter(edge => edge.target === id && edge.targetHandle === 'text').flatMap(edge => {
     const source = nodes.find(item => item.id === edge.source);
     if (!source || !isCanvasTextNode(source)) return [];
     return [textOutputValue(source.data)];

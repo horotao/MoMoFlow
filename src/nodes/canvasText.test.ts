@@ -38,9 +38,9 @@ test('modern Text results and mixed connections survive migration, including alo
 
 test('connection menu offers Image Prompt and Text for text output and typed reverse creation', () => {
   const pending = { nodeId: 'a', handleId: 'text', direction: 'source' as const, screen: { x: 0, y: 0 }, position: { x: 0, y: 0 } };
-  assert.deepEqual(connectionChoices(pending, nodes).map(choice => choice.itemId), ['image', 'text', 'video', 'audio']);
-  assert.deepEqual(connectionChoices({ ...pending, nodeId: 'image', handleId: 'result' }, nodes).map(choice => choice.itemId), ['image', 'text', 'video']);
-  assert.deepEqual(connectionChoices({ ...pending, direction: 'target' }, nodes).map(choice => choice.itemId), ['text']);
+  assert.deepEqual(connectionChoices(pending, nodes).map(choice => choice.itemId), ['image', 'text', 'video', 'audio', 'router']);
+  assert.deepEqual(connectionChoices({ ...pending, nodeId: 'image', handleId: 'result' }, nodes).map(choice => choice.itemId), ['image', 'text', 'video', 'router']);
+  assert.deepEqual(connectionChoices({ ...pending, direction: 'target' }, nodes).map(choice => choice.itemId), ['text', 'router']);
 });
 
 test('Audio accepts only a Text prompt, including when restoring a saved placeholder in a mixed graph', () => {

@@ -8,7 +8,7 @@ import { changeColorTags, changeSelectedColorTags, nodeColorTags, type ColorTag 
 import { toggleSelectionLock } from './nodes/nodeLocks';
 import { useCanvasNodeContents } from './nodes/useCanvasNodeContents';
 import { CanvasMentionContext } from './nodes/CanvasMentionContext';
-import { editPromptMentions, pruneDisconnectedMentions, type MentionEdit, type MentionSources } from './nodes/promptMentions';
+import { editPromptMentions, pruneChangedInputMentions, type MentionEdit, type MentionSources } from './nodes/promptMentions';
 import { animateMentionWire } from './edges/mentionWireAnimation';
 import { preventCanvasImageDrag, withCanvasImageDrag } from './components/canvasImageDrag';
 import { ImageInspector } from './components/image-prompt-node/ImageInspector';
@@ -32,6 +32,7 @@ import { addNodeEntries } from './components/add-node-menu/useAddNodePreview';
 import { AddNodeMenu, type AddNodeRequest } from './components/add-node-menu/AddNodeMenu';
 import { canConnect, withoutReplacedInput } from './nodes/connectionRules';
 import { connectionChoices, choiceConnection, type PendingConnection } from './nodes/connectionRecommendations';
+import { defaultRouterLabel, routerLabel } from './nodes/router';
 import { createLibraryNode } from './components/libraryCatalog';
 import { createImportedVideo, isMp4File, readCanvasVideo } from './nodes/importCanvasVideo';
 import { clipboardMediaFiles, createImportedCanvasImage, readCanvasImage } from './nodes/importCanvasImage';
@@ -63,7 +64,7 @@ import { DescriberPanel } from './components/DescriberPanel';
 import { ModelTasksProvider } from './components/ModelTasksProvider';
 import { CanvasHistoryContext, useCanvasHistory } from './components/useCanvasHistory';
 import { initialNodes, nodeTypes } from './nodes';
-import { isCanvasGroup, isNodeLocked, type AppNode } from './nodes/types';
+import { isCanvasGroup, isCanvasRouter, isNodeLocked, type AppNode } from './nodes/types';
 import { initialEdges, edgeTypes } from './edges';
 import { ConnectionLine } from './edges/ConnectionLine';
 import { useConnectionGesture } from './edges/useConnectionGesture';
@@ -277,7 +278,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     if (connectionCancelled.current || !withinConnectionRadius(connection) || !canConnect(connection, getNodes(), getEdges())) return;
     const previous = getEdges();
     const next = addEdge(connection, withoutReplacedInput(connection, previous));
-    setNodes(current => connectImageReferenceRatio(current, previous, next, connection.target));
+    setNodes(current => connectImageReferenceRatio(pruneChangedInputMentions(current, previous, next), previous, next, connection.target));
     setEdges(next);
   }, [connectionCancelled, withinConnectionRadius, getNodes, getEdges, setNodes, setEdges]);
 
@@ -301,17 +302,17 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         screen: { x: pointer.clientX, y: pointer.clientY },
         position: screenToFlowPosition({ x: pointer.clientX, y: pointer.clientY }),
       };
-      if (connectionChoices(pending, getNodes()).length) openNodeMenu(pending);
+      if (connectionChoices(pending, getNodes(), getEdges()).length) openNodeMenu(pending);
     },
-    [screenToFlowPosition, openNodeMenu, connectionCancelled, endConnectionGesture, getNodes],
+    [screenToFlowPosition, openNodeMenu, connectionCancelled, endConnectionGesture, getNodes, getEdges],
   );
 
   function addNodes({ type, quantity }: AddNodeRequest) {
     if (!pendingNodeMenu) return;
     const pending = 'nodeId' in pendingNodeMenu ? pendingNodeMenu : null;
     const currentNodes = getNodes(), currentEdges = getEdges();
-    const batchChoice = selectionMenu && selectionConnectionChoices(currentNodes, selectionMenu.sourceIds).find(item => item.itemId === type);
-    const choice = pending && connectionChoices(pending, currentNodes).find(item => item.itemId === type);
+    const batchChoice = selectionMenu && selectionConnectionChoices(currentNodes, selectionMenu.sourceIds, currentEdges).find(item => item.itemId === type);
+    const choice = pending && connectionChoices(pending, currentNodes, currentEdges).find(item => item.itemId === type);
     if ((pending && !choice) || (selectionMenu && !batchChoice)) return;
     const created: AppNode[] = [], connections: Edge[] = [];
     const dropPoints = new Map<string, XYPosition>();
@@ -322,6 +323,11 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       };
       const node = createLibraryNode(type, position);
       if (!node) return;
+      if (node.type === 'router') {
+        const labels = new Set([...currentNodes, ...created].filter(isCanvasRouter).map(item => routerLabel(item.data)));
+        let number = 1;
+        while (labels.has(node.data.label)) node.data.label = defaultRouterLabel + ' ' + number++;
+      }
       if (selectionMenu) dropPoints.set(node.id, position);
       const links = batchChoice ? batchChoice.links.map(link => ({ ...link, target: node.id }))
         : pending && choice ? [choiceConnection(pending, choice, node.id)] : [];
@@ -334,7 +340,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     const retainedEdges = pending?.direction === 'target' ? withoutReplacedInput(connections[0], currentEdges) : currentEdges;
     const nextEdges = [...retainedEdges, ...connections];
     setNodes(current => {
-      let next = [...current.map(node => ({ ...node, selected: false })), ...created];
+      let next = [...pruneChangedInputMentions(current, currentEdges, nextEdges).map(node => ({ ...node, selected: false })), ...created];
       for (const target of new Set(connections.map(link => link.target))) next = connectImageReferenceRatio(next, currentEdges, nextEdges, target);
       if (selectionMenu) {
         const sources = current.filter(node => selectionMenu.sourceIds.includes(node.id));
@@ -561,8 +567,8 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       onEdgesChange={changes => {
         const ids = new Set(changes.filter(change => change.type === 'remove').map(change => change.id));
         if (ids.size) {
-          const removed = getEdges().filter(edge => ids.has(edge.id));
-          setNodes(current => pruneDisconnectedMentions(current, removed));
+          const before = getEdges(), after = before.filter(edge => !ids.has(edge.id));
+          setNodes(current => pruneChangedInputMentions(current, before, after));
         }
         onEdgesChange(changes);
       }}
@@ -678,8 +684,8 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
           if (files.length && position && canvas) void addMediaFiles(files, position, canvas);
         }} />
       {pendingNodeMenu && <AddNodeMenu key={menuGeneration} position={pendingNodeMenu.screen}
-        allowedTypes={selectionMenu ? selectionConnectionChoices(nodes, selectionMenu.sourceIds).map(choice => choice.itemId)
-          : 'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes).map(choice => choice.itemId) : undefined}
+        allowedTypes={selectionMenu ? selectionConnectionChoices(nodes, selectionMenu.sourceIds, edges).map(choice => choice.itemId)
+          : 'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes, edges).map(choice => choice.itemId) : undefined}
         canvasActions={paneMenu ? {
           import: () => { importPosition.current = paneMenu.position; importPicker.current?.click(); },
           paste: () => { void pasteAtMenu(paneMenu.position).catch(error => setMediaImportError(

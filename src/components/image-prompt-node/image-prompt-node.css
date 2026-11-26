@@ -303,7 +303,7 @@
   justify-items: end;
   opacity: 0;
   visibility: hidden;
-  transform: translateX(28px);
+  transform: translateX(var(--input-port-retract, 28px));
   transition: opacity 150ms cubic-bezier(.42, 0, .58, 1), transform 150ms cubic-bezier(.42, 0, .58, 1), visibility 150ms;
 }
 /* Keep the 8px gap to the card inside the node's hover surface. */
@@ -367,7 +367,7 @@
 .image-node-output:focus-visible { outline: none !important; }
 .image-node-output:focus-visible .image-node-output-visual { outline: 1px solid #b5b3ad; outline-offset: 3px; border-radius: 50%; }
 @media (hover: hover) and (pointer: fine) {
-  .image-node-input:hover { background: var(--node-fill); }
+  .image-node-input:hover { background: var(--input-port-hover-fill, var(--node-fill)); }
   .image-node-output:hover { color: #eeeeec; }
 }
 .image-node-input:focus-visible { background: var(--node-fill); }
