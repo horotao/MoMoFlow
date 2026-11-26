@@ -3,8 +3,9 @@ import './components/canvas-right-panels.css';
 import { CanvasColorTagContext } from './components/CanvasColorTagContext';
 import { changeColorTags, changeSelectedColorTags, nodeColorTags, type ColorTag } from './nodes/colorTags';
 import { toggleSelectionLock } from './nodes/nodeLocks';
+import { useCanvasNodeContents } from './nodes/useCanvasNodeContents';
 import { CanvasMentionContext } from './nodes/CanvasMentionContext';
-import { editPromptMentions, pruneDisconnectedMentions } from './nodes/promptMentions';
+import { editPromptMentions, pruneDisconnectedMentions, type MentionEdit, type MentionSources } from './nodes/promptMentions';
 import { animateMentionWire } from './edges/mentionWireAnimation';
 import { preventCanvasImageDrag, withCanvasImageDrag } from './components/canvasImageDrag';
 import { ImageInspector } from './components/image-prompt-node/ImageInspector';
@@ -100,12 +101,13 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   const [nodes, setNodes, onNodesChange] = useNodesState(initialGraph.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialGraph.edges);
   const [activeColorTags, setActiveColorTags] = useState<ColorTag[]>([]);
+  const nodeContents = useCanvasNodeContents();
   const colorTagContext = useMemo(() => ({
-    nodes: new Map(nodes.map(node => [node.id, { tags: nodeColorTags(node), locked: isNodeLocked(node) }])),
+    nodes: new Map(nodeContents.map(node => [node.id, { tags: nodeColorTags(node), locked: isNodeLocked(node) }])),
     active: activeColorTags,
     zoom: viewport.zoom,
     change: (id: string, color?: ColorTag) => setNodes(nodes => changeColorTags(nodes, [id], color)),
-  }), [nodes, activeColorTags, viewport.zoom, setNodes]);
+  }), [nodeContents, activeColorTags, viewport.zoom, setNodes]);
   const changeActiveColorTags = useCallback((colors: ColorTag[]) => {
     if (colors.some(color => !activeColorTags.includes(color))) {
       setNodes(current => current.map(node => node.selected ? { ...node, selected: false } : node));
@@ -399,32 +401,41 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   const selecting = useStore(state => state.userSelectionActive);
   const multiple = nodes.filter(node => node.selected).length > 1;
   const hideSelectedPorts = selecting || multiple;
+  const [decoratedNodes] = useState(() => new WeakMap<AppNode, AppNode>());
   const canvasNodes = useMemo(() => {
     const lockedGroups = new Set(nodes.filter(node => node.parentId && isNodeLocked(node)).map(node => node.parentId));
     const selectedGroups = new Set(nodes.filter(node => isCanvasGroup(node) && node.selected).map(node => node.id));
     return nodes.map(node => {
       const locked = isNodeLocked(node) || lockedGroups.has(node.id);
       const editable = !locked && tool === 'select';
-      if (isCanvasGroup(node)) return { ...node, draggable: editable, deletable: !locked, connectable: false,
-        className: 'canvas-group-node', ariaLabel: node.data.label };
+      const group = isCanvasGroup(node);
       const memberClass = node.parentId && selectedGroups.has(node.parentId) && !node.selected ? ' canvas-group-member-in-selected-frame' : '';
       const portsClass = hideSelectedPorts && node.selected ? ' canvas-node-ports-hidden' : '';
-      return withCanvasImageDrag({ ...node, draggable: editable, deletable: !locked,
-        connectable: editable, className: `canvas-image-node${memberClass}${portsClass}` });
+      const className = group ? 'canvas-group-node' : `canvas-image-node${memberClass}${portsClass}`;
+      // React Flow uses input object identity to skip updates to stationary nodes.
+      const previous = decoratedNodes.get(node);
+      if (previous?.className === className && previous.draggable === editable && previous.deletable === !locked) return previous;
+      const props = { draggable: editable, deletable: !locked, className };
+      const decorated = group ? { ...node, ...props, connectable: false, ariaLabel: node.data.label }
+        : withCanvasImageDrag({ ...node, ...props, connectable: editable });
+      decoratedNodes.set(node, decorated);
+      return decorated;
     });
-  }, [nodes, tool, hideSelectedPorts]);
+  }, [nodes, tool, hideSelectedPorts, decoratedNodes]);
   const arrangeSelection = () => {
     setNodes(current => arrangeSelectedNodes(current, getEdges(), gridSnap ? gridOrigin.current : undefined));
   };
 
+  const commitMention = useCallback((id: string, edit: MentionEdit, sourceId?: MentionSources) => {
+    const result = editPromptMentions(id, edit, getNodes(), getEdges(), sourceId, crypto.randomUUID());
+    if (!result) return false;
+    result.addedEdges.forEach(edge => animateMentionWire(edge.id));
+    setNodes(result.nodes); setEdges(result.edges);
+    return true;
+  }, [getNodes, getEdges, setNodes, setEdges]);
+
   return (
-    <CanvasColorTagContext.Provider value={colorTagContext}><CanvasMentionContext.Provider value={(id, edit, sourceId) => {
-      const result = editPromptMentions(id, edit, getNodes(), getEdges(), sourceId, crypto.randomUUID());
-      if (!result) return false;
-      result.addedEdges.forEach(edge => animateMentionWire(edge.id));
-      setNodes(result.nodes); setEdges(result.edges);
-      return true;
-    }}><CanvasHistoryContext.Provider value={history}><ImageInspectorElement.Provider value={imageInspector}><ReactFlow
+    <CanvasColorTagContext.Provider value={colorTagContext}><CanvasMentionContext.Provider value={commitMention}><CanvasHistoryContext.Provider value={history}><ImageInspectorElement.Provider value={imageInspector}><ReactFlow
       ref={canvasRef}
       tabIndex={0}
       onDragStartCapture={preventCanvasImageDrag}

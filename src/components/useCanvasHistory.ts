@@ -3,7 +3,7 @@ import { isFileNode } from '../nodes/types';
 import { isSeedreamNode } from '../nodes/types';
 import { isSeedreamExactSize } from '../nodes/seedream';
 import { createContext } from 'react';
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Edge } from '@xyflow/react';
 import { initialTextDocument } from '../nodes/textDocument';
 import { isTextNode, textInputHandles } from '../nodes/textVariables';
@@ -124,5 +124,6 @@ export function useCanvasHistory(nodes: AppNode[], edges: Edge[], restore: (valu
   }, [restore, sync]);
 
   const endEditGroup = useCallback(() => { history.current.time = 0; }, []);
-  return { ...availability, undo: () => travel('past'), redo: () => travel('future'), endEditGroup };
+  return useMemo(() => ({ ...availability, undo: () => travel('past'), redo: () => travel('future'), endEditGroup }),
+    [availability, travel, endEditGroup]);
 }
