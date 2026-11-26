@@ -83,7 +83,6 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
 }) {
   const { composer, inpaint: inpaintInput } = data;
   const mentions = useCanvasMentions(id);
-  const zoom = useStore(state => state.transform[2]);
   const { setEdges, updateNodeData } = useReactFlow<AppNode>();
   const internals = useUpdateNodeInternals();
   const results = data.results ?? [];
@@ -206,7 +205,6 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
       onRemoveReference={inpaintInput ? undefined : edgeId => {
         if (!data.locked) setEdges(current => current.filter(edge => edge.target !== id || edge.id !== edgeId));
       }}
-      referenceScale={zoom}
       onReorderReferences={inpaintInput ? undefined : order => {
         if (!data.locked) setEdges(current => reorderImageReferences(current, id, order));
       }}

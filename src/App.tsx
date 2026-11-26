@@ -1,3 +1,4 @@
+import { CanvasPortPointerContext, useCanvasPortPointer } from './components/image-prompt-node/canvasPortPointer';
 import { CanvasColorTags } from './components/CanvasColorTags';
 import './components/canvas-right-panels.css';
 import { CanvasColorTagContext } from './components/CanvasColorTagContext';
@@ -36,7 +37,7 @@ import { assetResources } from './nodes/assetResources';
 import { canvasImageSize } from './nodes/canvasImageGeometry';
 import { composerAspectRatio } from './nodes/imageComposerSettings';
 import { connectImageReferenceRatio } from './nodes/imageReferenceRatio';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -153,8 +154,10 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   const history = useCanvasHistory(nodes, edges, restore);
   useLayoutEffect(() => { storage.releaseRestoredAssets(); }, [storage]);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const zoomScope = useId();
   const canvasPointer = useRef<XYPosition | null>(null);
   const canvasStore = useStoreApi();
+  const registerPortPointer = useCanvasPortPointer();
   useEffect(() => {
     // The pointer scopes these shortcuts even when a canvas control still has focus.
     const addNodeShortcut = (event: KeyboardEvent) => {
@@ -237,18 +240,29 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    // Limit zoom-dependent styles to controls that use them. Inheriting a changing
+    // variable from the canvas invalidates every image, editor and hidden toolbar.
+    const style = document.createElement('style');
+    style.textContent = `[data-zoom-scope="${CSS.escape(zoomScope)}"] :is(
+      .image-node-heading, .image-node-toolbar-bridge, .image-node-port-ring, .image-node-port-dot,
+      .workflow-wire-hit, .canvas-group, .canvas-group-resize-frame, .image-crop-editor,
+      .image-inpaint-editor, .image-node-reference
+    ) {}`;
+    canvas.append(style);
+    const rule = style.sheet!.cssRules[0] as CSSStyleRule;
     const updateZoom = (zoom: number) => {
-      canvas.style.setProperty('--canvas-zoom', String(zoom));
+      rule.style.setProperty('--canvas-zoom', String(zoom));
       const percent = Math.round(zoom * 100);
       const heading = percent <= 7 ? 'hidden' : percent <= 14 ? 'icon' : 'labels';
       if (canvas.dataset.nodeHeading !== heading) canvas.dataset.nodeHeading = heading;
     };
     updateZoom(canvasStore.getState().transform[2]);
-    return canvasStore.subscribe((current, previous) => {
+    const unsubscribe = canvasStore.subscribe((current, previous) => {
       const zoom = current.transform[2];
       if (zoom !== previous.transform[2]) updateZoom(zoom);
     });
-  }, [canvasStore]);
+    return () => { unsubscribe(); style.remove(); };
+  }, [canvasStore, zoomScope]);
   const pendingZoom = useRef<ZoomTarget | null>(null);
   const onConnect: OnConnect = useCallback(connection => {
     if (connectionCancelled.current || !withinConnectionRadius(connection) || !canConnect(connection, getNodes(), getEdges())) return;
@@ -435,8 +449,9 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   }, [getNodes, getEdges, setNodes, setEdges]);
 
   return (
-    <CanvasColorTagContext.Provider value={colorTagContext}><CanvasMentionContext.Provider value={commitMention}><CanvasHistoryContext.Provider value={history}><ImageInspectorElement.Provider value={imageInspector}><ReactFlow
+    <CanvasPortPointerContext.Provider value={registerPortPointer}><CanvasColorTagContext.Provider value={colorTagContext}><CanvasMentionContext.Provider value={commitMention}><CanvasHistoryContext.Provider value={history}><ImageInspectorElement.Provider value={imageInspector}><ReactFlow
       ref={canvasRef}
+      data-zoom-scope={zoomScope}
       tabIndex={0}
       onDragStartCapture={preventCanvasImageDrag}
       onPointerMoveCapture={event => {
@@ -608,7 +623,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       <TextInspector />
       <CanvasNavigation pendingZoom={pendingZoom} />
       <ApiSettingsDialog open={apiSettingsOpen} onClose={() => setApiSettingsOpen(false)} onTestConnection={testApiConnection} />
-    </ReactFlow></ImageInspectorElement.Provider></CanvasHistoryContext.Provider></CanvasMentionContext.Provider></CanvasColorTagContext.Provider>
+    </ReactFlow></ImageInspectorElement.Provider></CanvasHistoryContext.Provider></CanvasMentionContext.Provider></CanvasColorTagContext.Provider></CanvasPortPointerContext.Provider>
   );
 }
 

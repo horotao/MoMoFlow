@@ -36,7 +36,6 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
   const hideToolbar = useStore(state => state.userSelectionActive || state.nodes.filter(node => node.selected).length > 1
     || (!selected && state.transform[2] <= .14));
   const canvas = useStore(state => state.domNode);
-  const zoom = useStore(state => state.transform[2]);
   const input = useRef<HTMLInputElement>(null);
   const player = useRef<HTMLDivElement>(null);
   const pendingUrls = useRef<string[]>([]);
@@ -248,7 +247,7 @@ export function CanvasVideoNode({ id, data, selected, isConnectable }: NodeProps
         <span className="image-node-port-label"><ImagePromptIcon name="audio" />Audio <span className="image-node-port-count">{audioCount}/{videoAudioHandles.length}</span></span>
         <InputPortRing />{inputSlots(videoAudioHandles, occupied, connectable)}</button>}
       imageInputCount={frameMode ? mediaInputs.filter(ref => ref.videoImageRole === 'Ref').length : pictureCount} imageInputLimit={videoImageHandles.length}
-      references={references} referenceScale={zoom}
+      references={references}
       onRemoveReference={edgeId => { if (!locked) setEdges(edges => edges.filter(edge => edge.id !== edgeId)); }}
       outputConnected={edges.some(edge => edge.source === id)} handles={{ image: <>{!frameMode && videoFrameHandles.filter(handle => occupied.has(handle)).map(handle =>
         <Handle key={handle} type="target" position={Position.Left} id={handle} isConnectable={false} style={{ pointerEvents: 'none' }} />)}

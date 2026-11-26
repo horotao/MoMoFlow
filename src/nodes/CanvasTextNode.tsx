@@ -34,7 +34,6 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
   const internals = useUpdateNodeInternals();
   const overview = useStore(state => Math.round(state.transform[2] * 100) <= 14);
   const toolbarHidden = useStore(state => state.userSelectionActive || state.nodes.filter(node => node.selected).length > 1);
-  const zoom = useStore(state => state.transform[2]);
   const composer = { ...data.textComposer, selection: textModelSelection(data.textComposer.selection) };
   const [batch, setBatch] = useState<TextBatchState | null>(null);
   const [viewingId, setViewing] = useState<string>();
@@ -230,7 +229,7 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
             : preview}
       </div> : undefined}
       imageInputCount={references.length} outputConnected={edges.some(edge => edge.source === id)}
-      references={inputs} referenceScale={zoom}
+      references={inputs}
       onRemoveReference={edgeId => {
         if (!data.locked) setEdges(current => current.filter(edge => edge.target !== id || edge.id !== edgeId));
       }}

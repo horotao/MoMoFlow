@@ -21,7 +21,6 @@ import './CanvasAudioNode.css';
 export function CanvasAudioNode({ id, data, selected, isConnectable }: NodeProps<CanvasAudio>) {
   const { getNode, getEdges, updateNodeData, setNodes, setEdges } = useReactFlow<AppNode>();
   const canvas = useStore(state => state.domNode);
-  const zoom = useStore(state => state.transform[2]);
   const hideTools = useStore(state => state.userSelectionActive || state.nodes.filter(n => n.selected).length > 1 || (!selected && state.transform[2] <= .14));
   const [controlsHost, setControlsHost] = useState<HTMLDivElement | null>(null);
   const [startedAt, setStartedAt] = useState<number | null>(null);
@@ -134,7 +133,7 @@ export function CanvasAudioNode({ id, data, selected, isConnectable }: NodeProps
         <span className="image-node-port-label"><ImagePromptIcon name="text" />Prompt</span><InputPortRing />
         <Handle type="target" id="prompt" position={Position.Left} isConnectable={connectable} /></button>}
       outputConnected={edges.some(edge => edge.source === id)} handles={{ image: null, output: <Handle type="source" id="audio" position={Position.Right} isConnectable={connectable} /> }}
-      references={edge ? [{ id: edge.id, kind: 'text', name: source?.data.label || 'Text' }] : []} referenceScale={zoom}
+      references={edge ? [{ id: edge.id, kind: 'text', name: source?.data.label || 'Text' }] : []}
       onRemoveReference={edgeId => { if (!locked) setEdges(edges => edges.filter(e => e.id !== edgeId)); }}
       playbackSlot={setControlsHost} playbackBelowActions result={result && <AudioWaveform key={result.id} result={result} controlsHost={controlsHost} />}
       variants={history.map(item => ({ id: item.id, thumbnail: <ImagePromptIcon name="audio" /> }))} activeVariant={active}

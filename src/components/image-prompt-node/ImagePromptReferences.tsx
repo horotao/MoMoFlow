@@ -1,7 +1,6 @@
 import { useState, type Dispatch, type SetStateAction, type ReactEventHandler } from 'react';
 import { DndContext, KeyboardSensor, MeasuringStrategy, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, horizontalListSortingStrategy, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import { useReducedMotion } from 'motion/react';
 import { ImagePromptIcon } from './ImagePromptIcon';
 import './image-prompt-references.css';
@@ -15,7 +14,7 @@ export type ImagePromptReference = {
   onLoad?: ReactEventHandler<HTMLImageElement>;
 };
 
-export function ImagePromptReferences({ references, onRemove, onReorder, scale = 1, restoreFocus }: {
+export function ImagePromptReferences({ references, onRemove, onReorder, scale, restoreFocus }: {
   references: readonly ImagePromptReference[];
   onRemove?: (id: string) => void;
   onReorder?: (ids: string[]) => void;
@@ -75,7 +74,7 @@ function SortableReference({ reference, expanded, setExpanded, keyboard, setKeyb
   keyboard: boolean;
   setKeyboard: Dispatch<SetStateAction<boolean>>;
   disabled: boolean;
-  scale: number;
+  scale?: number;
   reduceMotion: boolean;
   onRemove?: (id: string) => void;
   restoreFocus: () => void;
@@ -89,7 +88,8 @@ function SortableReference({ reference, expanded, setExpanded, keyboard, setKeyb
   const roleLabel = role === 'Ref' ? 'Reference' : role && `${role} frame`;
   const label = roleLabel ?? (text ? '参考文本' : reference.kind === 'audio' ? '参考音频' : reference.kind === 'video' ? '参考视频' : '参考图');
   // dnd kit measures screen pixels; CSS transforms inside a zoomed canvas use canvas units.
-  const translate = transform ? CSS.Translate.toString({ ...transform, x: transform.x / scale, y: transform.y / scale }) : undefined;
+  const zoom = scale ?? 'var(--canvas-zoom, 1)';
+  const translate = transform ? `translate3d(calc(${transform.x}px / ${zoom}), calc(${transform.y}px / ${zoom}), 0)` : undefined;
   return <li ref={setNodeRef} {...listeners} className="image-node-reference" data-kind={reference.kind ?? 'image'} data-expanded={open}
     data-sortable={!disabled} data-dragging={isDragging} style={{ transform: translate, transition }}
     onPointerEnter={event => {

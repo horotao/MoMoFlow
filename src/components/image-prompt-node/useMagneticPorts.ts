@@ -1,10 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { CanvasPortPointerContext, inputAnchorX, magneticPortRadius, outputAnchorOffset, type PortPointer } from './canvasPortPointer';
+import { useContext, useEffect, useRef } from 'react';
 import { inputPortMinimumSpacing, inputPortSpacing, separateInputPorts } from '../magneticPortSpacing';
 
 // FLORA's rendered handle geometry: 160-unit attraction radius, 35% pull,
 // capped at 20 units, retargeted from the current position over 500ms (easeOutCubic).
 // Magnetic movement and the separate 150ms reveal never share a transform.
 export function useMagneticPorts(hasVideoInput = false, hasFrameInputs = false, hasAudioInput = false) {
+  const register = useContext(CanvasPortPointerContext);
   const node = useRef<HTMLElement>(null);
   const input = useRef<HTMLButtonElement>(null);
   const output = useRef<HTMLButtonElement>(null);
@@ -27,7 +29,8 @@ export function useMagneticPorts(hasVideoInput = false, hasFrameInputs = false, 
       x: 0, y: 0, fromX: 0, fromY: 0, toX: 0, toY: 0, started: 0,
     }));
     let frame = 0;
-    let pointer: { x: number; y: number } | null = null;
+    let pointer: PortPointer | null = null;
+    let disposed = false;
 
     function advance(track: typeof tracks[number], now: number) {
       const progress = reduced.matches ? 1 : Math.min(1, Math.max(0, (now - track.started) / 500));
@@ -58,12 +61,10 @@ export function useMagneticPorts(hasVideoInput = false, hasFrameInputs = false, 
     }
 
     function retarget() {
-      if (!host?.offsetWidth) return;
-      const rect = host.getBoundingClientRect();
-      const width = host.offsetWidth, height = host.offsetHeight;
-      const scale = rect.width / width;
-      const anchors = elements.map((_, index) => index === 1 ? { x: width + 28, y: height / 2 }
-        : { x: -24, y: height / 2 + (inputOrder.indexOf(index) - (inputOrder.length - 1) / 2) * inputPortSpacing });
+      if (!host || disposed) return;
+      const width = pointer?.width ?? 0, height = pointer?.height ?? 0;
+      const anchors = elements.map((_, index) => index === 1 ? { x: width + outputAnchorOffset, y: height / 2 }
+        : { x: inputAnchorX, y: height / 2 + (inputOrder.indexOf(index) - (inputOrder.length - 1) / 2) * inputPortSpacing });
       const now = performance.now();
       tracks.forEach((track, index) => {
         advance(track, now);
@@ -72,9 +73,9 @@ export function useMagneticPorts(hasVideoInput = false, hasFrameInputs = false, 
         let near = false;
         const element = elements[index].current;
         if (pointer && finePointer.matches && element && !element.matches(':disabled, [data-locked=true]') && element.dataset.connectionEligible !== 'false') {
-          const dx = (pointer.x - rect.left) / scale - anchors[index].x;
-          const dy = (pointer.y - rect.top) / scale - anchors[index].y;
-          if (Math.hypot(dx, dy) < 160) {
+          const dx = pointer.x - anchors[index].x;
+          const dy = pointer.y - anchors[index].y;
+          if (Math.hypot(dx, dy) < magneticPortRadius) {
             near = true;
             x = dx * .35;
             y = dy * .35;
@@ -96,33 +97,19 @@ export function useMagneticPorts(hasVideoInput = false, hasFrameInputs = false, 
       if (!frame) paint(now);
     }
 
-    function move(event: PointerEvent) {
-      if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') { leave(); return; }
-      pointer = { x: event.clientX, y: event.clientY };
-      retarget();
-    }
-    function leave() { pointer = null; retarget(); }
-    window.addEventListener('pointermove', move, { passive: true });
-    window.addEventListener('blur', leave);
-    document.documentElement.addEventListener('pointerleave', leave);
-    window.addEventListener('resize', retarget);
-    window.addEventListener('scroll', retarget, { passive: true, capture: true });
+    function updatePointer(next: PortPointer | null) { pointer = next; retarget(); }
+    const id = host.closest<HTMLElement>('.react-flow__node')?.dataset.id;
+    const stopPointer = register && id ? register(id, updatePointer) : observeElementPointer(host, updatePointer);
     reduced.addEventListener('change', retarget);
     finePointer.addEventListener('change', retarget);
-    const geometry = new MutationObserver(() => { if (pointer) retarget(); });
-    for (const element of [host.closest('.react-flow__node'), host.closest('.react-flow__viewport')]) {
-      if (element) geometry.observe(element, { attributes: true, attributeFilter: ['style'] });
-    }
     const availability = new MutationObserver(retarget);
     elements.forEach(ref => {
       if (ref.current) availability.observe(ref.current, { attributes: true, attributeFilter: ['disabled', 'data-connection-eligible'] });
     });
-    const size = new ResizeObserver(() => { if (pointer) retarget(); });
-    size.observe(host);
     return () => {
-      geometry.disconnect();
+      disposed = true;
+      stopPointer();
       availability.disconnect();
-      size.disconnect();
       host.removeAttribute('data-input-port-near');
       host.removeAttribute('data-output-port-near');
       host.removeAttribute('data-text-port-near');
@@ -130,15 +117,47 @@ export function useMagneticPorts(hasVideoInput = false, hasFrameInputs = false, 
       host.removeAttribute('data-audio-port-near');
       framePorts.forEach((_, i) => host.removeAttribute(`data-frame-${4 + i}-port-near`));
       cancelAnimationFrame(frame);
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('blur', leave);
-      document.documentElement.removeEventListener('pointerleave', leave);
-      window.removeEventListener('resize', retarget);
-      window.removeEventListener('scroll', retarget, true);
       reduced.removeEventListener('change', retarget);
       finePointer.removeEventListener('change', retarget);
     };
-  }, [hasVideoInput, hasFrameInputs, hasAudioInput]);
+  }, [register, hasVideoInput, hasFrameInputs, hasAudioInput]);
 
   return { node, input, output, textInput, videoInput, audioInput };
+}
+
+// Standalone previews have no canvas store or shared pointer projection.
+function observeElementPointer(host: HTMLElement, update: (pointer: PortPointer | null) => void) {
+  let client: { x: number; y: number } | null = null;
+  function measure() {
+    if (!client || !host.offsetWidth) { update(null); return; }
+    const rect = host.getBoundingClientRect();
+    const scale = rect.width / host.offsetWidth;
+    update(scale > 0 ? { x: (client.x - rect.left) / scale, y: (client.y - rect.top) / scale,
+      width: host.offsetWidth, height: host.offsetHeight } : null);
+  }
+  function move(event: PointerEvent) {
+    client = event.pointerType === 'mouse' || event.pointerType === 'pen' ? { x: event.clientX, y: event.clientY } : null;
+    measure();
+  }
+  function leave() { client = null; update(null); }
+  window.addEventListener('pointermove', move, { passive: true });
+  window.addEventListener('blur', leave);
+  document.documentElement.addEventListener('pointerleave', leave);
+  window.addEventListener('resize', measure);
+  window.addEventListener('scroll', measure, true);
+  const size = new ResizeObserver(measure);
+  size.observe(host);
+  const geometry = new MutationObserver(measure);
+  for (const element of [host.closest('.react-flow__node'), host.closest('.react-flow__viewport')]) {
+    if (element) geometry.observe(element, { attributes: true, attributeFilter: ['style'] });
+  }
+  return () => {
+    size.disconnect();
+    geometry.disconnect();
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('blur', leave);
+    document.documentElement.removeEventListener('pointerleave', leave);
+    window.removeEventListener('resize', measure);
+    window.removeEventListener('scroll', measure, true);
+  };
 }

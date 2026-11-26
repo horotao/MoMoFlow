@@ -104,7 +104,7 @@ export function ImagePromptNode({
   suggestion = 'Oil paint macro, impasto texture', className = '', toolbar, generation = null, result, onPreviewImage, variants = [], activeVariant = 0, onVariantChange,
   onGenerate, onCancelGeneration, canGenerateWithoutPrompt = false, onMention, onDictate, onEnhance, onImageInput, onAddConnectedNode, imageInputCount = 0, imageInputLimit = 16,
   promptMentions, mentionCandidates, onMentionEdit,
-  references = [], onRemoveReference, onReorderReferences, referenceScale = 1, outputConnected = false,
+  references = [], onRemoveReference, onReorderReferences, referenceScale, outputConnected = false,
 }: ImagePromptNodeProps) {
   const nodeTags = useNodeColorTags();
   const tags = colorTags.filter(tag => nodeTags.tags?.includes(tag.id));
