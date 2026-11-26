@@ -1,3 +1,4 @@
+import { ClipboardPaste } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { AddNodePreview } from './AddNodePreview';
@@ -9,6 +10,11 @@ export interface AddNodeMenuProps {
   /** Viewport coordinates, unaffected by canvas zoom. Mount only while open. */
   position: { x: number; y: number };
   onSelect: (request: AddNodeRequest) => void;
+  canvasActions?: {
+    import: () => void;
+    paste: () => void;
+    pasteData: (clipboard: DataTransfer) => boolean;
+  };
   onClose: (restoreFocus: boolean) => void;
   /** Excludes the opener from outside-click dismissal. The host restores its focus. */
   allowQuantity?: boolean;
@@ -21,6 +27,7 @@ const icons = {
   image: new URL('./assets/image.svg', import.meta.url).href,
   video: new URL('./assets/video.svg', import.meta.url).href,
   audio: new URL('./assets/audio.svg', import.meta.url).href,
+  import: new URL('./assets/import.svg', import.meta.url).href,
   search: new URL('./assets/search.svg', import.meta.url).href,
   close: new URL('./assets/close.svg', import.meta.url).href,
   minus: new URL('./assets/minus.svg', import.meta.url).href,
@@ -31,9 +38,14 @@ function Icon({ name }: { name: keyof typeof icons }) {
   return <span aria-hidden="true" className={`flora-add-node-icon flora-add-node-icon-${name}`} style={{ maskImage: `url("${icons[name]}")` }} />;
 }
 
+const canvasEntries = [
+  { type: 'import', label: '导入', description: '从电脑添加图片或 MP4 视频' },
+  { type: 'paste', label: '粘贴', description: '支持从外部粘贴图片' },
+] as const;
+
 function normalizeQuantity(value: string) { return Math.max(1, Math.min(20, Math.trunc(Number(value)) || 1)); }
 
-export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuantity = true, allowedTypes }: AddNodeMenuProps) {
+export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuantity = true, allowedTypes, canvasActions }: AddNodeMenuProps) {
   const panel = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLElement>(null);
@@ -43,11 +55,16 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
   const rows = addNodeEntries
     .filter(entry => !allowedTypes || allowedTypes.includes(entry.type)).map(entry => ({ ...entry, quantity: allowQuantity }));
-  const filtered = rows.filter(entry => `${entry.type} ${entry.label} ${entry.description}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const term = query.trim().toLowerCase();
+  const actions = canvasActions ? canvasEntries.filter(entry => (entry.type + entry.label + entry.description).toLowerCase().includes(term)) : [];
+  const filtered = rows.filter(entry => `${entry.type} ${entry.label} ${entry.description}`.toLowerCase().includes(term));
   const previewEntry = preview && filtered.find(entry => entry.type === preview.type);
   const width = Math.min(352, Math.max(0, viewport.width - 16));
-  const groups = filtered.length ? [filtered] : [];
-  const height = filtered.length ? 46 + filtered.length * 48 + groups.length * 8 + groups.length - 1 : 110;
+  const nodeHeight = filtered.length ? 8 + filtered.length * 48 : 0;
+  const actionHeight = actions.length ? 8 + actions.reduce((height, entry) => height + (entry.description ? 48 : 40), 0) : 0;
+  const divider = filtered.length > 0 && actions.length > 0;
+  const height = nodeHeight || actionHeight ? 46 + nodeHeight + actionHeight + Number(divider) : 110;
+  const apple = /Mac|iPhone|iPad/.test(navigator.platform);
   const left = Math.max(8, Math.min(position.x, viewport.width - width - 8));
   const top = Math.max(8, Math.min(position.y, viewport.height - Math.min(height, viewport.height - 16) - 8));
 
@@ -75,6 +92,11 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
     onSelect({ type: entry.type, quantity: normalizeQuantity(counts[entry.type] ?? '1') });
     onClose(true);
   }
+  function selectAction(action: typeof canvasEntries[number]['type']) {
+    if (!canvasActions) return;
+    onClose(true);
+    canvasActions[action]();
+  }
   function changeQuantity(type: AddNodeType, value: number) {
     setCounts(current => ({ ...current, [type]: String(Math.max(1, Math.min(20, value))) }));
   }
@@ -86,14 +108,28 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
   return createPortal(<><div ref={panel} id="canvas-node-menu" role="dialog" aria-label="添加节点" lang="zh-CN" className="flora-add-node-menu nodrag nopan nowheel"
     style={{ left, top, width, maxHeight: Math.max(0, viewport.height - top - 8) }}
     onPointerDown={event => event.stopPropagation()} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }} onWheel={event => event.stopPropagation()}
+    onPaste={event => {
+      if (event.target instanceof HTMLInputElement && event.target !== search.current) return;
+      if (canvasActions?.pasteData(event.clipboardData)) {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose(true);
+      }
+    }}
     onKeyDown={event => {
       event.stopPropagation();
       if (event.nativeEvent.isComposing) return;
       if (event.key === 'Escape') { event.preventDefault(); onClose(true); return; }
       const input = event.target instanceof HTMLInputElement ? event.target : null;
       if (input?.getAttribute('role') === 'spinbutton') return;
-      if (!input && !event.metaKey && !event.ctrlKey && !event.altKey) {
-        const shortcut = filtered.find(entry => entry.key.toLowerCase() === event.key.toLowerCase());
+      if (!input && canvasActions && (event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'v') {
+        event.preventDefault(); selectAction('paste'); return;
+      }
+      if (!event.metaKey && !event.ctrlKey && !event.altKey) {
+        if ((!input || input === search.current && !query) && event.key.toLowerCase() === 'u' && actions.some(entry => entry.type === 'import')) {
+          event.preventDefault(); selectAction('import'); return;
+        }
+        const shortcut = !input && filtered.find(entry => entry.key.toLowerCase() === event.key.toLowerCase());
         if (shortcut) { event.preventDefault(); select(shortcut); return; }
       }
       if (event.key === 'ArrowRight' && event.target instanceof HTMLElement && event.target.matches('.flora-add-node-item')) {
@@ -114,12 +150,17 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
     <div className="flora-add-node-search">
       <Icon name="search" />
       <input ref={search} aria-label="搜索节点、操作和工具" placeholder="添加节点、操作和工具" value={query} onChange={event => changeQuery(event.target.value)}
-        onKeyDown={event => { if (event.key === 'Enter' && !event.nativeEvent.isComposing && filtered[0]) { event.preventDefault(); select(filtered[0]); } }} />
+        onKeyDown={event => {
+          if (event.key !== 'Enter' || event.nativeEvent.isComposing) return;
+          event.preventDefault();
+          if (filtered[0]) select(filtered[0]);
+          else if (actions[0]) selectAction(actions[0].type);
+        }} />
       <button type="button" aria-label="清空搜索" className="flora-add-node-clear" style={{ visibility: query ? 'visible' : 'hidden' }} onClick={() => { changeQuery(''); search.current?.focus(); }}><Icon name="close" /></button>
     </div>
     <div className="flora-add-node-list" role="menu" aria-label="节点和操作" onScroll={reset}>
-      {groups.map(group => <div role="group" className="flora-add-node-group" key={group[0].type}>
-        {group.map(entry => {
+      {filtered.length > 0 && <div role="group" className="flora-add-node-group">
+        {filtered.map(entry => {
           const quantity = normalizeQuantity(counts[entry.type] ?? '1');
           return <div className="flora-add-node-row" data-type={entry.type} key={entry.type}
             onPointerEnter={event => {
@@ -154,8 +195,22 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
             </div>}
           </div>;
         })}
-      </div>)}
-      {!filtered.length && <div className="flora-add-node-empty" role="status">{allowedTypes?.length === 0 ? '没有能同时接入所有所选节点的类型' : '未找到匹配的节点'}</div>}
+      </div>}
+      {divider && <div role="separator" className="flora-add-node-divider" />}
+      {actions.length > 0 && <div role="group" aria-label="画布操作" className="flora-add-node-group" onPointerEnter={reset} onFocus={reset}>
+        {actions.map(entry => {
+          const paste = entry.type === 'paste';
+          return <button type="button" role="menuitem" key={entry.type} className="flora-add-node-item flora-add-node-action"
+            aria-keyshortcuts={paste ? (apple ? 'Meta+V' : 'Control+V') : 'U'} onClick={() => selectAction(entry.type)}>
+            <span className="flora-add-node-badge">{paste ? <ClipboardPaste size={12} aria-hidden="true" /> : <Icon name="import" />}</span>
+            <span className="flora-add-node-copy"><span className="flora-add-node-title">{entry.label}</span>
+              {entry.description && <span className="flora-add-node-description">{entry.description}</span>}
+            </span>
+            <kbd className="flora-add-node-shortcut">{paste ? (apple ? '⌘V' : 'Ctrl+V') : 'U'}</kbd>
+          </button>;
+        })}
+      </div>}
+      {!filtered.length && !actions.length && <div className="flora-add-node-empty" role="status">{allowedTypes?.length === 0 ? '没有能同时接入所有所选节点的类型' : canvasActions ? '未找到匹配的节点或操作' : '未找到匹配的节点'}</div>}
     </div>
   </div>
     {preview && previewEntry && <AddNodePreview key={preview.type} previewRef={previewRef} anchor={preview.anchor}

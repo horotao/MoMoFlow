@@ -1,6 +1,6 @@
 import type { XYPosition } from '@xyflow/react';
 import { assetResources } from './assetResources.ts';
-import { anchorCanvasImage, hasImageDimensions } from './canvasImageGeometry.ts';
+import { canvasImageSize, hasImageDimensions } from './canvasImageGeometry.ts';
 import { measureAsset } from './fileMedia.ts';
 import { defaultSunburstSettings } from './sunburst.ts';
 import { isMp4File } from './importCanvasVideo.ts';
@@ -36,12 +36,13 @@ export async function readCanvasImage(file: File): Promise<FileAsset> {
 }
 
 export function createImportedCanvasImage(asset: FileAsset, position: XYPosition): CanvasImage {
-  return anchorCanvasImage({
-    id: crypto.randomUUID(), type: 'sunburst', position, selected: true,
+  return {
+    id: crypto.randomUUID(), type: 'sunburst', origin: [.5, 0], selected: true,
+    position: { x: position.x + canvasImageSize('auto', asset).width / 2, y: position.y },
     data: {
       ...defaultSunburstSettings, label: asset.name, imageSource: 'imported',
       imageInputs: 16, composer: { prompt: '', quantity: 1, ratio: 'auto' },
       results: [asset], activeResultId: asset.id,
     },
-  });
+  };
 }

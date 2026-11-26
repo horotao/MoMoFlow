@@ -76,7 +76,7 @@ import { CanvasProjectHeader } from './components/CanvasProjectHeader';
 
 const defaultEdgeOptions = { type: 'default' };
 const canvasDeleteKeys = ['Backspace', 'Delete'];
-type PendingNodeMenu = PendingConnection | SelectionConnectionMenu | (Pick<PendingConnection, 'screen' | 'position'> & { origin?: 'dock'; keyboard?: boolean });
+type PendingNodeMenu = PendingConnection | SelectionConnectionMenu | (Pick<PendingConnection, 'screen' | 'position'> & { origin: 'pane' | 'dock'; keyboard?: boolean });
 
 type ProjectSession = {
   project: CanvasProject;
@@ -142,6 +142,10 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     setMenuGeneration(generation => generation + 1);
     setPendingNodeMenu(menu);
   }, []);
+  const paneMenu = pendingNodeMenu && 'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'pane' ? pendingNodeMenu : null;
+  const dockMenu = pendingNodeMenu && 'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock';
+  const importPicker = useRef<HTMLInputElement>(null);
+  const importPosition = useRef<XYPosition | null>(null);
   const addTrigger = useRef<HTMLButtonElement>(null);
   const dismissNodeMenu = useCallback(() => {
     if (document.activeElement?.closest('.node-add-menu')) {
@@ -370,9 +374,9 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...imported]);
   }, [setNodes]);
 
-  const pasteText = useCallback((plain: string, screen: XYPosition, canvas: HTMLDivElement) => {
+  const pasteText = useCallback((plain: string, position: XYPosition, canvas: HTMLDivElement, atMenu = false) => {
     if (isNodeClipboard(plain)) {
-      void readNodeGraph(plain, screenToFlowPosition(screen)).then(graph => {
+      void readNodeGraph(plain, position).then(graph => {
         if (canvasRef.current !== canvas || canvas.hasAttribute('inert')) {
           assetResources.discard(nodeAssetUrls(graph.nodes));
           return;
@@ -393,36 +397,47 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
               id: crypto.randomUUID(), type: 'sunburst', position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 },
               origin: saved.node.origin?.[0] === 0.5 && saved.node.origin?.[1] === 0 ? [0.5, 0] : undefined, data,
             }], []);
-            setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...pasted.map(node => ({ ...node, selected: true }))]);
+            setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...pasted.map(node => ({ ...node, selected: true, position: atMenu ? position : node.position }))]);
             return true;
           }
         }
       } catch { /* Clipboard text can accompany an image. */ }
     }
     return false;
-  }, [screenToFlowPosition, setNodes, setEdges]);
+  }, [setNodes, setEdges]);
 
-  async function pasteAtMenu(screen: XYPosition) {
+  const pasteClipboardData = useCallback((clipboard: DataTransfer, position: XYPosition, atMenu = false) => {
+    const canvas = canvasRef.current;
+    if (!canvas || canvas.hasAttribute('inert')) return false;
+    if (pasteText(clipboard.getData('text/plain'), position, canvas, atMenu)) return true;
+    const files = clipboardMediaFiles(clipboard);
+    if (!files.length) return false;
+    void addMediaFiles(files, position, canvas);
+    return true;
+  }, [addMediaFiles, pasteText]);
+
+  async function pasteAtMenu(position: XYPosition) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     if (!navigator.clipboard?.read) {
       const plain = await navigator.clipboard?.readText();
       if (canvas !== canvasRef.current || canvas.hasAttribute('inert')) return;
-      if (plain && pasteText(plain, screen, canvas)) return;
+      if (plain && pasteText(plain, position, canvas, true)) return;
       throw new Error('请在画布上使用粘贴快捷键。');
     }
     const items = await navigator.clipboard.read();
     const files: File[] = [];
     for (const item of items) {
       if (item.types.includes('text/plain')) {
-        const plain = await (await item.getType('text/plain')).text();
+        const plain = items.length === 1 && item.types.length === 1 && navigator.clipboard.readText
+          ? await navigator.clipboard.readText() : await (await item.getType('text/plain')).text();
         if (canvas !== canvasRef.current || canvas.hasAttribute('inert')) return;
-        if (pasteText(plain, screen, canvas)) return;
+        if (pasteText(plain, position, canvas, true)) return;
       }
       const type = item.types.find(type => type.startsWith('image/') || type === 'video/mp4');
       if (type) files.push(new File([await item.getType(type)], 'Clipboard.' + type.split('/')[1], { type }));
     }
-    if (files.length) await addMediaFiles(files, screenToFlowPosition(screen), canvas);
+    if (files.length) await addMediaFiles(files, position, canvas);
     else throw new Error('剪贴板中没有可粘贴的节点、图片或 MP4 视频。');
   }
 
@@ -438,21 +453,18 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       }
       if (document.querySelector('dialog[open]') || canvas.querySelector('.image-edit-mode')) return;
 
-      const files = clipboardMediaFiles(clipboard);
       const pointer = canvasPointer.current;
       const surface = pointer && document.elementFromPoint(pointer.x, pointer.y)?.closest('.react-flow__pane, .react-flow__node');
       const bounds = canvas.getBoundingClientRect();
       const screen = pointer && canvas.contains(surface || null)
         ? pointer : { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
-      const pasted = pasteText(clipboard.getData('text/plain'), screen, canvas);
-      if (!pasted && !files.length) return;
+      if (!pasteClipboardData(clipboard, screenToFlowPosition(screen))) return;
       event.preventDefault();
       canvas.focus({ preventScroll: true });
-      if (!pasted) void addMediaFiles(files, screenToFlowPosition(screen), canvas);
     };
     window.addEventListener('paste', paste);
     return () => window.removeEventListener('paste', paste);
-  }, [addMediaFiles, pasteText, screenToFlowPosition]);
+  }, [pasteClipboardData, screenToFlowPosition]);
 
   const selecting = useStore(state => state.userSelectionActive);
   const selectedNodes = nodes.filter(node => node.selected);
@@ -588,7 +600,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         if (!(event.target instanceof Element) || !event.target.classList.contains('react-flow__pane')) return;
         event.preventDefault();
         const screen = { x: event.clientX, y: event.clientY };
-        openNodeMenu({ screen, position: screenToFlowPosition(screen) });
+        openNodeMenu({ origin: 'pane', screen, position: screenToFlowPosition(screen) });
       }}
       onConnectStart={(event, params) => { startConnectionEffects(event, params); dismissNodeMenu(); }}
       onClickConnectStart={() => { startClickConnection(); dismissNodeMenu(); }}
@@ -655,16 +667,32 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         remove={project => withSavedWorkflow(snapshot => projectSession.remove(project, snapshot))} />}
       {actionNode && <CanvasNodeActions key={actionNode.id} node={actionNode} nodes={nodes} edges={edges} canvas={canvasRef}
         location={actionMenu?.id === actionNode.id ? actionMenu : null} onClose={() => setActionMenu(null)}
-        onError={setMediaImportError} onPaste={pasteAtMenu} />}
+        onError={setMediaImportError} onPaste={screen => pasteAtMenu(screenToFlowPosition(screen))} />}
+      <input ref={importPicker} type="file" accept="image/*,video/mp4,.mp4" multiple hidden aria-label="导入图片或 MP4 视频"
+        onChange={event => {
+          const files = Array.from(event.currentTarget.files ?? []);
+          const position = importPosition.current;
+          const canvas = canvasRef.current;
+          event.currentTarget.value = '';
+          importPosition.current = null;
+          if (files.length && position && canvas) void addMediaFiles(files, position, canvas);
+        }} />
       {pendingNodeMenu && <AddNodeMenu key={menuGeneration} position={pendingNodeMenu.screen}
         allowedTypes={selectionMenu ? selectionConnectionChoices(nodes, selectionMenu.sourceIds).map(choice => choice.itemId)
           : 'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes).map(choice => choice.itemId) : undefined}
-        triggerRef={'origin' in pendingNodeMenu ? addTrigger : undefined}
+        canvasActions={paneMenu ? {
+          import: () => { importPosition.current = paneMenu.position; importPicker.current?.click(); },
+          paste: () => { void pasteAtMenu(paneMenu.position).catch(error => setMediaImportError(
+            error instanceof Error && error.name !== 'NotAllowedError' ? error.message : '无法读取剪贴板，请在画布上使用粘贴快捷键。'
+          )); },
+          pasteData: clipboard => pasteClipboardData(clipboard, paneMenu.position, true),
+        } : undefined}
+        triggerRef={dockMenu ? addTrigger : undefined}
         allowQuantity={!('direction' in pendingNodeMenu) || pendingNodeMenu.direction === 'source'}
         onSelect={addNodes}
         onClose={restoreFocus => {
           dismissNodeMenu();
-          if (restoreFocus) ('origin' in pendingNodeMenu ? addTrigger.current : canvasRef.current)?.focus({ preventScroll: true });
+          if (restoreFocus) (dockMenu ? addTrigger.current : canvasRef.current)?.focus({ preventScroll: true });
         }} />}
       {persistence.error && <Panel position="top-left" className="canvas-save-status" role="alert">
         <span>{persistence.error}</span>
@@ -677,9 +705,9 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       <CanvasSidebar tool={tool} onToolChange={setTool} addTrigger={addTrigger}
         gridSnap={{ enabled: gridSnap, toggle: toggleGridSnap }}
         onApiSettings={() => { dismissNodeMenu(); setApiSettingsOpen(true); }}
-        menuOpen={Boolean(pendingNodeMenu && 'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock')}
+        menuOpen={Boolean(dockMenu)}
         onAddMenu={keyboard => {
-          if (pendingNodeMenu && 'origin' in pendingNodeMenu && pendingNodeMenu.origin === 'dock') {
+          if (dockMenu) {
             setPendingNodeMenu(null);
             return;
           }

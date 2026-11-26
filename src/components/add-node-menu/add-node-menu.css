@@ -38,7 +38,13 @@
 .flora-add-node-clear:hover { background: #fafaf223; }
 .flora-add-node-list { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #fafaf223 transparent; }
 .flora-add-node-group { padding: 4px; }
-.flora-add-node-group + .flora-add-node-group { border-top: 1px solid #fafaf223; }
+.flora-add-node-divider { height: 1px; background: #fafaf223; }
+.flora-add-node-menu .flora-add-node-action {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px;
+  padding: 8px 8px 8px 12px; border-radius: 12px; text-align: left;
+}
+.flora-add-node-action:has(.flora-add-node-description) { height: 48px; }
+.flora-add-node-action:is(:hover, :focus-visible) { background: #fafaf223; }
 .flora-add-node-row { display: flex; align-items: center; gap: 8px; height: 48px; padding-right: 8px; border-radius: 12px; }
 .flora-add-node-row:hover, .flora-add-node-row:focus-within { background: #fafaf223; }
 .flora-add-node-row .flora-add-node-item { display: flex; align-items: flex-start; gap: 8px; flex: 1; min-width: 0; height: 48px; padding: 8.5px 0 8.5px 12px; border-radius: 12px; text-align: left; }

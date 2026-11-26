@@ -32,12 +32,19 @@ async function run() {
     if (Array.from(rows, row => row.dataset.type).join(',') !== 'image,text,video,audio') {
       throw new Error('Expected the Image, Text, Video and Audio menu entries');
     }
+    const canvasActions = menu.querySelector('[role="group"][aria-label="画布操作"]');
+    if (open === openContextMenu) {
+      if (!menu.querySelector('[role="separator"]') || canvasActions?.querySelectorAll('[role=menuitem]').length !== 2
+        || !canvasActions.textContent?.includes('导入') || !canvasActions.textContent.includes('粘贴')) {
+        throw new Error('Expected separate Import and Paste actions on the blank canvas');
+      }
+    } else if (canvasActions) throw new Error('Dock menu should only offer node creation');
     menu.querySelector<HTMLButtonElement>(`[data-type="${type}"] [role=menuitem]`)!.click();
     await element(`.react-flow__node-${type === 'image' ? 'sunburst' : type}`);
     await new Promise(requestAnimationFrame);
   }
   if (document.querySelectorAll('.react-flow__node').length !== 4) throw new Error('Node creation failed');
   result.dataset.result = 'passed';
-  result.textContent = 'PASS · 左侧和右键入口均包含 四个选项，均可创建对应节点';
+  result.textContent = 'PASS · 四种节点可创建，空白画布右键另含导入与粘贴分组';
 }
 void run().catch(error => { result.dataset.result = 'failed'; result.textContent = String(error); });
