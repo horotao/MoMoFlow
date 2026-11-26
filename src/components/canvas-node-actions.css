@@ -1,0 +1,27 @@
+.canvas-node-action-anchor {
+  position: fixed; width: 0; height: 0; min-width: 0; padding: 0; border: 0; pointer-events: none;
+}
+.canvas-node-actions {
+  box-sizing: border-box; width: min(256px, calc(100vw - 8px)); max-height: var(--radix-dropdown-menu-content-available-height);
+  overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 4px; z-index: 1000;
+  background: #191918e6; border: 1px solid #fafaf223; border-radius: 16px; backdrop-filter: blur(16px);
+  box-shadow: 0 8px 24px #0003; color: #fafafa; font: 400 14px/17.5px GeistSans, sans-serif; outline: none;
+}
+.canvas-node-action {
+  display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px; box-sizing: border-box;
+  border-radius: 12px; cursor: pointer; user-select: none; outline: none;
+}
+.canvas-node-action[data-highlighted] { background: #fafaf213; }
+.canvas-node-action[data-disabled] { opacity: .5; cursor: not-allowed; }
+.canvas-node-action-icon, .canvas-node-action kbd {
+  display: inline-flex; align-items: center; justify-content: center; background: #fafaf223; border-radius: 6px;
+}
+.canvas-node-action-icon { flex: 0 0 24px; height: 24px; }
+.canvas-node-action kbd { margin-left: auto; padding: 0 5px; height: 20px; color: #b5b3ad; font: 500 12px/1 GeistSans, sans-serif; }
+.canvas-node-actions [role=separator] { height: 1px; background: #fafaf223; margin: 4px -4px; }
+.canvas-node-swatches { display: flex; align-items: center; justify-content: space-between; gap: 9px; margin-left: auto; }
+.canvas-node-swatches button {
+  display: grid; place-items: center; width: 14px; height: 14px; padding: 0; border-radius: 50%;
+  border: 1px solid #fff3; cursor: pointer; color: #fff;
+}
+.canvas-node-swatches button:hover, .canvas-node-tag:focus-visible button[data-current=true] { outline: 1px solid white; outline-offset: 2px; }

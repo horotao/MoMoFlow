@@ -1,3 +1,4 @@
+import { useCanvasImageReplacement } from './useCanvasImageReplacement';
 import { useCanvasMentions } from './CanvasMentionContext';
 import { useLayoutEffect, useMemo, useRef, useState, type SyntheticEvent } from 'react';
 import { Handle, Position, useEdges, useNodesData, useReactFlow, useStore, useUpdateNodeInternals, type Edge, type Node, type NodeProps } from '@xyflow/react';
@@ -57,7 +58,9 @@ export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps
   const overview = useStore(state => Math.round(state.transform[2] * 100) <= 14);
   const toolbarHidden = useStore(state => state.userSelectionActive || hasMultipleSelection(state.nodes));
   const connectable = isConnectable && !data.locked;
+  const { pickerElement, replacing } = useCanvasImageReplacement(id);
   const chrome: CanvasImageChrome = {
+    replacing,
     title: data.label,
     onTitleChange: label => {
       const node = getNode(id);
@@ -71,11 +74,12 @@ export function CanvasImageNode({ id, data, selected, isConnectable }: NodeProps
         ? { ...node, selected: value } : value ? { ...node, selected: false } : node));
     },
   };
-  if (data.imageSource === 'imported') {
-    const asset = selectedImageResult({ data });
-    return <ImportedCanvasImage id={id} asset={asset} chrome={chrome} />;
-  }
-  return <GeneratingCanvasImage id={id} data={data} edges={edges} connectable={connectable} chrome={chrome} />;
+  return <>
+    {data.imageSource === 'imported'
+      ? <ImportedCanvasImage id={id} asset={selectedImageResult({ data })} chrome={chrome} />
+      : <GeneratingCanvasImage id={id} data={data} edges={edges} connectable={connectable} chrome={chrome} />}
+    {pickerElement}
+  </>;
 }
 
 function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
@@ -123,8 +127,8 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
   for (const asset of results) if (asset.generation?.taskId) lastResultByTask.set(asset.generation.taskId, asset.id);
   const chosenAssetId = chosen && (lastResultByTask.get(chosen) ?? chosen);
   const active = results.find(asset => asset.id === chosenAssetId) ?? results.find(asset => asset.id === data.activeResultId) ?? results[results.length - 1];
-  const crop = useCanvasImageCrop(id, active, Boolean(data.locked) || activeTasks.length > 0);
-  const inpaint = useCanvasImageInpaint(id, active, Boolean(data.locked) || activeTasks.length > 0 || crop.active);
+  const crop = useCanvasImageCrop(id, active, Boolean(data.locked) || chrome.replacing || activeTasks.length > 0);
+  const inpaint = useCanvasImageInpaint(id, active, Boolean(data.locked) || chrome.replacing || activeTasks.length > 0 || crop.active);
   usePublishVisibleImage(id, active);
   const [loadedSizes, setLoadedSizes] = useState<Record<string, { width: number; height: number }>>({});
   const dimensions = (asset?: FileAsset) => asset && (hasImageDimensions(asset) ? asset : loadedSizes[asset.url] ?? asset);
@@ -170,7 +174,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
     locked: Boolean(data.locked),
     onLockedChange: (locked: boolean) => updateNodeData(id, { locked }),
   };
-  const { output, showToolbar, toolbarHidden, ...frame } = chrome;
+  const { output, showToolbar, toolbarHidden, replacing, ...frame } = chrome;
   return <div className="canvas-image-mount" style={{ width, height }}>
     <ImagePromptNode {...controls} {...frame} editModeLabel={inpaint.active ? '局部重绘中' : undefined}
       promptMentions={promptEdge || inpaintInput ? [] : composer.mentions} mentionCandidates={inpaintInput ? [] : mentions.candidates} onMentionEdit={promptEdge || inpaintInput ? undefined : mentions.onEdit}
@@ -216,7 +220,7 @@ function GeneratingCanvasImage({ id, data, edges, connectable, chrome }: {
         output,
       }}
       toolbar={!showToolbar ? null : <ImagePromptToolbar className="nodrag nopan" {...controls} {...(inpaint.active ? inpaint.controls : {})} hidden={toolbarHidden} downloadDisabled={!active}
-        onCrop={crop.open} cropActive={crop.active} cropDisabled={!active || activeTasks.length > 0}
+        onCrop={crop.open} cropActive={crop.active} cropDisabled={!active || replacing || activeTasks.length > 0}
         onInpaint={inpaint.open} inpaintActive={inpaint.active} inpaintOnly={inpaint.active || Boolean(inpaintInput)}
         onDownload={() => { if (active) void downloadAsset(active).catch(() => setError('图片下载失败。')); }} />}
     />

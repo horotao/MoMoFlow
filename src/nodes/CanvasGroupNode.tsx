@@ -1,3 +1,4 @@
+import { useNodeCommand } from './nodeCommands';
 import { NodeToolbarTooltip } from '../components/NodeToolbarTooltip';
 import * as Menu from '@radix-ui/react-dropdown-menu';
 import { NodeResizer, NodeToolbar, ViewportPortal, useReactFlow, useStore, useStoreApi, type NodeProps } from '@xyflow/react';
@@ -58,6 +59,9 @@ export function CanvasGroupNode({ id, data, selected, dragging, positionAbsolute
   };
   const update = (patch: Partial<CanvasGroup['data']>) => setNodes(nodes => nodes.map(node =>
     node.id === id && isCanvasGroup(node) ? { ...node, data: { ...node.data, ...patch } } : node));
+  useNodeCommand(id, 'rename', () => {
+    if (!data.locked) { setDraft(data.label); setEditing(true); }
+  });
   const rename = () => {
     const label = draft.trim();
     if (label && label !== data.label) update({ label });

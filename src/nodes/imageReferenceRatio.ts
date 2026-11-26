@@ -33,6 +33,14 @@ function references(edges: Edge[], target: string) {
     .sort((a, b) => imageInputHandles.indexOf(a.targetHandle!) - imageInputHandles.indexOf(b.targetHandle!));
 }
 
+function firstReference(inputs: Edge[], nodes: Map<string, AppNode>) {
+  for (const edge of inputs) {
+    const source = nodes.get(edge.source);
+    const asset = source && isCanvasImageNode(source) ? selectedImageResult(source) : undefined;
+    if (asset) return asset;
+  }
+}
+
 /** Start reference following when a new first input is connected, in the same canvas edit. */
 export function connectImageReferenceRatio(nodes: AppNode[], previous: Edge[], edges: Edge[], target: string): AppNode[] {
   const inputs = references(edges, target);
@@ -40,10 +48,19 @@ export function connectImageReferenceRatio(nodes: AppNode[], previous: Edge[], e
   return nodes.map(node => {
     if (node.id !== target || !isCanvasImageNode(node) || node.data.imageSource === 'imported' || node.data.locked) return node;
     const data = { ...node.data, composer: { ...node.data.composer, followReferenceRatio: true } };
-    const image = inputs.flatMap(edge => {
-      const source = nodes.find(item => item.id === edge.source);
-      return source && isCanvasImageNode(source) ? [selectedImageResult(source)] : [];
-    }).find(Boolean);
+    const image = firstReference(inputs, new Map(nodes.map(item => [item.id, item])));
     return { ...node, data: { ...data, ...referenceRatioSettings(data, image) } };
+  });
+}
+
+/** Apply a changed source and its followers' ratios in the same undo step. */
+export function syncImageReferenceRatios(nodes: AppNode[], edges: Edge[], sourceId: string, busy: ReadonlySet<string>): AppNode[] {
+  const targets = new Set(edges.filter(edge => edge.source === sourceId && isImageInputHandle(edge.targetHandle)).map(edge => edge.target));
+  if (!targets.size) return nodes;
+  const byId = new Map(nodes.map(node => [node.id, node]));
+  return nodes.map(node => {
+    if (!targets.has(node.id) || busy.has(node.id) || !isCanvasImageNode(node) || node.data.inpaint) return node;
+    const patch = referenceRatioSettings(node.data, firstReference(references(edges, node.id), byId));
+    return patch ? { ...node, data: { ...node.data, ...patch } } : node;
   });
 }

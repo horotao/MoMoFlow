@@ -27,7 +27,7 @@ export async function assetBlob(asset: FileAsset, signal?: AbortSignal) {
     return await response.blob();
   } finally { release(); }
 }
-function saveBlob(blob: Blob, name: string) {
+export function saveBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url; link.download = name;

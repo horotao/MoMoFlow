@@ -1,3 +1,5 @@
+import { useNodeId } from '@xyflow/react';
+import { useNodeCommand } from '../../nodes/nodeCommands';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 /** The draft stays local so a completed rename is one document edit. */
@@ -21,6 +23,8 @@ export function ImageNodeTitle({ title, editable, locked, onChange }: {
     active.current = true;
     setDraft(title);
   }
+  const nodeId = useNodeId();
+  useNodeCommand(nodeId, 'rename', start);
   function finish(save: boolean, restoreFocus = false) {
     if (!active.current) return;
     active.current = false;

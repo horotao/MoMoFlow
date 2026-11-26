@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Edge } from '@xyflow/react';
-import { connectImageReferenceRatio, referenceRatioSettings } from './imageReferenceRatio.ts';
+import { connectImageReferenceRatio, referenceRatioSettings, syncImageReferenceRatios } from './imageReferenceRatio.ts';
 import { changeComposerSettings } from './imageComposerSettings.ts';
 import { canvasImageSize } from './canvasImageGeometry.ts';
 import { prepareModel } from './executionGraph.ts';
@@ -91,4 +91,18 @@ test('inference respects channel presets, locked targets and missing image dimen
   assert.equal(referenceRatioSettings(target.data, { width: 1200, height: 1600 }), undefined);
   const locked = connectImageReferenceRatio([reference(), target], [], [wire], 'target');
   assert.equal(locked[1], target);
+});
+
+test('clearing or replacing a reference updates following nodes in the same graph edit', () => {
+  const target = image('target');
+  target.data.composer.followReferenceRatio = true;
+  const other = reference('other', 1024, 1536);
+  const edges = [wire, { ...wire, id: 'second', source: other.id, targetHandle: 'image-1' }];
+  const replaced = [reference(), target, other];
+  const updated = syncImageReferenceRatios(replaced, edges, 'source', new Set())[1] as CanvasImage;
+  assert.equal(updated.data.composer.ratio, '3:2');
+  const cleared = syncImageReferenceRatios([image('source'), updated, other], edges, 'source', new Set())[1] as CanvasImage;
+  assert.equal(cleared.data.composer.ratio, '2:3');
+  assert.equal(syncImageReferenceRatios(replaced, edges, 'source', new Set(['target']))[1], target);
+  assert.equal(target.data.composer.ratio, '1:1');
 });

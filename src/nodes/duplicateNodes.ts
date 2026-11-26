@@ -2,10 +2,12 @@ import type { Edge, NodeChange } from '@xyflow/react';
 import { isCanvasGroup, isCanvasImageNode, isCanvasTextNode, isCanvasVideo, isNodeLocked, type AppNode } from './types.ts';
 
 /** Clone the dragged subgraph; asset URLs remain shared under the existing asset owners. */
-export function duplicateNodes(nodes: AppNode[], edges: Edge[], draggedIds: string[], newId: () => string = () => crypto.randomUUID()) {
+export function duplicateNodes(nodes: AppNode[], edges: Edge[], draggedIds: string[], newId: () => string = () => crypto.randomUUID(), mode: 'drag' | 'command' = 'drag') {
   const roots = new Set(draggedIds.filter(id => {
     const node = nodes.find(item => item.id === id);
-    return node && !node.hidden && !isNodeLocked(node) && node.draggable !== false
+    if (!node || node.hidden) return false;
+    if (mode === 'command') return true;
+    return !isNodeLocked(node) && node.draggable !== false
       && !(isCanvasGroup(node) && nodes.some(item => item.parentId === id && isNodeLocked(item)));
   }));
   const included = new Set(roots);

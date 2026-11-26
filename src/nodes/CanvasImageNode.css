@@ -33,12 +33,18 @@
 }
 .canvas-image-node .image-node-model > span:last-child { max-width: none; }
 
-[data-node-heading=icon] .canvas-image-node .image-node-heading :is(h1 > span:last-child, .image-node-model),
-[data-node-heading=hidden] .canvas-image-node .image-node-heading > *,
-[data-node-heading=hidden] .canvas-image-node .has-result .image-node-heading { display: none; }
+[data-node-heading=icon] .canvas-image-node .image-node-heading:not(:has(.is-editing)) :is(h1 > span:last-child, .image-node-model),
+[data-node-heading=hidden] .canvas-image-node .image-node-heading:not(:has(.is-editing)) > *,
+[data-node-heading=hidden] .canvas-image-node .has-result .image-node-heading:not(:has(.is-editing)) { display: none; }
+
+/* Keep a menu-initiated rename usable at overview zoom. */
+:is([data-node-heading=icon], [data-node-heading=hidden]) .canvas-image-node .image-node-heading:has(.is-editing) {
+  width: max-content; min-width: calc(96 * var(--heading-px)); z-index: 2;
+}
+:is([data-node-heading=icon], [data-node-heading=hidden]) .image-node-heading:has(.is-editing) .image-node-model { display: none; }
 
 /* Empty cards still need a drag target where the title row was the only one. */
-[data-node-heading=hidden] .canvas-image-node .image-node:not(.has-result) .image-node-heading {
+[data-node-heading=hidden] .canvas-image-node .image-node:not(.has-result) .image-node-heading:not(:has(.is-editing)) {
   top: 0;
   bottom: auto;
   z-index: 1;

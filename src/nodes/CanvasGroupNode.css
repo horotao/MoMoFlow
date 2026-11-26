@@ -73,7 +73,7 @@
   font: 500 13px/17px GeistSans, var(--font-ui), sans-serif;
 }
 
-:is([data-node-heading="icon"], [data-node-heading="hidden"]) .canvas-group-title:not(:focus-within) {
+:is([data-node-heading="icon"], [data-node-heading="hidden"]) .canvas-group-title:not(:focus-within, :has(input)) {
   display: none;
 }
 

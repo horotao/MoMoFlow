@@ -1,3 +1,5 @@
+import { CanvasNodeActions, type NodeMenuLocation } from './components/CanvasNodeActions';
+import { isNodeClipboard, readNodeGraph } from './nodes/nodeClipboard';
 import { CanvasPortPointerContext, useCanvasPortPointer } from './components/image-prompt-node/canvasPortPointer';
 import { CanvasColorTags } from './components/CanvasColorTags';
 import './components/canvas-right-panels.css';
@@ -33,7 +35,7 @@ import { connectionChoices, choiceConnection, type PendingConnection } from './n
 import { createLibraryNode } from './components/libraryCatalog';
 import { createImportedVideo, isMp4File, readCanvasVideo } from './nodes/importCanvasVideo';
 import { clipboardMediaFiles, createImportedCanvasImage, readCanvasImage } from './nodes/importCanvasImage';
-import { assetResources } from './nodes/assetResources';
+import { assetResources, nodeAssetUrls } from './nodes/assetResources';
 import { canvasImageSize } from './nodes/canvasImageGeometry';
 import { composerAspectRatio } from './nodes/imageComposerSettings';
 import { connectImageReferenceRatio } from './nodes/imageReferenceRatio';
@@ -127,14 +129,16 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       await action(workflow);
     } finally { canvas?.removeAttribute('inert'); }
   };
-  const { screenToFlowPosition, getNodes, getEdges } = useReactFlow<AppNode>();
+  const { screenToFlowPosition, getIntersectingNodes, getNodes, getEdges } = useReactFlow<AppNode>();
   const { start: startConnectionEffects, cancel: clearConnectionEffects, cancelled: connectionCancelled, connectionRadius,
     startClick: startClickConnection, end: endConnectionGesture, withinRadius: withinConnectionRadius } = useConnectionGesture(40, true);
   const [tool, setTool] = useState<CanvasTool>('select');
   const [pendingNodeMenu, setPendingNodeMenu] = useState<PendingNodeMenu | null>(null);
+  const [actionMenu, setActionMenu] = useState<NodeMenuLocation | null>(null);
   const selectionMenu = pendingNodeMenu && 'sourceIds' in pendingNodeMenu ? pendingNodeMenu : undefined;
   const [menuGeneration, setMenuGeneration] = useState(0);
   const openNodeMenu = useCallback((menu: PendingNodeMenu) => {
+    setActionMenu(null);
     setMenuGeneration(generation => generation + 1);
     setPendingNodeMenu(menu);
   }, []);
@@ -156,6 +160,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
   const canvasRef = useRef<HTMLDivElement>(null);
   const zoomScope = useId();
   const canvasPointer = useRef<XYPosition | null>(null);
+  const contextPress = useRef<XYPosition | null>(null);
   const canvasStore = useStoreApi();
   const registerPortPointer = useCanvasPortPointer();
   useEffect(() => {
@@ -365,6 +370,62 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...imported]);
   }, [setNodes]);
 
+  const pasteText = useCallback((plain: string, screen: XYPosition, canvas: HTMLDivElement) => {
+    if (isNodeClipboard(plain)) {
+      void readNodeGraph(plain, screenToFlowPosition(screen)).then(graph => {
+        if (canvasRef.current !== canvas || canvas.hasAttribute('inert')) {
+          assetResources.discard(nodeAssetUrls(graph.nodes));
+          return;
+        }
+        setNodes(current => [...current.map(n => n.selected ? { ...n, selected: false } : n), ...graph.nodes]);
+        setEdges(current => [...current.map(e => e.selected ? { ...e, selected: false } : e), ...graph.edges]);
+      }).catch(error => setMediaImportError(error instanceof Error ? error.message : '粘贴节点失败。'));
+      return true;
+    }
+    if (plain) {
+      try {
+        const saved = JSON.parse(plain);
+        if (saved?.format === 'momoflow-sunburst-node' && saved.node?.type === 'sunburst'
+          && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
+          const data = restoreSunburstData(saved.node.data);
+          if (data) {
+            const { nodes: pasted } = migrateLegacyImageGraph([{
+              id: crypto.randomUUID(), type: 'sunburst', position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 },
+              origin: saved.node.origin?.[0] === 0.5 && saved.node.origin?.[1] === 0 ? [0.5, 0] : undefined, data,
+            }], []);
+            setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...pasted.map(node => ({ ...node, selected: true }))]);
+            return true;
+          }
+        }
+      } catch { /* Clipboard text can accompany an image. */ }
+    }
+    return false;
+  }, [screenToFlowPosition, setNodes, setEdges]);
+
+  async function pasteAtMenu(screen: XYPosition) {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    if (!navigator.clipboard?.read) {
+      const plain = await navigator.clipboard?.readText();
+      if (canvas !== canvasRef.current || canvas.hasAttribute('inert')) return;
+      if (plain && pasteText(plain, screen, canvas)) return;
+      throw new Error('请在画布上使用粘贴快捷键。');
+    }
+    const items = await navigator.clipboard.read();
+    const files: File[] = [];
+    for (const item of items) {
+      if (item.types.includes('text/plain')) {
+        const plain = await (await item.getType('text/plain')).text();
+        if (canvas !== canvasRef.current || canvas.hasAttribute('inert')) return;
+        if (pasteText(plain, screen, canvas)) return;
+      }
+      const type = item.types.find(type => type.startsWith('image/') || type === 'video/mp4');
+      if (type) files.push(new File([await item.getType(type)], 'Clipboard.' + type.split('/')[1], { type }));
+    }
+    if (files.length) await addMediaFiles(files, screenToFlowPosition(screen), canvas);
+    else throw new Error('剪贴板中没有可粘贴的节点、图片或 MP4 视频。');
+  }
+
   useEffect(() => {
     const paste = (event: ClipboardEvent) => {
       const canvas = canvasRef.current;
@@ -377,43 +438,26 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       }
       if (document.querySelector('dialog[open]') || canvas.querySelector('.image-edit-mode')) return;
 
-      const plain = clipboard.getData('text/plain');
-      if (plain) {
-        try {
-          const saved = JSON.parse(plain);
-          if (saved?.format === 'momoflow-sunburst-node' && saved.node?.type === 'sunburst'
-            && Number.isFinite(saved.node.position?.x) && Number.isFinite(saved.node.position?.y)) {
-            const data = restoreSunburstData(saved.node.data);
-            if (data) {
-              const { nodes: pasted } = migrateLegacyImageGraph([{
-                id: crypto.randomUUID(), type: 'sunburst', position: { x: saved.node.position.x + 40, y: saved.node.position.y + 40 },
-                origin: saved.node.origin?.[0] === 0.5 && saved.node.origin?.[1] === 0 ? [0.5, 0] : undefined, data,
-              }], []);
-              event.preventDefault();
-              setNodes(current => [...current.map(node => ({ ...node, selected: false })), ...pasted.map(node => ({ ...node, selected: true }))]);
-              return;
-            }
-          }
-        } catch { /* Clipboard text can accompany an image. */ }
-      }
-
       const files = clipboardMediaFiles(clipboard);
-      if (!files.length) return;
       const pointer = canvasPointer.current;
       const surface = pointer && document.elementFromPoint(pointer.x, pointer.y)?.closest('.react-flow__pane, .react-flow__node');
       const bounds = canvas.getBoundingClientRect();
       const screen = pointer && canvas.contains(surface || null)
         ? pointer : { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
+      const pasted = pasteText(clipboard.getData('text/plain'), screen, canvas);
+      if (!pasted && !files.length) return;
       event.preventDefault();
       canvas.focus({ preventScroll: true });
-      void addMediaFiles(files, screenToFlowPosition(screen), canvas);
+      if (!pasted) void addMediaFiles(files, screenToFlowPosition(screen), canvas);
     };
     window.addEventListener('paste', paste);
     return () => window.removeEventListener('paste', paste);
-  }, [addMediaFiles, screenToFlowPosition, setNodes]);
+  }, [addMediaFiles, pasteText, screenToFlowPosition]);
 
   const selecting = useStore(state => state.userSelectionActive);
-  const multiple = nodes.filter(node => node.selected).length > 1;
+  const selectedNodes = nodes.filter(node => node.selected);
+  const multiple = selectedNodes.length > 1;
+  const actionNode = selectedNodes.length === 1 ? selectedNodes[0] : undefined;
   const hideSelectedPorts = selecting || multiple;
   const [decoratedNodes] = useState(() => new WeakMap<AppNode, AppNode>());
   const canvasNodes = useMemo(() => {
@@ -436,6 +480,19 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       return decorated;
     });
   }, [nodes, tool, hideSelectedPorts, decoratedNodes]);
+  function openNodeActions(event: React.MouseEvent, id: string) {
+    if (event.button !== 2 && !event.ctrlKey) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const start = contextPress.current;
+    if (start && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 4) return;
+    if (canvasStore.getState().connection.inProgress || canvasRef.current?.querySelector('.image-edit-mode')) return;
+    dismissNodeMenu();
+    setEdges(current => current.map(edge => edge.selected ? { ...edge, selected: false } : edge));
+    setNodes(current => current.map(node => Boolean(node.selected) === (node.id === id) ? node : { ...node, selected: node.id === id }));
+    canvasStore.setState({ nodesSelectionActive: false });
+    setActionMenu({ id, screen: { x: event.clientX, y: event.clientY } });
+  }
   const arrangeSelection = () => {
     setNodes(current => arrangeSelectedNodes(current, getEdges(), gridSnap ? gridOrigin.current : undefined));
   };
@@ -459,6 +516,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       }}
       onPointerLeave={event => { if (event.pointerType === 'mouse') canvasPointer.current = null; }}
       onPointerDownCapture={event => {
+        contextPress.current = event.button === 2 || event.ctrlKey ? { x: event.clientX, y: event.clientY } : null;
         if ((event.target as HTMLElement).classList.contains('react-flow__pane')) canvasRef.current?.focus({ preventScroll: true });
       }}
       minZoom={canvasMinZoom}
@@ -516,6 +574,16 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
           screenToFlowPosition({ x: event.clientX, y: event.clientY }));
         if (node) setNodes(current => [...current.map(item => ({ ...item, selected: false })), node]);
       }}
+      onNodeContextMenu={(event, node) => {
+        if (event.target instanceof Element && event.target.closest('.react-flow__node')
+          && !event.target.closest('input, textarea, [contenteditable=true], [role=menu], [role=dialog], .image-edit-mode')) openNodeActions(event, node.id);
+      }}
+      onSelectionContextMenu={event => {
+        // The multi-selection drag surface intercepts events over selected nodes.
+        const point = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+        const hit = getIntersectingNodes({ ...point, width: 1, height: 1 }, true).reverse().find(n => n.selected);
+        if (hit) openNodeActions(event, hit.id);
+      }}
       onPaneContextMenu={event => {
         if (!(event.target instanceof Element) || !event.target.classList.contains('react-flow__pane')) return;
         event.preventDefault();
@@ -525,7 +593,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       onConnectStart={(event, params) => { startConnectionEffects(event, params); dismissNodeMenu(); }}
       onClickConnectStart={() => { startClickConnection(); dismissNodeMenu(); }}
       onMoveStart={event => {
-        if (event) pendingZoom.current = null;
+        if (event) { pendingZoom.current = null; setActionMenu(null); }
         dismissNodeMenu();
       }}
       onConnect={onConnect}
@@ -585,6 +653,9 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         open={project => withSavedWorkflow(snapshot => projectSession.open(project, snapshot))}
         create={() => withSavedWorkflow(projectSession.create)} rename={projectSession.rename}
         remove={project => withSavedWorkflow(snapshot => projectSession.remove(project, snapshot))} />}
+      {actionNode && <CanvasNodeActions key={actionNode.id} node={actionNode} nodes={nodes} edges={edges} canvas={canvasRef}
+        location={actionMenu?.id === actionNode.id ? actionMenu : null} onClose={() => setActionMenu(null)}
+        onError={setMediaImportError} onPaste={pasteAtMenu} />}
       {pendingNodeMenu && <AddNodeMenu key={menuGeneration} position={pendingNodeMenu.screen}
         allowedTypes={selectionMenu ? selectionConnectionChoices(nodes, selectionMenu.sourceIds).map(choice => choice.itemId)
           : 'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes).map(choice => choice.itemId) : undefined}
