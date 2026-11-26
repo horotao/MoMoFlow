@@ -64,14 +64,16 @@ async function run() {
   })));
   await settle();
   const wire = document.querySelector<SVGPathElement>('.react-flow__edge[data-id="ab"] .workflow-wire')!;
-  for (const [id, selector, distance] of [
-    ['a', '.image-node-output-visual', 0],
-    ['b', '[data-connection-port="image"] .image-node-port', wire.getTotalLength()],
+  for (const [id, selector, side, distance] of [
+    ['a', '.image-node-output-visual', 'right', 0],
+    ['b', '[data-connection-port="image"] .image-node-port', 'left', wire.getTotalLength()],
   ] as const) {
-    const port = document.querySelector(`[data-id="${id}"] [aria-busy="true"] ${selector}`)!.getBoundingClientRect();
+    const node = document.querySelector(`[data-id="${id}"] .image-node[aria-busy="true"]`)!;
+    const card = node.querySelector('.image-node-card')!.getBoundingClientRect();
+    const port = node.querySelector(selector)!.getBoundingClientRect();
     const end = wire.getPointAtLength(distance).matrixTransform(wire.getScreenCTM()!);
-    check(port.width > 0 && Math.hypot(end.x - port.x - port.width / 2, end.y - port.y - port.height / 2) < 1,
-      `Generating Image keeps its wire attached to ${id}`);
+    check(port.width > 0 && Math.hypot(end.x - card[side], end.y - port.y - port.height / 2) < 1,
+      `Selected generating Image ${id} anchors its wire at the ${side} card edge on the port row`);
   }
   for (const id of ['a', 'b']) {
     const running = document.querySelector(`[data-id="${id}"] .image-node[aria-busy="true"]`)!;

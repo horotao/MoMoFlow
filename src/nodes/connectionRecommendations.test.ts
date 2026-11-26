@@ -86,3 +86,27 @@ test('Audio connects both ways to Seedance Auto only and its slots survive workf
     assert.deepEqual(connectionChoices(pending(other.id, 'target', 'audio-0'), [source, other]), []);
   }
 });
+
+test('selection creation gives every source a distinct compatible input or omits the destination', async () => {
+  const { createLibraryNode } = await import('../components/libraryCatalog.ts');
+  const { selectionConnectionChoices } = await import('./selectionConnections.ts');
+  const make = (type: string) => createLibraryNode(type, { x: 0, y: 0 })!;
+  const choices = (...nodes: AppNode[]) => selectionConnectionChoices(nodes, nodes.map(node => node.id));
+  const images = Array.from({ length: 17 }, () => make('image'));
+  const prompt = make('text'), video = make('video'), audio = make('audio');
+  const mixed = [images[1], prompt, images[0]];
+  const plans = choices(...mixed);
+  assert.deepEqual(plans.map(plan => plan.itemId), ['image', 'text', 'video']);
+  for (const plan of plans) {
+    assert.deepEqual(plan.links.map(link => link.source), mixed.map(node => node.id));
+    assert.deepEqual(plan.links.map(link => link.targetHandle), ['image-0', plan.itemId === 'text' ? 'text' : 'prompt', 'image-1']);
+  }
+  const [all] = choices(...mixed, video, audio);
+  assert.equal(all.itemId, 'video');
+  assert.deepEqual(all.links.slice(-2).map(link => link.targetHandle), ['video-0', 'audio-0']);
+  assert.deepEqual(choices(prompt, make('text')), []);
+  assert.deepEqual(choices(...images.slice(0, 16)).map(plan => plan.itemId), ['image', 'text']);
+  assert.deepEqual(choices(...images), []);
+  assert.deepEqual(choices({ ...prompt, data: { ...prompt.data, locked: true } } as AppNode, video), []);
+  assert.deepEqual(selectionConnectionChoices([prompt], [prompt.id, 'removed']), []);
+});

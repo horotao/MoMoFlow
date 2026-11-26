@@ -155,7 +155,7 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
           </div>;
         })}
       </div>)}
-      {!filtered.length && <div className="flora-add-node-empty" role="status">未找到匹配的节点</div>}
+      {!filtered.length && <div className="flora-add-node-empty" role="status">{allowedTypes?.length === 0 ? '没有能同时接入所有所选节点的类型' : '未找到匹配的节点'}</div>}
     </div>
   </div>
     {preview && previewEntry && <AddNodePreview key={preview.type} previewRef={previewRef} anchor={preview.anchor}

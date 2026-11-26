@@ -29,7 +29,10 @@ export function choiceConnection(pending: PendingConnection, choice: ConnectionC
 }
 
 export function connectionChoices(pending: PendingConnection, nodes: AppNode[]): ConnectionChoice[] {
-  const node = nodes.find(item => item.id === pending.nodeId);
+  return portChoices(pending, nodes.find(item => item.id === pending.nodeId));
+}
+
+export function portChoices(pending: Pick<PendingConnection, 'direction' | 'handleId'>, node: AppNode | undefined): ConnectionChoice[] {
   if (!node || (!isCanvasImageNode(node) && !isCanvasTextNode(node) && !isCanvasVideo(node) && node.type !== 'audio') || isNodeLocked(node)) return [];
   if (pending.direction === 'target' && (isCanvasImageNode(node) && node.data.inpaint || isCanvasVideo(node) && !isVideoComposerNode(node))) return [];
   // The new node is anchored by its top center, like Image, with four inputs spaced 40 units apart.

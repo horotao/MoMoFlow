@@ -127,3 +127,66 @@
   margin: 4px;
   background: rgb(250 250 242 / 13.7%);
 }
+
+.canvas-selection-output {
+  position: absolute;
+  z-index: 9;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 96px;
+  translate: 0 -50%;
+  touch-action: none;
+  color: #b5b3ad;
+  background: transparent;
+  cursor: crosshair;
+}
+
+/* The icon center rests 40 screen pixels beyond the selection edge.
+   Animate the SVG independently of its parent's magnetic transform. */
+@media (prefers-reduced-motion: no-preference) {
+  .canvas-selection-output-glyph > svg {
+    animation: selection-output-reveal 150ms ease-in-out;
+  }
+}
+
+@keyframes selection-output-reveal {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.canvas-selection-output-glyph { pointer-events: none; }
+.canvas-selection-output:focus-visible { color: #eeeeec; }
+
+@media (any-hover: hover) and (any-pointer: fine) {
+  .canvas-selection-output:hover { color: #eeeeec; }
+}
+
+@media (any-hover: hover) and (any-pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .canvas-selection-output-glyph {
+    transform: var(--selection-pull, translate(0px, 0px));
+    transition: transform 500ms cubic-bezier(.333333, 1, .666667, 1);
+  }
+}
+
+.canvas-selection-output:focus-visible { outline: 1px solid currentColor; border-radius: 12px; }
+
+.canvas-selection-wires {
+  position: absolute;
+  inset: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.canvas-selection-wires path {
+  stroke-dasharray: 8 16;
+  animation: selection-output-dashes 600ms linear infinite;
+}
+
+@keyframes selection-output-dashes { to { stroke-dashoffset: -24; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .canvas-selection-wires path { animation: none; }
+}

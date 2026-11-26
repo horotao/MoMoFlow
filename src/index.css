@@ -230,10 +230,19 @@
   transition: none;
 }
 
-/* Keep React Flow's drag target under the nodes so the ports remain operable. */
+/* Keep the selection drag surface below the nodes. */
 .canvas-selection .react-flow__nodesselection {
   z-index: 1;
 }
+
+/* Keep handle boxes measurable for existing wires while the selection owns the ports. */
+.canvas-selection .canvas-node-ports-hidden .image-node-ports :is(.image-node-inputs, .image-node-output, .image-node-output-visual) {
+  visibility: hidden;
+  transition: none;
+}
+
+/* Pin each hidden port to its own row even when the pointer enters its magnetic field. */
+.canvas-node-ports-hidden [data-connection-port] { transform: none !important; }
 
 /* Let the group receive drags on selected node bodies, including nodes with inline pointer events. */
 .canvas-selection.canvas-tool-select[data-multiple="true"]:has(.react-flow__nodesselection-rect)

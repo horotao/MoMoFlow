@@ -13,6 +13,8 @@ import { TextInspector } from './components/image-prompt-node/TextInspector';
 import { restoreSunburstData } from './nodes/sunburstClipboard';
 import { CanvasNavigation, canvasMinZoom, canvasMaxZoom, type ZoomTarget } from './components/CanvasNavigation';
 import { CanvasSidebar, type CanvasTool } from './components/CanvasSidebar';
+import type { SelectionConnectionMenu } from './components/CanvasSelectionOutput';
+import { selectionConnectionChoices, selectionTargetSize } from './nodes/selectionConnections';
 import { CanvasSelectionOutline, CanvasSelectionToolbar } from './components/CanvasSelectionToolbar';
 import { groupSelectedNodes, settleGroupDrop } from './nodes/canvasGroups';
 import { requestCanvasRun } from './nodes/selectionGeneration';
@@ -38,6 +40,7 @@ import {
   ReactFlowProvider,
   SelectionMode,
   useReactFlow,
+  useStore,
   useStoreApi,
   Panel,
   addEdge,
@@ -68,7 +71,7 @@ import { CanvasProjectHeader } from './components/CanvasProjectHeader';
 
 const defaultEdgeOptions = { type: 'default' };
 const canvasDeleteKeys = ['Backspace', 'Delete'];
-type PendingNodeMenu = PendingConnection | (Pick<PendingConnection, 'screen' | 'position'> & { origin?: 'dock'; keyboard?: boolean });
+type PendingNodeMenu = PendingConnection | SelectionConnectionMenu | (Pick<PendingConnection, 'screen' | 'position'> & { origin?: 'dock'; keyboard?: boolean });
 
 type ProjectSession = {
   project: CanvasProject;
@@ -125,6 +128,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     startClick: startClickConnection, end: endConnectionGesture, withinRadius: withinConnectionRadius } = useConnectionGesture(40, true);
   const [tool, setTool] = useState<CanvasTool>('select');
   const [pendingNodeMenu, setPendingNodeMenu] = useState<PendingNodeMenu | null>(null);
+  const selectionMenu = pendingNodeMenu && 'sourceIds' in pendingNodeMenu ? pendingNodeMenu : undefined;
   const [menuGeneration, setMenuGeneration] = useState(0);
   const openNodeMenu = useCallback((menu: PendingNodeMenu) => {
     setMenuGeneration(generation => generation + 1);
@@ -164,7 +168,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       if (document.querySelector('dialog[open], [role="dialog"], [role="menu"]:not([data-state="closed"]), [role="listbox"]:not([data-state="closed"])')) return;
 
       const state = canvasStore.getState();
-      if (state.paneDragging || state.userSelectionActive || state.connection.inProgress || state.connectionClickStartHandle
+      if (canvas.querySelector('.canvas-selection-output[data-dragging]') || state.paneDragging || state.userSelectionActive || state.connection.inProgress || state.connectionClickStartHandle
         || state.nodes.some(node => node.dragging || node.resizing)) return;
 
       const position = screenToFlowPosition(pointer);
@@ -262,26 +266,41 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     if (!pendingNodeMenu) return;
     const pending = 'nodeId' in pendingNodeMenu ? pendingNodeMenu : null;
     const currentNodes = getNodes(), currentEdges = getEdges();
+    const batchChoice = selectionMenu && selectionConnectionChoices(currentNodes, selectionMenu.sourceIds).find(item => item.itemId === type);
     const choice = pending && connectionChoices(pending, currentNodes).find(item => item.itemId === type);
-    if (pending && !choice) return;
+    if ((pending && !choice) || (selectionMenu && !batchChoice)) return;
     const created: AppNode[] = [], connections: Edge[] = [];
+    const dropPoints = new Map<string, XYPosition>();
     for (let i = 0; i < quantity; i++) {
-      const node = createLibraryNode(type, {
+      const position = {
         x: pendingNodeMenu.position.x - (choice?.portX ?? 0) + (i % 4) * 512,
         y: pendingNodeMenu.position.y - (choice?.portY ?? 0) + Math.floor(i / 4) * 512,
-      });
+      };
+      const node = createLibraryNode(type, position);
       if (!node) return;
-      if (pending && choice) {
-        const link = choiceConnection(pending, choice, node.id);
+      if (selectionMenu) dropPoints.set(node.id, position);
+      const links = batchChoice ? batchChoice.links.map(link => ({ ...link, target: node.id }))
+        : pending && choice ? [choiceConnection(pending, choice, node.id)] : [];
+      for (const link of links) {
         if (!canConnect(link, [...currentNodes, ...created, node], [...currentEdges, ...connections])) return;
         connections.push({ ...link, id: crypto.randomUUID() });
       }
       created.push(node);
     }
-    const nextEdges = connections.length ? [...withoutReplacedInput(connections[0], currentEdges), ...connections] : currentEdges;
+    const retainedEdges = pending?.direction === 'target' ? withoutReplacedInput(connections[0], currentEdges) : currentEdges;
+    const nextEdges = [...retainedEdges, ...connections];
     setNodes(current => {
       let next = [...current.map(node => ({ ...node, selected: false })), ...created];
-      for (const connection of connections) next = connectImageReferenceRatio(next, currentEdges, nextEdges, connection.target);
+      for (const target of new Set(connections.map(link => link.target))) next = connectImageReferenceRatio(next, currentEdges, nextEdges, target);
+      if (selectionMenu) {
+        const sources = current.filter(node => selectionMenu.sourceIds.includes(node.id));
+        next = next.map(node => {
+          const drop = dropPoints.get(node.id);
+          if (!drop) return node;
+          const size = selectionTargetSize(node, sources);
+          return { ...node, position: { x: drop.x + size.width / 2, y: drop.y - size.height / 2 } };
+        });
+      }
       return next;
     });
     if (connections.length) setEdges(nextEdges);
@@ -358,6 +377,9 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
     return () => window.removeEventListener('paste', paste);
   }, [addMediaFiles, screenToFlowPosition, setNodes]);
 
+  const selecting = useStore(state => state.userSelectionActive);
+  const multiple = nodes.filter(node => node.selected).length > 1;
+  const hideSelectedPorts = selecting || multiple;
   const canvasNodes = useMemo(() => {
     const lockedGroups = new Set(nodes.filter(node => node.parentId && isNodeLocked(node)).map(node => node.parentId));
     const selectedGroups = new Set(nodes.filter(node => isCanvasGroup(node) && node.selected).map(node => node.id));
@@ -367,10 +389,11 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       if (isCanvasGroup(node)) return { ...node, draggable: editable, deletable: !locked, connectable: false,
         className: 'canvas-group-node', ariaLabel: node.data.label };
       const memberClass = node.parentId && selectedGroups.has(node.parentId) && !node.selected ? ' canvas-group-member-in-selected-frame' : '';
+      const portsClass = hideSelectedPorts && node.selected ? ' canvas-node-ports-hidden' : '';
       return withCanvasImageDrag({ ...node, draggable: editable, deletable: !locked,
-        connectable: editable, className: `canvas-image-node${memberClass}` });
+        connectable: editable, className: `canvas-image-node${memberClass}${portsClass}` });
     });
-  }, [nodes, tool]);
+  }, [nodes, tool, hideSelectedPorts]);
   const arrangeSelection = () => {
     setNodes(current => arrangeSelectedNodes(current, getEdges(), gridSnap ? gridOrigin.current : undefined));
   };
@@ -399,7 +422,7 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       proOptions={{ hideAttribution: true }}
       colorMode={colorMode}
       className={`canvas-tool-${tool} canvas-selection`}
-      data-multiple={nodes.filter(node => node.selected).length > 1}
+      data-multiple={multiple}
       panOnDrag={tool === 'hand' ? [0, 1, 2] : [1, 2]}
       selectionOnDrag={tool === 'select'}
       selectionMode={SelectionMode.Partial}
@@ -498,8 +521,8 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
       fitView={!saved && initialGraph.nodes.length > 0}
     >
       <CanvasBackground onGridOriginChange={updateGridOrigin} />
-      <CanvasSelectionOutline />
-      <CanvasSelectionToolbar enabled={tool === 'select'} nodes={nodes}
+      {!selectionMenu && <CanvasSelectionOutline />}
+      <CanvasSelectionToolbar enabled={tool === 'select'} nodes={nodes} output={{ menu: selectionMenu, onOpen: openNodeMenu }}
         onAlign={action => setNodes(current => alignSelectedNodes(current, action))}
         onArrange={arrangeSelection} onChangeTags={color => setNodes(current => changeSelectedColorTags(current, color))}
         onGroup={() => {
@@ -518,7 +541,8 @@ export function Flow({ storage, saved, projectSession }: { storage: WorkflowStor
         create={() => withSavedWorkflow(projectSession.create)} rename={projectSession.rename}
         remove={project => withSavedWorkflow(snapshot => projectSession.remove(project, snapshot))} />}
       {pendingNodeMenu && <AddNodeMenu key={menuGeneration} position={pendingNodeMenu.screen}
-        allowedTypes={'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes).map(choice => choice.itemId) : undefined}
+        allowedTypes={selectionMenu ? selectionConnectionChoices(nodes, selectionMenu.sourceIds).map(choice => choice.itemId)
+          : 'nodeId' in pendingNodeMenu ? connectionChoices(pendingNodeMenu, nodes).map(choice => choice.itemId) : undefined}
         triggerRef={'origin' in pendingNodeMenu ? addTrigger : undefined}
         allowQuantity={!('direction' in pendingNodeMenu) || pendingNodeMenu.direction === 'source'}
         onSelect={addNodes}

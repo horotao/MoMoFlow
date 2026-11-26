@@ -1,3 +1,4 @@
+import { CanvasSelectionOutput, type SelectionOutputProps } from './CanvasSelectionOutput';
 import { NodeToolbarTooltip, NodeToolbarTooltipScope } from './NodeToolbarTooltip';
 import { getNodesBounds, useStore, ViewportPortal, type ReactFlowState } from '@xyflow/react';
 import { Columns2, Download, FolderPlus, Group, Link, Lock, LockOpen, MessagesSquare, Play, Presentation, type LucideIcon } from 'lucide-react';
@@ -85,7 +86,7 @@ function selectionAnchor(state: ReactFlowState) {
   const right = left + bounds.width * zoom;
   const bottom = top + bounds.height * zoom;
   if (right <= 0 || left >= state.width || bottom <= 0 || top >= state.height) return;
-  return { x: (left + right) / 2, y: top };
+  return { x: (left + right) / 2, y: top, right, midY: (top + bottom) / 2 };
 }
 
 type ToolbarActions = {
@@ -141,9 +142,15 @@ function SelectionActions({ anchor, nodes, onAlign, onArrange, onChangeTags, onG
   </div>;
 }
 
-export function CanvasSelectionToolbar({ enabled, ...actions }: ToolbarActions & { enabled: boolean }) {
-  const anchor = useStore(selectionAnchor, (a, b) => a?.x === b?.x && a?.y === b?.y);
-  return <AnimatePresence>
-    {enabled && anchor && <SelectionActions key="selection" anchor={anchor} {...actions} />}
-  </AnimatePresence>;
+export function CanvasSelectionToolbar({ enabled, output, ...actions }: ToolbarActions & { enabled: boolean; output?: SelectionOutputProps }) {
+  const anchor = useStore(selectionAnchor, (a, b) => a?.x === b?.x && a?.y === b?.y && a?.right === b?.right && a?.midY === b?.midY);
+  const showOutput = useStore(state => Math.round(state.transform[2] * 100) > 14);
+  const ids = enabled && anchor ? actions.nodes.filter(node => node.selected && !node.hidden).map(node => node.id) : [];
+  return <>
+    <AnimatePresence>
+      {enabled && anchor && !output?.menu && <SelectionActions key="selection" anchor={anchor} {...actions} />}
+    </AnimatePresence>
+    {enabled && anchor && output && (showOutput || output.menu) && <CanvasSelectionOutput key={JSON.stringify(ids)} {...output}
+      anchor={{ x: anchor.right, y: anchor.midY }} sourceIds={ids} />}
+  </>;
 }

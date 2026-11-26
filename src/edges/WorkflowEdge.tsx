@@ -10,7 +10,8 @@ import './workflowWire.css';
 // A hidden port still has a layout box outside the card. Keep its input row
 // height, but draw the existing wire all the way to the visible card boundary.
 function wireEndpoint(port: Element | null | undefined, side: 'left' | 'right', inverse: DOMMatrix | undefined, fallback: { x: number; y: number }) {
-  const card = port?.closest('[data-wire-drag] .image-node:not(:has([data-connection-eligible=true]))')?.querySelector(':scope > .image-node-card');
+  const card = port?.closest('.canvas-node-ports-hidden .image-node, [data-wire-drag] .image-node:not(:has([data-connection-eligible=true]))')
+    ?.querySelector(':scope > .image-node-card');
   if (!port || !card || !inverse) return portCenter(port, inverse, fallback);
   const { top, height } = port.getBoundingClientRect();
   return new DOMPoint(card.getBoundingClientRect()[side], top + height / 2).matrixTransform(inverse);
@@ -103,7 +104,12 @@ export function WorkflowEdge({ id, source, target, sourceHandleId, targetHandleI
       const button = port?.closest('[data-connection-port]');
       if (button) observer.observe(button, { attributes: true, attributeFilter: ['style', 'data-connection-eligible'] });
     }
-    hosts.forEach(host => host.addEventListener('transitionrun', wake));
+    // With reduced motion, entering or leaving a card moves its ports without a transition event.
+    const geometryEvents = ['transitionrun', 'pointerenter', 'pointerleave'];
+    hosts.forEach(host => {
+      observer.observe(host, { attributes: true, attributeFilter: ['class', 'data-wire-hover'] });
+      geometryEvents.forEach(type => host.addEventListener(type, wake));
+    });
     const reveal = () => hosts.forEach(host => host.setAttribute('data-wire-hover', 'true'));
     const hide = () => hosts.forEach(host => host.removeAttribute('data-wire-hover'));
     element.addEventListener('pointerenter', reveal);
@@ -116,7 +122,7 @@ export function WorkflowEdge({ id, source, target, sourceHandleId, targetHandleI
       observer.disconnect();
       reduced.removeEventListener('change', wake);
       cancelAnimationFrame(frame);
-      hosts.forEach(host => host.removeEventListener('transitionrun', wake));
+      hosts.forEach(host => geometryEvents.forEach(type => host.removeEventListener(type, wake)));
       element.removeEventListener('pointerenter', reveal);
       element.removeEventListener('pointerleave', hide);
     };
