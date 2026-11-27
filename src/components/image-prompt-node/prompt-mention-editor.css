@@ -20,10 +20,7 @@
   font-family: GeistSans, ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 17.5px;
 }
 .image-mention-clip { overflow: hidden; border-radius: 6px; }
-.image-mention-scroll { overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scroll-padding-block: 4px; scrollbar-width: auto; scrollbar-color: auto; }
-.image-mention-scroll::-webkit-scrollbar { width: 15px; margin-right: 2px; background: transparent; }
-.image-mention-scroll::-webkit-scrollbar-track { background: transparent; }
-.image-mention-scroll::-webkit-scrollbar-thumb { border: 6px solid transparent; border-radius: 8px; background: #b5b3ad; background-clip: padding-box; }
+.image-mention-scroll { scroll-padding-block: 4px; }
 .image-mention-menu [role=group] { padding: 4px; }
 .image-mention-label { box-sizing: border-box; height: 40px; padding: 14px 16px; color: #b5b3ad; font-size: 12px; line-height: 12px; font-weight: 500; }
 .image-mention-option { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px; border-radius: 12px; box-sizing: border-box; cursor: pointer; user-select: none; }

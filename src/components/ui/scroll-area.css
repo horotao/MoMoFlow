@@ -1,28 +1,185 @@
+/* Shared overlay scrollbar layer + Fluid Functionalism scroll-fade.
+ * One unified visual & interaction system across nodes, inspectors, menus,
+ * dialogs, and fullscreen previews. */
+
+:root {
+  --scrollbar-thumb-rgb: 238 238 236;
+  --scrollbar-thumb-rest: rgb(var(--scrollbar-thumb-rgb) / 0.24);
+  --scrollbar-thumb-hover: rgb(var(--scrollbar-thumb-rgb) / 0.42);
+  --scrollbar-thumb-active: rgb(var(--scrollbar-thumb-rgb) / 0.62);
+  --scrollbar-thumb-ring: rgb(var(--scrollbar-thumb-rgb) / 0.14);
+  --scrollbar-track-size: 12px;
+  --scrollbar-thumb-size: 4px;
+  --scrollbar-thumb-hover-size: 6px;
+  --scrollbar-thumb-active-size: 8px;
+  --scrollbar-thumb-edge-inset: 2px;
+  --scrollbar-track-padding: 4px;
+}
+
+:root[data-scrollbar-dragging='true'],
+:root[data-scrollbar-dragging='true'] * {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.shared-scroll-area {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.shared-scroll-viewport {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  max-height: inherit;
+  border-radius: inherit;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.shared-scroll-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.shared-scroll-viewport[data-orientation='vertical'] {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.shared-scroll-viewport[data-orientation='horizontal'] {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.shared-scroll-viewport[data-orientation='both'] {
+  overflow: auto;
+}
+
+/* Wrapped and standalone viewports both use native bars when touch input disables the overlay. */
+@media (pointer: coarse) {
+  .shared-scroll-viewport:not(:has(~ [data-slot='scroll-area-scrollbar'])) {
+    scrollbar-width: auto;
+    -ms-overflow-style: auto;
+  }
+
+  .shared-scroll-viewport:not(:has(~ [data-slot='scroll-area-scrollbar']))::-webkit-scrollbar {
+    display: initial;
+  }
+}
+
+[data-slot='scroll-area-scrollbar'] {
+  position: absolute;
+  z-index: 20;
+  box-sizing: border-box;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease-out 80ms;
+}
+
+[data-slot='scroll-area-scrollbar'][data-visible] {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 160ms ease-out 0ms;
+}
+
+[data-slot='scroll-area-scrollbar']:active,
+[data-slot='scroll-area-scrollbar'][data-dragging='true'] {
+  cursor: grabbing;
+}
+
+[data-slot='scroll-area-scrollbar'][data-orientation='vertical'] {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--scrollbar-track-size);
+  padding-block: var(--scrollbar-track-padding);
+}
+
+[data-slot='scroll-area-scrollbar'][data-orientation='horizontal'] {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--scrollbar-track-size);
+  padding-inline: var(--scrollbar-track-padding);
+}
+
+[data-slot='scroll-area-thumb'] {
+  position: absolute;
+  border-radius: 9999px;
+  background: var(--scrollbar-thumb-rest);
+  cursor: grab;
+  will-change: transform;
+  transition:
+    background-color 140ms ease-out,
+    width 140ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 140ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 140ms ease-out;
+}
+
+[data-slot='scroll-area-scrollbar'][data-orientation='vertical'] > [data-slot='scroll-area-thumb'] {
+  top: 0;
+  right: var(--scrollbar-thumb-edge-inset);
+  width: var(--scrollbar-thumb-size);
+}
+
+[data-slot='scroll-area-scrollbar'][data-orientation='horizontal'] > [data-slot='scroll-area-thumb'] {
+  left: 0;
+  bottom: var(--scrollbar-thumb-edge-inset);
+  height: var(--scrollbar-thumb-size);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-slot='scroll-area-scrollbar']:hover > [data-slot='scroll-area-thumb'] {
+    background: var(--scrollbar-thumb-hover);
+  }
+
+  [data-slot='scroll-area-scrollbar'][data-orientation='vertical']:hover > [data-slot='scroll-area-thumb'] {
+    width: var(--scrollbar-thumb-hover-size);
+  }
+
+  [data-slot='scroll-area-scrollbar'][data-orientation='horizontal']:hover > [data-slot='scroll-area-thumb'] {
+    height: var(--scrollbar-thumb-hover-size);
+  }
+}
+
+[data-slot='scroll-area-scrollbar']:active > [data-slot='scroll-area-thumb'],
+[data-slot='scroll-area-scrollbar'][data-dragging='true'] > [data-slot='scroll-area-thumb'] {
+  cursor: grabbing;
+  background: var(--scrollbar-thumb-active);
+  box-shadow: 0 0 0 1px var(--scrollbar-thumb-ring);
+}
+
+[data-slot='scroll-area-scrollbar'][data-orientation='vertical']:active > [data-slot='scroll-area-thumb'],
+[data-slot='scroll-area-scrollbar'][data-orientation='vertical'][data-dragging='true'] > [data-slot='scroll-area-thumb'] {
+  width: var(--scrollbar-thumb-active-size);
+}
+
+[data-slot='scroll-area-scrollbar'][data-orientation='horizontal']:active > [data-slot='scroll-area-thumb'],
+[data-slot='scroll-area-scrollbar'][data-orientation='horizontal'][data-dragging='true'] > [data-slot='scroll-area-thumb'] {
+  height: var(--scrollbar-thumb-active-size);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='scroll-area-scrollbar'],
+  [data-slot='scroll-area-scrollbar'][data-visible],
+  [data-slot='scroll-area-thumb'] {
+    transition: none !important;
+  }
+}
+
 /* Fluid Functionalism scroll-fade, scoped to opt-in ScrollArea viewports.
  * Source (MIT): https://www.fluidfunctionalism.com/r/scroll-area.json */
-/* Radix sets both thumb dimensions inline. Supply its cross-axis variable
- * so the 4px / 6px thumb widths also work with Radix 1.4. */
-[data-slot='scroll-area-scrollbar'][data-orientation='vertical'] {
-  --radix-scroll-area-thumb-width: 4px;
-  padding-block: 4px;
-}
-[data-slot='scroll-area-scrollbar'][data-orientation='vertical']:hover {
-  --radix-scroll-area-thumb-width: 6px;
-}
-[data-slot='scroll-area-scrollbar'][data-orientation='horizontal'] {
-  --radix-scroll-area-thumb-height: 4px;
-  padding-inline: 4px;
-}
-[data-slot='scroll-area-scrollbar'][data-orientation='horizontal']:hover {
-  --radix-scroll-area-thumb-height: 6px;
-}
-/* Radix includes track padding in its measurements, but not thumb margins. */
-[data-slot='scroll-area-scrollbar'][data-orientation='vertical'] > [data-slot='scroll-area-thumb'] {
-  margin-block: 0;
-}
-[data-slot='scroll-area-scrollbar'][data-orientation='horizontal'] > [data-slot='scroll-area-thumb'] {
-  margin-inline: 0;
-}
 @property --fluid-scroll-start {
   syntax: '<number>';
   inherits: false;

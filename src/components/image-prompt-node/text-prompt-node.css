@@ -1,13 +1,16 @@
 .text-node .image-node-surface-body { display: flex; flex-direction: column; padding: 16px; gap: 8px; }
-.text-node .image-node-composer { position: relative; inset: auto; flex: 1; min-height: 0; padding: 0 0 128px 4px; }
-.text-node.has-text-output .image-node-composer { flex: none; max-height: 144px; padding-bottom: 0; }
-.image-node.text-node.has-reference-images:not(.has-text-output) .image-node-composer { bottom: auto; padding-bottom: 128px; }
-.image-node.text-node.has-reference-images.has-text-output .image-node-composer { bottom: auto; padding-bottom: 0; }
+.text-node .image-node-composer { position: relative; inset: auto; flex: 1; min-height: 0; margin-right: -12px; }
+.text-node .image-node-composer-viewport { padding: 0 16px 128px 4px; }
+.text-node.has-text-output .image-node-composer { flex: none; max-height: 144px; }
+.text-node.has-text-output .image-node-composer-viewport { padding-bottom: 0; }
+.image-node.text-node.has-reference-images:not(.has-text-output) .image-node-composer { bottom: auto; }
+.image-node.text-node.has-reference-images:not(.has-text-output) .image-node-composer-viewport { padding-bottom: 128px; }
+.image-node.text-node.has-reference-images.has-text-output .image-node-composer { bottom: auto; }
+.image-node.text-node.has-reference-images.has-text-output .image-node-composer-viewport { padding-bottom: 0; }
 .text-node.has-text-output .image-node-composer .image-node-prompt-editor { font-size: 16px; font-weight: 500; line-height: 26px; letter-spacing: -.4px; }
 .text-node-output { min-height: 0; flex: 1; border-top: 1px solid var(--node-fill); margin-top: 8px; padding-top: 16px; position: relative; }
-.text-node-output-scroll { height: 100%; overflow: auto; padding: 0 4px 128px 0; margin-right: -12px; scrollbar-gutter: stable; font-size: 14px; line-height: var(--node-body-line-height); overflow-wrap: anywhere; user-select: text; }
-.text-node-output-scroll::-webkit-scrollbar { width: 15px; }
-.text-node-output-scroll::-webkit-scrollbar-thumb { background: var(--node-muted); background-clip: padding-box; border: 6px solid transparent; border-radius: 8px; }
+.text-node-output-area { height: 100%; margin-right: -12px; }
+.text-node-output-scroll { height: 100%; padding: 0 16px 128px 0; font-size: 14px; line-height: var(--node-body-line-height); overflow-wrap: anywhere; user-select: text; }
 .text-node-output-source { white-space: pre-wrap; }
 .text-node-editable { min-height: 1lh; cursor: text; }
 .text-node-editable:focus-visible { outline: 1px solid var(--node-muted); outline-offset: -1px; }

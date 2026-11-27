@@ -36,7 +36,8 @@
 .flora-add-node-search input::placeholder { color: #b5b3ad; opacity: 1; }
 .flora-add-node-search .flora-add-node-clear { display: flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; border-radius: 6px; }
 .flora-add-node-clear:hover { background: #fafaf223; }
-.flora-add-node-list { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #fafaf223 transparent; }
+.flora-add-node-list-area { flex: 1; min-height: 0; }
+.flora-add-node-list { min-height: 0; }
 .flora-add-node-group { padding: 4px; }
 .flora-add-node-divider { height: 1px; background: #fafaf223; }
 .flora-add-node-menu .flora-add-node-action {
@@ -71,12 +72,9 @@
   position: fixed;
   z-index: 1200;
   top: 8px;
-  display: grid;
-  align-content: start;
-  gap: 16px;
-  overflow: auto;
-  overscroll-behavior: contain;
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 24px;
   background: var(--canvas-overlay-background);
@@ -88,6 +86,8 @@
   transform: scale(var(--node-preview-scale));
   transition: opacity 80ms var(--node-preview-ease), transform 80ms var(--node-preview-ease);
 }
+.add-node-preview-scroll-area { flex: 1; min-height: 0; }
+.add-node-preview-scroll { display: grid; align-content: start; gap: 16px; padding: 20px; }
 .add-node-preview[data-state="open"] {
   opacity: 1;
   transform: scale(1);

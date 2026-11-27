@@ -25,7 +25,7 @@ export function ColorTagPicker({ tags, disabled, onChange, forSelection = false 
       {forSelection ? <span className="canvas-selection-tag-ring" aria-hidden="true" /> :
         <span className="node-tag-stack" aria-hidden="true">{showTags ? colorTags.filter(tag => tags.includes(tag.id)).map(tag => <span key={tag.id} className="node-tag-dot" style={{ background: tag.color }} />) : <span className="image-node-tag" />}</span>}
     </button></Menu.Trigger></NodeToolbarTooltip>
-    <Menu.Portal><Menu.Content className="color-tag-menu color-tag-picker nodrag nopan nowheel" sideOffset={9} align="start" collisionPadding={8} data-keyboard={keyboard}
+    <Menu.Portal><Menu.Content className="color-tag-menu color-tag-picker nodrag nopan nowheel" sideOffset={9} align="start" collisionPadding={8} updatePositionStrategy="always" data-keyboard={keyboard}
       aria-label="节点颜色标记" onPointerDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()} onKeyDown={event => {
         event.stopPropagation();
         if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;

@@ -12,6 +12,7 @@ import { ImagePromptIcon } from './ImagePromptIcon';
 import { ImagePromptInfoTip } from './ImagePromptInfoTip';
 import { GenerationOptionsPanel } from './GenerationOptionsPanel';
 import { GenerationOptionSelect } from './GenerationOptionSelect';
+import { ScrollArea } from '../ui/scroll-area';
 import './image-inspector.css';
 import './text-inspector.css';
 
@@ -49,24 +50,26 @@ function TextInformation({ nodeId, data, result }: { nodeId: string; data: Canva
     ['本次花费', textCostLabel(billing?.totalUsd)], ['创建者', '—'],
   ] : [];
   return <section className="image-information text-information" aria-label="文本信息">
-    <header><input key={name} aria-label="文本节点名称" defaultValue={name} title={name} disabled={data.locked} maxLength={256}
-      onBlur={event => {
-        const label = event.target.value.trim() || 'Text';
-        event.currentTarget.value = label;
-        if (!data.locked && label !== name) updateNodeData(nodeId, { label });
-      }}
-      onKeyDown={event => { if (event.key === 'Enter' || event.key === 'Escape') { event.preventDefault(); if (event.key === 'Escape') event.currentTarget.value = name; event.currentTarget.blur(); } }} />
-      <button type="button" className="image-information-toggle" aria-label="文本信息" disabled={!result}
-        aria-expanded={Boolean(result) && expanded} aria-controls={result ? id : undefined}
-        onClick={() => setExpanded(!expanded)}><ImagePromptIcon name="metadata-info" /></button></header>
-    {result && expanded && <dl id={id}>{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd title={label === '本次花费' ? billDescription : value}>{value}</dd></div>)}</dl>}
-    {result && <footer><DropdownMenu.Root modal={false}><DropdownMenu.Trigger asChild>
-      <button type="button" className="image-information-more" aria-label="更多文本操作"><ImagePromptIcon name="metadata-more" /></button>
-    </DropdownMenu.Trigger><DropdownMenu.Portal><DropdownMenu.Content className="image-information-menu nodrag nopan nowheel" align="end" sideOffset={6}
-      onKeyDown={event => event.stopPropagation()} onEscapeKeyDown={event => event.stopPropagation()}
-      onPointerDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
-      <DropdownMenu.Item disabled><span className="image-information-menu-icon"><ImagePromptIcon name="metadata-save" /></span><span>保存到素材库</span><kbd>2</kbd></DropdownMenu.Item>
-    </DropdownMenu.Content></DropdownMenu.Portal></DropdownMenu.Root></footer>}
+    <ScrollArea className="inspector-card-scroll-area" viewportClassName="inspector-card-scroll">
+      <header><input key={name} aria-label="文本节点名称" defaultValue={name} title={name} disabled={data.locked} maxLength={256}
+        onBlur={event => {
+          const label = event.target.value.trim() || 'Text';
+          event.currentTarget.value = label;
+          if (!data.locked && label !== name) updateNodeData(nodeId, { label });
+        }}
+        onKeyDown={event => { if (event.key === 'Enter' || event.key === 'Escape') { event.preventDefault(); if (event.key === 'Escape') event.currentTarget.value = name; event.currentTarget.blur(); } }} />
+        <button type="button" className="image-information-toggle" aria-label="文本信息" disabled={!result}
+          aria-expanded={Boolean(result) && expanded} aria-controls={result ? id : undefined}
+          onClick={() => setExpanded(!expanded)}><ImagePromptIcon name="metadata-info" /></button></header>
+      {result && expanded && <dl id={id}>{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd title={label === '本次花费' ? billDescription : value}>{value}</dd></div>)}</dl>}
+      {result && <footer><DropdownMenu.Root modal={false}><DropdownMenu.Trigger asChild>
+        <button type="button" className="image-information-more" aria-label="更多文本操作"><ImagePromptIcon name="metadata-more" /></button>
+      </DropdownMenu.Trigger><DropdownMenu.Portal><DropdownMenu.Content className="image-information-menu nodrag nopan nowheel" align="end" sideOffset={6}
+        onKeyDown={event => event.stopPropagation()} onEscapeKeyDown={event => event.stopPropagation()}
+        onPointerDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>
+        <DropdownMenu.Item disabled><span className="image-information-menu-icon"><ImagePromptIcon name="metadata-save" /></span><span>保存到素材库</span><kbd>2</kbd></DropdownMenu.Item>
+      </DropdownMenu.Content></DropdownMenu.Portal></DropdownMenu.Root></footer>}
+    </ScrollArea>
   </section>;
 }
 

@@ -120,8 +120,8 @@
 .image-node.has-compact-composer .image-node-surface:is(:hover, :focus-within) { backdrop-filter: blur(24px); }
 .image-node.has-compact-composer .image-node-surface-body { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 8px; background: #0000004d; opacity: .5; }
 .image-node.has-compact-composer .image-node-surface:is(:hover, :focus-within) .image-node-surface-body { opacity: 1; }
-.image-node.has-compact-composer .image-node-composer { position: relative; inset: auto; flex: none; max-height: 72px; padding: 0 0 0 4px; }
-.image-node.has-compact-composer .image-node-composer::-webkit-scrollbar-thumb { background-color: var(--node-muted); }
+.image-node.has-compact-composer .image-node-composer { position: relative; inset: auto; flex: none; max-height: 72px; margin-right: -4px; }
+.image-node.has-compact-composer .image-node-composer-viewport { padding: 0 12px 0 4px; }
 .image-node.has-compact-composer .image-node-footer { position: relative; inset: auto; flex: none; opacity: 1; visibility: inherit; transform: none; transition: none; }
 .image-node.has-compact-composer .image-node-actions::before { display: none; }
 .image-node.has-compact-composer .image-node-generate-group {
@@ -130,29 +130,21 @@
 
 .image-node.has-reference-images:not(.has-compact-composer) .image-node-composer {
   bottom: 112px;
+}
+.image-node.has-reference-images:not(.has-compact-composer) .image-node-composer-viewport {
   padding-bottom: 8px;
 }
 
 .image-node-composer {
   position: absolute;
-  inset: 16px 16px 0;
-  padding: 0 0 144px 4px;
+  inset: 16px 4px 0 16px;
   border-radius: 8px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scrollbar-width: auto;
   cursor: default;
 }
-.image-node-composer:active { cursor: grabbing; }
-.image-node-composer::-webkit-scrollbar { width: 15px; height: 15px; background: transparent; }
-.image-node-composer::-webkit-scrollbar-track { background: transparent; }
-.image-node-composer::-webkit-scrollbar-thumb {
-  border: 6px solid transparent;
-  border-radius: 8px;
-  background: var(--node-subtle);
-  background-clip: padding-box;
+.image-node-composer-viewport {
+  position: relative;
+  padding: 0 16px 144px 4px;
 }
-.image-node-composer::-webkit-scrollbar-thumb:active { cursor: grabbing; }
 .image-node-composer .image-node-prompt-editor {
   display: block;
   width: 100%;

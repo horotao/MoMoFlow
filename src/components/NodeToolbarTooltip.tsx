@@ -23,7 +23,7 @@ export function NodeToolbarTooltip({ label, children }: {
     <Tooltip.Trigger asChild onPointerMove={() => setKeyboard(false)} onFocus={() => setKeyboard(true)}>
       {children.props.disabled ? <span className="node-toolbar-tooltip-trigger">{trigger}</span> : trigger}
     </Tooltip.Trigger>
-    <Tooltip.Portal><Tooltip.Content side="top" sideOffset={4} collisionPadding={8}
+    <Tooltip.Portal><Tooltip.Content side="top" sideOffset={4} collisionPadding={8} updatePositionStrategy="always"
       className="node-toolbar-tooltip nodrag nopan nowheel" data-keyboard={keyboard || undefined}
       onEscapeKeyDown={event => event.stopPropagation()}
       onPointerDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}>

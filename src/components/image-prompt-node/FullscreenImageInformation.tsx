@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { FileAsset } from '../../nodes/types';
 import { measureAsset } from '../../nodes/fileMedia';
 import { imageCreatedAt, imageDateLabel, imageFormat, imageModel, imageSizeLabel } from '../../nodes/imageMetadata';
+import { ScrollArea } from '../ui/scroll-area';
 
 export function FullscreenImageInformation({ asset }: { asset: FileAsset }) {
   const [measured, setMeasured] = useState(asset);
@@ -29,5 +30,5 @@ export function FullscreenImageInformation({ asset }: { asset: FileAsset }) {
     ['创建时间', created],
     ['创建者', '—'],
   ];
-  return <aside className="image-fullscreen-information" aria-label="图片信息"><dl>{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></aside>;
+  return <aside className="image-fullscreen-information" aria-label="图片信息"><ScrollArea className="image-fullscreen-information-scroll-area" viewportClassName="image-fullscreen-information-scroll"><dl>{rows.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></ScrollArea></aside>;
 }

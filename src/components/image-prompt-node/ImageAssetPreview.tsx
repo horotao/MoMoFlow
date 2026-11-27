@@ -9,6 +9,7 @@ import type { ImageDownloadFormat } from '../../nodes/fileMedia';
 import { FullscreenImageViewport } from './FullscreenImageViewport';
 import { FullscreenImageInformation } from './FullscreenImageInformation';
 import { FullscreenDownloadMenu, FullscreenCopyButton, FullscreenTip, FullscreenTooltipScope } from './FullscreenImageActions';
+import { ScrollArea } from '../ui/scroll-area';
 import './image-asset-preview.css';
 
 function FullscreenHistoryImage({ asset }: { asset: FileAsset }) {
@@ -167,22 +168,22 @@ export function ImageAssetPreview({ asset, assets, onClose }: { asset: FileAsset
           </div>
         </div>
         <div className="image-fullscreen-content">
-        <div ref={gallery} className="image-fullscreen-masonry image-fullscreen-layout-panel" data-hidden={!masonry || undefined} aria-hidden={!masonry || undefined} aria-label="Generation gallery" {...(!masonry ? { inert: '' } : {})}><div className="image-fullscreen-masonry-columns">
+        <ScrollArea className="image-fullscreen-masonry image-fullscreen-layout-panel" viewportRef={gallery} viewportClassName="image-fullscreen-masonry-viewport" data-hidden={!masonry || undefined} aria-hidden={!masonry || undefined} aria-label="Generation gallery" {...(!masonry ? { inert: '' } : {})}><div className="image-fullscreen-masonry-columns">
           {Array.from({ length: columns }, (_, column) => <div className="image-fullscreen-masonry-column" key={column}>{variants.map((item, i) => i % columns !== column ? null : <div className="image-fullscreen-masonry-item" key={item.id}
             onClick={() => { select(i); setMasonry(false); }}>
             <button type="button" className="image-fullscreen-masonry-open" aria-label={`Open variant ${i + 1}`}><img src={item.url} alt="Generated media" draggable={false} /></button>
-            <div className="image-fullscreen-masonry-overlay"><p>{savedImagePrompt(item)}</p><div onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
+            <div className="image-fullscreen-masonry-overlay"><ScrollArea className="image-fullscreen-masonry-prompt" viewportClassName="image-fullscreen-masonry-prompt-viewport"><p>{savedImagePrompt(item)}</p></ScrollArea><div onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
               <FullscreenCopyButton value={savedImagePrompt(item) ?? ''} label="Copy prompt" />
               <FullscreenDownloadMenu portal={portal} label="Download media" onDownload={format => void download(item, format)} />
             </div></div>
           </div>)}</div>)}
-        </div></div>
+        </div></ScrollArea>
         <div className="image-fullscreen-single-panel image-fullscreen-layout-panel" data-hidden={masonry || undefined} aria-hidden={masonry || undefined} {...(masonry ? { inert: '' } : {})}>
           <div className="image-fullscreen-body">
             <div className="image-fullscreen-image-column"><FullscreenImageViewport asset={current} /></div>
             <FullscreenImageInformation key={`${current.id}:${current.url}`} asset={current} />
           </div>
-          {prompt && <div className="image-fullscreen-footer"><div className="image-fullscreen-prompt-column"><div className="image-fullscreen-prompt"><div>{prompt}</div><FullscreenCopyButton value={prompt} label="Copy prompt" /></div></div><div className="image-fullscreen-footer-spacer" /></div>}
+          {prompt && <div className="image-fullscreen-footer"><div className="image-fullscreen-prompt-column"><div className="image-fullscreen-prompt"><ScrollArea className="image-fullscreen-prompt-scroll" viewportClassName="image-fullscreen-prompt-viewport">{prompt}</ScrollArea><FullscreenCopyButton value={prompt} label="Copy prompt" /></div></div><div className="image-fullscreen-footer-spacer" /></div>}
         </div>
         </div>
       </div>

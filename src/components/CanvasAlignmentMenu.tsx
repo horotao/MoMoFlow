@@ -5,6 +5,7 @@ import {
   AlignStartHorizontal, AlignStartVertical, AlignVerticalSpaceBetween, LayoutDashboard, type LucideIcon,
 } from 'lucide-react';
 import type { CanvasAlignment } from './canvasLayout';
+import { ScrollArea } from './ui/scroll-area';
 
 const groups: { label: string; actions: {
   key: CanvasAlignment; label: string; icon: LucideIcon; minimum?: number;
@@ -39,10 +40,11 @@ export function CanvasAlignmentMenu({ disabled, count, onAlign, onArrange, open,
     </Menu.Trigger></NodeToolbarTooltip>
     <Menu.Portal>
       <Menu.Content aria-label="对齐与分布" className="canvas-alignment-menu nodrag nopan nowheel nokey"
-        sideOffset={9} align="start" collisionPadding={8}
+        sideOffset={9} align="start" collisionPadding={8} updatePositionStrategy="always"
         onPointerDown={event => event.stopPropagation()}
         onWheel={event => event.stopPropagation()}
         onKeyDown={event => event.stopPropagation()}>
+        <ScrollArea className="canvas-alignment-scroll-area" viewportClassName="canvas-alignment-scroll">
         {groups.map(group => <Menu.Group key={group.label} aria-label={group.label}>
           <Menu.Label className="canvas-alignment-label">{group.label}</Menu.Label>
           {group.actions.map(({ key, label, icon: Icon, minimum = 2 }) => (
@@ -57,6 +59,7 @@ export function CanvasAlignmentMenu({ disabled, count, onAlign, onArrange, open,
           <LayoutDashboard size={16} aria-hidden="true" />
           自动整理
         </Menu.Item>
+        </ScrollArea>
       </Menu.Content>
     </Menu.Portal>
   </Menu.Root>;

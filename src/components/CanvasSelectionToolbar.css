@@ -74,11 +74,12 @@
 }
 
 .canvas-alignment-menu {
+  display: flex;
+  flex-direction: column;
   z-index: 1200;
   min-width: 104px;
   max-height: var(--radix-dropdown-menu-content-available-height);
-  padding: 4px;
-  overflow-y: auto;
+  overflow: hidden;
   border: 1px solid rgb(250 250 242 / 13.7%);
   border-radius: 16px;
   background: rgb(0 0 0 / 30%);
@@ -87,6 +88,8 @@
   font: 14px/1.25 GeistSans, var(--font-ui), sans-serif;
   user-select: none;
 }
+.canvas-alignment-scroll-area { flex: 1; min-height: 0; }
+.canvas-alignment-scroll { padding: 4px; }
 
 .canvas-alignment-label {
   padding: 8px 8px 4px;

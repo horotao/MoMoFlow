@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { Handle, Position, useEdges, useNodesData, useReactFlow, useStore, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import { ImagePromptNode } from '../components/image-prompt-node/ImagePromptNode';
+import { ScrollArea } from '../components/ui/scroll-area';
 import { ImagePromptToolbar } from '../components/image-prompt-node/ImagePromptToolbar';
 import { ImagePromptIcon } from '../components/image-prompt-node/ImagePromptIcon';
 import { InputPortRing } from '../components/image-prompt-node/InputPortRing';
@@ -218,9 +219,10 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
           }));
         }
       }}
-      textResult={item || active ? <div ref={scroller} className="text-node-output-scroll" onScroll={event => {
-        const el = event.currentTarget; follow.current = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
-      }}>
+      textResult={item || active ? <ScrollArea className="text-node-output-area" orientation="both" viewportRef={scroller} viewportClassName="text-node-output-scroll"
+        viewportProps={{ onScroll: event => {
+          const el = event.currentTarget; follow.current = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+        } }}>
         {item?.error ? <div className="text-node-output-source">{item.error}</div>
           : !batch && !data.locked && active
             ? <EditableTextResult key={active.id} text={output}
@@ -228,7 +230,7 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
               {preview}
             </EditableTextResult>
             : preview}
-      </div> : undefined}
+      </ScrollArea> : undefined}
       imageInputCount={references.length} outputConnected={edges.some(edge => edge.source === id)}
       references={inputs}
       onRemoveReference={edgeId => {

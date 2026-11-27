@@ -19,6 +19,7 @@ import { useMagneticPorts } from './useMagneticPorts';
 import { useControllableValue } from './useControllableValue';
 import { InputPortRing } from './InputPortRing';
 import { ImageNodeTitle } from './ImageNodeTitle';
+import { ScrollArea } from '../ui/scroll-area';
 import './image-prompt-node.css';
 
 import { OutputPortIcon } from './OutputPortIcon';
@@ -280,11 +281,11 @@ export function ImagePromptNode({
           {!assetKind && <div className="image-node-surface">
             <div className="image-node-surface-body">
             {referencesAbovePrompt && referenceStrip}
-            <div ref={promptScroll} className="image-node-composer nowheel" onWheel={event => event.stopPropagation()}>
+            <ScrollArea className="image-node-composer nowheel" viewportRef={promptScroll} viewportClassName="image-node-composer-viewport" onWheel={event => event.stopPropagation()}>
               <PromptMentionEditor ref={editor} allowMentions={kind !== 'audio'} kind={kind === 'text' ? 'text' : 'image'} prompt={prompt} mentions={promptMentions} candidates={mentionCandidates}
                 readOnly={locked || promptReadOnly || audioRunning} suggestion={suggestion} onChange={setPrompt} onEdit={onMentionEdit} />
               {!prompt && !promptReadOnly && <div className="image-node-suggestion" aria-hidden="true"><span className="image-node-suggestion-label">Try "{suggestion}"</span><kbd>tab</kbd></div>}
-            </div>
+            </ScrollArea>
 
             {hasTextOutput && <div className="text-node-output nowheel nodrag nopan" onWheel={event => event.stopPropagation()}>{textResult}</div>}
 

@@ -4,6 +4,8 @@ import * as Menu from '@radix-ui/react-dropdown-menu';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { ImagePromptInfoTip } from './ImagePromptInfoTip';
 import { ImagePromptIcon } from './ImagePromptIcon';
+import { ScrollArea } from '../ui/scroll-area';
+import { useAnchorPositionObserver } from './useAnchorPositionObserver';
 import './image-prompt-model-menu.css';
 
 export function ImagePromptModelBrand({ brand }: { brand: string }) {
@@ -57,23 +59,42 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
   const multipleId = useId();
   const filtered = models.filter(model => `${model.name} ${model.brand} ${model.channel ?? ''} ${model.description}`.toLowerCase().includes(query.trim().toLowerCase()));
 
-  useLayoutEffect(() => {
-    function place() {
+  useAnchorPositionObserver(
+    anchor,
+    () => {
       if (!anchor.current) return;
       const rect = anchor.current.getBoundingClientRect();
+      if (
+        (rect.width === 0 && rect.height === 0)
+        || rect.bottom < 0
+        || rect.top > window.innerHeight
+        || rect.right < 0
+        || rect.left > window.innerWidth
+      ) {
+        onClose();
+        return;
+      }
       const width = Math.min(384, window.innerWidth - 16);
       const below = window.innerHeight - rect.bottom - 12;
       const above = below < Math.min(280, window.innerHeight / 2) && rect.top > below;
       const maxHeight = Math.max(0, Math.min(window.innerHeight / 2, above ? rect.top - 12 : below));
-      setPosition({ left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)), top: above ? rect.top - 4 : rect.bottom + 4, maxHeight, above });
-    }
-    place();
-    window.addEventListener('resize', place);
-    window.addEventListener('scroll', place, true);
-    const observer = new ResizeObserver(place);
-    if (anchor.current) observer.observe(anchor.current);
-    return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); observer.disconnect(); };
-  }, [anchor]);
+      const next = {
+        left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
+        top: above ? rect.top - 4 : rect.bottom + 4,
+        maxHeight,
+        above,
+      };
+      setPosition(current =>
+        current.left === next.left
+        && current.top === next.top
+        && current.maxHeight === next.maxHeight
+        && current.above === next.above
+          ? current
+          : next,
+      );
+    },
+    () => [panel.current, providerPanel.current],
+  );
 
   const positioned = position.maxHeight > 0;
   useEffect(() => {
@@ -162,7 +183,7 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
         <button id={multipleId} type="button" role="switch" aria-label="使用多个模型" aria-checked={selection.multiple} className="image-model-switch" onClick={() => onChange({ ...selection, autoSelect: false, multiple: !selection.multiple, modelIds: selection.multiple ? selection.modelIds.slice(0, 1) : selection.modelIds })}><span /></button>
       </div>
     </div>}
-    <div className="image-model-scroll">
+    <ScrollArea className="image-model-scroll-area" viewportClassName="image-model-scroll">
       {section('已置顶模型', '收藏置顶的模型会显示在这里。', filtered.filter(model => pinned.includes(model.id)))}
       {groups && !query.trim() ? <>
         {!pinned.length && <section><div className="image-model-section-heading">已置顶模型</div><p className="model-pins-empty">收藏的模型将显示在这里</p></section>}
@@ -175,8 +196,9 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
             onKeyDown={e => { if (e.key === 'ArrowRight') { e.preventDefault(); setProvider(brand); } }}>
             <ImagePromptModelBrand brand={brand} />{name}<ImagePromptIcon name="chevron" /></button></Menu.Trigger>
           <Menu.Portal><Menu.Content ref={providerPanel} className="image-model-menu model-provider-panel nodrag nopan nowheel" side="right" align="start"
-            sideOffset={2} collisionPadding={8} aria-label={name} onWheel={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}
+            sideOffset={2} collisionPadding={8} updatePositionStrategy="always" aria-label={name} onWheel={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}
             onCloseAutoFocus={e => e.preventDefault()} onKeyDown={e => { e.stopPropagation(); if (e.key === 'ArrowLeft') setProvider(undefined); }}>
+            <ScrollArea className="model-provider-scroll-area" viewportClassName="model-provider-scroll">
             {filtered.filter(model => model.brand === brand).map(model => <div className="image-model-row" key={model.id}>
               <Menu.Item asChild onSelect={() => select(model.id)}><button type="button" className="image-model-option">
                 <span className="image-model-brand"><ImagePromptModelBrand brand={brand} /></span>
@@ -188,11 +210,12 @@ export function ImagePromptModelMenu<Id extends string>({ id, anchor, models, la
                 <button type="button" className="image-model-pin" aria-label={(pinned.includes(model.id) ? '取消置顶 ' : '置顶 ') + model.name}>
                   <ImagePromptIcon name={pinned.includes(model.id) ? 'pin-off' : 'pin'} /></button></Menu.Item>
             </div>)}
+            </ScrollArea>
           </Menu.Content></Menu.Portal>
         </Menu.Root>)}
         {section('模型', '其他可用模型。', filtered.filter(model => !groups.featured.includes(model.id) && !(model.brand in groups.providers)))}
       </> : section(query.trim() && groups ? '模型' : '推荐模型', '可用的模型。', filtered.filter(model => !pinned.includes(model.id)))}
       {!filtered.length && <p className="image-model-empty" role="status">未找到兼容模型</p>}
-    </div>
+    </ScrollArea>
   </div>, document.body)}</Tooltip.Provider>;
 }

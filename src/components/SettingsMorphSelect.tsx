@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { DescriberIcon } from './DescriberIcon';
+import { OverlayScrollbars } from './ui/scroll-area';
 import './SettingsMorphSelect.css';
 
 // Shared surface and spring from the beUI Morph Select.
@@ -170,7 +171,7 @@ export function SettingsMorphSelect({ value, choices, labels, label = 'Model', m
         }}>
         <motion.div ref={list} id={id} role="listbox" aria-label={menuLabel ?? label}
           aria-activedescendant={options[active] !== undefined ? `${id}-${active}` : undefined}
-          tabIndex={-1} className="settings-select-list" style={{ maxHeight: placement.maxListHeight }}
+          tabIndex={-1} className="settings-select-list shared-scroll-viewport" data-orientation="vertical" style={{ maxHeight: placement.maxListHeight }}
           layout={reduceMotion ? false : 'position'} transition={openMorph} onKeyDown={onListKeyDown}>
           {options.map((option, index) => <div key={option} id={`${id}-${index}`} role="option"
             aria-selected={option === value} data-active={index === active}
@@ -179,6 +180,7 @@ export function SettingsMorphSelect({ value, choices, labels, label = 'Model', m
             {option === value && <DescriberIcon name="check" />}
           </div>)}
         </motion.div>
+        <OverlayScrollbars viewportRef={list} hostRef={popup} />
       </motion.div>}
     </AnimatePresence>, placement.host)}
   </>;

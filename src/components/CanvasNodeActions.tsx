@@ -17,6 +17,7 @@ import { useVisibleCanvasImage } from '../nodes/visibleCanvasImage';
 import { useNodeGenerationRunning } from '../nodes/visibleCanvasText';
 import { CanvasHistoryContext } from './useCanvasHistory';
 import { useModelTasks } from './useModelTasks';
+import { ScrollArea } from './ui/scroll-area';
 import './canvas-node-actions.css';
 
 const items = [
@@ -158,8 +159,10 @@ export function CanvasNodeActions({ node, nodes, edges, location, canvas, onClos
           event.preventDefault(); onClose(); void run('delete');
         }
       }}>
-      {items.slice(0, 6).map(row)}<Menu.Separator />
-      {row(items[6])}<Menu.Separator />{row(items[7])}<Menu.Separator />{items.slice(8).map(row)}
+      <ScrollArea className="canvas-node-actions-scroll-area" viewportClassName="canvas-node-actions-scroll">
+        {items.slice(0, 6).map(row)}<Menu.Separator />
+        {row(items[6])}<Menu.Separator />{row(items[7])}<Menu.Separator />{items.slice(8).map(row)}
+      </ScrollArea>
     </Menu.Content></Menu.Portal>
   </Menu.Root>;
 }

@@ -5,6 +5,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Add01Icon, ArrowDown01Icon, Delete02Icon, Tick02Icon, WorkflowSquare10Icon } from '@hugeicons/core-free-icons';
 import type { CanvasProject } from '../persistence/projectLibrary';
 import { spring } from '../lib/springs';
+import { ScrollArea } from './ui/scroll-area';
 import './CanvasProjectHeader.css';
 
 const menuMotionStyle = { '--node-menu-duration': `${spring.moderate.duration}s` } as CSSProperties;
@@ -140,7 +141,7 @@ export function CanvasProjectHeader({ project, projects, refresh, open: openProj
       {open && <div ref={menu} id={menuId} role="menu" aria-label="项目" aria-busy={busy}
         className="canvas-project-menu" style={{ transformOrigin: `${menuOrigin}px -6px` }} onKeyDown={navigate}>
         <div className="canvas-project-heading">项目</div>
-        <div className="canvas-project-list" role="group" aria-label="项目列表">
+        <ScrollArea className="canvas-project-list-area" viewportClassName="canvas-project-list" viewportProps={{ role: 'group', 'aria-label': '项目列表' }}>
           {projects.map(item => <div key={item.id} className="canvas-project-item" role="none">
             <button type="button" role="menuitemradio" tabIndex={-1}
               aria-checked={item.id === project.id} aria-disabled={busy} className="canvas-project-row" title={item.name}
@@ -167,7 +168,7 @@ export function CanvasProjectHeader({ project, projects, refresh, open: openProj
               <HugeiconsIcon icon={Delete02Icon} size={18} aria-hidden="true" />
             </button>
           </div>)}
-        </div>
+        </ScrollArea>
         <div className="canvas-project-menu-divider" role="separator" />
         <button type="button" role="menuitem" tabIndex={-1} className="canvas-project-create" aria-disabled={busy}
           onClick={() => { if (!busy) void run(create); }}>

@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 're
 import { createPortal } from 'react-dom';
 import { AddNodePreview } from './AddNodePreview';
 import { addNodeEntries, nodePreviewDescription, supportsNodePreview, useAddNodePreview, type AddNodeType } from './useAddNodePreview';
+import { ScrollArea } from '../ui/scroll-area';
 import './add-node-menu.css';
 
 export interface AddNodeRequest { type: AddNodeType; quantity: number }
@@ -159,7 +160,7 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
         }} />
       <button type="button" aria-label="清空搜索" className="flora-add-node-clear" style={{ visibility: query ? 'visible' : 'hidden' }} onClick={() => { changeQuery(''); search.current?.focus(); }}><Icon name="close" /></button>
     </div>
-    <div className="flora-add-node-list" role="menu" aria-label="节点和操作" onScroll={reset}>
+    <ScrollArea className="flora-add-node-list-area" viewportClassName="flora-add-node-list" viewportProps={{ role: 'menu', 'aria-label': '节点和操作', onScroll: reset }}>
       {filtered.length > 0 && <div role="group" className="flora-add-node-group">
         {filtered.map(entry => {
           const quantity = normalizeQuantity(counts[entry.type] ?? '1');
@@ -212,7 +213,7 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
         })}
       </div>}
       {!filtered.length && !actions.length && <div className="flora-add-node-empty" role="status">{allowedTypes?.length === 0 ? '没有能同时接入所有所选节点的类型' : canvasActions ? '未找到匹配的节点或操作' : '未找到匹配的节点'}</div>}
-    </div>
+    </ScrollArea>
   </div>
     {preview && previewEntry && <AddNodePreview key={preview.type} previewRef={previewRef} anchor={preview.anchor}
       menuLeft={left} menuTop={top} menuWidth={width} viewportWidth={viewport.width} viewportHeight={viewport.height}

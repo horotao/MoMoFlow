@@ -21,6 +21,8 @@
 }
 .api-settings-dialog::backdrop { background: rgb(0 0 0 / 30%); backdrop-filter: blur(10.8px); }
 .api-settings-panel {
+  position: relative;
+  overflow: hidden;
   box-sizing: border-box;
   width: 100%;
   border: 1px solid var(--api-border);
@@ -29,7 +31,7 @@
   backdrop-filter: blur(8px);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%), 0 12px 36px rgb(0 0 0 / 20%);
 }
-.api-settings-form { display: flex; flex-direction: column; gap: 20px; padding: 19px; max-height: calc(100dvh - 34px); overflow-y: auto; border-radius: inherit; }
+.api-settings-form { display: flex; flex-direction: column; gap: 20px; padding: 19px; max-height: calc(100dvh - 34px); border-radius: inherit; }
 .api-settings-header { display: flex; align-items: center; gap: 12px; height: 28px; flex-shrink: 0; }
 .api-settings-header h2 { margin: 0; font: 400 16px/24px var(--font-ui); }
 .api-settings-badge { padding: 2px 8px; border-radius: 8px; background: var(--api-control); color: var(--api-secondary); font-size: 10px; }

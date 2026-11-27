@@ -2,6 +2,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useRef, useState } from 'react';
 import { ImagePromptIcon, type ImagePromptIconName } from './ImagePromptIcon';
 import { NodeToolbarTooltip } from '../NodeToolbarTooltip';
+import { ScrollArea } from '../ui/scroll-area';
 import './image-tools-menu.css';
 
 export function ImageToolsMenu({ onCrop, onInpaint, active, disabled = false }: {
@@ -23,16 +24,18 @@ export function ImageToolsMenu({ onCrop, onInpaint, active, disabled = false }: 
       onPointerDown={() => setKeyboard(false)} onKeyDown={() => setKeyboard(true)}>
       <ImagePromptIcon name={mode.icon} />{mode.label}<ImagePromptIcon name="chevron" />
     </button></DropdownMenu.Trigger></NodeToolbarTooltip>
-    <DropdownMenu.Portal><DropdownMenu.Content className="image-node-tools-menu nodrag nopan nowheel" align="start" sideOffset={9}
+    <DropdownMenu.Portal><DropdownMenu.Content className="image-node-tools-menu nodrag nopan nowheel" align="start" sideOffset={9} updatePositionStrategy="always"
       data-keyboard={keyboard} onPointerDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()} onKeyDown={event => { setKeyboard(true); event.stopPropagation(); }}
       onEscapeKeyDown={event => event.stopPropagation()} onCloseAutoFocus={event => { if (active || startingEdit.current) event.preventDefault(); startingEdit.current = false; }}>
-      {tools.map(({ icon, label, action }) => <DropdownMenu.Item key={icon} disabled={disabled || !action} onSelect={() => {
-        startingEdit.current = true;
-        setOpen(false);
-        action?.();
-      }}>
-        <span className="image-tools-icon"><ImagePromptIcon name={icon} /></span>{label}
-      </DropdownMenu.Item>)}
+      <ScrollArea className="image-tools-menu-scroll-area" viewportClassName="image-tools-menu-scroll">
+        {tools.map(({ icon, label, action }) => <DropdownMenu.Item key={icon} disabled={disabled || !action} onSelect={() => {
+          startingEdit.current = true;
+          setOpen(false);
+          action?.();
+        }}>
+          <span className="image-tools-icon"><ImagePromptIcon name={icon} /></span>{label}
+        </DropdownMenu.Item>)}
+      </ScrollArea>
     </DropdownMenu.Content></DropdownMenu.Portal>
   </DropdownMenu.Root>;
 }

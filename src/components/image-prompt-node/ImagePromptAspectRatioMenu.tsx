@@ -1,7 +1,9 @@
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { ImagePromptIcon } from './ImagePromptIcon';
 import { imagePromptAspectRatioGroups, type ImagePromptAspectRatio } from './imagePromptAspectRatios';
+import { ScrollArea } from '../ui/scroll-area';
+import { useAnchorPositionObserver } from './useAnchorPositionObserver';
 import './image-prompt-aspect-ratio-menu.css';
 
 interface ImagePromptAspectRatioMenuProps {
@@ -20,27 +22,41 @@ export function ImagePromptAspectRatioMenu({ id, labelledBy, anchor, value, choi
   const [focusedValue, setFocusedValue] = useState(value);
   const [position, setPosition] = useState({ left: 0, top: 0, maxHeight: 0, above: false });
 
-  useLayoutEffect(() => {
-    function place() {
+  useAnchorPositionObserver(
+    anchor,
+    () => {
       if (!anchor.current) return;
       const rect = anchor.current.getBoundingClientRect();
+      if (
+        (rect.width === 0 && rect.height === 0)
+        || rect.bottom < 0
+        || rect.top > window.innerHeight
+        || rect.right < 0
+        || rect.left > window.innerWidth
+      ) {
+        onClose();
+        return;
+      }
       const width = Math.min(224, window.innerWidth - 16);
       const below = window.innerHeight - rect.bottom - 12;
       const above = below < 320 && rect.top - 12 > below;
-      setPosition({
+      const next = {
         left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)),
         top: above ? rect.top - 4 : rect.bottom + 4,
         maxHeight: Math.max(0, Math.min(320, above ? rect.top - 12 : below)),
         above,
-      });
-    }
-    place();
-    window.addEventListener('resize', place);
-    window.addEventListener('scroll', place, true);
-    const observer = new ResizeObserver(place);
-    if (anchor.current) observer.observe(anchor.current);
-    return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); observer.disconnect(); };
-  }, [anchor]);
+      };
+      setPosition(current =>
+        current.left === next.left
+        && current.top === next.top
+        && current.maxHeight === next.maxHeight
+        && current.above === next.above
+          ? current
+          : next,
+      );
+    },
+    () => [panel.current],
+  );
 
   const positioned = position.maxHeight > 0;
   useEffect(() => {
@@ -84,6 +100,7 @@ export function ImagePromptAspectRatioMenu({ id, labelledBy, anchor, value, choi
       options[next].focus({ preventScroll: true });
       options[next].scrollIntoView({ block: 'nearest' });
     }}>
+    <ScrollArea className="image-aspect-scroll-area" viewportClassName="image-aspect-scroll">
     {imagePromptAspectRatioGroups.filter(group => group.values.some(ratio => !choices || choices.includes(ratio))).map(group => <div role="group" aria-label={group.label} key={group.label}>
       <div className="image-aspect-group-label">{group.label}</div>
       {group.values.filter(ratio => !choices || choices.includes(ratio)).map(ratio => {
@@ -96,5 +113,6 @@ export function ImagePromptAspectRatioMenu({ id, labelledBy, anchor, value, choi
         </button>;
       })}
     </div>)}
+    </ScrollArea>
   </div>, document.body);
 }

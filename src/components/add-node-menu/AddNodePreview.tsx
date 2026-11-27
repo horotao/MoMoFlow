@@ -1,5 +1,6 @@
 import { useLayoutEffect, type ReactNode, type RefObject } from 'react';
 import { nodePreviewDescription, supportsNodePreview, type AddNodeType } from './useAddNodePreview';
+import { ScrollArea } from '../ui/scroll-area';
 
 const nodeScreenshots = {
   router: {
@@ -79,6 +80,7 @@ export function AddNodePreview({ previewRef, anchor, menuLeft, menuTop, menuWidt
     onPointerDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()}
     onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }}
     onTransitionEnd={event => { if (event.target === event.currentTarget && event.propertyName === 'opacity') onExit(); }}>
+    <ScrollArea className="add-node-preview-scroll-area" viewportClassName="add-node-preview-scroll">
     <header className="add-node-preview-header">
       <span className="flora-add-node-badge add-node-preview-icon">{icon}</span>
       <div>
@@ -97,5 +99,6 @@ export function AddNodePreview({ previewRef, anchor, menuLeft, menuTop, menuWidt
       <span className="add-node-preview-help" aria-hidden="true">?</span>
       <span>按</span><kbd className="flora-add-node-shortcut">{shortcut}</kbd><span>添加{title}节点</span>
     </footer>}
+    </ScrollArea>
   </aside>;
 }

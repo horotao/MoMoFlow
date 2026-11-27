@@ -6,6 +6,7 @@ import { clearColorTags, colorTags, countNodeColorTags, nodeColorTags, type Colo
 import type { AppNode } from '../nodes/types';
 import { canvasDownloadContents } from '../nodes/canvasDownloads';
 import { downloadAssets } from '../nodes/fileMedia';
+import { ScrollArea } from './ui/scroll-area';
 import './canvas-color-tags.css';
 
 const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
@@ -77,6 +78,7 @@ export function CanvasColorTags({ nodes, active, onActiveChange, setNodes, onRes
         <Menu.Portal><Menu.Content className="color-tag-menu color-tag-actions nodrag nopan nowheel" align="start" sideOffset={9} collisionPadding={0} data-keyboard={keyboard}
           onCloseAutoFocus={event => { if (!moreTrigger.current?.isConnected) { event.preventDefault(); onRestoreCanvasFocus(); } }}
           aria-label="颜色标记更多操作" onPointerDown={event => event.stopPropagation()} onWheel={event => event.stopPropagation()} onKeyDown={event => { setKeyboard(true); event.stopPropagation(); }}>
+          <ScrollArea className="color-tag-actions-scroll-area" viewportClassName="color-tag-actions-scroll">
           <div className="color-tag-action-grid">
             {(['download', 'save', 'clear'] as const).map(action => <Menu.Group key={action} className="color-tag-action-row">
               <Menu.Label className="color-tag-action-label">{action === 'download' ? 'Download tagged' : action === 'save' ? 'Save tagged' : 'Clear'}</Menu.Label>
@@ -95,6 +97,7 @@ export function CanvasColorTags({ nodes, active, onActiveChange, setNodes, onRes
           <Menu.Item className="color-tag-action-item" aria-label="保存全部标记内容" disabled>Save all tagged</Menu.Item>
           <Menu.Separator />
           <Menu.Item className="color-tag-action-item color-tag-danger" aria-label="清除全部标记" onSelect={() => setNodes(nodes => clearColorTags(nodes))}>Clear all tags</Menu.Item>
+          </ScrollArea>
         </Menu.Content></Menu.Portal>
       </Menu.Root>
     </div>

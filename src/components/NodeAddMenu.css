@@ -37,17 +37,6 @@
 .node-add-menu-search button { display: grid; place-items: center; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
 .node-add-menu-scroll-area { min-height: 0; flex: 1; }
 .node-add-menu-scroll { --scroll-fade-size: 24px; box-sizing: border-box; overscroll-behavior: contain; padding-right: 12px; padding-bottom: var(--dock-menu-space-4); }
-.node-add-menu-scroll-area > [data-slot='scroll-area-scrollbar']:not(:has([data-slot='scroll-area-thumb'])) { visibility: hidden; pointer-events: none; }
-.node-add-menu-scroll-area [data-slot='scroll-area-thumb'] { background: color-mix(in srgb, var(--dock-menu-content-primary) 18%, transparent); }
-.node-add-menu-scroll-area [data-slot='scroll-area-scrollbar']:hover > [data-slot='scroll-area-thumb'] { background: color-mix(in srgb, var(--dock-menu-content-primary) 28%, transparent); }
-.node-add-menu-scroll-area [data-slot='scroll-area-scrollbar']:active > [data-slot='scroll-area-thumb'] { background: color-mix(in srgb, var(--dock-menu-content-primary) 38%, transparent); }
-@media (hover: hover) and (pointer: fine) {
-  .node-add-menu:hover > .node-add-menu-scroll-area > [data-slot='scroll-area-scrollbar'] {
-    opacity: 1;
-    pointer-events: auto;
-    transition-delay: 0ms;
-  }
-}
 .node-add-menu-list { position: relative; isolation: isolate; }
 .node-add-menu-heading { height: 28px; box-sizing: border-box; padding: 6px 0 4px 10px; font: 500 11px/16px var(--font-ui); color: var(--dock-menu-content-secondary); }
 .node-add-menu-row { position: relative; display: flex; align-items: center; gap: 6px; width: 100%; height: 32px; padding: 6px; border: 0; border-radius: 7px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }

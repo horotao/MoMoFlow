@@ -6,7 +6,7 @@
 .settings-select-row img { display: block; flex-shrink: 0; }
 .settings-select-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .settings-select-popup { position: absolute; z-index: 3; overflow: hidden; }
-.settings-select-list { position: relative; box-sizing: border-box; padding: 4px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #525252 transparent; outline: none; }
+.settings-select-list { position: relative; box-sizing: border-box; padding: 4px; outline: none; }
 .settings-select-list [role=option] { display: flex; align-items: center; justify-content: space-between; gap: 6px; height: 24px; padding: 0 7px; border-radius: 5px; color: var(--panel-muted); cursor: default; }
 .settings-select-list [role=option] svg { width: 14px; height: 14px; flex-shrink: 0; }
 .settings-select-list [role=option][aria-selected=true] { background: #333; color: var(--panel-text); }

@@ -5,6 +5,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Tick02Icon, ViewOffSlashIcon } from '@hugeicons/core-free-icons';
 import { spring } from '../lib/springs';
 import { SettingsMorphSelect } from './SettingsMorphSelect';
+import { OverlayScrollbars } from './ui/scroll-area';
 import { ApiConnectionError, apiProviders, readApiSettings, saveApiSettings, validApiKey, validBaseUrl, type ApiCredential, type ApiProvider } from './apiSettings';
 import './ApiSettingsDialog.css';
 
@@ -26,6 +27,7 @@ function ApiSettingsForm({ onClose, onTestConnection }: Omit<Props, 'open'>) {
   const [reveal, setReveal] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(idle);
   const request = useRef<AbortController | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const fieldRefs = useRef<Partial<Record<FieldName, HTMLDivElement | null>>>({});
   const animations = useRef<Partial<Record<FieldName, Animation>>>({});
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
@@ -96,7 +98,7 @@ function ApiSettingsForm({ onClose, onTestConnection }: Omit<Props, 'open'>) {
       onClose();
     } catch { setFeedback({ state: 'error', message: '无法保存，请检查浏览器存储权限' }); }
   };
-  return <form className="api-settings-form" onSubmit={save} noValidate>
+  return <><form ref={formRef} className="api-settings-form shared-scroll-viewport" data-orientation="vertical" onSubmit={save} noValidate>
     <header className="api-settings-header">
       <h2 id={`${id}-title`}>API 设置</h2><span className="api-settings-badge">BYOK</span>
       <button className="api-settings-close" type="button" aria-label="关闭 API 设置" onClick={onClose}>
@@ -149,7 +151,7 @@ function ApiSettingsForm({ onClose, onTestConnection }: Omit<Props, 'open'>) {
       <button type="button" className="api-settings-button" onClick={onClose}>取消</button>
       <button type="submit" className="api-settings-button api-settings-save">保存</button>
     </footer>
-  </form>;
+  </form><OverlayScrollbars viewportRef={formRef} /></>;
 }
 
 export function ApiSettingsDialog({ open, onClose, onTestConnection }: Props) {

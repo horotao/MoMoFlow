@@ -19,8 +19,10 @@
   flex-shrink: 0;
   overflow: clip;
 }
-.image-inspector:has(> .image-inpaint-options) > :is(.image-information, .image-generation-options) > :is(header, h3) { position: static; }
-.image-inspector > .image-inpaint-options > h3 { box-shadow: none; }
+.image-inspector:has(> .image-inpaint-options) > :is(.image-information, .image-generation-options) .inspector-card-scroll > :is(header, h3) { position: static; }
+.image-inspector:has(> .image-inpaint-options) .inspector-card-scroll { overscroll-behavior-y: auto; }
+.image-inspector:has(> .image-inpaint-options) [data-slot='scroll-area-scrollbar'] { display: none; }
+.image-inspector > .image-inpaint-options .inspector-card-scroll > h3 { box-shadow: none; }
 .image-inpaint-options .generation-options-heading { font-size: 12px; }
 .image-inpaint-options .generation-options-content { display: flex; flex-direction: column; padding: 8px 0; }
 .image-inpaint-size { display: flex; flex-direction: column; gap: 6px; padding: 0 12px 18px; }

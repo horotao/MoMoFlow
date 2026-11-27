@@ -10,6 +10,7 @@ import { validPromptMentions, type MentionCandidate, type MentionEdit, type Ment
 import { decodePromptClipboard, encodePromptClipboard, promptClipboardHtml, promptMentionClipboardType } from '../../nodes/promptMentionClipboard';
 import type { PromptMention } from '../../nodes/types';
 import { ImagePromptIcon } from './ImagePromptIcon';
+import { ScrollArea } from '../ui/scroll-area';
 import './prompt-mention-editor.css';
 
 const imagePlaceholder = new URL('./assets/image.svg', import.meta.url).href;
@@ -284,7 +285,7 @@ export const PromptMentionEditor = forwardRef<PromptMentionEditorHandle, Props>(
     {picker && createPortal(<div ref={menu} id={listId} role="listbox" aria-label="Mention" data-kind={kind} className="image-mention-menu nodrag nopan nowheel"
       style={{ left: picker.x, top: picker.y, maxHeight: picker.maxHeight, transform: picker.above ? 'translateY(-100%)' : undefined }}
       onPointerDown={event => event.preventDefault()} onWheel={event => event.stopPropagation()}>
-      <div className="image-mention-clip"><div ref={scrollArea} className="image-mention-scroll" style={{ maxHeight: picker.maxHeight - 6 }}>
+      <div className="image-mention-clip"><ScrollArea className="image-mention-scroll-area" style={{ maxHeight: picker.maxHeight - 6 }} viewportRef={scrollArea} viewportClassName="image-mention-scroll">
       {(['Connected nodes', 'All nodes'] as const).map((label, group) => {
         const grouped = items.filter(item => item.connected === (group === 0));
         return grouped.length > 0 && <div role="group" aria-label={label} key={label}>
@@ -298,7 +299,7 @@ export const PromptMentionEditor = forwardRef<PromptMentionEditorHandle, Props>(
         </div>;
       })}
       {!items.length && <div className="image-mention-empty">No nodes found</div>}
-      </div></div>
+      </ScrollArea></div>
     </div>, document.body)}
   </>;
 });
