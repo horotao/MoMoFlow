@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ArrowLeft, ArrowRight, Download, Play, Plus, SquarePen, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AnimatedToastStack,
@@ -123,6 +124,8 @@ function formatTimecode(totalSeconds: number): string {
 
 export function DesignSystemPage() {
   const [showGuides, setShowGuides] = useState(false);
+  const [opticalPadding, setOpticalPadding] = useState(true);
+  const [opticalCentring, setOpticalCentring] = useState(true);
   const [tick, setTick] = useState(14);
   const [toastStatus, setToastStatus] = useState<ToastStatus>('success');
 
@@ -170,6 +173,9 @@ export function DesignSystemPage() {
             </a>
             <a href="#radius" className="transition-colors hover:text-foreground">
               Radius &amp; Size
+            </a>
+            <a href="#optical" className="transition-colors hover:text-foreground">
+              Optical
             </a>
             <a href="#components" className="transition-colors hover:text-foreground">
               Components
@@ -590,17 +596,146 @@ export function DesignSystemPage() {
                     {item.name} · {item.value}
                   </div>
                   <div
-                    className="inline-flex items-center justify-center border border-border bg-card text-micro font-medium text-muted-foreground"
+                    className="inline-flex items-center justify-center border border-border bg-card text-muted-foreground"
                     style={{
                       width: `var(${item.token})`,
                       height: `var(${item.token})`,
                       borderRadius: item.radius,
                     }}
                   >
-                    +
+                    <Plus
+                      size={item.name === 'XS' ? 12 : item.name === 'XL' ? 16 : 14}
+                      strokeWidth={1.75}
+                      aria-hidden="true"
+                    />
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Optical Alignment */}
+        <section
+          id="optical"
+          className="grid gap-8 border-t border-border/70 py-14 md:grid-cols-[152px_1fr]"
+        >
+          <h2 className="text-xs font-medium text-muted-foreground">Optical</h2>
+
+          <div className="divide-y divide-border/60">
+            {/* Optical Padding (Icon + Text) */}
+            <div className="grid items-start gap-3 pb-8 sm:grid-cols-[144px_1fr]">
+              <div className="flex items-center justify-between sm:flex-col sm:items-start sm:gap-2">
+                <span className="text-xs font-medium text-foreground-subtle">
+                  optical padding
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setOpticalPadding((prev) => !prev)}
+                  className="cursor-pointer text-micro font-medium text-foreground-subtle transition-colors hover:text-foreground"
+                >
+                  {opticalPadding ? '已开启 (-2px)' : '已关闭 (等距)'}
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Button
+                    variant="secondary"
+                    className={opticalPadding ? 'rounded-full' : 'rounded-full !px-4'}
+                  >
+                    <ArrowLeft aria-hidden="true" />
+                    Back
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className={opticalPadding ? 'rounded-full' : 'rounded-full !px-4'}
+                  >
+                    <Download aria-hidden="true" />
+                    Save file
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className={opticalPadding ? 'rounded-full' : 'rounded-full !px-4'}
+                  >
+                    Continue
+                    <ArrowRight aria-hidden="true" />
+                  </Button>
+                </div>
+                <div className="font-mono text-xs text-foreground-subtle tabular-nums">
+                  {opticalPadding
+                    ? 'icon side -2px · has-[>svg:first-child:not(:last-child)]:pl-3.5'
+                    : 'padding-inline: 16px 16px'}
+                </div>
+              </div>
+            </div>
+
+            {/* Optical Centring (Icon-only) */}
+            <div className="grid items-start gap-3 pt-8 sm:grid-cols-[144px_1fr]">
+              <div className="flex items-center justify-between sm:flex-col sm:items-start sm:gap-2">
+                <span className="text-xs font-medium text-foreground-subtle">
+                  optical centring
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setOpticalCentring((prev) => !prev)}
+                  className="cursor-pointer text-micro font-medium text-foreground-subtle transition-colors hover:text-foreground"
+                >
+                  {opticalCentring ? '已开启 (重心微调)' : '已关闭 (几何居中)'}
+                </button>
+              </div>
+              <div className="flex flex-wrap items-start gap-6">
+                {[
+                  {
+                    name: 'Play',
+                    nudge: 'x +1px',
+                    transform: 'translateX(1px)',
+                    icon: <Play size={16} fill="currentColor" aria-hidden="true" />,
+                  },
+                  {
+                    name: 'SquarePen',
+                    nudge: 'x +0.5  y -0.5',
+                    transform: 'translate(0.5px, -0.5px)',
+                    icon: <SquarePen size={16} aria-hidden="true" />,
+                  },
+                  {
+                    name: 'Delete',
+                    nudge: 'y -0.25px',
+                    transform: 'translateY(-0.25px)',
+                    icon: <Trash2 size={16} aria-hidden="true" />,
+                  },
+                ].map((item) => (
+                  <div key={item.name} className="flex flex-col items-center gap-2">
+                    <div
+                      className="relative inline-flex items-center justify-center rounded-full border border-border bg-card text-foreground"
+                      style={{
+                        width: 'var(--control-xl)',
+                        height: 'var(--control-xl)',
+                      }}
+                    >
+                      <span
+                        className="pointer-events-none absolute inset-x-0 top-1/2 h-px bg-border/50"
+                        aria-hidden="true"
+                      />
+                      <span
+                        className="pointer-events-none absolute inset-y-0 left-1/2 w-px bg-border/50"
+                        aria-hidden="true"
+                      />
+                      <span
+                        className="relative inline-flex transition-transform duration-150"
+                        style={{
+                          transform: opticalCentring ? item.transform : 'none',
+                        }}
+                      >
+                        {item.icon}
+                      </span>
+                    </div>
+                    <div className="text-xs font-medium text-foreground">{item.name}</div>
+                    <div className="font-mono text-micro text-foreground-subtle tabular-nums">
+                      {opticalCentring ? item.nudge : '0, 0'}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -621,6 +756,18 @@ export function DesignSystemPage() {
               <Button variant="destructive">Delete</Button>
               <Button size="sm" variant="outline">
                 Small
+              </Button>
+              <Button variant="outline">
+                <Download aria-hidden="true" />
+                Export
+              </Button>
+              <Button size="icon" variant="outline" aria-label="Play">
+                <Play
+                  size={16}
+                  fill="currentColor"
+                  className="translate-x-[1px]"
+                  aria-hidden="true"
+                />
               </Button>
             </div>
 
