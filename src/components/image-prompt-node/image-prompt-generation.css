@@ -1,7 +1,7 @@
 .image-node-generation, .image-node-thumbnail-generation { position: absolute; z-index: 3; inset: 0; container-type: size; border-radius: inherit; pointer-events: none; }
 .image-node-generation-fill-clip { position: absolute; inset: 0; clip-path: inset(2px round 22px); }
 .image-node-thumbnail-generation .image-node-generation-fill-clip { clip-path: none; border-radius: inherit; overflow: hidden; }
-.image-node-generation-fill { position: absolute; inset: 0; background: #fafaf223; transform: scaleX(0); transform-origin: left center; }
+.image-node-generation-fill { position: absolute; inset: 0; background: var(--accent); transform: scaleX(0); transform-origin: left center; }
 .image-node-generation-ring {
   position: absolute;
   inset: 0;
@@ -20,8 +20,8 @@
   aspect-ratio: 1;
   translate: -50% -50%;
   background: conic-gradient(from 120deg,
-    #eeeeec 0deg, rgb(238 238 236 / 6.3%) 60deg 120deg,
-    #eeeeec 180deg, rgb(238 238 236 / 6.3%) 240deg 300deg, #eeeeec 360deg);
+    var(--foreground) 0deg, rgb(238 238 236 / 6.3%) 60deg 120deg,
+    var(--foreground) 180deg, rgb(238 238 236 / 6.3%) 240deg 300deg, var(--foreground) 360deg);
   animation: image-node-generation-sweep 2.4s linear infinite;
 }
 .image-node-generation[data-phase=finishing] .image-node-generation-ring { visibility: hidden; }
@@ -29,8 +29,8 @@
 .image-node.has-result .image-node-card { cursor: default; }
 .image-node:not(.is-locked):has(.image-node-generation) .image-node-card:active,
 .image-node.has-result:not(.is-locked) .image-node-card:active { cursor: grabbing; }
-.image-node:has(.image-node-generation) .image-node-card::after { box-shadow: inset 0 0 0 1.5px var(--node-fill); transition: none; }
-.image-node-estimate { color: #eeeeec; }
+.image-node:has(.image-node-generation) .image-node-card::after { box-shadow: inset 0 0 0 1.5px var(--border); transition: none; }
+.image-node-estimate { color: var(--foreground); font-variant-numeric: tabular-nums; }
 .image-node-result { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; }
 .image-node-result-layers, .image-node-result-layer { position: absolute; inset: 0; }
 .image-node-result-layer[aria-hidden=true] { pointer-events: none; }

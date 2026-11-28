@@ -1,20 +1,13 @@
 /* Body-level image menus sit above canvas panels; their help tips sit above the menus. */
 :root { --image-menu-layer: 1500; }
 
-@font-face {
-  font-family: GeistSans;
-  src: url('./assets/geist.woff2') format('woff2');
-  font-weight: 100 900;
-  font-display: swap;
-}
-
 .image-node, .image-node-toolbar, .image-node-tooltip-position, .image-model-menu, .image-aspect-menu {
-  --node-muted: #b5b3ad;
-  --node-subtle: #7c7b74;
-  --node-fill: #fafaf223;
   color-scheme: dark;
-  color: #eeeeec;
-  font: 16px/normal GeistSans, ui-sans-serif, system-ui, sans-serif;
+  color: var(--foreground);
+  font-family: var(--font-ui);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line);
+  font-weight: var(--font-weight-regular);
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
 }
@@ -26,7 +19,7 @@
 :where(.image-node, .image-node-toolbar, .image-model-menu, .image-aspect-menu) button { padding: 0; border: 0; background: transparent; cursor: pointer; }
 :where(.image-node, .image-node-toolbar, .image-model-menu, .image-aspect-menu) button:disabled { cursor: not-allowed; }
 .image-node-toolbar button:active:enabled { filter: brightness(.9); }
-.image-node-toolbar button:focus-visible { outline: 1px solid #b5b3ad; outline-offset: -1px; }
+.image-node-toolbar button:focus-visible { outline: 1px solid var(--ring); outline-offset: -1px; }
 
 .image-node-icon {
   display: inline-block;

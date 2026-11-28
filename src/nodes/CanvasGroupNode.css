@@ -15,7 +15,7 @@
   width: 100%;
   height: 100%;
   border: var(--group-px) solid color-mix(in srgb, var(--group-color) 22%, transparent);
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   background: color-mix(in srgb, var(--group-color) 10%, transparent);
   cursor: inherit;
 }
@@ -66,11 +66,14 @@
   padding: 4px 8px;
   transform: scale(calc(1 / var(--canvas-zoom, 1)));
   transform-origin: bottom left;
-  border: 1px solid rgb(250 250 242 / 13.7%);
-  border-radius: 8px;
-  background: color-mix(in srgb, #171716 88%, var(--group-color));
-  color: #eeeeec;
-  font: 500 13px/17px GeistSans, var(--font-ui), sans-serif;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--card) 88%, var(--group-color));
+  color: var(--foreground);
+  font-family: var(--font-ui);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line);
+  font-weight: var(--font-weight-medium);
 }
 
 :is([data-node-heading="icon"], [data-node-heading="hidden"]) .canvas-group-title:not(:focus-within, :has(input)) {
@@ -88,8 +91,8 @@
   min-width: 0;
   appearance: none;
   font: inherit;
-  outline: 1px solid #b5b3ad;
-  border-radius: 2px;
+  outline: 1px solid var(--ring);
+  border-radius: var(--radius-xs);
 }
 
 .canvas-group-toolbar-anchor::after {
@@ -112,14 +115,14 @@
   display: block;
   width: 16px;
   height: 16px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
 }
 
 .canvas-group-color-menu { min-width: 0; }
-.canvas-group-color-menu .canvas-alignment-item { height: 36px; }
-.canvas-group-color-menu .canvas-group-color-dot { width: 22px; height: 22px; }
+.canvas-group-color-menu .canvas-alignment-item { height: var(--control-lg); }
+.canvas-group-color-menu .canvas-group-color-dot { width: var(--control-xs); height: var(--control-xs); }
 .canvas-group-color-menu [data-state="checked"] .canvas-group-color-dot {
-  outline: 1px solid #eeeeec;
+  outline: 1px solid var(--foreground);
   outline-offset: 2px;
 }
 
@@ -129,8 +132,8 @@
   left: 0;
   z-index: 1;
   padding: 6px 8px;
-  border-radius: 8px;
-  background: #212120;
-  color: #eeeeec;
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--foreground);
   white-space: nowrap;
 }

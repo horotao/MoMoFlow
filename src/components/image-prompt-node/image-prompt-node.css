@@ -1,8 +1,5 @@
 .image-node {
-  --node-muted: #b5b3ad;
-  --node-subtle: #7c7b74;
-  --node-fill: #fafaf223;
-  --node-body-line-height: 24px;
+  --node-body-line-height: var(--type-doc-body-line);
   position: relative;
   width: 384px;
   height: 384px;
@@ -21,19 +18,19 @@
   width: 100%;
   height: 16.48px;
   gap: 12px;
-  font-size: 12px;
-  line-height: 15px;
-  letter-spacing: -.32px;
-  color: var(--node-muted);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line);
+  letter-spacing: var(--tracking-tight);
+  color: var(--muted-foreground);
   user-select: none;
 }
 
 .image-node-heading h1, .image-node-model { display: flex; align-items: center; margin: 0; min-width: 0; }
-.image-node-heading h1 { gap: 6px; font-size: inherit; line-height: inherit; font-weight: 400; }
+.image-node-heading h1 { gap: 6px; font-size: inherit; line-height: inherit; font-weight: var(--font-weight-regular); }
 .image-node-heading .image-node-icon { width: 12px; height: 12px; }
-.image-node-model { gap: 4px; color: var(--node-subtle); }
+.image-node-model { gap: 4px; color: var(--foreground-subtle); }
 .image-node-model > span:last-child { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.image-node.is-selected h1 { color: #eeeeec; }
+.image-node.is-selected h1 { color: var(--foreground); }
 
 .image-node-name {
   display: inline-grid;
@@ -45,8 +42,8 @@
   border-radius: calc(4 * var(--heading-px, 1px));
 }
 .image-node-name.is-editable { cursor: text; }
-.image-node-name:is(.is-editing, .is-editable:hover, .is-editable:focus-within) { background: #fafaf223; }
-.image-node-name.is-editing { box-shadow: inset 0 0 0 var(--heading-px, 1px) #fff; }
+.image-node-name:is(.is-editing, .is-editable:hover, .is-editable:focus-within) { background: var(--accent); }
+.image-node-name.is-editing { box-shadow: inset 0 0 0 var(--heading-px, 1px) var(--foreground); }
 .image-node-name :is(button, input, span) {
   grid-area: 1 / 1;
   min-width: 0;
@@ -65,15 +62,15 @@
 .image-node-name :is(button, input) { width: 100%; outline: none; cursor: text; }
 .image-node-name input { user-select: text; }
 .image-node .image-node-name input:focus-visible { outline: none; }
-.image-node-name input::selection { background: #fafaf233; color: #eeeeec; }
+.image-node-name input::selection { background: var(--border-strong); color: var(--foreground); }
 .image-node-name-measure { visibility: hidden; pointer-events: none; }
 
 .image-node-card {
   position: relative;
   width: 100%;
   height: 100%;
-  border-radius: 24px;
-  background: #111110;
+  border-radius: var(--radius-xl);
+  background: var(--background);
   overflow: hidden;
   cursor: text;
 }
@@ -84,11 +81,11 @@
   z-index: 2;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 1.5px var(--node-fill);
+  box-shadow: inset 0 0 0 1.5px var(--border);
   pointer-events: none;
   transition: box-shadow 150ms cubic-bezier(.4, 0, .2, 1);
 }
-.image-node.is-selected .image-node-card::after { box-shadow: inset 0 0 0 2px #b5b3ad; }
+.image-node.is-selected .image-node-card::after { box-shadow: inset 0 0 0 2px var(--muted-foreground); }
 .image-node.is-locked .image-node-card { cursor: default; }
 .image-node-surface {
   position: absolute;
@@ -105,10 +102,10 @@
   inset: auto 8px 8px;
   clip-path: none;
   overflow: hidden;
-  border: 1px solid var(--node-fill);
-  border-radius: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   background: #0000004d;
-  box-shadow: 0 4px 6px -1px #00000059, 0 2px 4px -2px #0000004d;
+  box-shadow: var(--shadow-overlay);
   opacity: 0;
   visibility: hidden;
   transform: translateY(4px);
@@ -117,7 +114,7 @@
 .image-node.has-compact-composer[aria-busy=true]:is(:hover, :focus-within, .is-selected) .image-node-surface,
 .image-node.has-result .image-node-card:hover .image-node-surface,
 .image-node.has-result .image-node-surface:has(.image-node-prompt-editor:focus, :focus-visible) { opacity: 1; visibility: visible; transform: none; }
-.image-node.has-compact-composer .image-node-surface:is(:hover, :focus-within) { backdrop-filter: blur(24px); }
+.image-node.has-compact-composer .image-node-surface:is(:hover, :focus-within) { backdrop-filter: blur(var(--blur-lg)); }
 .image-node.has-compact-composer .image-node-surface-body { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 8px; background: #0000004d; opacity: .5; }
 .image-node.has-compact-composer .image-node-surface:is(:hover, :focus-within) .image-node-surface-body { opacity: 1; }
 .image-node.has-compact-composer .image-node-composer { position: relative; inset: auto; flex: none; max-height: 72px; margin-right: -4px; }
@@ -125,7 +122,7 @@
 .image-node.has-compact-composer .image-node-footer { position: relative; inset: auto; flex: none; opacity: 1; visibility: inherit; transform: none; transition: none; }
 .image-node.has-compact-composer .image-node-actions::before { display: none; }
 .image-node.has-compact-composer .image-node-generate-group {
-  box-shadow: 0 4px 6px -1px #00000059, 0 2px 4px -2px #0000004d;
+  box-shadow: var(--shadow-overlay);
 }
 
 .image-node.has-reference-images:not(.has-compact-composer) .image-node-composer {
@@ -138,7 +135,7 @@
 .image-node-composer {
   position: absolute;
   inset: 16px 4px 0 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: default;
 }
 .image-node-composer-viewport {
@@ -156,18 +153,18 @@
   resize: none;
   background: transparent;
   cursor: text;
-  font-size: 14px;
+  font-size: var(--type-body-size);
   line-height: var(--node-body-line-height);
-  caret-color: #eeeeec;
+  caret-color: var(--foreground);
 }
-.image-node-suggestion { position: absolute; top: 0; left: 4px; pointer-events: none; font-size: 14px; line-height: var(--node-body-line-height); color: var(--node-muted); }
+.image-node-suggestion { position: absolute; top: 0; left: 4px; pointer-events: none; font-size: var(--type-body-size); line-height: var(--node-body-line-height); color: var(--muted-foreground); }
 /* Match FLORA's placeholder shader: a triangular highlight with a .45-text-
    width falloff, spaced every 3 text widths, traveling 1.5 widths per second.
    Its 4s clock contains two identical sweeps; 60 steps per 2s matches 30fps. */
 .image-node-suggestion-label {
   display: inline-block;
-  background-image: linear-gradient(90deg, #b5b3ad 35%, #eeeeec 50%, #b5b3ad 65%);
-  background-image: linear-gradient(90deg in srgb-linear, #b5b3ad 35%, #eeeeec 50%, #b5b3ad 65%);
+  background-image: linear-gradient(90deg, var(--muted-foreground) 35%, var(--foreground) 50%, var(--muted-foreground) 65%);
+  background-image: linear-gradient(90deg in srgb-linear, var(--muted-foreground) 35%, var(--foreground) 50%, var(--muted-foreground) 65%);
   background-size: 300% 100%;
   background-repeat: repeat-x;
   background-position: 150% 0;
@@ -181,7 +178,7 @@
   from { background-position: 150% 0; }
   to { background-position: 0% 0; }
 }
-.image-node-suggestion kbd { display: inline-flex; align-items: center; justify-content: center; margin-left: 4px; height: 16px; min-width: 16px; padding: 0 4px; border-radius: 6px; background: var(--node-fill); font: 12px/12px GeistSans, sans-serif; vertical-align: baseline; }
+.image-node-suggestion kbd { display: inline-flex; align-items: center; justify-content: center; margin-left: 4px; height: 16px; min-width: 16px; padding: 0 4px; border-radius: var(--radius-xs); background: var(--accent); font-family: var(--font-mono-ui); font-size: var(--type-mono-size); font-weight: var(--font-weight-medium); line-height: 1; vertical-align: baseline; }
 
 .image-node-footer {
   position: absolute;
@@ -198,7 +195,7 @@
   transform: translateY(4px);
   transition: opacity 150ms cubic-bezier(.42, 0, .58, 1), transform 150ms cubic-bezier(.42, 0, .58, 1), visibility 150ms;
 }
-.image-node-actions { position: relative; display: flex; align-items: center; gap: 8px; height: 40px; }
+.image-node-actions { position: relative; display: flex; align-items: center; gap: 8px; min-height: var(--control-xl); }
 .image-node-actions::before {
   content: '';
   position: absolute;
@@ -207,18 +204,18 @@
   right: -16px;
   bottom: -16px;
   height: 144px;
-  background: linear-gradient(transparent, rgb(25 25 24 / 90%) 65%);
+  background: linear-gradient(transparent, var(--surface-overlay) 65%);
   opacity: 0;
   pointer-events: none;
   transition: opacity 150ms cubic-bezier(.42, 0, .58, 1);
 }
 .image-node.is-overflowing .image-node-actions::before { opacity: 1; }
-.image-node-actions button { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 32px; height: 32px; border-radius: 8px; color: var(--node-muted); }
-.image-node-actions button:hover:enabled { background: #fbfbef2a; }
+.image-node-actions button { display: inline-flex; align-items: center; justify-content: center; flex: none; width: var(--control-md); height: var(--control-md); border-radius: var(--radius-sm); color: var(--muted-foreground); }
+.image-node-actions button:hover:enabled { background: var(--surface-hover); }
 .image-node-actions button:active:enabled { filter: brightness(.9); }
 .image-node-actions button:disabled { opacity: .5; }
 .image-node-actions-right { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-.image-node-generate-group { display: flex; align-items: center; justify-content: flex-end; flex: none; width: 40px; height: 40px; padding: 1px; border: 1px solid var(--node-fill); border-radius: 24px; background: var(--node-fill); overflow: hidden; transition: width 150ms cubic-bezier(.4, 0, .2, 1); }
+.image-node-generate-group { display: flex; align-items: center; justify-content: flex-end; flex: none; width: var(--control-xl); height: var(--control-xl); padding: 1px; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--accent); overflow: hidden; transition: width 150ms cubic-bezier(.4, 0, .2, 1); }
 .image-node-generate-group.is-expanded,
 .image-node-generate-group:not(.is-disabled):is(:hover, :focus-within) { width: 114px; }
 .image-node-generate-group.is-disabled { opacity: .5; }
@@ -226,11 +223,11 @@
 .image-node-generate-group.is-expanded .image-node-quantity,
 .image-node-generate-group:not(.is-disabled):is(:hover, :focus-within) .image-node-quantity { opacity: 1; visibility: visible; }
 .image-node-quantity button, .image-node-quantity .image-node-icon { width: 14px; height: 14px; }
-.image-node-quantity input { width: 20px; height: 14px; border: 0; outline: none; border-radius: 4px; padding: 0; text-align: center; background: transparent; font-size: 14px; line-height: 14px; }
-.image-node-actions .image-node-generate { width: 36px; height: 36px; border-radius: 50%; color: #eeeeec; }
-.image-node-generate .image-node-icon { width: 36px; height: 36px; }
+.image-node-quantity input { width: 20px; height: 16px; border: 0; outline: none; border-radius: var(--radius-xs); padding: 0; text-align: center; background: transparent; font-size: var(--type-body-size); line-height: 1; font-variant-numeric: tabular-nums; }
+.image-node-actions .image-node-generate { width: var(--control-lg); height: var(--control-lg); border-radius: var(--radius-full); color: var(--foreground); }
+.image-node-generate .image-node-icon { width: var(--control-lg); height: var(--control-lg); }
 .image-node-actions .image-node-generate:hover:enabled { background: transparent; }
-.image-node-actions .image-node-generate:disabled { color: var(--node-subtle); }
+.image-node-actions .image-node-generate:disabled { color: var(--foreground-subtle); }
 
 .image-node-tooltip-position {
   position: fixed;
@@ -242,13 +239,16 @@
 }
 .image-node-tooltip {
   padding: 4px 8px;
-  border: 1px solid #fafaf223;
-  border-radius: 12px;
-  background: #0000004d;
-  color: #eeeeec;
-  font: 500 12px/13.5px GeistSans, sans-serif;
-  box-shadow: 0 4px 6px -1px #00000059, 0 2px 4px -2px #0000004d;
-  backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-overlay);
+  color: var(--foreground);
+  font-family: var(--font-ui);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line);
+  font-weight: var(--font-weight-medium);
+  box-shadow: var(--shadow-overlay);
+  backdrop-filter: blur(var(--blur-md));
   transform-origin: center calc(100% + 4px);
   animation: image-node-tooltip-in 150ms cubic-bezier(0, 0, .2, 1) both;
 }
@@ -305,14 +305,14 @@
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
-  height: 32px;
+  height: var(--control-md);
   padding: 4px 4px 4px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   white-space: nowrap;
-  color: #eeeeec;
+  color: var(--foreground);
   cursor: crosshair;
 }
-.image-node-port-label { display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 12px; font-weight: 500; }
+.image-node-port-label { display: flex; align-items: center; gap: 4px; font-size: var(--type-caption-size); line-height: 1; font-weight: var(--font-weight-medium); }
 /* The reference atlas has six 64px cells, rendered as 14px icon boxes.
    Preserve the original transparent padding and glyph proportions. */
 .image-node-port-icon {
@@ -326,8 +326,8 @@
   mask-repeat: no-repeat;
   mask-position: 0 0;
 }
-.image-node-port-count { color: #eeeeec99; margin-left: -1px; }
-.image-node-port { display: block; flex: none; width: 24px; height: 24px; pointer-events: none; }
+.image-node-port-count { color: rgb(238 238 236 / 60%); margin-left: -1px; font-variant-numeric: tabular-nums; }
+.image-node-port { display: block; flex: none; width: var(--control-xs); height: var(--control-xs); pointer-events: none; }
 .image-node-port-ring { stroke-width: calc(1.5px + var(--port-aa) / var(--canvas-zoom, 1)); }
 .image-node-port-dot { display: none; r: calc(3.84px + var(--port-aa) / var(--canvas-zoom, 1) / 2); }
 .image-node-input[data-connected=true] .image-node-port-dot { display: block; }
@@ -340,7 +340,7 @@
   width: 64px;
   height: 96px;
   visibility: hidden;
-  color: var(--node-muted);
+  color: var(--muted-foreground);
   cursor: crosshair;
   transition: visibility 150ms;
 }
@@ -348,21 +348,21 @@
   position: relative;
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: var(--control-xs);
+  height: var(--control-xs);
   opacity: 0;
   transform: translateX(-28px);
   transition: opacity 150ms cubic-bezier(.42, 0, .58, 1), transform 150ms cubic-bezier(.42, 0, .58, 1);
   pointer-events: none;
 }
-.image-node-output-icon { display: block; width: 24px; height: 24px; }
+.image-node-output-icon { display: block; width: var(--control-xs); height: var(--control-xs); }
 .image-node-output:focus-visible { outline: none !important; }
-.image-node-output:focus-visible .image-node-output-visual { outline: 1px solid #b5b3ad; outline-offset: 3px; border-radius: 50%; }
+.image-node-output:focus-visible .image-node-output-visual { outline: 1px solid var(--ring); outline-offset: 3px; border-radius: var(--radius-full); }
 @media (hover: hover) and (pointer: fine) {
-  .image-node-input:hover { background: var(--input-port-hover-fill, var(--node-fill)); }
-  .image-node-output:hover { color: #eeeeec; }
+  .image-node-input:hover { background: var(--input-port-hover-fill, var(--accent)); }
+  .image-node-output:hover { color: var(--foreground); }
 }
-.image-node-input:focus-visible { background: var(--node-fill); }
+.image-node-input:focus-visible { background: var(--accent); }
 
 .image-node:is(:hover, :focus-within, .is-selected) .image-node-footer { opacity: 1; visibility: visible; transform: none; pointer-events: auto; }
 .image-node:is([data-toolbar-hovered=true], :focus-within, .is-selected) .image-node-toolbar-bridge {
@@ -374,7 +374,7 @@
 .image-node:is(:hover, [data-input-port-near]) .image-node-inputs { opacity: 1; visibility: visible; transform: none; }
 .image-node:is(:hover, [data-output-port-near]) .image-node-output { visibility: visible; }
 .image-node:is(:hover, [data-output-port-near]) .image-node-output-visual { opacity: 1; transform: none; }
-.image-node button:focus-visible, .image-node input:focus-visible { outline: 1px solid #b5b3ad; outline-offset: -1px; }
+.image-node button:focus-visible, .image-node input:focus-visible { outline: 1px solid var(--ring); outline-offset: -1px; }
 
 @media (prefers-reduced-motion: reduce) {
   .image-node-tooltip { animation: none !important; }
@@ -383,8 +383,8 @@
   .image-node-suggestion-label {
     animation: none;
     background: none;
-    color: var(--node-muted);
-    -webkit-text-fill-color: var(--node-muted);
+    color: var(--muted-foreground);
+    -webkit-text-fill-color: var(--muted-foreground);
   }
 }
 

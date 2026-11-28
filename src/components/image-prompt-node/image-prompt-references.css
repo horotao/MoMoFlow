@@ -14,7 +14,7 @@
   display: flex;
   align-items: flex-end;
   gap: 4px;
-  min-height: 46px;
+  min-height: 48px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -31,9 +31,9 @@
   flex: none;
   align-items: center;
   gap: 4px;
-  height: 40px;
+  height: var(--control-xl);
   padding-right: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: transparent;
   transition: background-color 250ms cubic-bezier(0, 0, .2, 1), padding-right 250ms cubic-bezier(0, 0, .2, 1);
 }
@@ -41,7 +41,7 @@
   content: '';
   position: absolute;
   inset: 0;
-  border: 1px solid #fafaf223;
+  border: 1px solid var(--border);
   border-radius: inherit;
   opacity: 0;
   pointer-events: none;
@@ -50,23 +50,23 @@
 .image-node .image-node-reference-thumbnail {
   display: block;
   flex: none;
-  width: 40px;
-  height: 40px;
+  width: var(--control-xl);
+  height: var(--control-xl);
   padding: 0;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: #b5b3ad;
+  color: var(--muted-foreground);
   cursor: default;
 }
 .image-node-reference-media {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: var(--control-xl);
+  height: var(--control-xl);
   place-items: center;
   overflow: hidden;
-  border: 1px solid #fafaf223;
-  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   transform-origin: center;
   transition: transform 250ms cubic-bezier(0, 0, .2, 1);
 }
@@ -74,10 +74,10 @@
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   object-fit: cover;
 }
-.image-node-reference[data-kind=text] .image-node-reference-media { background: #383834; }
+.image-node-reference[data-kind=text] .image-node-reference-media { background: var(--accent); }
 .image-node-reference-text-icon { width: 16px; height: 16px; flex: none; pointer-events: none; }
 .image-node-reference-details {
   display: flex;
@@ -87,20 +87,20 @@
   overflow: hidden;
   white-space: nowrap;
   opacity: 0;
-  font-family: GeistSans, sans-serif;
-  font-size: 12px;
-  line-height: 13.5px;
-  letter-spacing: normal;
+  font-family: var(--font-ui);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line);
+  letter-spacing: var(--tracking-normal);
   text-align: left;
   transition: max-width 250ms cubic-bezier(0, 0, .2, 1), opacity 250ms cubic-bezier(0, 0, .2, 1);
 }
 .image-node-reference-name {
   overflow: hidden;
-  color: #eeeeec;
-  font-weight: 500;
+  color: var(--foreground);
+  font-weight: var(--font-weight-medium);
   text-overflow: ellipsis;
 }
-.image-node-reference-type { color: #b5b3ad; font-weight: 400; }
+.image-node-reference-type { color: var(--muted-foreground); font-weight: var(--font-weight-regular); }
 .image-node .image-node-reference-remove {
   position: absolute;
   top: -6px;
@@ -111,23 +111,23 @@
   width: 14px;
   height: 14px;
   padding: 0;
-  border: 1px solid #fafaf223;
-  border-radius: 50%;
-  background: #191918e6;
-  box-shadow: 0 20px 25px -5px #00000080, 0 8px 10px -6px #00000066;
-  color: #b5b3ad;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: var(--surface-overlay);
+  box-shadow: var(--shadow-overlay);
+  color: var(--muted-foreground);
   opacity: 0;
   pointer-events: none;
   transition: opacity 150ms cubic-bezier(.4, 0, .2, 1);
 }
 .image-node-reference-remove > svg { width: 8px; height: 8px; flex: none; }
-.image-node-reference[data-expanded=true] .image-node-reference-card { padding-right: 8px; background: #191918e6; }
+.image-node-reference[data-expanded=true] .image-node-reference-card { padding-right: 8px; background: var(--surface-overlay); }
 .image-node-reference[data-expanded=true] .image-node-reference-card::before { opacity: 1; }
 .image-node-reference[data-expanded=true] .image-node-reference-media { transform: scale(.8); }
 .image-node-reference[data-expanded=true] .image-node-reference-details { max-width: 80px; opacity: 1; }
 .image-node-reference[data-expanded=true] .image-node-reference-remove { opacity: 1; pointer-events: auto; }
 .image-node .image-node-reference-thumbnail:focus-visible,
-.image-node .image-node-reference-remove:focus-visible { outline: 2px solid #fafaf223; outline-offset: 1px; }
+.image-node .image-node-reference-remove:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
 /* Keyboard changes are immediate. Motion can reverse from its current state. */
 .image-node-reference-strip[data-keyboard=true] .image-node-reference *,
 .image-node-reference-strip[data-keyboard=true] .image-node-reference-card::before { transition: none; }

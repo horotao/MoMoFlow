@@ -6,14 +6,14 @@
   z-index: 6;
 }
 .image-inpaint-surface { position: absolute; inset: 0; cursor: none; touch-action: none; user-select: none; outline: none; }
-.image-inpaint-surface:focus-visible:not([data-pointer]) { outline: solid calc(1 * var(--inpaint-px)) #fafaf25c; outline-offset: calc(2 * var(--inpaint-px)); }
+.image-inpaint-surface:focus-visible:not([data-pointer]) { outline: solid calc(1 * var(--inpaint-px)) var(--ring); outline-offset: calc(2 * var(--inpaint-px)); }
 .image-inpaint-surface > :is(img, svg) { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .image-inpaint-cursor {
   position: absolute;
   top: 0;
   left: 0;
   border: solid calc(2 * var(--inpaint-px)) white;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: rgb(255 255 255 / 25%);
   pointer-events: none;
 }
@@ -31,22 +31,21 @@
 .image-inpaint-cursor[data-mode=erase]::after { visibility: hidden; }
 .image-inpaint-editor[data-panning] .image-inpaint-cursor { visibility: hidden; }
 .image-inpaint-prompt.image-node-actions {
-  --node-fill: #fafaf223;
-  --node-muted: #b5b3ad;
-  --node-subtle: #7c7b74;
   position: absolute;
   top: calc(100% + 28 * var(--inpaint-px));
   left: 50%;
   width: min(384px, calc(100vw - 32px));
   height: auto;
-  min-height: 50px;
+  min-height: 48px;
   gap: 0;
   padding: 4px;
-  border: 1px solid #fafaf223;
-  border-radius: 24px;
-  background: rgb(25 25 24 / 90%);
-  color: #eeeeec;
-  font: 12px/16px GeistSans, 'Noto Sans SC Variable', sans-serif;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface-overlay);
+  color: var(--foreground);
+  font-family: var(--font-ui);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line);
   transform: translateX(-50%) scale(calc(1 / var(--inpaint-zoom)));
   transform-origin: top center;
 }
@@ -56,7 +55,7 @@
   align-items: center;
   flex: 1;
   min-width: 0;
-  min-height: 32px;
+  min-height: var(--control-md);
   padding-inline: 12px;
 }
 .image-inpaint-prompt textarea {
@@ -84,10 +83,10 @@
   white-space: nowrap;
   overflow: hidden;
 }
-.image-inpaint-prompt .image-node-generate-group { box-shadow: 0 4px 6px -1px #00000059, 0 2px 4px -2px #0000004d; }
+.image-inpaint-prompt .image-node-generate-group { box-shadow: var(--shadow-overlay); }
 .image-inpaint-prompt .image-node-generate-group.is-disabled { opacity: 1; }
-.image-inpaint-prompt :is(button, input):focus-visible { outline: 1px solid #b5b3ad; outline-offset: -1px; }
-.image-inpaint-error { position: absolute; top: 100%; left: 12px; right: 12px; margin: 8px 0 0; color: #ffb4ab; }
+.image-inpaint-prompt :is(button, input):focus-visible { outline: 1px solid var(--ring); outline-offset: -1px; }
+.image-inpaint-error { position: absolute; top: 100%; left: 12px; right: 12px; margin: 8px 0 0; color: var(--destructive); }
 
 @media (prefers-reduced-motion: reduce) {
   .image-inpaint-prompt :is(.image-node-generate-group, .image-node-quantity) { transition: none; }

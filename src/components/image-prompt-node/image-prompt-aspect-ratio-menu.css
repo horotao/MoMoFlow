@@ -1,11 +1,11 @@
-.image-aspect-menu { position: fixed; z-index: var(--image-menu-layer); display: flex; flex-direction: column; width: min(224px, calc(100vw - 16px)); overflow: hidden; border: 1px solid var(--node-fill); border-radius: 16px; background: rgb(25 25 24 / .9); box-shadow: 0 4px 6px -1px #00000059, 0 2px 4px -2px #0000004d; backdrop-filter: blur(16px); outline: none; }
+.image-aspect-menu { position: fixed; z-index: var(--image-menu-layer); display: flex; flex-direction: column; width: min(224px, calc(100vw - 16px)); overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface-overlay); box-shadow: var(--shadow-overlay); backdrop-filter: blur(var(--blur-md)); outline: none; }
 .image-aspect-scroll-area { flex: 1; min-height: 0; }
 .image-aspect-scroll { padding: 4px; }
 .image-aspect-menu[data-side=top] { transform: translateY(-100%); }
-.image-aspect-group-label { height: 32px; padding: 12px 12px 8px 8px; color: var(--node-muted); font-size: 12px; font-weight: 500; line-height: 12px; user-select: none; }
-.image-aspect-menu .image-aspect-option { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 8px; border-radius: 12px; font-size: 14px; line-height: 17.5px; text-align: left; touch-action: manipulation; user-select: none; }
-.image-aspect-option:hover, .image-aspect-option:focus-visible { background: var(--node-fill); outline: none; }
-.image-aspect-icon { display: flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; padding: 6px; border-radius: 8px; background: var(--node-fill); color: var(--node-muted); }
+.image-aspect-group-label { min-height: var(--control-md); padding: 8px 12px 4px 8px; color: var(--muted-foreground); font-size: var(--type-caption-size); font-weight: var(--font-weight-medium); line-height: var(--type-caption-line); user-select: none; }
+.image-aspect-menu .image-aspect-option { display: flex; align-items: center; gap: 8px; width: 100%; min-height: var(--control-xl); padding: 8px; border-radius: var(--radius-md); font-size: var(--type-body-size); line-height: var(--type-body-line); text-align: left; touch-action: manipulation; user-select: none; }
+.image-aspect-option:hover, .image-aspect-option:focus-visible { background: var(--accent); outline: none; }
+.image-aspect-icon { display: flex; align-items: center; justify-content: center; flex: none; width: var(--control-xs); height: var(--control-xs); padding: 6px; border-radius: var(--radius-sm); background: var(--accent); color: var(--muted-foreground); }
 .image-aspect-icon > .image-node-icon { width: 12px; height: 12px; transform: scale(1.25); }
 /* These rectangles and transforms are FLORA's original ratio glyphs. */
 .image-aspect-rectangle { display: block; width: 12px; height: 12px; border-radius: 2px; background: currentColor; }

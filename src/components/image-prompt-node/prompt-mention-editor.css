@@ -1,36 +1,36 @@
 .image-node .image-node-prompt-host { min-width: 0; }
 .image-node .image-node-prompt-editor {
   display: block; min-height: var(--node-body-line-height); width: 100%; margin: 0; padding: 0; border: 0; outline: none;
-  background: transparent; color: inherit; font: inherit; font-size: 14px; line-height: var(--node-body-line-height);
-  text-align: left; vertical-align: bottom; white-space: pre-wrap; overflow-wrap: anywhere; cursor: text; user-select: text; caret-color: #eeeeec;
+  background: transparent; color: inherit; font: inherit; font-size: var(--type-body-size); line-height: var(--node-body-line-height);
+  text-align: left; vertical-align: bottom; white-space: pre-wrap; overflow-wrap: anywhere; cursor: text; user-select: text; caret-color: var(--foreground);
 }
 .image-node .mention-chip {
-  display: inline-flex; align-items: center; vertical-align: -1px; gap: 4px; max-width: 100%; height: 22px;
-  box-sizing: border-box; padding: 4px; border-radius: 6px; background: rgba(251,251,239,.165);
-  color: #eeeeec; font-size: 14px; font-weight: 400; line-height: 17.5px; white-space: nowrap; user-select: all;
+  display: inline-flex; align-items: center; vertical-align: -1px; gap: 4px; max-width: 100%; height: var(--control-xs);
+  box-sizing: border-box; padding: 4px; border-radius: var(--radius-xs); background: var(--surface-hover);
+  color: var(--foreground); font-size: var(--type-body-size); font-weight: var(--font-weight-regular); line-height: 1; white-space: nowrap; user-select: all;
 }
-.image-node .mention-chip-icon-wrap { display: flex; flex: none; width: 14px; height: 14px; overflow: hidden; border-radius: 4px; }
+.image-node .mention-chip-icon-wrap { display: flex; flex: none; width: 14px; height: 14px; overflow: hidden; border-radius: var(--radius-xs); }
 .image-node .mention-chip img { width: 100%; height: 100%; object-fit: cover; }
-.image-node .mention-chip-label { overflow: hidden; text-overflow: ellipsis; line-height: 14px; }
-.image-node .mention-chip.ProseMirror-selectednode { outline: none; background: rgba(251,251,239,.28); }
+.image-node .mention-chip-label { overflow: hidden; text-overflow: ellipsis; line-height: 1; }
+.image-node .mention-chip.ProseMirror-selectednode { outline: none; background: var(--border-strong); }
 .image-mention-menu {
   position: fixed; z-index: 10000; box-sizing: border-box; width: min(256px, calc(100vw - 16px)); padding: 2px;
-  overflow: hidden; border: 1px solid #fafaf223; border-radius: 16px;
-  background: #191918e6; color: #eeeeec; backdrop-filter: blur(16px); box-shadow: 0 4px 6px -1px #00000059, 0 2px 4px -2px #0000004d;
-  font-family: GeistSans, ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 17.5px;
+  overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--surface-overlay); color: var(--foreground); backdrop-filter: blur(var(--blur-md)); box-shadow: var(--shadow-overlay);
+  font-family: var(--font-ui); font-size: var(--type-body-size); line-height: var(--type-body-line);
 }
-.image-mention-clip { overflow: hidden; border-radius: 6px; }
+.image-mention-clip { overflow: hidden; border-radius: var(--radius-md); }
 .image-mention-scroll { scroll-padding-block: 4px; }
 .image-mention-menu [role=group] { padding: 4px; }
-.image-mention-label { box-sizing: border-box; height: 40px; padding: 14px 16px; color: #b5b3ad; font-size: 12px; line-height: 12px; font-weight: 500; }
-.image-mention-option { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 8px; border-radius: 12px; box-sizing: border-box; cursor: pointer; user-select: none; }
-.image-mention-option[aria-selected=true], .image-mention-option:hover { background: #fafaf223; }
+.image-mention-label { box-sizing: border-box; min-height: var(--control-xl); padding: 12px 16px; color: var(--muted-foreground); font-size: var(--type-caption-size); line-height: var(--type-caption-line); font-weight: var(--font-weight-medium); }
+.image-mention-option { display: flex; align-items: center; gap: 8px; min-height: var(--control-xl); padding: 8px; border-radius: var(--radius-md); box-sizing: border-box; cursor: pointer; user-select: none; }
+.image-mention-option[aria-selected=true], .image-mention-option:hover { background: var(--accent); }
 .image-mention-option[aria-disabled=true] { opacity: .4; cursor: not-allowed; }
-.image-mention-thumbnail { display: flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; border: 1px solid #fafaf223; box-sizing: border-box; border-radius: 6px; overflow: hidden; color: #b5b3ad; }
+.image-mention-thumbnail { display: flex; align-items: center; justify-content: center; flex: none; width: var(--control-xs); height: var(--control-xs); border: 1px solid var(--border); box-sizing: border-box; border-radius: var(--radius-xs); overflow: hidden; color: var(--muted-foreground); }
 .image-mention-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
 .image-mention-thumbnail .image-node-icon { width: 12px; height: 12px; }
 .image-mention-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.image-mention-empty { padding: 12px; color: #b5b3ad; }
+.image-mention-empty { padding: 12px; color: var(--muted-foreground); }
 
 .image-node .mention-chip img.mention-chip-placeholder { filter: invert(1); opacity: .6; }
 
