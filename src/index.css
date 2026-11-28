@@ -9,8 +9,18 @@
 
 @theme inline {
   --font-sans: var(--font-ui);
+  --font-mono: var(--font-mono-ui);
+  --text-micro: var(--type-micro-size);
+  --text-micro--line-height: var(--type-micro-line);
+  --text-xs: var(--type-caption-size);
+  --text-xs--line-height: var(--type-caption-line);
+  --text-sm: var(--type-body-size);
+  --text-sm--line-height: var(--type-body-line);
+  --text-base: var(--type-title-size);
+  --text-base--line-height: var(--type-title-line);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-foreground-subtle: var(--foreground-subtle);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -24,9 +34,12 @@
   --color-accent: var(--accent);
   --color-hover: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-chart-1: var(--chart-1);
@@ -42,10 +55,16 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@theme {
+  /* Radius scale tokens (see DESIGN.md). */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
 }
 
 :root {
@@ -57,39 +76,90 @@
   --canvas-entrance-ease: cubic-bezier(0.4, 0, 0.2, 1);
   /* Inter renders Latin; macOS uses PingFang for Chinese, with self-hosted Noto as fallback. */
   --font-ui: Inter, 'PingFang SC', 'Noto Sans SC', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Noto Sans SC Variable', sans-serif;
-  --radius: 0.625rem;
-  --destructive-foreground: oklch(0.985 0 0);
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --font-mono-ui: GeistMono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  /* Typography scale tokens (see DESIGN.md). */
+  --type-micro-size: 0.6875rem;      /* 11px */
+  --type-micro-line: 1rem;           /* 16px */
+  --type-caption-size: 0.75rem;      /* 12px */
+  --type-caption-line: 1rem;         /* 16px */
+  --type-body-size: 0.875rem;        /* 14px */
+  --type-body-line: 1.25rem;         /* 20px */
+  --type-title-size: 1rem;           /* 16px */
+  --type-title-line: 1.5rem;         /* 24px */
+  --type-mono-size: 0.75rem;         /* 12px */
+  --type-mono-line: 1rem;            /* 16px */
+
+  --type-doc-body-size: 0.875rem;    /* 14px */
+  --type-doc-body-line: 1.5rem;      /* 24px */
+  --type-doc-h2-size: 1.125rem;      /* 18px */
+  --type-doc-h2-line: 1.75rem;       /* 28px */
+  --type-doc-h1-size: 1.5rem;        /* 24px */
+  --type-doc-h1-line: 2rem;          /* 32px */
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  --tracking-normal: 0em;
+  --tracking-tight: -0.02em;
+  --radius: var(--radius-md);
+
+  /* Control size tokens (see DESIGN.md). */
+  --control-xs: 24px;
+  --control-sm: 28px;
+  --control-md: 32px;
+  --control-lg: 36px;
+  --control-xl: 40px;
+
+  /* Colors & surfaces tokens (see DESIGN.md). */
+  --background: #111110;
+  --foreground: #eeeeec;
+  --foreground-subtle: #7c7b74;
+  --card: #191918;
+  --card-foreground: #eeeeec;
+  --popover: #191918;
+  --popover-foreground: #eeeeec;
+  --surface-overlay: rgb(25 25 24 / 90%);
+  --surface-subtle: rgb(250 250 242 / 5%);
+  --surface-hover: rgb(251 251 239 / 17%);
+  --primary: #eeeeec;
+  --primary-foreground: #111110;
+  --secondary: rgb(250 250 242 / 14%);
+  --secondary-foreground: #eeeeec;
+  --muted: rgb(250 250 242 / 8%);
+  --muted-foreground: #b5b3ad;
+  --accent: rgb(250 250 242 / 14%);
+  --accent-foreground: #eeeeec;
+  --border: rgb(250 250 242 / 14%);
+  --border-strong: rgb(250 250 242 / 32%);
+  --input: rgb(250 250 242 / 14%);
+  --ring: rgb(250 250 242 / 32%);
+
+  --success: #7bcfa0;
+  --warning: #e1bc7c;
+  --destructive: #f19797;
+  --destructive-foreground: #111110;
+
+  /* Elevation & glass tokens (see DESIGN.md). */
+  --blur-sm: 8px;
+  --blur-md: 16px;
+  --blur-lg: 24px;
+  --shadow-overlay: 0 4px 6px -1px #00000059, 0 2px 4px -2px #0000004d;
+
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar: #191918;
+  --sidebar-foreground: #eeeeec;
+  --sidebar-primary: #eeeeec;
+  --sidebar-primary-foreground: #111110;
+  --sidebar-accent: rgb(250 250 242 / 14%);
+  --sidebar-accent-foreground: #eeeeec;
+  --sidebar-border: rgb(250 250 242 / 14%);
+  --sidebar-ring: rgb(250 250 242 / 32%);
 }
 
 /* Flora slides each group by its own size while fading in. Use independent
@@ -127,6 +197,9 @@
 
   body {
     @apply bg-background text-foreground;
+    text-autospace: normal;
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
@@ -214,6 +287,13 @@
 @font-face {
   font-family: Inter;
   src: url('/fonts/Inter.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: GeistMono;
+  src: url('./components/image-prompt-node/assets/geist-mono.woff2') format('woff2');
   font-weight: 100 900;
   font-display: swap;
 }
