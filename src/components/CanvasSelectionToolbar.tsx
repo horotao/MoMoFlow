@@ -136,7 +136,7 @@ function SelectionActions({ anchor, nodes, onAlign, onArrange, onChangeTags, onG
       <CanvasToolbarDivider />
       <NodeToolbarTooltip label={runLabel}><button type="button" aria-label="运行所选节点"
         disabled={!present || !runCount || runCount > maxSelectionGenerationNodes} onClick={onRun}>
-        <Play size={16} fill="currentColor" aria-hidden="true" />
+        <Play className="canvas-toolbar-play-icon" size={16} fill="currentColor" aria-hidden="true" />
       </button></NodeToolbarTooltip>
     </CanvasToolbarSurface>
   </div>;

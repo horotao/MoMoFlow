@@ -1,7 +1,7 @@
 .image-node .image-node-prompt-host { min-width: 0; }
 .image-node .image-node-prompt-editor {
-  display: block; min-height: var(--node-body-line-height); width: 100%; margin: 0; padding: 0; border: 0; outline: none;
-  background: transparent; color: inherit; font: inherit; font-size: var(--type-body-size); line-height: var(--node-body-line-height);
+  display: block; min-height: var(--type-doc-body-line); width: 100%; margin: 0; padding: 0; border: 0; outline: none;
+  background: transparent; color: inherit; font: inherit; font-size: var(--type-body-size); line-height: var(--type-doc-body-line);
   text-align: left; vertical-align: bottom; white-space: pre-wrap; overflow-wrap: anywhere; cursor: text; user-select: text; caret-color: var(--foreground);
 }
 .image-node .mention-chip {

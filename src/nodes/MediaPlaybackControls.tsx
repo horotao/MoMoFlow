@@ -11,7 +11,7 @@ export function MediaPlaybackControls({ kind, paused, muted, volume, time, durat
   return <div className="canvas-video-controls nodrag nopan nowheel" role="group" aria-label={kind + '播放控件'}>
       <div className="canvas-video-controls-body">
         <button type="button" aria-label={paused ? '播放' : '暂停'} onClick={togglePlay}>
-          {paused ? <Play fill="currentColor" strokeWidth={0} /> : <Pause />}
+          {paused ? <Play className="canvas-video-play-icon" fill="currentColor" strokeWidth={0} /> : <Pause />}
         </button>
         <div className="canvas-video-volume">
           <button type="button" aria-label={quiet ? '取消静音' : '静音'} onClick={() => {

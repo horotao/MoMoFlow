@@ -1,5 +1,4 @@
 .image-node {
-  --node-body-line-height: var(--type-doc-body-line);
   position: relative;
   width: 384px;
   height: 384px;
@@ -145,7 +144,7 @@
 .image-node-composer .image-node-prompt-editor {
   display: block;
   width: 100%;
-  min-height: var(--node-body-line-height);
+  min-height: var(--type-doc-body-line);
   overflow: hidden;
   padding: 0;
   border: 0;
@@ -154,10 +153,10 @@
   background: transparent;
   cursor: text;
   font-size: var(--type-body-size);
-  line-height: var(--node-body-line-height);
+  line-height: var(--type-doc-body-line);
   caret-color: var(--foreground);
 }
-.image-node-suggestion { position: absolute; top: 0; left: 4px; pointer-events: none; font-size: var(--type-body-size); line-height: var(--node-body-line-height); color: var(--muted-foreground); }
+.image-node-suggestion { position: absolute; top: 0; left: 4px; pointer-events: none; font-size: var(--type-body-size); line-height: var(--type-doc-body-line); color: var(--muted-foreground); }
 /* Match FLORA's placeholder shader: a triangular highlight with a .45-text-
    width falloff, spaced every 3 text widths, traveling 1.5 widths per second.
    Its 4s clock contains two identical sweeps; 60 steps per 2s matches 30fps. */

@@ -22,7 +22,7 @@
   align-items: center;
   gap: 6px;
   width: max-content;
-  padding: 10px 12px;
+  padding: 10px 14px 10px 12px;
   white-space: nowrap;
   cursor: pointer;
 }

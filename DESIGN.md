@@ -16,7 +16,7 @@ markdown: "DESIGN.md"
 | UI / Body | `var(--font-ui)` | `font-sans` | `Inter, 'PingFang SC', 'Noto Sans SC', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Noto Sans SC Variable', sans-serif` |
 | Mono / Code | `var(--font-mono-ui)` | `font-mono` | `GeistMono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace` |
 
-- 禁止在组件 CSS 中自行声明新的 `@font-face` 或手写散装字体栈（如 `GeistSans`、`FloraAddNodeGeist`、`FullscreenGeistMono` 等待迁移旧值）。
+- 禁止在组件 CSS 中自行声明新的 `@font-face` 或手写散装字体栈（如 `GeistSans`、`FloraAddNodeGeist`、`FullscreenGeistMono` 等历史旧值）。
 - 禁止使用携带硬编码字体栈的 `font:` 简写（`font: inherit` 除外）。
 
 ---
@@ -178,3 +178,35 @@ MoMoFlow 暗色界面统一以**暖炭黑 / 暖沙灰**为基底，所有表面�
 - **废弃清单（新增代码禁止使用）**：
   - 废弃圆角：`3px`、`5px`、`6px`、`7px`、`10px`、`14px`、`20px`（以及混用的 `50%` / `999px`，统一用 `var(--radius-full)`）。
   - 废弃高度：`22px`、`30px`、`34.5px`、`38px`、`42px`、`45px`、`46px`、`51px`、`53px`。
+
+---
+
+## Optical Alignment
+
+按钮与图标按实际笔画边缘和视觉重心对齐，默认自动补偿定义在 [src/components/ui/button.tsx](src/components/ui/button.tsx)。
+
+### Optical Padding（图文按钮）
+
+图标自带内留白，单侧有图标时对该侧减 `2px` 或对文字侧加 `2px`：
+
+| 场景 | 做法 |
+| --- | --- |
+| 左侧图标 + 文字 | `padding-inline: 12px 14px;` 或 `has-[>svg:first-child:not(:last-child)]:pl-3.5` |
+| 文字 + 右侧图标 | `padding-inline: 18px 16px;` 或 `has-[>svg:last-child:not(:first-child)]:pr-3.5` |
+| 固定宽图文按钮 | 文字侧补 `padding-inline: 0 2px;` |
+
+### Optical Centring（纯图标按钮）
+
+不对称图标按视觉重心反向 `translate` 微调：
+
+| 图标 | 微调 |
+| --- | --- |
+| `Play ▶` | `14px`: `translateX(0.75px)` / `16px`: `translateX(1px)` / `32px`: `translateX(2px)` |
+| `SquarePen` | `translate(0.5px, -0.5px)` |
+| `Delete` | `translateY(-0.25px)` |
+
+### Rules
+
+- 通用按钮用 CSS `:has()` 或 props 自动补偿，不逐处手写；用 `:not(:last-child)` / `:not(:first-child)` 排除纯图标按钮。
+- 需保持文字左对齐（如原位编辑标题）时，优先缩减图标侧 `2px`。
+- 亚像素（`0.25px` / `0.5px`）在 HiDPI 屏有效，1x 屏易发虚，按尺寸取舍。

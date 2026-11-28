@@ -63,7 +63,7 @@
 .image-inpaint-modes button:last-child { border-inline-start: 0; border-radius: 0 var(--radius-md) var(--radius-md) 0; }
 .image-inpaint-modes .image-node-icon { width: 16px; height: 16px; }
 .image-inpaint-options-actions .image-inpaint-clear {
-  width: 96px; gap: 8px; border-radius: var(--radius-sm); font-size: var(--type-caption-size); line-height: var(--type-caption-line); font-weight: var(--font-weight-medium);
+  width: 96px; gap: 8px; padding-inline: 0 2px; border-radius: var(--radius-sm); font-size: var(--type-caption-size); line-height: var(--type-caption-line); font-weight: var(--font-weight-medium);
 }
 .image-inpaint-options-actions button[aria-pressed=true] { color: var(--foreground); background: var(--surface-hover); }
 .image-inpaint-options-actions button:active:enabled { filter: brightness(.9); }

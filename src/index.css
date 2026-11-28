@@ -70,8 +70,6 @@
 :root {
   --canvas-background: #090908;
   --canvas-grid-dot: #fdf8ec5d;
-  --canvas-overlay-background: rgb(35 35 35 / 90%);
-  --canvas-overlay-border: rgb(255 255 255 / 5%);
   --canvas-entrance-duration: 1500ms;
   --canvas-entrance-ease: cubic-bezier(0.4, 0, 0.2, 1);
   /* Inter renders Latin; macOS uses PingFang for Chinese, with self-hosted Noto as fallback. */

@@ -158,7 +158,7 @@ export function ImageAssetPreview({ asset, assets, onClose }: { asset: FileAsset
             <span role="separator" />
             {masonry ? <button className="image-fullscreen-download-all" type="button" disabled={downloading} aria-busy={downloading} aria-label="Download all" onClick={() => void downloadAll()}><Download />Download all</button> : <>
               <FullscreenDownloadMenu portal={portal} batch={variants.length > 1} onDownload={format => void download(current, format)} onDownloadAll={() => void downloadAll()} downloading={downloading} />
-              <FullscreenTip label="Edit"><button type="button" aria-label="Edit" aria-disabled="true"><SquarePen /></button></FullscreenTip>
+              <FullscreenTip label="Edit"><button type="button" aria-label="Edit" aria-disabled="true"><SquarePen className="image-fullscreen-edit-icon" /></button></FullscreenTip>
               {variants.length > 1 && <><span role="separator" /><div className="image-fullscreen-pagination">
                 <button type="button" aria-label="View previous" disabled={index === 0} onClick={() => select(index - 1)}><ChevronLeft /></button>
                 <span>{index + 1} of {variants.length}</span>

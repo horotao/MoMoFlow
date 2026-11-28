@@ -172,7 +172,7 @@ function GroupActions({ id, name, color, menu, onFocusChange, onMenuChange, onCo
     <CanvasToolbarDivider />
     <NodeToolbarTooltip label={runnable > maxSelectionGenerationNodes ? `一次最多运行 ${maxSelectionGenerationNodes} 个节点` : '运行群组节点'}><button type="button" aria-label="运行群组节点"
       disabled={!runnable || runnable > maxSelectionGenerationNodes} onClick={() => requestCanvasRun(members.map(node => node.id))}>
-      <Play size={16} aria-hidden="true" />
+      <Play className="canvas-toolbar-play-icon" size={16} aria-hidden="true" />
     </button></NodeToolbarTooltip>
     {error && <span className="canvas-group-download-error" role="alert">下载群组内容失败，请重试。</span>}
   </CanvasToolbarSurface>;

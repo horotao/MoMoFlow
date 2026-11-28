@@ -10,6 +10,7 @@
   border: 1px solid var(--border); border-radius: var(--radius-full); background: #0000004d;
   backdrop-filter: blur(var(--blur-md)); box-shadow: var(--shadow-overlay);
 }
+.canvas-video-player .canvas-video-center svg { transform: translateX(2px); }
 .canvas-video-controls {
   position: absolute; inset: auto 8px 8px; overflow: hidden;
   border: 1px solid var(--border); border-radius: var(--radius-lg); background: #0000004d;
@@ -31,6 +32,7 @@
 }
 .canvas-video-controls button:hover { background: var(--accent); }
 .canvas-video-controls button svg { width: 14px; height: 14px; }
+.canvas-video-controls .canvas-video-play-icon { transform: translateX(0.75px); }
 .canvas-video-player :is(button,input):focus-visible { outline: 1px solid var(--ring); outline-offset: -1px; }
 .canvas-video-volume {
   display: flex; flex: none; align-items: center; border-radius: var(--radius-md);
