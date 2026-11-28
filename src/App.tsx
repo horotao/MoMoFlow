@@ -28,7 +28,7 @@ import { CanvasBackground } from './components/CanvasBackground';
 import { canvasGridOrigin, readGridSnap, saveGridSnap, snapDragChanges, type GridDragAnchor } from './components/canvasGrid';
 import { ApiSettingsDialog } from './components/ApiSettingsDialog';
 import { testApiConnection } from './components/apiSettings';
-import { addNodeEntries } from './components/add-node-menu/useAddNodePreview';
+import { addNodeEntries } from './components/add-node-menu/addNodeEntries';
 import { AddNodeMenu, type AddNodeRequest } from './components/add-node-menu/AddNodeMenu';
 import { canConnect, withoutReplacedInput } from './nodes/connectionRules';
 import { connectionChoices, choiceConnection, type PendingConnection } from './nodes/connectionRecommendations';

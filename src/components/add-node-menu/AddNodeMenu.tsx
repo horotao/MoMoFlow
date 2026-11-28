@@ -1,8 +1,7 @@
 import { ClipboardPaste, Merge } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { AddNodePreview } from './AddNodePreview';
-import { addNodeEntries, nodePreviewDescription, supportsNodePreview, useAddNodePreview, type AddNodeType } from './useAddNodePreview';
+import { addNodeEntries, type AddNodeType } from './addNodeEntries';
 import { ScrollArea } from '../ui/scroll-area';
 import './add-node-menu.css';
 
@@ -50,8 +49,6 @@ function normalizeQuantity(value: string) { return Math.max(1, Math.min(20, Math
 export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuantity = true, allowedTypes, canvasActions }: AddNodeMenuProps) {
   const panel = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
-  const previewRef = useRef<HTMLElement>(null);
-  const { preview, enter, leave, keepOpen, reset, finishExit } = useAddNodePreview();
   const [query, setQuery] = useState('');
   const [counts, setCounts] = useState<Partial<Record<AddNodeType, string>>>({});
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
@@ -60,7 +57,6 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
   const term = query.trim().toLowerCase();
   const actions = canvasActions ? canvasEntries.filter(entry => (entry.type + entry.label + entry.description).toLowerCase().includes(term)) : [];
   const filtered = rows.filter(entry => `${entry.type} ${entry.label} ${entry.description}`.toLowerCase().includes(term));
-  const previewEntry = preview && filtered.find(entry => entry.type === preview.type);
   const width = Math.min(352, Math.max(0, viewport.width - 16));
   const nodeHeight = filtered.length ? 8 + filtered.length * 48 : 0;
   const actionHeight = actions.length ? 8 + actions.reduce((height, entry) => height + (entry.description ? 48 : 40), 0) : 0;
@@ -73,12 +69,11 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
   useLayoutEffect(() => { search.current?.focus({ preventScroll: true }); }, []);
   useEffect(() => {
     function resize() {
-      reset();
       setViewport({ width: window.innerWidth, height: window.innerHeight });
     }
     function outside(event: Event) {
       if (event.target instanceof Node && !panel.current?.contains(event.target)
-        && !previewRef.current?.contains(event.target) && !triggerRef?.current?.contains(event.target)) onClose(false);
+        && !triggerRef?.current?.contains(event.target)) onClose(false);
     }
     window.addEventListener('resize', resize);
     document.addEventListener('pointerdown', outside);
@@ -88,7 +83,7 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
       document.removeEventListener('pointerdown', outside);
       document.removeEventListener('focusin', outside);
     };
-  }, [onClose, reset, triggerRef]);
+  }, [onClose, triggerRef]);
 
   function select(entry: typeof rows[number]) {
     onSelect({ type: entry.type, quantity: normalizeQuantity(counts[entry.type] ?? '1') });
@@ -103,11 +98,10 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
     setCounts(current => ({ ...current, [type]: String(Math.max(1, Math.min(20, value))) }));
   }
   function changeQuery(value: string) {
-    reset();
     setQuery(value);
   }
 
-  return createPortal(<><div ref={panel} id="canvas-node-menu" role="dialog" aria-label="添加节点" lang="zh-CN" className="flora-add-node-menu nodrag nopan nowheel"
+  return createPortal(<div ref={panel} id="canvas-node-menu" role="dialog" aria-label="添加节点" lang="zh-CN" className="flora-add-node-menu nodrag nopan nowheel"
     style={{ left, top, width, maxHeight: Math.max(0, viewport.height - top - 8) }}
     onPointerDown={event => event.stopPropagation()} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); }} onWheel={event => event.stopPropagation()}
     onPaste={event => {
@@ -143,7 +137,6 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
       const items = [...(panel.current?.querySelectorAll<HTMLButtonElement>('.flora-add-node-item') ?? [])];
       if (!items.length) return;
       event.preventDefault();
-      reset();
       const current = items.indexOf(document.activeElement as HTMLButtonElement);
       const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : current < 0 ? (event.key === 'ArrowUp' ? items.length - 1 : 0) : (current + (event.key === 'ArrowUp' ? -1 : 1) + items.length) % items.length;
       items[next].focus({ preventScroll: true });
@@ -160,16 +153,11 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
         }} />
       <button type="button" aria-label="清空搜索" className="flora-add-node-clear" style={{ visibility: query ? 'visible' : 'hidden' }} onClick={() => { changeQuery(''); search.current?.focus(); }}><Icon name="close" /></button>
     </div>
-    <ScrollArea className="flora-add-node-list-area" viewportClassName="flora-add-node-list" viewportProps={{ role: 'menu', 'aria-label': '节点和操作', onScroll: reset }}>
+    <ScrollArea className="flora-add-node-list-area" viewportClassName="flora-add-node-list" viewportProps={{ role: 'menu', 'aria-label': '节点和操作' }}>
       {filtered.length > 0 && <div role="group" className="flora-add-node-group">
         {filtered.map(entry => {
           const quantity = normalizeQuantity(counts[entry.type] ?? '1');
           return <div className="flora-add-node-row" data-type={entry.type} key={entry.type}
-            onPointerEnter={event => {
-              if (!event.buttons && supportsNodePreview(event.pointerType)) enter(entry.type, event.currentTarget);
-            }}
-            onPointerLeave={event => { if (supportsNodePreview(event.pointerType)) leave(); }}
-            onPointerCancel={reset}
             onMouseEnter={event => {
               const focusedRow = document.activeElement?.closest('.flora-add-node-row');
               if (focusedRow && focusedRow !== event.currentTarget) event.currentTarget.querySelector<HTMLButtonElement>('.flora-add-node-item')?.focus({ preventScroll: true });
@@ -178,7 +166,7 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
               if (event.target instanceof Element && !event.target.closest('button, .flora-add-node-quantity')) select(entry);
             }}>
             <button type="button" role="menuitem" className="flora-add-node-item" aria-label={`${entry.label} ${entry.description}`}
-              aria-keyshortcuts={entry.key} aria-description={nodePreviewDescription[entry.type]} onClick={() => select(entry)}>
+              aria-keyshortcuts={entry.key} onClick={() => select(entry)}>
               <span className="flora-add-node-badge"><Icon name={entry.type} /></span>
               <span className="flora-add-node-copy"><span className="flora-add-node-title">{entry.label}</span><span className="flora-add-node-description" title={entry.description}>{entry.description}</span></span>
             </button>
@@ -199,7 +187,7 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
         })}
       </div>}
       {divider && <div role="separator" className="flora-add-node-divider" />}
-      {actions.length > 0 && <div role="group" aria-label="画布操作" className="flora-add-node-group" onPointerEnter={reset} onFocus={reset}>
+      {actions.length > 0 && <div role="group" aria-label="画布操作" className="flora-add-node-group">
         {actions.map(entry => {
           const paste = entry.type === 'paste';
           return <button type="button" role="menuitem" key={entry.type} className="flora-add-node-item flora-add-node-action"
@@ -214,11 +202,5 @@ export function AddNodeMenu({ position, onSelect, onClose, triggerRef, allowQuan
       </div>}
       {!filtered.length && !actions.length && <div className="flora-add-node-empty" role="status">{allowedTypes?.length === 0 ? '没有能同时接入所有所选节点的类型' : canvasActions ? '未找到匹配的节点或操作' : '未找到匹配的节点'}</div>}
     </ScrollArea>
-  </div>
-    {preview && previewEntry && <AddNodePreview key={preview.type} previewRef={previewRef} anchor={preview.anchor}
-      menuLeft={left} menuTop={top} menuWidth={width} viewportWidth={viewport.width} viewportHeight={viewport.height}
-      type={preview.type} title={previewEntry.label} subtitle={previewEntry.description}
-      shortcut={previewEntry.key} icon={<Icon name={preview.type} />} open={preview.open}
-      onEnter={keepOpen} onLeave={leave} onExit={finishExit} />}
-  </>, document.body);
+  </div>, document.body);
 }
