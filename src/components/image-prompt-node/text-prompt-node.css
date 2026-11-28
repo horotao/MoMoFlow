@@ -10,7 +10,24 @@
 .text-node.has-text-output .image-node-composer .image-node-prompt-editor { font-size: var(--type-title-size); font-weight: var(--font-weight-medium); line-height: var(--type-title-line); letter-spacing: var(--tracking-tight); }
 .text-node-output { min-height: 0; flex: 1; border-top: 1px solid var(--border); margin-top: 8px; padding-top: 16px; position: relative; }
 .text-node-output-area { height: 100%; margin-right: -12px; }
-.text-node-output-scroll { height: 100%; padding: 0 16px 128px 0; font-size: var(--type-doc-body-size); line-height: var(--type-doc-body-line); overflow-wrap: break-word; user-select: text; }
+.text-node-output-scroll {
+  height: 100%;
+  padding: 0 16px 128px 0;
+  font-size: var(--type-doc-body-size);
+  line-height: var(--type-doc-body-line);
+  overflow-wrap: break-word;
+  user-select: text;
+  --node-scroll-fade-top: 1;
+  --node-scroll-fade-top-size: 32px;
+  mask-image: linear-gradient(to bottom,
+    rgb(0 0 0 / var(--node-scroll-fade-top)) 0,
+    #000 var(--node-scroll-fade-top-size),
+    #000 100%);
+  transition: --node-scroll-fade-top 150ms cubic-bezier(.42, 0, .58, 1);
+}
+.text-node-output-scroll[data-scroll-fade-top] {
+  --node-scroll-fade-top: 0;
+}
 .text-node-output-source { white-space: pre-wrap; }
 .text-node-editable { min-height: 1lh; cursor: text; }
 .text-node-editable:focus-visible { outline: 1px solid var(--ring); outline-offset: -1px; }
@@ -26,7 +43,7 @@
 .text-node-stream-word { animation: text-node-word-in 450ms ease-out both; }
 @keyframes text-node-word-in { from { opacity: 0; } to { opacity: 1; } }
 .text-node .image-node-footer { z-index: 2; }
-.text-node.has-text-output .image-node-actions::before { opacity: 1; background: linear-gradient(transparent, var(--background) 65%); }
+.text-node.has-text-output .image-node-actions::before { opacity: 1; }
 .text-node-formats { display: flex; flex: none; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .text-node .text-node-formats button { width: auto; height: var(--control-xs); padding: 0 6px; border-radius: var(--radius-xs); font-size: var(--type-caption-size); line-height: 1; font-weight: var(--font-weight-medium); }
 .text-node .text-node-formats button[aria-pressed=true] { background: var(--muted); color: var(--foreground); }

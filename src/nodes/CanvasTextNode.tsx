@@ -66,12 +66,21 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
   const connectable = isConnectable && !data.locked;
   useLayoutEffect(() => { internals(id); }, [id, internals, connectedText, references.length, available]);
   useEffect(() => () => { request.current?.abort(); clearTimeout(revealTimer.current); }, []);
+  const syncOutputTopFade = (el: HTMLDivElement | null) => {
+    el?.toggleAttribute('data-scroll-fade-top', el.scrollTop > 1);
+  };
   useLayoutEffect(() => {
-    if (showingRun && follow.current && scroller.current) scroller.current.scrollTop = scroller.current.scrollHeight;
+    if (showingRun && follow.current && scroller.current) {
+      scroller.current.scrollTop = scroller.current.scrollHeight;
+      syncOutputTopFade(scroller.current);
+    }
   }, [item?.text, showingRun]);
   useLayoutEffect(() => {
     if (showingRun) follow.current = true;
-    if (scroller.current) scroller.current.scrollTop = showingRun ? scroller.current.scrollHeight : 0;
+    if (scroller.current) {
+      scroller.current.scrollTop = showingRun ? scroller.current.scrollHeight : 0;
+      syncOutputTopFade(scroller.current);
+    }
   }, [outputId, showingRun]);
   useLayoutEffect(() => {
     if (batch?.finished && batch.items.every(item => !item.result || history.some(result => result.id === item.id))
@@ -221,7 +230,9 @@ export function CanvasTextNode({ id, data, selected, isConnectable }: NodeProps<
       }}
       textResult={item || active ? <ScrollArea className="text-node-output-area" orientation="both" viewportRef={scroller} viewportClassName="text-node-output-scroll"
         viewportProps={{ onScroll: event => {
-          const el = event.currentTarget; follow.current = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+          const el = event.currentTarget;
+          follow.current = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
+          syncOutputTopFade(el);
         } }}>
         {item?.error ? <div className="text-node-output-source">{item.error}</div>
           : !batch && !data.locked && active

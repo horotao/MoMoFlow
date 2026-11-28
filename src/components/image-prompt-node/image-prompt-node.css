@@ -117,7 +117,7 @@
 .image-node.has-compact-composer .image-node-surface-body { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 8px; background: #0000004d; opacity: .5; }
 .image-node.has-compact-composer .image-node-surface:is(:hover, :focus-within) .image-node-surface-body { opacity: 1; }
 .image-node.has-compact-composer .image-node-composer { position: relative; inset: auto; flex: none; max-height: 72px; margin-right: -4px; }
-.image-node.has-compact-composer .image-node-composer-viewport { padding: 0 12px 0 4px; }
+.image-node.has-compact-composer .image-node-composer-viewport { padding: 0 12px 0 4px; --node-scroll-fade-top-size: 20px; }
 .image-node.has-compact-composer .image-node-footer { position: relative; inset: auto; flex: none; opacity: 1; visibility: inherit; transform: none; transition: none; }
 .image-node.has-compact-composer .image-node-actions::before { display: none; }
 .image-node.has-compact-composer .image-node-generate-group {
@@ -137,9 +137,24 @@
   border-radius: var(--radius-sm);
   cursor: default;
 }
+@property --node-scroll-fade-top {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 1;
+}
 .image-node-composer-viewport {
   position: relative;
   padding: 0 16px 144px 4px;
+  --node-scroll-fade-top: 1;
+  --node-scroll-fade-top-size: 32px;
+  mask-image: linear-gradient(to bottom,
+    rgb(0 0 0 / var(--node-scroll-fade-top)) 0,
+    #000 var(--node-scroll-fade-top-size),
+    #000 100%);
+  transition: --node-scroll-fade-top 150ms cubic-bezier(.42, 0, .58, 1);
+}
+.image-node-composer-viewport[data-scroll-fade-top] {
+  --node-scroll-fade-top: 0;
 }
 .image-node-composer .image-node-prompt-editor {
   display: block;
@@ -203,7 +218,7 @@
   right: -16px;
   bottom: -16px;
   height: 144px;
-  background: linear-gradient(transparent, var(--surface-overlay) 65%);
+  background: linear-gradient(transparent, var(--background) 65%);
   opacity: 0;
   pointer-events: none;
   transition: opacity 150ms cubic-bezier(.42, 0, .58, 1);

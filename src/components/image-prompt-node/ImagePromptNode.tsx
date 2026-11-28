@@ -209,6 +209,11 @@ export function ImagePromptNode({
     if (!field || !scroller) return;
     let disposed = false;
 
+    function syncTopFade() {
+      if (disposed || !scroller) return;
+      scroller.toggleAttribute('data-scroll-fade-top', scroller.scrollTop > 1);
+    }
+
     function measure() {
       if (disposed || !field || !scroller) return;
       if (scroller.clientHeight === 0) return;
@@ -218,14 +223,20 @@ export function ImagePromptNode({
       const maximum = scroller.scrollHeight - scroller.clientHeight;
       scroller.scrollTop = wasAtBottom ? maximum : Math.min(previousTop, maximum);
       setContentOverflows(maximum > 1);
+      syncTopFade();
     }
 
     measure();
+    scroller.addEventListener('scroll', syncTopFade, { passive: true });
     const observer = new ResizeObserver(measure);
     observer.observe(scroller);
     observer.observe(field);
     void document.fonts.ready.then(measure);
-    return () => { disposed = true; observer.disconnect(); };
+    return () => {
+      disposed = true;
+      scroller.removeEventListener('scroll', syncTopFade);
+      observer.disconnect();
+    };
   }, [prompt, compactComposer]);
 
   function enterToolbarHover() {
